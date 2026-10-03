@@ -116,7 +116,21 @@ Every other dependency installs its most stable release that supports that core.
 
 ### Patching dependencies
 
-To apply patches to the dependencies, add a patch to the `patches` section of `composer.json`. Local patches are sourced from the `patches` directory. The patches are applied by [`cweagans/composer-patches`](https://github.com/cweagans/composer-patches), which the build does not install on its own.
+The build installs [`cweagans/composer-patches`](https://github.com/cweagans/composer-patches) 2.x and applies the patches declared in the `patches` section of `composer.dev.json` or `composer.json`. Keep local patch files in the `patches` directory and reference them by their path:
+
+```json
+"extra": {
+    "patches": {
+        "drupal/core": {
+            "Describe what the patch fixes": "patches/core-fix.patch"
+        }
+    }
+}
+```
+
+A patch that no longer applies fails the build.
+
+Declare patches that only the tests need in `composer.dev.json`. `composer.json` ships with the extension, so composer-patches 2.x on a site that installs the extension applies those patches too.
 
 ### Providing `GITHUB_TOKEN`
 
