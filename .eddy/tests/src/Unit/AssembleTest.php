@@ -41,11 +41,12 @@ final class AssembleTest extends UnitTestCase {
    *   Configuration with keys: extension_name, extension_type, drupal_version,
    *   drupal_release, releases, releases_result_code, has_build_dir,
    *   has_patches, github_token, suggestions, extension_require,
-   *   extension_require_dev, has_deprecations_disabled,
-   *   has_package_lock, has_skip_npm_build, has_nvmrc, has_node_modules,
-   *   tool_files, has_version_specific_phpunit, has_polyfill_bootstrap,
-   *   create_project_result_code, installed_packages. A NULL drupal_release
-   *   expects the release resolution to fail.
+   *   extension_require_dev, extension_extra, dev_composer_json,
+   *   has_deprecations_disabled, has_package_lock, has_skip_npm_build,
+   *   has_nvmrc, has_node_modules, tool_files, has_version_specific_phpunit,
+   *   has_polyfill_bootstrap, create_project_result_code,
+   *   installed_packages. A NULL drupal_release expects the release
+   *   resolution to fail.
    *
    * @return array
    *   The configuration with defaults applied.
@@ -64,6 +65,8 @@ final class AssembleTest extends UnitTestCase {
       'suggestions' => [],
       'extension_require' => [],
       'extension_require_dev' => [],
+      'extension_extra' => [],
+      'dev_composer_json' => ['require-dev' => ['drupal/coder' => '^8']],
       'has_deprecations_disabled' => FALSE,
       'has_package_lock' => FALSE,
       'has_skip_npm_build' => FALSE,
@@ -89,6 +92,9 @@ final class AssembleTest extends UnitTestCase {
     if ($config['suggestions'] !== []) {
       $composer_json['suggest'] = $config['suggestions'];
     }
+    if ($config['extension_extra'] !== []) {
+      $composer_json['extra'] = $config['extension_extra'];
+    }
     $composer_json_str = json_encode($composer_json, JSON_THROW_ON_ERROR);
 
     // The scaffold's build/composer.json merges the extension's require and
@@ -103,7 +109,7 @@ final class AssembleTest extends UnitTestCase {
       'prefer-stable' => TRUE,
     ], JSON_THROW_ON_ERROR);
 
-    $dev_composer_json = json_encode(['require-dev' => ['drupal/coder' => '^8']], JSON_THROW_ON_ERROR);
+    $dev_composer_json = json_encode($config['dev_composer_json'], JSON_THROW_ON_ERROR);
 
     $installed_packages = [];
     foreach ($config['installed_packages'] as $name => $version) {
@@ -677,6 +683,37 @@ final class AssembleTest extends UnitTestCase {
     yield 'Drupal 12 with a stable release' => ['12', $d12_later, '12.0.2', '^12', $d12_source];
     yield 'Drupal 12 legacy minor with a stable release' => ['12.0.0', $d12_later, '12.0.2', '^12', $d12_source];
     yield 'Drupal 12 canary with a stable release' => ['12@beta', $d12_later, '12.1.0-beta1', '^12', $d12_source];
+  }
+
+  public function testAssembleConfiguresDependencyPatches(): void {
+    $this->envSet('DRUPAL_VERSION', '11');
+    $this->envSet('GITHUB_TOKEN', '');
+    $this->envSet('SYMFONY_DEPRECATIONS_HELPER', '');
+
+    $dev_composer_json = json_decode((string) file_get_contents(dirname(__DIR__, 4) . '/composer.dev.json'), TRUE, 512, JSON_THROW_ON_ERROR);
+    $this->assertIsArray($dev_composer_json);
+    /** @var array{extra: array<string, mixed>} $dev_composer_json */
+    $dev_composer_json['extra']['patches'] = ['drupal/core' => ['Patch from composer.dev.json' => 'patches/dev.patch']];
+
+    $this->setupAssembleMocks([
+      'dev_composer_json' => $dev_composer_json,
+      'extension_extra' => ['patches' => ['drupal/core' => ['Patch from composer.json' => 'patches/extension.patch']]],
+    ]);
+
+    ob_start();
+    require dirname(__DIR__, 4) . '/.devtools/assemble';
+    ob_end_clean();
+
+    $last_write = end($this->capturedBuildComposerJson);
+    $this->assertIsString($last_write);
+
+    $build_json = json_decode($last_write, TRUE, 512, JSON_THROW_ON_ERROR);
+    $this->assertIsArray($build_json);
+    /** @var array{'require-dev': array<string, string>, config: array{'allow-plugins': array<string, bool>}, extra: array{patches: array<string, array<string, string>>}} $build_json */
+
+    $this->assertArrayHasKey('cweagans/composer-patches', $build_json['require-dev']);
+    $this->assertTrue($build_json['config']['allow-plugins']['cweagans/composer-patches'] ?? FALSE);
+    $this->assertSame(['Patch from composer.json' => 'patches/extension.patch', 'Patch from composer.dev.json' => 'patches/dev.patch'], $build_json['extra']['patches']['drupal/core']);
   }
 
   /**
