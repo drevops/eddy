@@ -244,7 +244,7 @@ The build installs [`cweagans/composer-patches`](https://github.com/cweagans/com
 
 Both composer-patches 1.x and 2.x read this compact format, and Drupal.org GitLab CI installs 1.x, so a patch declared in `composer.json` applies there as well.
 
-A patch that no longer applies fails the build. When a dependency update conflicts with your patch, you get a failed CI run rather than a site that's quietly unpatched.
+A patch that no longer applies fails the build. When a dependency update conflicts with your patch, you get a failed CI run instead of a build that quietly runs without it.
 
 Where you declare a patch decides where it reaches:
 
