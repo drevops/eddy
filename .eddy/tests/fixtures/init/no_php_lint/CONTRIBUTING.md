@@ -1,7 +1,7 @@
 @@ -98,10 +98,6 @@
  ## Coding standards
  
- The `make lint` or `ahoy lint` command checks the codebase using multiple tools:
+ The codebase is checked using multiple tools:
 -- PHP code standards checking against `Drupal` and `DrupalPractice` standards.
 -- PHP code static analysis with PHPStan.
 -- PHP deprecated code analysis and auto-fixing with Drupal Rector.

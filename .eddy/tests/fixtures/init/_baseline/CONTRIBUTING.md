@@ -6,20 +6,21 @@ This document explains how to set up a local development environment, build the 
 
 1. Install PHP with SQLite support and Composer
 2. Clone this repository
-3. Run `make build` or `ahoy build`
+3. Build the website:
+
+   ```bash
+   ahoy build
+   ```
 
 ## Building website
 
-`make build` or `ahoy build` assembles the codebase, starts the PHP server and provisions the Drupal website with this extension enabled. These operations are executed using scripts within [`.devtools`](.devtools) directory. CI uses the same scripts to build and test this extension.
+Building the website assembles the codebase, starts the PHP server and provisions the Drupal website with this extension enabled. These operations are executed using scripts within [`.devtools`](.devtools) directory. CI uses the same scripts to build and test this extension.
 
 The resulting codebase is then placed in the `build` directory. The extension files are symlinked into the Drupal site structure.
 
 The `build` command is a wrapper for more granular commands:
-```bash
-make assemble     # Assemble the codebase
-make start        # Start the PHP server
-make provision    # Provision the Drupal website
 
+```bash
 ahoy assemble     # Assemble the codebase
 ahoy start        # Start the PHP server
 ahoy provision    # Provision the Drupal website
@@ -31,20 +32,20 @@ The `provision` command is useful for re-installing the Drupal website without r
 
 The Drupal version used for the codebase assembly is determined by the `DRUPAL_VERSION` variable and defaults to the highest Drupal major this extension targets.
 
-You can specify a different version by setting the `DRUPAL_VERSION` environment variable before running the `make build` or `ahoy build` command:
+You can specify a different version by setting the `DRUPAL_VERSION` environment variable when building the website:
 
 ```bash
 # Newest stable Drupal 11 release.
-DRUPAL_VERSION=11 make build
+DRUPAL_VERSION=11 ahoy build
 
 # Newest Drupal 11.1.x patch release.
-DRUPAL_VERSION=__VERSION__ make build
+DRUPAL_VERSION=__VERSION__ ahoy build
 
 # Newest Drupal 11 beta, release candidate or stable release.
-DRUPAL_VERSION=11@beta make build
+DRUPAL_VERSION=11@beta ahoy build
 
 # Newest stable Drupal 12 release, or newest pre-release if none.
-DRUPAL_VERSION=12 make build
+DRUPAL_VERSION=12 ahoy build
 ```
 
 The build pins Drupal core to the newest release matching `DRUPAL_VERSION` and prints it. A version with no stable release yet resolves to its newest pre-release.
@@ -67,11 +68,11 @@ The website will be available at http://localhost:8000 by default. The hostname 
 
 The `WEBSERVER_PORT` is resolved with the following precedence:
 
-1. **`WEBSERVER_PORT` exported in the shell** - used as-is. Useful for one-off runs: `WEBSERVER_PORT=9000 make build`.
+1. **`WEBSERVER_PORT` exported in the shell** - used as-is. Useful for one-off runs: prefix a command with `WEBSERVER_PORT=9000`.
 2. **`WEBSERVER_PORT` line in the project-root `.env` file** - used as-is. The `start` script does not modify `.env` when this entry is already present, so the same port is reused across `start`, `stop`, `provision`, `drush` and `login` commands.
 3. **Neither is set** - the `start` script discovers the first free port in the range `8000-8099` and writes it to `.env` as `WEBSERVER_PORT=NNNN`. Subsequent commands read this value from `.env`.
 
-To force re-discovery, delete `.env` (or just the `WEBSERVER_PORT` line in it) and re-run `make start` / `ahoy start`.
+To force re-discovery, delete `.env` (or just the `WEBSERVER_PORT` line in it) and re-run the `start` command.
 
 An SQLite database is created in `/tmp/site_force_crystal.sqlite` file. You can browse the contents of the created SQLite database using [DB Browser for SQLite](https://sqlitebrowser.org/).
 
@@ -82,22 +83,21 @@ A one-time login link will be printed to the console.
 PHP step-debugging is supported via [XDebug](https://xdebug.org/docs/install). Install the XDebug PHP extension on your host (`php -v` should mention `with Xdebug`), then toggle it on the development server:
 
 ```bash
-make debug      # restart with XDebug enabled
-ahoy debug      # same, with ahoy
-
-make start      # restart without XDebug
-ahoy start      # same, with ahoy
+ahoy debug      # restart with XDebug enabled
+ahoy start      # restart without XDebug
 ```
 
 `debug` is also available as `debug-on`, `xdebug` and `xdebug-on`, and `start` as `debug-off` and `xdebug-off`.
 
-The `debug` command probes the running PHP server's command line for `xdebug.mode=debug` and skips the restart if XDebug is already enabled. Code coverage stays on [pcov](https://github.com/krakjoe/pcov) because the XDebug settings apply only to the development server, not to the test commands.
+The `debug` command probes the running PHP server's command line for `xdebug.mode=debug` and skips the restart if XDebug is already enabled.
+
+Code coverage stays on [pcov](https://github.com/krakjoe/pcov) because the XDebug settings apply only to the development server, not to the test commands.
 
 To start and stop debug sessions from the browser, install the Xdebug Helper extension: [Chrome](https://chromewebstore.google.com/detail/xdebug-helper-by-jetbrain/aoelhdemabeimdhedkidlnbkfhnhgnhm) / [Firefox](https://addons.mozilla.org/en-US/firefox/addon/xdebug-helper-by-jetbrains/).
 
 ## Coding standards
 
-The `make lint` or `ahoy lint` command checks the codebase using multiple tools:
+The codebase is checked using multiple tools:
 - PHP code standards checking against `Drupal` and `DrupalPractice` standards.
 - PHP code static analysis with PHPStan.
 - PHP deprecated code analysis and auto-fixing with Drupal Rector.
@@ -107,23 +107,33 @@ The `make lint` or `ahoy lint` command checks the codebase using multiple tools:
 
 The configuration files for these tools are located in the root of the codebase.
 
+Run all checks with:
+
+```bash
+ahoy lint
+```
+
 ### Fixing coding standards issues
 
-To fix coding standards issues automatically, run the `make lint-fix` or `ahoy lint-fix`. This runs the same tools as `lint` command but with the `--fix` option (for the tools that support it).
+To fix coding standards issues automatically, run the same tools with the `--fix` option (for the tools that support it):
+
+```bash
+ahoy lint-fix
+```
 
 ## Testing
 
-The `make test` or `ahoy test` command runs the tests for this extension.
+Run the tests for this extension with:
+
+```bash
+ahoy test
+```
 
 The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests. It uses Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
 
 The `test` command is a wrapper for multiple test commands:
-```bash
-make test-unit                    # Run Unit tests
-make test-kernel                  # Run Kernel tests
-make test-functional              # Run Functional tests
-make test-functional-javascript   # Run FunctionalJavascript tests
 
+```bash
 ahoy test-unit                    # Run Unit tests
 ahoy test-kernel                  # Run Kernel tests
 ahoy test-functional              # Run Functional tests
@@ -156,12 +166,9 @@ Either backend gets its own WebDriver port: a free one is claimed starting at 44
 
 ### Running specific tests
 
-You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the `make test` or `ahoy test` command. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site (`web/themes/custom/` for a theme):
+You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the test commands. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site (`web/themes/custom/` for a theme):
 
 ```bash
-make test-unit web/modules/custom/force_crystal/tests/src/Unit/MyUnitTest.php
-make test-unit -- --group=wip
-
 ahoy test-unit web/modules/custom/force_crystal/tests/src/Unit/MyUnitTest.php
 ahoy test-unit -- --group=wip
 ```

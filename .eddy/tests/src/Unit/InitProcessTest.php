@@ -431,6 +431,30 @@ final class InitProcessTest extends UnitTestCase {
   }
 
   /**
+   * The 'CONTRIBUTING.md' commands follow the command wrapper selection.
+   *
+   * @param array<string> $command_wrapper
+   */
+  #[DataProvider('dataProviderProcessPrunesContributingCommands')]
+  public function testProcessPrunesContributingCommands(array $command_wrapper, bool $expect_make, bool $expect_ahoy): void {
+    process('My Extension', 'my_extension', 'module', ['10', '11'], $command_wrapper, [], FALSE, FALSE, FALSE);
+
+    $contributing = (string) file_get_contents(self::$sut . '/CONTRIBUTING.md');
+    $expect_wrapper = $expect_make || $expect_ahoy;
+    $commands = '(build|assemble|start|provision|debug|lint|test)';
+
+    $this->assertSame($expect_make, preg_match('/\bmake ' . $commands . '/', $contributing) === 1, 'CONTRIBUTING.md make command presence mismatch.');
+    $this->assertSame($expect_ahoy, preg_match('/\bahoy ' . $commands . '/', $contributing) === 1, 'CONTRIBUTING.md ahoy command presence mismatch.');
+    $this->assertSame($expect_wrapper, str_contains($contributing, 'The `build` command is a wrapper'), 'CONTRIBUTING.md wrapper text presence mismatch.');
+    $this->assertSame(!$expect_wrapper, str_contains($contributing, '.devtools/assemble'), 'CONTRIBUTING.md direct command presence mismatch.');
+    $this->assertStringNotContainsString('#;', $contributing, 'CONTRIBUTING.md keeps a marker line.');
+  }
+
+  public static function dataProviderProcessPrunesContributingCommands(): \Iterator {
+    yield from self::dataProviderProcessRemovesWrapperDocs();
+  }
+
+  /**
    * @param array<string> $tools_remove
    * @param array<string> $expected_absent
    */

@@ -1,17 +1,13 @@
-@@ -114,63 +114,3 @@
- ## Testing
- 
- The `make test` or `ahoy test` command runs the tests for this extension.
+@@ -128,56 +128,3 @@
+ ```bash
+ ahoy test
+ ```
 -
 -The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests. It uses Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
 -
 -The `test` command is a wrapper for multiple test commands:
--```bash
--make test-unit                    # Run Unit tests
--make test-kernel                  # Run Kernel tests
--make test-functional              # Run Functional tests
--make test-functional-javascript   # Run FunctionalJavascript tests
 -
+-```bash
 -ahoy test-unit                    # Run Unit tests
 -ahoy test-kernel                  # Run Kernel tests
 -ahoy test-functional              # Run Functional tests
@@ -44,12 +40,9 @@
 -
 -### Running specific tests
 -
--You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the `make test` or `ahoy test` command. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site (`web/themes/custom/` for a theme):
+-You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the test commands. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site (`web/themes/custom/` for a theme):
 -
 -```bash
--make test-unit web/modules/custom/force_crystal/tests/src/Unit/MyUnitTest.php
--make test-unit -- --group=wip
--
 -ahoy test-unit web/modules/custom/force_crystal/tests/src/Unit/MyUnitTest.php
 -ahoy test-unit -- --group=wip
 -```

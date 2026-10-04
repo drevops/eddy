@@ -325,6 +325,16 @@ function process(string $extension_name, string $extension_machine_name, string 
     remove_tokens_with_content('DEV_MAKEFILE');
   }
 
+  // '#;< DEV_COMMAND_WRAPPER' marks documentation for any kept wrapper.
+  // '#;< DEV_NO_COMMAND_WRAPPER' marks the direct commands that replace it
+  // when no wrapper is kept.
+  if ($command_wrapper === []) {
+    remove_tokens_with_content('DEV_COMMAND_WRAPPER');
+  }
+  else {
+    remove_tokens_with_content('DEV_NO_COMMAND_WRAPPER');
+  }
+
   trim_claude_settings_permissions($command_wrapper);
 
   remove_tools($tools_remove);

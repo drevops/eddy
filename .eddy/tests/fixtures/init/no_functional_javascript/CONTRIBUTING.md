@@ -1,9 +1,4 @@
-@@ -122,37 +122,11 @@
- make test-unit                    # Run Unit tests
- make test-kernel                  # Run Kernel tests
- make test-functional              # Run Functional tests
--make test-functional-javascript   # Run FunctionalJavascript tests
- 
+@@ -137,32 +137,7 @@
  ahoy test-unit                    # Run Unit tests
  ahoy test-kernel                  # Run Kernel tests
  ahoy test-functional              # Run Functional tests

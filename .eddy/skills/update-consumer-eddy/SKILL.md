@@ -233,9 +233,8 @@ The `README.md` must follow the scaffold template structure exactly. Do NOT simp
    - Project title/description (from `*.info.yml` and existing README).
 3. Insert project-specific content sections (e.g., "Use case", "How it works", "Installation") between the header and the "Contributing" section.
 4. Keep the scaffold's development sections verbatim. They live in `CONTRIBUTING.md` (Local development, Building website, Drupal versions, Coding standards, Testing), which `init.php` regenerates from the scaffold: carry over any project-specific notes from the previous version (`git show HEAD:CONTRIBUTING.md`).
-5. Adjust command references in `CONTRIBUTING.md` to match the chosen command wrapper (e.g., remove `make` references if the project uses `ahoy` only, or vice versa).
-6. Remove badges for tools the project does not use.
-7. Fix the Eddy link at the bottom to point to the Eddy repo, not the project repo.
+5. Remove badges for tools the project does not use.
+6. Fix the Eddy link at the bottom to point to the Eddy repo, not the project repo.
 
 ## Step 10: Commit
 
