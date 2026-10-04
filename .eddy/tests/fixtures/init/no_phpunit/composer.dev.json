@@ -1,10 +1,12 @@
-@@ -1,24 +1,15 @@
+@@ -1,7 +1,5 @@
  {
      "require-dev": {
 -        "behat/mink": "__VERSION__",
 -        "behat/mink-browserkit-driver": "__VERSION__",
+         "cweagans/composer-patches": "__VERSION__",
          "dealerdirect/phpcodesniffer-composer-installer": "__VERSION__",
          "drevops/phpcs-standard": "__VERSION__",
+@@ -8,18 +6,11 @@
          "drupal/coder": "^8 || ^9",
          "drush/drush": "^12 || ^13 || ^14",
          "jangregor/phpstan-prophecy": "__VERSION__ || ^2",

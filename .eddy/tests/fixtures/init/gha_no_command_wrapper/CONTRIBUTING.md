@@ -45,7 +45,7 @@
  ```
  
  The build pins Drupal core to the newest release matching `DRUPAL_VERSION` and prints it. A version with no stable release yet resolves to its newest pre-release.
-@@ -83,14 +77,10 @@
+@@ -97,14 +91,10 @@
  PHP step-debugging is supported via [XDebug](https://xdebug.org/docs/install). Install the XDebug PHP extension on your host (`php -v` should mention `with Xdebug`), then toggle it on the development server:
  
  ```bash
@@ -62,7 +62,7 @@
  Code coverage stays on [pcov](https://github.com/krakjoe/pcov) because the XDebug settings apply only to the development server, not to the test commands.
  
  To start and stop debug sessions from the browser, install the Xdebug Helper extension: [Chrome](https://chromewebstore.google.com/detail/xdebug-helper-by-jetbrain/aoelhdemabeimdhedkidlnbkfhnhgnhm) / [Firefox](https://addons.mozilla.org/en-US/firefox/addon/xdebug-helper-by-jetbrains/).
-@@ -110,7 +100,15 @@
+@@ -124,7 +114,15 @@
  Run all checks with:
  
  ```bash
@@ -79,7 +79,7 @@
  ```
  
  ### Fixing coding standards issues
-@@ -118,7 +116,11 @@
+@@ -132,7 +130,11 @@
  To fix coding standards issues automatically, run the same tools with the `--fix` option (for the tools that support it):
  
  ```bash
@@ -92,7 +92,7 @@
  ```
  
  ## Testing
-@@ -126,18 +128,20 @@
+@@ -140,18 +142,20 @@
  Run the tests for this extension with:
  
  ```bash
@@ -119,7 +119,7 @@
  ```
  
  ### Running FunctionalJavascript tests
-@@ -145,19 +149,27 @@
+@@ -159,19 +163,27 @@
  FunctionalJavascript tests need a real browser driven via WebDriver. By default they use the Google Chrome already installed on your machine - a matching `chromedriver` is downloaded automatically on first run, so no Docker is required:
  
  ```bash
@@ -155,7 +155,7 @@
  ```
  
  The browser reaches the webserver at `localhost` with the default backend, and at `host.docker.internal` (macOS) or `__VERSION__.1` (other systems) from the Selenium container. Set `WEBDRIVER_HOST` to use a different address.
-@@ -167,13 +179,6 @@
+@@ -181,13 +193,6 @@
  ### Running specific tests
  
  You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the test commands. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site (`web/themes/custom/` for a theme):

@@ -1,7 +1,7 @@
-@@ -2,33 +2,16 @@
-     "require-dev": {
+@@ -3,34 +3,21 @@
          "behat/mink": "__VERSION__",
          "behat/mink-browserkit-driver": "__VERSION__",
+         "cweagans/composer-patches": "__VERSION__",
 -        "dealerdirect/phpcodesniffer-composer-installer": "__VERSION__",
 -        "drevops/phpcs-standard": "__VERSION__",
 -        "drupal/coder": "^8 || ^9",
@@ -22,12 +22,14 @@
 -        "vincentlanglet/twig-cs-fixer": "__VERSION__"
 +        "symfony/dom-crawler": "^6.4 || ^7 || ^8"
      },
--    "config": {
--        "allow-plugins": {
+     "config": {
+         "allow-plugins": {
+-            "cweagans/composer-patches": true,
 -            "dealerdirect/phpcodesniffer-composer-installer": true,
 -            "phpstan/extension-installer": true
--        }
--    },
++            "cweagans/composer-patches": true
+         }
+     },
      "extra": {
 -        "phpcodesniffer-search-depth": 10,
          "patches": {},

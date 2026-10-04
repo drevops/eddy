@@ -41,7 +41,7 @@
  ```
  
  The build pins Drupal core to the newest release matching `DRUPAL_VERSION` and prints it. A version with no stable release yet resolves to its newest pre-release.
-@@ -83,8 +83,8 @@
+@@ -97,8 +97,8 @@
  PHP step-debugging is supported via [XDebug](https://xdebug.org/docs/install). Install the XDebug PHP extension on your host (`php -v` should mention `with Xdebug`), then toggle it on the development server:
  
  ```bash
@@ -52,7 +52,7 @@
  ```
  
  `debug` is also available as `debug-on`, `xdebug` and `xdebug-on`, and `start` as `debug-off` and `xdebug-off`.
-@@ -110,7 +110,7 @@
+@@ -124,7 +124,7 @@
  Run all checks with:
  
  ```bash
@@ -61,7 +61,7 @@
  ```
  
  ### Fixing coding standards issues
-@@ -118,7 +118,7 @@
+@@ -132,7 +132,7 @@
  To fix coding standards issues automatically, run the same tools with the `--fix` option (for the tools that support it):
  
  ```bash
@@ -70,7 +70,7 @@
  ```
  
  ## Testing
-@@ -126,7 +126,7 @@
+@@ -140,7 +140,7 @@
  Run the tests for this extension with:
  
  ```bash
@@ -79,7 +79,7 @@
  ```
  
  The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests. It uses Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
-@@ -134,10 +134,10 @@
+@@ -148,10 +148,10 @@
  The `test` command is a wrapper for multiple test commands:
  
  ```bash
@@ -94,7 +94,7 @@
  ```
  
  ### Running FunctionalJavascript tests
-@@ -145,19 +145,19 @@
+@@ -159,19 +159,19 @@
  FunctionalJavascript tests need a real browser driven via WebDriver. By default they use the Google Chrome already installed on your machine - a matching `chromedriver` is downloaded automatically on first run, so no Docker is required:
  
  ```bash
@@ -122,7 +122,7 @@
  ```
  
  The browser reaches the webserver at `localhost` with the default backend, and at `host.docker.internal` (macOS) or `__VERSION__.1` (other systems) from the Selenium container. Set `WEBDRIVER_HOST` to use a different address.
-@@ -169,8 +169,8 @@
+@@ -183,8 +183,8 @@
  You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the test commands. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site (`web/themes/custom/` for a theme):
  
  ```bash
