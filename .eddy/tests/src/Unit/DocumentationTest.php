@@ -10,12 +10,13 @@ use PHPUnit\Framework\Attributes\Group;
 /**
  * Tests that documentation stays consistent with the files it describes.
  *
- * A script can be added to `.devtools/` without a row in its README table.
+ * A script can be added to the tooling package without a 'bin' entry, which
+ * leaves it uninstalled, or without a row in the package README table.
  * A path can be copied into a PHPUnit config without being rebased onto the
  * build root.
  *
- * Neither drift is reported by a linter, because each file stays individually
- * valid while the 2 files disagree.
+ * No such drift is reported by a linter, because each file stays individually
+ * valid while the files disagree.
  *
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
@@ -23,27 +24,47 @@ use PHPUnit\Framework\Attributes\Group;
 #[Group('p0')]
 final class DocumentationTest extends UnitTestCase {
 
-  #[DataProvider('dataProviderDevtoolsScriptsAreDocumented')]
-  public function testDevtoolsScriptsAreDocumented(string $name): void {
-    $readme = file_get_contents(self::rootDir() . '/.devtools/README.md');
+  #[DataProvider('dataProviderToolingCommandIsDocumented')]
+  public function testToolingCommandIsDocumented(string $name): void {
+    $readme = file_get_contents(self::toolingDir() . '/README.md');
     $this->assertIsString($readme);
 
     // Anchored to the entry column: a name mentioned in another row's
     // description is a cross-reference, not an entry of its own.
     $documented = preg_match('/^\|\s*`' . preg_quote($name, '/') . '`\s*\|/m', $readme) === 1;
 
-    $this->assertTrue($documented, sprintf('.devtools/README.md has no table row for `%s`.', $name));
+    $this->assertTrue($documented, sprintf('The tooling README has no table row for `%s`.', $name));
   }
 
-  public static function dataProviderDevtoolsScriptsAreDocumented(): \Iterator {
-    $paths = glob(self::rootDir() . '/.devtools/*') ?: [];
+  public static function dataProviderToolingCommandIsDocumented(): \Iterator {
+    yield from self::toolingCommands();
+  }
 
-    self::assertNotSame([], $paths, 'No entries found in .devtools/.');
+  #[DataProvider('dataProviderToolingCommandExists')]
+  public function testToolingCommandExists(string $name): void {
+    $this->assertFileExists(self::toolingDir() . '/src/' . $name, sprintf('The tooling composer.json declares the bin `%s`, which does not exist.', $name));
+  }
+
+  public static function dataProviderToolingCommandExists(): \Iterator {
+    yield from self::toolingCommands();
+  }
+
+  #[DataProvider('dataProviderToolingScriptIsDeclared')]
+  public function testToolingScriptIsDeclared(string $name): void {
+    $names = array_column(iterator_to_array(self::toolingCommands()), 'name');
+
+    $this->assertContains($name, $names, sprintf('The tooling composer.json does not declare `src/%s` as a bin, so Composer does not install it.', $name));
+  }
+
+  public static function dataProviderToolingScriptIsDeclared(): \Iterator {
+    $paths = glob(self::toolingDir() . '/src/*') ?: [];
+
+    self::assertNotSame([], $paths, 'No scripts found in the tooling package.');
 
     foreach ($paths as $path) {
       $name = basename($path);
 
-      if ($name === 'README.md') {
+      if ($name === 'helpers.php') {
         continue;
       }
 
@@ -98,6 +119,25 @@ final class DocumentationTest extends UnitTestCase {
   }
 
   /**
+   * List the commands the tooling package installs.
+   *
+   * @return \Iterator<string, array{name: string}>
+   *   The command names, keyed by name.
+   */
+  protected static function toolingCommands(): \Iterator {
+    $manifest = json_decode((string) file_get_contents(self::toolingDir() . '/composer.json'), TRUE);
+    $bins = is_array($manifest) && is_array($manifest['bin'] ?? NULL) ? $manifest['bin'] : [];
+
+    self::assertNotSame([], $bins, 'The tooling composer.json declares no bins.');
+
+    foreach ($bins as $bin) {
+      $name = basename((string) $bin);
+
+      yield $name => ['name' => $name];
+    }
+  }
+
+  /**
    * Get the project root directory.
    *
    * @return string
@@ -105,6 +145,16 @@ final class DocumentationTest extends UnitTestCase {
    */
   protected static function rootDir(): string {
     return dirname(__DIR__, 4);
+  }
+
+  /**
+   * Get the tooling package directory.
+   *
+   * @return string
+   *   The absolute path to the tooling package.
+   */
+  protected static function toolingDir(): string {
+    return self::rootDir() . '/.eddy/tooling';
   }
 
 }

@@ -18,8 +18,8 @@
  * so it targets the endpoint the matching start created.
  *
  * Usage:
- * - 'browser start': ensure the selected backend is listening.
- * - 'browser stop': stop whichever backend is running.
+ * - 'eddy-browser start': ensure the selected backend is listening.
+ * - 'eddy-browser stop': stop whichever backend is running.
  */
 
 declare(strict_types=1);

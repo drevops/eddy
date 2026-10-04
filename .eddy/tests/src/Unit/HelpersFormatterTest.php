@@ -29,7 +29,7 @@ final class HelpersFormatterTest extends UnitTestCase {
       $this->envSet('TERM', 'xterm-256color');
       $this->mockPosixIsatty($is_tty);
     }
-    require_once dirname(__DIR__, 4) . '/.devtools/helpers.php';
+    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
     ob_start();
     $callable = 'DrevOps\\Eddy\\DevTools\\' . $function;
     if (!is_callable($callable)) {
@@ -58,7 +58,7 @@ final class HelpersFormatterTest extends UnitTestCase {
     $this->envSet('TERM', 'xterm-256color');
     $this->mockPosixIsatty($is_tty);
     $this->mockQuit(1);
-    require_once dirname(__DIR__, 4) . '/.devtools/helpers.php';
+    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
     ob_start();
     try {
       FAIL('Test failure %s', 'message');
@@ -81,7 +81,7 @@ final class HelpersFormatterTest extends UnitTestCase {
 
   #[DataProvider('dataProviderTermSupportsColor')]
   public function testTermSupportsColor(string|bool $term_value, bool $expected): void {
-    require_once dirname(__DIR__, 4) . '/.devtools/helpers.php';
+    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
     if ($term_value === FALSE) {
       $this->envUnset('TERM');
     }

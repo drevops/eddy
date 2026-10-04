@@ -11,7 +11,7 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * Tests for the info devtools script.
+ * Tests for the 'eddy-info' command.
  *
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
@@ -22,7 +22,7 @@ final class InfoTest extends UnitTestCase {
 
   protected function setUp(): void {
     parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.devtools/helpers.php';
+    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
 
     // Unset these so each test starts from a known state and sees only the
     // values it sets explicitly via envSet().
@@ -448,7 +448,7 @@ final class InfoTest extends UnitTestCase {
 
     $argv = ['info', '--no-coverage'];
     ob_start();
-    require dirname(__DIR__, 4) . '/.devtools/info';
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-info';
     $output = ob_get_clean();
     $this->assertIsString($output);
 
@@ -460,7 +460,7 @@ final class InfoTest extends UnitTestCase {
    */
   protected function runInfo(): string {
     ob_start();
-    require dirname(__DIR__, 4) . '/.devtools/info';
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-info';
 
     return (string) ob_get_clean();
   }
@@ -477,7 +477,7 @@ final class InfoTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.devtools/info';
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-info';
       $this->fail('Expected info to call quit() in field mode.');
     }
     catch (QuitSuccessException | QuitErrorException $e) {

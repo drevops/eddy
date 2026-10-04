@@ -14,16 +14,17 @@
 
     <file>src</file>
     <file>../assets/update-assets.php</file>
-    <file>../../.devtools/assemble</file>
-    <file>../../.devtools/browser</file>
-    <file>../../.devtools/deploy</file>
-    <file>../../.devtools/helpers.php</file>
-    <file>../../.devtools/info</file>
-    <file>../../.devtools/provision</file>
-    <file>../../.devtools/qrcode</file>
-    <file>../../.devtools/start</file>
-    <file>../../.devtools/stop</file>
+    <file>../../.eddy/tooling/src/eddy-assemble</file>
+    <file>../../.eddy/tooling/src/eddy-browser</file>
+    <file>../../.eddy/tooling/src/eddy-deploy</file>
+    <file>../../.eddy/tooling/src/helpers.php</file>
+    <file>../../.eddy/tooling/src/eddy-info</file>
+    <file>../../.eddy/tooling/src/eddy-provision</file>
+    <file>../../.eddy/tooling/src/eddy-qrcode</file>
+    <file>../../.eddy/tooling/src/eddy-start</file>
+    <file>../../.eddy/tooling/src/eddy-stop</file>
     <file>../../init.php</file>
+    <file>../../scripts/eddy-tooling</file>
 
     <!-- Allow long array lines in tests. -->
     <rule ref="Drupal.Arrays.Array.LongLineDeclaration">

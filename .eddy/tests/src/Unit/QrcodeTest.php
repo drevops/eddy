@@ -9,7 +9,7 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * Tests for the qrcode devtools script.
+ * Tests for the 'eddy-qrcode' command.
  *
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
@@ -20,7 +20,7 @@ final class QrcodeTest extends UnitTestCase {
 
   protected function setUp(): void {
     parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.devtools/helpers.php';
+    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
   }
 
   public function testQrcodeRendersQrcodeForUrlArgument(): void {
@@ -34,7 +34,7 @@ final class QrcodeTest extends UnitTestCase {
 
     $argv = ['qrcode', 'https://example.com'];
     ob_start();
-    require dirname(__DIR__, 4) . '/.devtools/qrcode';
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-qrcode';
     $output = ob_get_clean();
     $this->assertIsString($output);
 
@@ -47,7 +47,7 @@ final class QrcodeTest extends UnitTestCase {
 
     $argv = ['qrcode'];
     ob_start();
-    require dirname(__DIR__, 4) . '/.devtools/qrcode';
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-qrcode';
     $output = ob_get_clean();
     $this->assertIsString($output);
 
@@ -62,7 +62,7 @@ final class QrcodeTest extends UnitTestCase {
     $argv = ['qrcode', 'https://example.com'];
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.devtools/qrcode';
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-qrcode';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {

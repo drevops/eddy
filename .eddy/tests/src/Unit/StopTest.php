@@ -8,7 +8,7 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * Tests for the stop devtools script.
+ * Tests for the 'eddy-stop' command.
  *
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
@@ -19,7 +19,7 @@ final class StopTest extends UnitTestCase {
 
   protected function setUp(): void {
     parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.devtools/helpers.php';
+    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
   }
 
   public function testStopDefaultPortWhenNoEnvAndNoDotenv(): void {
@@ -31,7 +31,7 @@ final class StopTest extends UnitTestCase {
     $this->mockSleep();
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.devtools/stop';
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-stop';
     $output = ob_get_clean();
 
     $this->assertIsString($output);
@@ -50,7 +50,7 @@ final class StopTest extends UnitTestCase {
     $this->mockSleep();
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.devtools/stop';
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-stop';
     $output = ob_get_clean();
 
     $this->assertIsString($output);
@@ -69,7 +69,7 @@ final class StopTest extends UnitTestCase {
     $this->mockSleep();
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.devtools/stop';
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-stop';
     $output = ob_get_clean();
 
     $this->assertIsString($output);

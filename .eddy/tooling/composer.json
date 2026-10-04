@@ -1,0 +1,35 @@
+{
+    "name": "drevops/eddy-tooling",
+    "description": "Commands that build, run, test and deploy Drupal extensions created from Eddy.",
+    "license": "GPL-2.0-or-later",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Alex Skrypnyk",
+            "email": "alex@drevops.com",
+            "homepage": "https://www.drevops.com",
+            "role": "Maintainer"
+        }
+    ],
+    "homepage": "https://github.com/drevops/eddy",
+    "support": {
+        "issues": "https://github.com/drevops/eddy/issues",
+        "source": "https://github.com/drevops/eddy"
+    },
+    "require": {
+        "php": ">=8.3"
+    },
+    "bin": [
+        "src/eddy-assemble",
+        "src/eddy-browser",
+        "src/eddy-deploy",
+        "src/eddy-info",
+        "src/eddy-provision",
+        "src/eddy-qrcode",
+        "src/eddy-start",
+        "src/eddy-stop"
+    ],
+    "config": {
+        "sort-packages": true
+    }
+}
