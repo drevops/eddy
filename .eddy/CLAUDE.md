@@ -2,11 +2,11 @@
 
 Maintenance guide for the Eddy template itself.
 
-This file documents how to regenerate the scaffold's own artefacts (animated README SVGs, snapshot fixtures) and how to run its self-tests. It does **not** apply to consumer projects produced by running `init.php`.
+This file documents how to regenerate the scaffold's own artefacts (animated README SVGs, the social preview card, snapshot fixtures) and how to run its self-tests. It does **not** apply to consumer projects produced by running `init.php`.
 
 ## Layout
 
-- `.eddy/assets/` - Source files for animated SVG demos used in the root `README.md` (`init.svg`, `build.svg`, `lint.svg`, `test.svg`) plus the `update-assets.php` generator and a small `svg-term` Node wrapper.
+- `.eddy/assets/` - Source files for animated SVG demos used in the root `README.md` (`init.svg`, `build.svg`, `lint.svg`, `test.svg`) plus the `update-assets.php` generator and a small `svg-term` Node wrapper. It also holds the repository's social preview card, `social-preview.png`, and the `social-preview.html` page it's rendered from.
 - `.eddy/tests/` - PHPUnit suite that validates the scaffold itself: the `init.php` interactive flow, the `.devtools/*` PHP helpers, and the resulting project structure. Snapshots live under `.eddy/tests/fixtures/init/`.
 - `.eddy/skills/update-consumer-eddy/` - the update skill that consumer projects fetch through the "Updating the scaffold" section of their `AGENTS.md`.
 
@@ -87,6 +87,20 @@ This invokes `php .eddy/assets/update-assets.php`, which:
 Required tools: `asciinema`, `expect`, `node`, `npm`. The script checks for these and aborts if any are missing.
 
 Set `SCRIPT_QUIET=1` to suppress verbose progress messages. To record a single asset, pass `--record <name> --workspace <dir>`.
+
+## Regenerating the social preview
+
+`social-preview.png` is the card GitHub shows when someone shares a link to the repository. It's a 1280x640 screenshot of `social-preview.html`, a self-contained page that draws the logo inline and takes its fonts from the local system, so install the 2 fonts its `@font-face` rules name before rendering it.
+
+To change the card, edit the HTML, then render it at exactly 1280x640 with any headless browser, for example `agent-browser`:
+
+```bash
+agent-browser set viewport 1280 640
+agent-browser open "file://$PWD/.eddy/assets/social-preview.html"
+agent-browser screenshot "$PWD/.eddy/assets/social-preview.png"
+```
+
+GitHub has no API for the social preview, so upload the new PNG by hand in the repository's **Settings > General > Social preview**.
 
 ## CI
 
