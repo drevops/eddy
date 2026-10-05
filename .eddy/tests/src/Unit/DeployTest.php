@@ -157,6 +157,89 @@ final class DeployTest extends UnitTestCase {
     ];
   }
 
+  #[DataProvider('dataProviderDeployTag')]
+  public function testDeployTag(string $deploy_branch): void {
+    $deploy_remote = 'git@git.drupal.org:project/test.git';
+
+    $this->envSet('DEPLOY_USER_NAME', 'Deploy Bot');
+    $this->envSet('DEPLOY_USER_EMAIL', 'deploy@example.com');
+    $this->envSet('DEPLOY_REMOTE', $deploy_remote);
+    $this->envSet('DEPLOY_PROCEED', '1');
+    $this->envSet('DEPLOY_TAG', '1.2.0');
+
+    if ($deploy_branch !== '') {
+      $this->envSet('DEPLOY_BRANCH', $deploy_branch);
+    }
+
+    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\DevTools', fn(string $cmd): string => str_contains($cmd, 'symbolic-ref') ? throw new \RuntimeException('A tag deployment must not resolve a branch.') : 'Existing');
+
+    // A branch push or a push of every tag would be an unexpected call.
+    $this->mockPassthruMultiple([
+      ['cmd' => 'git config --global push.default matching'],
+      ['cmd' => sprintf('git remote add deployremote %s', escapeshellarg($deploy_remote))],
+      ['cmd' => sprintf('git push --force deployremote %s', escapeshellarg('refs/tags/1.2.0'))],
+    ]);
+
+    ob_start();
+    require dirname(__DIR__, 4) . '/.devtools/deploy';
+    $output = ob_get_clean();
+
+    $this->assertIsString($output);
+    $this->assertStringContainsString('Pushing tag 1.2.0', $output);
+    $this->assertStringContainsString('Tag pushed to ' . $deploy_remote . ':1.2.0', $output);
+    $this->assertStringContainsString('DEPLOY COMPLETE', $output);
+    $this->assertStringContainsString('Remote tag    : 1.2.0', $output);
+    $this->assertStringNotContainsString('Remote branch', $output);
+  }
+
+  public static function dataProviderDeployTag(): \Iterator {
+    yield 'tag' => [
+      'deploy_branch' => '',
+    ];
+    yield 'tag with a branch set' => [
+      'deploy_branch' => '1.x',
+    ];
+  }
+
+  public function testDeployTagPushFailure(): void {
+    $deploy_remote = 'git@git.drupal.org:project/test.git';
+
+    $this->envSet('DEPLOY_USER_NAME', 'Deploy Bot');
+    $this->envSet('DEPLOY_USER_EMAIL', 'deploy@example.com');
+    $this->envSet('DEPLOY_REMOTE', $deploy_remote);
+    $this->envSet('DEPLOY_PROCEED', '1');
+    $this->envSet('DEPLOY_TAG', '1.2.0');
+
+    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\DevTools', fn(): string => 'Existing');
+
+    $this->mockPassthruMultiple([
+      ['cmd' => 'git config --global push.default matching'],
+      ['cmd' => sprintf('git remote add deployremote %s', escapeshellarg($deploy_remote))],
+      [
+        'cmd' => sprintf('git push --force deployremote %s', escapeshellarg('refs/tags/1.2.0')),
+        'output' => ' ! [remote rejected] 1.2.0 -> 1.2.0 (pre-receive hook declined)' . PHP_EOL,
+        'result_code' => 1,
+      ],
+    ]);
+
+    $this->mockQuit(1);
+
+    ob_start();
+    try {
+      require dirname(__DIR__, 4) . '/.devtools/deploy';
+      $this->fail('Expected QuitErrorException to be thrown.');
+    }
+    catch (QuitErrorException $e) {
+      $this->assertSame(1, $e->getCode());
+    }
+    finally {
+      $output = ob_get_clean();
+      $this->assertIsString($output);
+      $this->assertStringContainsString('[remote rejected] 1.2.0 -> 1.2.0', $output);
+      $this->assertStringNotContainsString('Tag pushed', $output);
+    }
+  }
+
   public function testDeployMissingRequiredVars(): void {
     $this->mockQuit(1);
 

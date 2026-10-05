@@ -10,12 +10,12 @@ use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
 
 /**
- * Tests the branch the deploy workflow passes to the deploy script.
+ * Tests what the deploy workflow passes to the deploy script.
  *
- * A tag push reports the tag name as the head branch, so the workflow clears
- * it and falls back to the default branch. Git allows a tag to share a
- * branch's name, so the head branch is cleared only when that tag points at
- * the triggering commit.
+ * A tag push reports the tag name as the head branch, so the workflow deploys
+ * that tag instead of a branch. Git allows a tag to share a branch's name, so
+ * the run counts as a tag push only when that tag points at the triggering
+ * commit.
  *
  * The step's shell is read out of the workflow and executed against a
  * purpose-built repository, so these assertions cover that script, not a
@@ -39,68 +39,78 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
 
   protected const string ANNOTATED_TAG = '2.0.0';
 
-  #[DataProvider('dataProviderResolvedBranch')]
-  public function testResolvedBranch(string $deploy_branch, string $head_branch, string $head_commit, string $expected): void {
+  /**
+   * @param array<string, string>|null $expected
+   */
+  #[DataProvider('dataProviderDeployment')]
+  public function testDeployment(string $deploy_branch, string $head_branch, string $head_commit, ?array $expected): void {
     $repository = $this->createRepository();
 
-    $actual = $this->runStep($repository, [
+    $this->runStep($repository, [
       'DEPLOY_BRANCH' => $deploy_branch,
       'HEAD_BRANCH' => $head_branch,
       'HEAD_SHA' => $this->resolveCommit($repository, $head_commit),
       'DEFAULT_BRANCH' => self::DEFAULT_BRANCH,
     ]);
 
-    $this->assertSame($expected, $actual);
+    $this->assertSame($expected, $this->readDeployment());
   }
 
-  public static function dataProviderResolvedBranch(): \Iterator {
+  public static function dataProviderDeployment(): \Iterator {
     yield 'branch push' => [
       'deploy_branch' => '',
       'head_branch' => self::FEATURE_BRANCH,
       'head_commit' => 'tip',
-      'expected' => self::FEATURE_BRANCH,
+      'expected' => ['DEPLOY_BRANCH' => self::FEATURE_BRANCH, 'DEPLOY_TAG' => ''],
     ];
 
     yield 'lightweight tag push' => [
       'deploy_branch' => '',
       'head_branch' => self::LIGHTWEIGHT_TAG,
       'head_commit' => 'tagged',
-      'expected' => self::DEFAULT_BRANCH,
+      'expected' => ['DEPLOY_BRANCH' => '', 'DEPLOY_TAG' => self::LIGHTWEIGHT_TAG],
     ];
 
     yield 'annotated tag push' => [
       'deploy_branch' => '',
       'head_branch' => self::ANNOTATED_TAG,
       'head_commit' => 'tagged',
-      'expected' => self::DEFAULT_BRANCH,
+      'expected' => ['DEPLOY_BRANCH' => '', 'DEPLOY_TAG' => self::ANNOTATED_TAG],
     ];
 
     yield 'branch sharing a name with a tag on another commit' => [
       'deploy_branch' => '',
       'head_branch' => self::LIGHTWEIGHT_TAG,
       'head_commit' => 'tip',
-      'expected' => self::LIGHTWEIGHT_TAG,
+      'expected' => ['DEPLOY_BRANCH' => self::LIGHTWEIGHT_TAG, 'DEPLOY_TAG' => ''],
     ];
 
-    yield 'repository variable overrides a tag push' => [
+    yield 'repository variable redirects a branch push' => [
+      'deploy_branch' => 'custom',
+      'head_branch' => self::FEATURE_BRANCH,
+      'head_commit' => 'tip',
+      'expected' => ['DEPLOY_BRANCH' => 'custom', 'DEPLOY_TAG' => ''],
+    ];
+
+    yield 'repository variable leaves a tag push alone' => [
       'deploy_branch' => 'custom',
       'head_branch' => self::LIGHTWEIGHT_TAG,
       'head_commit' => 'tagged',
-      'expected' => 'custom',
+      'expected' => ['DEPLOY_BRANCH' => '', 'DEPLOY_TAG' => self::LIGHTWEIGHT_TAG],
     ];
 
     yield 'no head branch' => [
       'deploy_branch' => '',
       'head_branch' => '',
       'head_commit' => 'tip',
-      'expected' => self::DEFAULT_BRANCH,
+      'expected' => ['DEPLOY_BRANCH' => self::DEFAULT_BRANCH, 'DEPLOY_TAG' => ''],
     ];
 
     yield 'head commit absent from the clone' => [
       'deploy_branch' => '',
       'head_branch' => self::LIGHTWEIGHT_TAG,
       'head_commit' => 'unknown',
-      'expected' => self::LIGHTWEIGHT_TAG,
+      'expected' => ['DEPLOY_BRANCH' => self::LIGHTWEIGHT_TAG, 'DEPLOY_TAG' => ''],
     ];
   }
 
@@ -109,7 +119,7 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
   }
 
   /**
-   * Run the deploy step against a repository and return the resolved branch.
+   * Run the deploy step against a repository.
    *
    * @param string $repository
    *   Directory of the repository to run in.
@@ -117,7 +127,7 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
    *   Environment the workflow defines for the step.
    *
    * @return string
-   *   The branch the step passed to the deploy script.
+   *   The standard output of the step.
    */
   protected function runStep(string $repository, array $environment): string {
     $script = self::$tmp . '/step.sh';
@@ -131,11 +141,37 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
       self::fail(sprintf("The deploy step failed:\n%s", $process->getErrorOutput()));
     }
 
-    return trim($process->getOutput());
+    return $process->getOutput();
   }
 
   /**
-   * Create a repository where a branch and a tag share a name.
+   * Read the variables the deploy script stub recorded.
+   *
+   * @return array<string, string>|null
+   *   The recorded variables, or NULL when the deploy script did not run.
+   */
+  protected function readDeployment(): ?array {
+    $file = self::deploymentFile();
+
+    if (!file_exists($file)) {
+      return NULL;
+    }
+
+    $deployment = [];
+
+    foreach (file($file, FILE_IGNORE_NEW_LINES) ?: [] as $line) {
+      [$name, $value] = explode('=', $line, 2) + [1 => ''];
+      $deployment[$name] = $value;
+    }
+
+    return $deployment;
+  }
+
+  /**
+   * Create a clone as the workflow's checkout leaves it.
+   *
+   * The checkout fetches every branch as a remote-tracking ref and every tag.
+   * A branch and a tag share a name, with the tag on an earlier commit.
    *
    * @return string
    *   Directory of the created repository.
@@ -144,9 +180,9 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
     $repository = self::$tmp . '/repository';
     mkdir($repository . '/.devtools', 0755, TRUE);
 
-    // The step ends by invoking the deploy script with the resolved branch in
-    // the environment, so this stub reports it back.
-    file_put_contents($repository . '/.devtools/deploy', "#!/usr/bin/env bash\nprintf '%s\\n' \"\${DEPLOY_BRANCH}\"\n");
+    // The step ends by invoking the deploy script, so this stub records the
+    // variables it receives.
+    file_put_contents($repository . '/.devtools/deploy', sprintf("#!/usr/bin/env bash\nprintf 'DEPLOY_BRANCH=%%s\\nDEPLOY_TAG=%%s\\n' \"\${DEPLOY_BRANCH:-}\" \"\${DEPLOY_TAG:-}\" > %s\n", escapeshellarg(self::deploymentFile())));
     chmod($repository . '/.devtools/deploy', 0755);
 
     $this->git($repository, ['init', '--initial-branch=' . self::DEFAULT_BRANCH]);
@@ -163,8 +199,9 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
     file_put_contents($repository . '/file.txt', 'second');
     $this->git($repository, ['commit', '--all', '--message', 'Second commit']);
 
-    $this->git($repository, ['branch', self::LIGHTWEIGHT_TAG]);
-    $this->git($repository, ['branch', self::FEATURE_BRANCH]);
+    foreach ([self::DEFAULT_BRANCH, self::FEATURE_BRANCH, self::LIGHTWEIGHT_TAG] as $branch) {
+      $this->git($repository, ['update-ref', 'refs/remotes/origin/' . $branch, 'HEAD']);
+    }
 
     return $repository;
   }
@@ -223,6 +260,16 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
       'GIT_CONFIG_GLOBAL' => '/dev/null',
       'GIT_CONFIG_SYSTEM' => '/dev/null',
     ];
+  }
+
+  /**
+   * Path of the file the deploy script stub writes.
+   *
+   * @return string
+   *   The absolute path.
+   */
+  protected static function deploymentFile(): string {
+    return self::$tmp . '/deployment.txt';
   }
 
   /**
