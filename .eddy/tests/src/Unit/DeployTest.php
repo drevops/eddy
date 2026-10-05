@@ -158,6 +158,35 @@ final class DeployTest extends UnitTestCase {
     ];
   }
 
+  public function testDeployDetachedHeadWithoutBranch(): void {
+    $this->envSet('DEPLOY_USER_NAME', 'Deploy Bot');
+    $this->envSet('DEPLOY_USER_EMAIL', 'deploy@example.com');
+    $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
+    $this->envSet('DEPLOY_PROCEED', '1');
+
+    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\DevTools', fn(string $cmd): ?string => match ($cmd) {
+      'git symbolic-ref --quiet --short HEAD' => NULL,
+      default => throw new \RuntimeException(sprintf('Unexpected command "%s".', $cmd)),
+    });
+
+    $this->mockPassthruNever();
+    $this->mockQuit(1);
+
+    ob_start();
+    try {
+      require dirname(__DIR__, 4) . '/.devtools/deploy';
+      $this->fail('Expected QuitErrorException to be thrown.');
+    }
+    catch (QuitErrorException $e) {
+      $this->assertSame(1, $e->getCode());
+    }
+    finally {
+      $output = ob_get_clean();
+      $this->assertIsString($output);
+      $this->assertStringContainsString('Unable to determine the branch to deploy because HEAD is detached', $output);
+    }
+  }
+
   public function testDeployRefusedTags(): void {
     $deploy_remote = 'git@git.drupal.org:project/test.git';
 
