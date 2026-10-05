@@ -198,10 +198,10 @@ entrypoint:
     # Resolve a relative TMPDIR to an absolute path so tools that chdir (pushd
     # build) still find it. No-op when unset or already absolute.
     if [ -n "${TMPDIR:-}" ]; then case "$TMPDIR" in /*) ;; *) TMPDIR="$PWD/$TMPDIR" ;; esac; mkdir -p "$TMPDIR"; export TMPDIR; fi
-    # Install the tooling once per invocation, as nested 'ahoy' calls inherit
-    # the marker. Progress goes to stderr, so a captured command output holds
-    # only the command's own.
-    if [ -z "${AHOY_EDDY_TOOLING_READY:-}" ]; then export AHOY_EDDY_TOOLING_READY=1; ./scripts/eddy-tooling >&2; fi
+    # 'reset' skips the install, so it still cleans up when the install fails.
+    # Progress goes to stderr, so a captured command output holds only the
+    # command's own.
+    if [ -z "${AHOY_EDDY_TOOLING_READY:-}" ] && [ "$1" != "reset" ]; then export AHOY_EDDY_TOOLING_READY=1; ./scripts/eddy-tooling >&2; fi
     extension="$(basename -s .info.yml -- ./*.info.yml)"
     export BROWSERTEST_OUTPUT_DIRECTORY="$PWD/.logs/browser_output"
     export SIMPLETEST_BASE_URL=http://${WEBSERVER_HOST:-localhost}:${WEBSERVER_PORT:-8000}
