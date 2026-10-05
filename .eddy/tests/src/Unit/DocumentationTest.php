@@ -131,7 +131,8 @@ final class DocumentationTest extends UnitTestCase {
     self::assertNotSame([], $bins, 'The tooling composer.json declares no bins.');
 
     foreach ($bins as $bin) {
-      $name = basename((string) $bin);
+      self::assertIsString($bin);
+      $name = basename($bin);
 
       yield $name => ['name' => $name];
     }

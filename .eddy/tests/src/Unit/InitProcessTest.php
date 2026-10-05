@@ -564,6 +564,7 @@ final class InitProcessTest extends UnitTestCase {
     $raw = (string) file_get_contents(self::$sut . '/composer.dev.json');
     $config = json_decode($raw, TRUE);
     $this->assertIsArray($config);
+    /** @var array{'require-dev'?: array<string, string>, extra?: array{eddy?: array{'drupal-version'?: string}}} $config */
 
     $this->assertSame($expected_default, $config['extra']['eddy']['drupal-version'] ?? NULL);
     $this->assertArrayHasKey('drevops/eddy-tooling', $config['require-dev'] ?? [], 'The tooling constraint is kept.');

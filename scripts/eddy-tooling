@@ -118,6 +118,18 @@ function manifest(): ?array {
     return NULL;
   }
 
+  // #;< META
+  // The scaffold develops the package in '.eddy/tooling' and installs that
+  // copy as a symlink, so edits apply without a release. Patches are left out
+  // because they would modify the symlinked sources.
+  if (is_dir('.eddy/tooling')) {
+    return [
+      'require' => [PACKAGE => '@dev'],
+      'repositories' => [['type' => 'path', 'url' => '.eddy/tooling']],
+    ];
+  }
+
+  // #;> META
   $manifest = ['require' => [PACKAGE => $constraint]];
 
   $patches = json_value($dev, 'extra', 'patches', PACKAGE);
@@ -127,18 +139,6 @@ function manifest(): ?array {
     $manifest['config'] = ['allow-plugins' => ['cweagans/composer-patches' => TRUE]];
     $manifest['extra'] = ['patches' => [PACKAGE => $patches]];
   }
-
-  // #;< META
-  // The scaffold develops the package in '.eddy/tooling' and installs that
-  // copy as a symlink, so edits apply without a release. Patches are left out
-  // because they would modify the symlinked sources.
-  if (is_dir('.eddy/tooling')) {
-    $manifest = [
-      'require' => [PACKAGE => '@dev'],
-      'repositories' => [['type' => 'path', 'url' => '.eddy/tooling']],
-    ];
-  }
-  // #;> META
 
   return $manifest;
 }

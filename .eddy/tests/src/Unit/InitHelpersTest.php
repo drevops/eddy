@@ -155,6 +155,7 @@ final class InitHelpersTest extends UnitTestCase {
 
     $config = json_decode((string) file_get_contents(dirname(__DIR__, 4) . '/composer.dev.json'), TRUE);
     $this->assertIsArray($config);
+    /** @var array{extra?: array{eddy?: array{'drupal-version'?: string}}} $config */
 
     $this->assertSame($shipped_default, $config['extra']['eddy']['drupal-version'] ?? NULL);
   }

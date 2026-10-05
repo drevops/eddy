@@ -163,9 +163,17 @@ final class ToolingInstallerTest extends UnitTestCase {
   protected function packageBins(): array {
     $manifest = json_decode((string) file_get_contents(dirname(__DIR__, 4) . '/.eddy/tooling/composer.json'), TRUE);
     $this->assertIsArray($manifest);
-    $this->assertIsArray($manifest['bin'] ?? NULL);
 
-    return array_map(static fn(mixed $bin): string => basename((string) $bin), $manifest['bin']);
+    $bins = $manifest['bin'] ?? NULL;
+    $this->assertIsArray($bins);
+
+    $names = [];
+    foreach ($bins as $bin) {
+      $this->assertIsString($bin);
+      $names[] = basename($bin);
+    }
+
+    return $names;
   }
 
   /**
@@ -175,9 +183,15 @@ final class ToolingInstallerTest extends UnitTestCase {
     $lock = json_decode((string) file_get_contents(self::$sut . '/vendor/eddy-tooling.lock'), TRUE);
     $this->assertIsArray($lock);
 
-    foreach ((array) ($lock['packages'] ?? []) as $package) {
+    $packages = $lock['packages'] ?? NULL;
+    $this->assertIsArray($packages);
+
+    foreach ($packages as $package) {
       if (is_array($package) && ($package['name'] ?? NULL) === 'drevops/eddy-tooling') {
-        return (string) ($package['version'] ?? '');
+        $version = $package['version'] ?? NULL;
+        $this->assertIsString($version);
+
+        return $version;
       }
     }
 
