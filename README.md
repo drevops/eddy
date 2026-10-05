@@ -486,7 +486,7 @@ ssh-keygen -m PEM -t rsa -b 4096 -C "your_email+project_name@example.com"
 
 4. In CI, use UI to add the following variables as secrets:
 
-- `DEPLOY_REMOTE` - your extension's Drupal.org repository (for example, `git@git.drupal.org:project/myextension.git`).
+- `DEPLOY_REMOTE` - your extension's Drupal.org repository (for example, `git@git.drupal.org:project/myextension.git`). Until it is set, the deployment job skips deployment and reports a notice.
 - `DEPLOY_USER_NAME` - the name of the user who commits to the remote repository (i.e., your name on Drupal.org).
 - `DEPLOY_USER_EMAIL` - the email address of the user who commits to the remote repository (i.e., your email on Drupal.org).
 - `DEPLOY_PROCEED` - set to `1` once CI is working, and you are ready to deploy. Without this variable, the deployment job will run but will not push the code. This is useful for testing the deployment job.

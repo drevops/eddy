@@ -30,8 +30,14 @@ jobs:
       DEPLOY_REMOTE: ${{ secrets.DEPLOY_REMOTE }}
       DEPLOY_PROCEED: ${{ secrets.DEPLOY_PROCEED }}
 
+    # Deployment is optional, so its steps run only when DEPLOY_REMOTE is set.
     steps:
+      - name: Report missing deployment configuration
+        if: ${{ env.DEPLOY_REMOTE == '' }}
+        run: echo "::notice::Deployment is not configured. Set the DEPLOY_REMOTE secret to enable it."
+
       - name: Checkout code
+        if: ${{ env.DEPLOY_REMOTE != '' }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           # `workflow_run` resolves refs against the default branch, so the
@@ -41,6 +47,7 @@ jobs:
           persist-credentials: false
 
       - name: Install SSH key
+        if: ${{ env.DEPLOY_REMOTE != '' }}
         uses: shimataro/ssh-key-action@87a8f067114a8ce263df83e9ed5c849953548bc3 # v2.8.1
         with:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
@@ -50,6 +57,7 @@ jobs:
               StrictHostKeyChecking no
 
       - name: Deploy to Remote
+        if: ${{ env.DEPLOY_REMOTE != '' }}
         env:
           # Optional repository variable. Falls back to the branch that
           # triggered the build, and then to the default branch.
