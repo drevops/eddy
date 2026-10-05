@@ -104,6 +104,8 @@ final class DeployRemoteTest extends UnitTestCase {
       'DEPLOY_PROCEED' => '1',
       'DEPLOY_BRANCH' => '',
       'DEPLOY_TAG' => '',
+      // A fingerprint makes the script rewrite ~/.ssh/config, so it is cleared.
+      'DEPLOY_SSH_KEY_FINGERPRINT' => '',
       'DEBUG' => '',
       'TERM' => 'dumb',
       // The script writes the git identity to the global configuration.
