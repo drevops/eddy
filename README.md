@@ -58,7 +58,7 @@ Eddy isn't for building websites. To stand up a Drupal site, use [Vortex](https:
   - Additional development dependencies provided in [`composer.dev.json`](composer.dev.json). These are merged during the codebase assembly.
   - The extension can be installed as a module or a theme: modify `type` property set in the `info.yml` file.
   - Additional dependencies can be added for integration testing between extensions: add dependencies into `suggest` section of `composer.json` and they will be included into the assembled codebase.
-  - Patches can be applied to the dependencies: add a patch to the `patches` section of `composer.json`. Local patches are sourced from the `patches` directory.
+  - Patches can be applied to the dependencies: declare a patch in the `patches` section of `composer.dev.json` or `composer.json` and the build applies it with [composer-patches](https://github.com/cweagans/composer-patches). Local patches are sourced from the `patches` directory.
   - Command wrappers using `make` and [Ahoy](https://github.com/ahoy-cli/ahoy) for common tasks.
 - Coding standards checking:
   - PHP code standards checking against `Drupal` and `DrupalPractice` standards.
@@ -230,7 +230,26 @@ One trap is worth knowing before moving a tool. Where a test runner derives a sh
 
 ### Patching dependencies
 
-To apply patches to the dependencies, add a patch to the `patches` section of `composer.json`. Local patches are sourced from the `patches` directory. The patches are applied by [`cweagans/composer-patches`](https://github.com/cweagans/composer-patches), which neither the scaffold nor Drupal's recommended project installs.
+The build installs [`cweagans/composer-patches`](https://github.com/cweagans/composer-patches) 2.x and applies the patches declared in the `patches` section of `composer.dev.json` or `composer.json`. Each entry maps a description to a local path or a URL:
+
+```json
+"extra": {
+    "patches": {
+        "drupal/core": {
+            "Describe what the patch fixes": "patches/core-fix.patch"
+        }
+    }
+}
+```
+
+Both composer-patches 1.x and 2.x read this compact format, and Drupal.org GitLab CI installs 1.x, so a patch declared in `composer.json` applies there as well.
+
+A patch that no longer applies fails the build. When a dependency update conflicts with your patch, you get a failed CI run instead of a build that quietly runs without it.
+
+Where you declare a patch decides where it reaches:
+
+- `composer.dev.json` - the build only, locally and in CI. Use it for patches that only your tests need. Keep their files in the `patches` directory, which the build copies into `build/`, and reference them by path as above.
+- `composer.json` - the build and Drupal.org GitLab CI. This file also ships with your extension, so composer-patches 2.x on a site that installs your extension applies these patches too. Reference them by a public URL, since a local `patches/` path doesn't exist on that site.
 
 ### Providing `GITHUB_TOKEN`
 

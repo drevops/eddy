@@ -1,4 +1,4 @@
-@@ -137,32 +137,7 @@
+@@ -151,32 +151,7 @@
  ahoy test-unit                    # Run Unit tests
  ahoy test-kernel                  # Run Kernel tests
  ahoy test-functional              # Run Functional tests

@@ -2,6 +2,7 @@
     "require-dev": {
         "behat/mink": "__VERSION__",
         "behat/mink-browserkit-driver": "__VERSION__",
+        "cweagans/composer-patches": "__VERSION__",
         "dealerdirect/phpcodesniffer-composer-installer": "__VERSION__",
         "drevops/phpcs-standard": "__VERSION__",
         "drupal/coder": "^8 || ^9",
@@ -23,6 +24,7 @@
     },
     "config": {
         "allow-plugins": {
+            "cweagans/composer-patches": true,
             "dealerdirect/phpcodesniffer-composer-installer": true,
             "phpstan/extension-installer": true
         }

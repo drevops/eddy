@@ -43,7 +43,7 @@
  DRUPAL_VERSION=11 ahoy build
  
  # Newest Drupal 11.1.x patch release.
-@@ -83,6 +107,11 @@
+@@ -97,6 +121,11 @@
  PHP step-debugging is supported via [XDebug](https://xdebug.org/docs/install). Install the XDebug PHP extension on your host (`php -v` should mention `with Xdebug`), then toggle it on the development server:
  
  ```bash
@@ -55,7 +55,7 @@
  ahoy debug      # restart with XDebug enabled
  ahoy start      # restart without XDebug
  ```
-@@ -98,12 +127,6 @@
+@@ -112,12 +141,6 @@
  ## Coding standards
  
  The codebase is checked using multiple tools:
@@ -68,7 +68,7 @@
  
  The configuration files for these tools are located in the root of the codebase.
  
-@@ -110,6 +133,10 @@
+@@ -124,6 +147,10 @@
  Run all checks with:
  
  ```bash
@@ -79,7 +79,7 @@
  ahoy lint
  ```
  
-@@ -118,6 +145,10 @@
+@@ -132,6 +159,10 @@
  To fix coding standards issues automatically, run the same tools with the `--fix` option (for the tools that support it):
  
  ```bash
@@ -90,7 +90,7 @@
  ahoy lint-fix
  ```
  
-@@ -126,58 +157,9 @@
+@@ -140,58 +171,9 @@
  Run the tests for this extension with:
  
  ```bash
