@@ -23,8 +23,8 @@ rules:
     # Low-confidence findings on 'test.yml'. The 'actions/cache' and
     # 'actions/setup-node' caches are keyed on lock files and consumed only by
     # the test jobs themselves; deployment mirrors the source tree to Drupal.org
-    # over SSH ('.devtools/deploy') and never builds release artifacts from
-    # these caches, so the poisoning surface is accepted.
+    # over SSH ('eddy-deploy') and never builds release artifacts from these
+    # caches, so the poisoning surface is accepted.
     ignore:
       - test.yml
   ref-version-mismatch:

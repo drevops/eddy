@@ -18,43 +18,43 @@ commands:
 
   assemble:
     usage: Assemble a codebase using project code and all required dependencies.
-    cmd: ./.devtools/assemble
+    cmd: vendor/bin/eddy-assemble
 
   start:
     usage: Start development environment.
     aliases: [debug-off, xdebug-off]
-    cmd: ./.devtools/start
+    cmd: vendor/bin/eddy-start
 
   stop:
     usage: Stop development environment.
-    cmd: ./.devtools/stop
+    cmd: vendor/bin/eddy-stop
 
   info:
     usage: Print a read-only summary of the current environment.
     aliases: [describe]
-    cmd: ./.devtools/info
+    cmd: vendor/bin/eddy-info
 
   debug:
     usage: Enable PHP XDebug step-debugging for the development server.
     aliases: [debug-on, xdebug, xdebug-on]
     cmd: |
-      [ "$(./.devtools/info xdebug)" = "enabled" ] && echo "XDebug is already enabled. Run 'ahoy start' to disable." || \
-      (XDEBUG=1 ./.devtools/start && sleep 1 && [ "$(./.devtools/info xdebug)" = "enabled" ] && echo "Enabled XDebug. Run 'ahoy start' to disable." || (echo "Failed to enable XDebug." && exit 1))
+      [ "$(vendor/bin/eddy-info xdebug)" = "enabled" ] && echo "XDebug is already enabled. Run 'ahoy start' to disable." || \
+      (XDEBUG=1 vendor/bin/eddy-start && sleep 1 && [ "$(vendor/bin/eddy-info xdebug)" = "enabled" ] && echo "Enabled XDebug. Run 'ahoy start' to disable." || (echo "Failed to enable XDebug." && exit 1))
 
   provision:
     usage: Provision application within assembled codebase.
-    cmd: ./.devtools/provision
+    cmd: vendor/bin/eddy-provision
 
   drush:
     usage: Run Drush command.
-    cmd: build/vendor/bin/drush -l "$(./.devtools/info site-url)" "$@"
+    cmd: build/vendor/bin/drush -l "$(vendor/bin/eddy-info site-url)" "$@"
 
   login:
     usage: Login to a website.
     cmd: |
       url="$(ahoy drush uli)"
       printf '%s\n' "$url"
-      if [ -n "$LOGIN_QRCODE" ]; then ./.devtools/qrcode "$url"; fi
+      if [ -n "$LOGIN_QRCODE" ]; then vendor/bin/eddy-qrcode "$url"; fi
 
   lint:
     usage: Check coding standards for violations.
@@ -148,7 +148,7 @@ commands:
     usage: Run FunctionalJavascript tests.
     cmd: |
       ahoy browser-start || exit 1
-      export WEBDRIVER_PORT="$(./.devtools/info webdriver-port)"
+      export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
       pushd "build" >/dev/null || exit 1
       php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional-javascript "$@"
       popd >/dev/null || exit 1
@@ -167,11 +167,11 @@ commands:
   #;< DEV_FUNCTIONAL_JAVASCRIPT
   browser-start:
     usage: Start the browser for FunctionalJavascript tests.
-    cmd: ./.devtools/browser start
+    cmd: vendor/bin/eddy-browser start
 
   browser-stop:
     usage: Stop the browser.
-    cmd: ./.devtools/browser stop
+    cmd: vendor/bin/eddy-browser stop
   #;> DEV_FUNCTIONAL_JAVASCRIPT
 
   reset:
@@ -182,6 +182,7 @@ commands:
       chmod -Rf 777 build .logs > /dev/null 2>&1 || true
       rm -Rf build > /dev/null 2>&1 || true
       rm -Rf .logs > /dev/null 2>&1 || true
+      rm -Rf vendor > /dev/null 2>&1 || true
 
   title:
     usage: Print a section title.
@@ -197,6 +198,10 @@ entrypoint:
     # Resolve a relative TMPDIR to an absolute path so tools that chdir (pushd
     # build) still find it. No-op when unset or already absolute.
     if [ -n "${TMPDIR:-}" ]; then case "$TMPDIR" in /*) ;; *) TMPDIR="$PWD/$TMPDIR" ;; esac; mkdir -p "$TMPDIR"; export TMPDIR; fi
+    # Install the tooling once per invocation, as nested 'ahoy' calls inherit
+    # the marker. Progress goes to stderr, so a command's own output stays
+    # capturable.
+    if [ -z "${AHOY_EDDY_TOOLING_READY:-}" ]; then export AHOY_EDDY_TOOLING_READY=1; ./scripts/eddy-tooling >&2; fi
     extension="$(basename -s .info.yml -- ./*.info.yml)"
     export BROWSERTEST_OUTPUT_DIRECTORY="$PWD/.logs/browser_output"
     export SIMPLETEST_BASE_URL=http://${WEBSERVER_HOST:-localhost}:${WEBSERVER_PORT:-8000}

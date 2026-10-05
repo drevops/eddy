@@ -121,7 +121,9 @@ jobs:
 
       - name: Start chromedriver (chromedriver backend)
         if: matrix.backend == 'chromedriver' && (matrix.group == 'p3' || matrix.group == 'p4')
-        run: ./.devtools/browser start
+        run: |
+          ./scripts/eddy-tooling
+          vendor/bin/eddy-browser start
 
       - name: Install PHP test dependencies
         run: composer install --no-interaction
@@ -135,6 +137,16 @@ jobs:
       - name: Check composer.json is normalized
         if: matrix.group == 'p0'
         run: composer normalize --dry-run
+        working-directory: .eddy/tests
+
+      - name: Validate tooling composer.json
+        if: matrix.group == 'p0'
+        run: composer validate --strict
+        working-directory: .eddy/tooling
+
+      - name: Check tooling composer.json is normalized
+        if: matrix.group == 'p0'
+        run: composer normalize --dry-run ../tooling/composer.json
         working-directory: .eddy/tests
 
       - name: Lint PHP tests

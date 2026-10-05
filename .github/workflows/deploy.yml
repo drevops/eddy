@@ -46,6 +46,12 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Install the tooling
+        if: ${{ env.DEPLOY_REMOTE != '' }}
+        run: ./scripts/eddy-tooling
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Install SSH key
         if: ${{ env.DEPLOY_REMOTE != '' }}
         uses: shimataro/ssh-key-action@87a8f067114a8ce263df83e9ed5c849953548bc3 # v2.8.1
@@ -71,7 +77,7 @@ jobs:
           if git tag --points-at "${HEAD_SHA}" | grep -Fxq "${HEAD_BRANCH}"; then
             # Pushing the tagged commit to a branch rewinds the branch when the
             # tag is behind its tip, so only the tag is deployed.
-            DEPLOY_BRANCH='' DEPLOY_TAG="${HEAD_BRANCH}" .devtools/deploy
+            DEPLOY_BRANCH='' DEPLOY_TAG="${HEAD_BRANCH}" vendor/bin/eddy-deploy
             exit 0
           fi
 
@@ -83,4 +89,4 @@ jobs:
             exit 0
           fi
 
-          DEPLOY_BRANCH="${DEPLOY_BRANCH:-${HEAD_BRANCH}}" .devtools/deploy
+          DEPLOY_BRANCH="${DEPLOY_BRANCH:-${HEAD_BRANCH}}" vendor/bin/eddy-deploy
