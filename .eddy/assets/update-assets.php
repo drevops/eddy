@@ -485,6 +485,18 @@ expect "Tools" {
     safe_send "\\r"
 }
 
+# Confirm: Keep Cloudflare tunnel support - accept the default "Yes" with enter.
+expect "Keep Cloudflare tunnel support" {
+    sleep {$delay}
+    safe_send "\\r"
+}
+
+# Confirm: Keep example lifecycle scripts - accept the default "No" with enter.
+expect "Keep example lifecycle scripts" {
+    sleep {$delay}
+    safe_send "\\r"
+}
+
 # Confirm: Remove this script - type "y" to confirm.
 expect "Remove this script" {
     sleep {$delay}
