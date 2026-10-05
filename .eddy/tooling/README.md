@@ -19,7 +19,7 @@ The installer reads the version constraint from `composer.dev.json`:
 
 Keep the `~` constraint. It accepts patch releases but holds the minor version, so a new minor release reaches your project with the next scaffold update rather than in the middle of a CI run.
 
-The installer runs Composer only when the constraint or the patches for the package change, or when a command is missing from `vendor/bin`. Otherwise it returns straight away, so running it before every command costs next to nothing. A local install keeps its patch release until `vendor/` is removed, which `ahoy reset` and `make reset` do.
+The installer runs Composer only when the constraint, the patches for the package or the contents of a local patch file change, or when a command is missing from `vendor/bin`. Otherwise it returns straight away, so running it before every command costs next to nothing. A local install keeps its patch release until `vendor/` is removed, which `ahoy reset` and `make reset` do.
 
 ## Commands
 
@@ -60,7 +60,7 @@ The package is installed into `vendor/`, so an edit made there is lost on the ne
 }
 ```
 
-The installer applies the patches with [`cweagans/composer-patches`](https://github.com/cweagans/composer-patches) and installs the package again whenever the list changes. Local patch paths are relative to the project root. The patches, like the package, stay out of the site build.
+The installer applies the patches with [`cweagans/composer-patches`](https://github.com/cweagans/composer-patches) and installs the package again whenever the list changes or a local patch file is edited. Local patch paths are relative to the project root. The patches, like the package, stay out of the site build.
 
 ## Testing
 

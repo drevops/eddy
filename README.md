@@ -134,7 +134,7 @@ The version constraint lives in `composer.dev.json`, next to the other developme
 "drevops/eddy-tooling": "~1.0.0"
 ```
 
-The `~` accepts patch releases and holds the minor version, so CI picks up fixes on its own and a new minor version arrives with the next scaffold update. The installer runs Composer only when the constraint or the patches declared for the package change, or when a command is missing, so running it before every command costs next to nothing. A local checkout keeps the patch release it installed until `vendor/` is removed, which `make reset` and `ahoy reset` do.
+The `~` accepts patch releases and holds the minor version, so CI picks up fixes on its own and a new minor version arrives with the next scaffold update. The installer runs Composer only when the constraint, the patches declared for the package or the contents of a local patch file change, or when a command is missing, so running it before every command costs next to nothing. A local checkout keeps the patch release it installed until `vendor/` is removed, which `make reset` and `ahoy reset` do.
 
 To add a project-specific step, use a [custom lifecycle script](#custom-lifecycle-scripts). To change what a command itself does, declare a patch for the package in `composer.dev.json` as described in the [package README](.eddy/tooling/README.md#patching-the-package).
 

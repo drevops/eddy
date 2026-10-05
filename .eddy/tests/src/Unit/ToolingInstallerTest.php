@@ -66,9 +66,14 @@ final class ToolingInstallerTest extends UnitTestCase {
     parent::tearDown();
   }
 
+  /**
+   * @param array<string, string> $files
+   *   Files to create before the install, keyed by path.
+   */
   #[DataProvider('dataProviderInstall')]
-  public function testInstall(array $dev_manifest, bool $dev_mode, array $expected_manifest, string $expected_constraint): void {
+  public function testInstall(array $dev_manifest, bool $dev_mode, array $expected_manifest, string $expected_constraint, array $files = []): void {
     $this->writeDevManifest($dev_manifest);
+    $this->writeFiles($files);
 
     if ($dev_mode) {
       mkdir('.eddy/tooling', 0755, TRUE);
@@ -122,6 +127,54 @@ final class ToolingInstallerTest extends UnitTestCase {
         'extra' => ['patches' => ['drevops/eddy-tooling' => $patches]],
       ],
       '~1.0.0',
+    ];
+
+    $local_patches = [
+      'Fix the build' => 'patches/eddy-tooling-fix.patch',
+      'Fix the deploy' => 'https://example.com/eddy-tooling-deploy.patch',
+      'Fix the start' => 'patches/eddy-tooling-missing.patch',
+    ];
+
+    yield 'checksums of local patch files' => [
+      [
+        'require-dev' => ['drevops/eddy-tooling' => '~1.0.0'],
+        'extra' => ['patches' => ['drevops/eddy-tooling' => $local_patches]],
+      ],
+      FALSE,
+      [
+        'require' => ['drevops/eddy-tooling' => '~1.0.0', 'cweagans/composer-patches' => '^2'],
+        'config' => ['allow-plugins' => ['cweagans/composer-patches' => TRUE]],
+        'extra' => [
+          'patches' => ['drevops/eddy-tooling' => $local_patches],
+          'eddy-tooling' => ['patch-checksums' => ['patches/eddy-tooling-fix.patch' => hash('sha256', 'fix')]],
+        ],
+      ],
+      '~1.0.0',
+      ['patches/eddy-tooling-fix.patch' => 'fix'],
+    ];
+
+    $patch_definitions = [
+      ['description' => 'Fix the build', 'url' => 'patches/eddy-tooling-fix.patch'],
+      ['description' => 'Fix the deploy', 'url' => 'https://example.com/eddy-tooling-deploy.patch'],
+      ['description' => 'Fix the start'],
+    ];
+
+    yield 'checksums of local patch files in a definition list' => [
+      [
+        'require-dev' => ['drevops/eddy-tooling' => '~1.0.0'],
+        'extra' => ['patches' => ['drevops/eddy-tooling' => $patch_definitions]],
+      ],
+      FALSE,
+      [
+        'require' => ['drevops/eddy-tooling' => '~1.0.0', 'cweagans/composer-patches' => '^2'],
+        'config' => ['allow-plugins' => ['cweagans/composer-patches' => TRUE]],
+        'extra' => [
+          'patches' => ['drevops/eddy-tooling' => $patch_definitions],
+          'eddy-tooling' => ['patch-checksums' => ['patches/eddy-tooling-fix.patch' => hash('sha256', 'fix')]],
+        ],
+      ],
+      '~1.0.0',
+      ['patches/eddy-tooling-fix.patch' => 'fix'],
     ];
 
     yield 'empty patch list for the package' => [
@@ -217,6 +270,35 @@ final class ToolingInstallerTest extends UnitTestCase {
     yield 'package manifest removed' => [[], ['vendor/drevops/eddy-tooling/composer.json'], '~1.0.0'];
     yield 'package declares no commands' => [['vendor/drevops/eddy-tooling/composer.json' => '{"bin": []}'], [], '~1.0.0'];
     yield 'package declares a command that is not a path' => [['vendor/drevops/eddy-tooling/composer.json' => '{"bin": [1]}'], [], '~1.0.0'];
+  }
+
+  #[DataProvider('dataProviderLocalPatchChange')]
+  public function testLocalPatchChange(?string $contents, bool $expected_reinstall): void {
+    $this->writeFiles(['patches/fix.patch' => 'fix']);
+    $this->writeDevManifest([
+      'require-dev' => ['drevops/eddy-tooling' => '~1.0.0'],
+      'extra' => ['patches' => ['drevops/eddy-tooling' => ['Fix' => 'patches/fix.patch']]],
+    ]);
+    $this->mockComposer();
+    $this->runMain(0);
+
+    if ($contents === NULL) {
+      unlink('patches/fix.patch');
+    }
+    else {
+      file_put_contents('patches/fix.patch', $contents);
+    }
+
+    $output = $this->runMain(0);
+
+    $this->assertSame($expected_reinstall, str_contains($output, '[INFO] Installing drevops/eddy-tooling ~1.0.0.'));
+    $this->assertCount($expected_reinstall ? 2 : 1, $this->commands);
+  }
+
+  public static function dataProviderLocalPatchChange(): \Iterator {
+    yield 'contents changed' => ['fixed again', TRUE];
+    yield 'same contents written again' => ['fix', FALSE];
+    yield 'file removed' => [NULL, TRUE];
   }
 
   #[DataProvider('dataProviderRemovesPreviousInstall')]
@@ -408,6 +490,22 @@ final class ToolingInstallerTest extends UnitTestCase {
    */
   protected function writeDevManifest(array $contents): void {
     file_put_contents('composer.dev.json', json_encode($contents, JSON_THROW_ON_ERROR));
+  }
+
+  /**
+   * Write files into the project directory.
+   *
+   * @param array<string, string> $files
+   *   File contents, keyed by path.
+   */
+  protected function writeFiles(array $files): void {
+    foreach ($files as $path => $contents) {
+      if (!is_dir(dirname($path))) {
+        mkdir(dirname($path), 0755, TRUE);
+      }
+
+      file_put_contents($path, $contents);
+    }
   }
 
   /**

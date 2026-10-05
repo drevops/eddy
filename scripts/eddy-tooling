@@ -10,10 +10,11 @@
  * project-root 'vendor/' directory, with its commands in 'vendor/bin/eddy-*'.
  *
  * The version constraint and the patches for the package are read from
- * 'composer.dev.json' and written to the 'vendor/eddy-tooling.json' manifest.
- * Composer runs from the project root, so local patch paths resolve against
- * it. The install is skipped while the manifest is unchanged and every command
- * of the installed package is in 'vendor/bin'.
+ * 'composer.dev.json' and written to the 'vendor/eddy-tooling.json' manifest,
+ * together with a checksum of each local patch file. Composer runs from the
+ * project root, so local patch paths resolve against it. The install is
+ * skipped while the manifest is unchanged and every command of the installed
+ * package is in 'vendor/bin'.
  *
  * The package helpers are not available before the package is installed, so
  * this script carries its own output functions.
@@ -138,9 +139,52 @@ function manifest(): ?array {
     $manifest['require']['cweagans/composer-patches'] = '^2';
     $manifest['config'] = ['allow-plugins' => ['cweagans/composer-patches' => TRUE]];
     $manifest['extra'] = ['patches' => [PACKAGE => $patches]];
+
+    // A patch edited in place keeps its path, so only its checksum changes the
+    // manifest and triggers a reinstall. Composer ignores this key.
+    $checksums = patch_checksums($patches);
+
+    if ($checksums !== []) {
+      $manifest['extra']['eddy-tooling'] = ['patch-checksums' => $checksums];
+    }
   }
 
   return $manifest;
+}
+
+/**
+ * Compute the checksum of each local patch file.
+ *
+ * @param array<mixed> $patches
+ *   The patches for the package in either composer-patches format: a map of
+ *   descriptions to paths, or a list of definitions with a 'url' key.
+ *
+ * @return array<string, string>
+ *   The SHA-256 checksum of each existing local patch file, keyed by its path.
+ *   Remote patches have none.
+ */
+function patch_checksums(array $patches): array {
+  $checksums = [];
+
+  foreach ($patches as $patch) {
+    $path = is_array($patch) ? ($patch['url'] ?? NULL) : $patch;
+
+    if (!is_string($path)) {
+      continue;
+    }
+
+    if (str_contains($path, '://')) {
+      continue;
+    }
+
+    if (!is_file($path)) {
+      continue;
+    }
+
+    $checksums[$path] = (string) hash_file('sha256', $path);
+  }
+
+  return $checksums;
 }
 
 /**

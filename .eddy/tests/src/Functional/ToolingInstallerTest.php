@@ -99,6 +99,13 @@ final class ToolingInstallerTest extends UnitTestCase {
     $this->assertFileExists(self::$sut . '/vendor/drevops/eddy-tooling/PATCHED.txt', 'The patch is applied, with its path resolved against the project root.');
     $this->assertFileDoesNotExist(self::$sut . '/eddy-tooling-patches.lock.json', 'The patch plugin keeps its lock inside vendor/.');
 
+    file_put_contents(self::$sut . '/patches/eddy-tooling-add-file.patch', str_replace('+patched', '+patched again', self::PATCH));
+
+    $this->runInstaller();
+    $this->assertProcessSuccessful();
+    $this->assertProcessOutputContains('[INFO] Installing drevops/eddy-tooling ~1.0.0.');
+    $this->assertStringEqualsFile(self::$sut . '/vendor/drevops/eddy-tooling/PATCHED.txt', "patched again\n", 'A patch edited in place is applied again.');
+
     $this->writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
 
     $this->runInstaller();
