@@ -265,6 +265,8 @@ Where you declare a patch decides where it reaches:
 - `composer.dev.json` - the build only, locally and in CI. Use it for patches that only your tests need. Keep their files in the `patches` directory, which the build copies into `build/`, and reference them by path as above.
 - `composer.json` - the build and Drupal.org GitLab CI. This file also ships with your extension, so composer-patches 2.x on a site that installs your extension applies these patches too. Reference them by a public URL, since a local `patches/` path doesn't exist on that site.
 
+Patches declared for `drevops/eddy-tooling` itself are the exception: the build leaves them out, and `scripts/eddy-tooling` applies them when it installs [the tooling package](#the-tooling-package) into `vendor/`.
+
 ### Providing `GITHUB_TOKEN`
 
 To overcome GitHub API rate limits, you may provide a `GITHUB_TOKEN` environment variable with a personal access token.

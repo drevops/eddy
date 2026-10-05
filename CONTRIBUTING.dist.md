@@ -131,7 +131,7 @@ The build installs [`cweagans/composer-patches`](https://github.com/cweagans/com
 }
 ```
 
-A patch that no longer applies fails the build.
+A patch that no longer applies fails the build. Patches declared for `drevops/eddy-tooling` don't reach the build: `scripts/eddy-tooling` applies them when it installs the tooling into `vendor/`.
 
 `composer.json` ships with the extension, so composer-patches 2.x on a site that installs the extension applies its patches too. Reference patches declared there by a public URL, since a local `patches/` path doesn't exist on that site.
 
