@@ -95,8 +95,17 @@ else {
   PASS('Code pushed to %s:%s.', $deploy_remote, $deploy_branch);
 
   TASK('Pushing tags.');
-  passthru('git push --force --tags deployremote 2>/dev/null || true');
-  PASS('Tags pushed to %s.', $deploy_remote);
+  $tags_exit_code = 0;
+  $tags_output = passthru_capture('git push --force --tags deployremote', $tags_exit_code);
+
+  if ($tags_exit_code === 0) {
+    PASS('Tags pushed to %s.', $deploy_remote);
+  }
+  else {
+    // The remote can refuse individual tags without affecting the branch.
+    echo $tags_output;
+    INFO('Some tags were not pushed to %s.', $deploy_remote);
+  }
 }
 
 echo '===============================' . PHP_EOL;

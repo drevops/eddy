@@ -116,7 +116,7 @@ final class DeployTest extends UnitTestCase {
     $effective_branch = $deploy_branch !== '' ? $deploy_branch : 'main';
     $passthru_responses[] = ['cmd' => sprintf('git push --force deployremote HEAD:%s', escapeshellarg($effective_branch))];
 
-    $passthru_responses[] = ['cmd' => 'git push --force --tags deployremote 2>/dev/null || true'];
+    $passthru_responses[] = ['cmd' => 'git push --force --tags deployremote'];
 
     $this->mockPassthruMultiple($passthru_responses);
 
@@ -129,6 +129,7 @@ final class DeployTest extends UnitTestCase {
     $this->assertStringContainsString('Pushing code to branch ' . $effective_branch, $output);
     $this->assertStringContainsString('Code pushed to ' . $deploy_remote . ':' . $effective_branch, $output);
     $this->assertStringContainsString('Tags pushed to ' . $deploy_remote, $output);
+    $this->assertStringNotContainsString('Some tags were not pushed', $output);
     $this->assertStringContainsString('DEPLOY COMPLETE', $output);
     $this->assertStringContainsString('Remote URL    : ' . $deploy_remote, $output);
     $this->assertStringContainsString('Remote branch : ' . $effective_branch, $output);
@@ -155,6 +156,41 @@ final class DeployTest extends UnitTestCase {
       'git_user_name' => '',
       'git_user_email' => 'existing@example.com',
     ];
+  }
+
+  public function testDeployRefusedTags(): void {
+    $deploy_remote = 'git@git.drupal.org:project/test.git';
+
+    $this->envSet('DEPLOY_USER_NAME', 'Deploy Bot');
+    $this->envSet('DEPLOY_USER_EMAIL', 'deploy@example.com');
+    $this->envSet('DEPLOY_REMOTE', $deploy_remote);
+    $this->envSet('DEPLOY_PROCEED', '1');
+    $this->envSet('DEPLOY_BRANCH', '1.x');
+
+    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\DevTools', fn(): string => 'Existing');
+
+    $this->mockPassthruMultiple([
+      ['cmd' => 'git config --global push.default matching'],
+      ['cmd' => sprintf('git remote add deployremote %s', escapeshellarg($deploy_remote))],
+      ['cmd' => sprintf('git push --force deployremote HEAD:%s', escapeshellarg('1.x'))],
+      [
+        'cmd' => 'git push --force --tags deployremote',
+        'output' => ' ! [remote rejected] 1.0.0 -> 1.0.0 (pre-receive hook declined)' . PHP_EOL,
+        'result_code' => 1,
+      ],
+    ]);
+
+    ob_start();
+    require dirname(__DIR__, 4) . '/.devtools/deploy';
+    $output = ob_get_clean();
+
+    $this->assertIsString($output);
+    $this->assertStringContainsString('Code pushed to ' . $deploy_remote . ':1.x', $output);
+    $this->assertStringContainsString('[remote rejected] 1.0.0 -> 1.0.0', $output);
+    $this->assertStringContainsString('Some tags were not pushed to ' . $deploy_remote, $output);
+    $this->assertStringNotContainsString('Tags pushed to', $output);
+    $this->assertStringContainsString('DEPLOY COMPLETE', $output);
+    $this->assertStringContainsString('Remote branch : 1.x', $output);
   }
 
   #[DataProvider('dataProviderDeployTag')]
