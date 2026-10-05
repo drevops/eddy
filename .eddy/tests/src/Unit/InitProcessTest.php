@@ -129,6 +129,7 @@ final class InitProcessTest extends UnitTestCase {
       'CONTRIBUTING.dist.md',
       'LICENSE.txt',
       'SECURITY.md',
+      'logo.svg',
       '.eddy',
       '.claude/skills',
     ];
