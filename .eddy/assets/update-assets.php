@@ -155,6 +155,23 @@ function main(array $only = []): void {
   $processes = [];
   $pipes_list = [];
 
+  // 'ahoy test' runs the FunctionalJavascript suite but, unlike
+  // 'ahoy test-functional-javascript', does not start the browser it needs.
+  $browser_started = FALSE;
+  if (in_array('test', $parallel_jobs, TRUE)) {
+    info('Starting the browser for the test recording...');
+    $result = run_in_workspace($workspace_dir, 'ahoy browser-start');
+    if ($result['exit_code'] !== 0) {
+      $failed['test'] = $result['output'];
+      $parallel_jobs = array_values(array_diff($parallel_jobs, ['test']));
+      info('  FAILED: browser');
+    }
+    else {
+      $browser_started = TRUE;
+    }
+    info('');
+  }
+
   info('Launching ' . count($parallel_jobs) . ' workers in parallel...');
   info('');
 
@@ -209,6 +226,15 @@ function main(array $only = []): void {
   // Reset terminal - workers may leave it in raw mode.
   shell_exec('stty sane 2>/dev/null');
 
+  // The build recording leaves the webserver running, and both processes
+  // outlive the workspace unless stopped before it is removed.
+  if ($browser_started) {
+    run_in_workspace($workspace_dir, 'ahoy browser-stop');
+  }
+  if (isset($jobs['build'])) {
+    run_in_workspace($workspace_dir, 'ahoy stop');
+  }
+
   info('');
   info('Cleaning up workspace: ' . $workspace_dir);
   remove_dir($workspace_dir);
@@ -260,6 +286,30 @@ function run_worker(string $script_path, string $name, string $workspace_dir, st
 }
 
 /**
+ * Run a command in the workspace without recording it.
+ *
+ * @param string $workspace_dir
+ *   Path to the workspace directory.
+ * @param string $command
+ *   The command to run.
+ *
+ * @return array{exit_code: int, output: string}
+ *   The exit code and combined output.
+ */
+function run_in_workspace(string $workspace_dir, string $command): array {
+  $cmd = sprintf('cd %s && %s 2>&1', escapeshellarg($workspace_dir), $command);
+
+  $output = [];
+  $exit_code = 0;
+  exec($cmd, $output, $exit_code);
+
+  return [
+    'exit_code' => $exit_code,
+    'output' => implode("\n", $output),
+  ];
+}
+
+/**
  * Worker mode - process a single recording.
  *
  * @param string $name
@@ -285,6 +335,11 @@ function process_one(string $name, string $workspace_dir): void {
   $speed = (float) ($job['speed'] ?? 1.0);
 
   record_session($cast_file, $expect_script);
+
+  if (isset($job['command'])) {
+    assert_command_succeeded($cast_file, (string) $job['command']);
+  }
+
   post_process_cast($cast_file, $workspace_dir, $speed);
   convert_to_svg($cast_file, $svg_file, $assets_dir);
 }
@@ -399,6 +454,29 @@ function record_session(string $cast_file, string $expect_script, int $rows = TE
 }
 
 /**
+ * Fail when a recorded command did not exit with 0.
+ *
+ * 'asciinema rec' does not pass on the recorded command's exit code, so the
+ * code is read from the '__EXIT_CODE=<code>' line the expect script prints.
+ *
+ * @param string $cast_file
+ *   Path to the cast file.
+ * @param string $command
+ *   The recorded command.
+ */
+function assert_command_succeeded(string $cast_file, string $command): void {
+  $content = (string) file_get_contents($cast_file);
+
+  if (preg_match('/__EXIT_CODE=(\d+)/', $content, $matches) !== 1) {
+    throw new \RuntimeException(sprintf("Recording of '%s' holds no exit code: %s", $command, $cast_file));
+  }
+
+  if ($matches[1] !== '0') {
+    throw new \RuntimeException(sprintf("Command '%s' exited with code %s in the recording: %s", $command, $matches[1], $cast_file));
+  }
+}
+
+/**
  * Create an expect script to automate init.php prompts.
  *
  * @param string $script_path
@@ -481,6 +559,18 @@ expect "Command wrapper" {
 
 # Multi-select: Tools - all pre-checked by default; confirm with enter to keep all.
 expect "Tools" {
+    sleep {$delay}
+    safe_send "\\r"
+}
+
+# Confirm: Keep Cloudflare tunnel support - accept the default "Yes" with enter.
+expect "Keep Cloudflare tunnel support" {
+    sleep {$delay}
+    safe_send "\\r"
+}
+
+# Confirm: Keep example lifecycle scripts - accept the default "No" with enter.
+expect "Keep example lifecycle scripts" {
     sleep {$delay}
     safe_send "\\r"
 }
@@ -617,6 +707,11 @@ function post_process_cast(string $cast_file, string $workspace_dir, float $spee
 
   $content = implode("\n", $filtered);
 
+  // Tools print the resolved path, which on macOS gains a '/private' prefix.
+  $real_workspace_dir = realpath($workspace_dir);
+  if ($real_workspace_dir !== FALSE) {
+    $content = str_replace($real_workspace_dir, '/home/user/project', $content);
+  }
   $content = str_replace($workspace_dir, '/home/user/project', $content);
 
   $home = getenv('HOME');
