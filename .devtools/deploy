@@ -49,7 +49,60 @@ $deploy_tag = getenv_default('DEPLOY_TAG', '');
 // configuration before an actual code push.
 $deploy_proceed = getenv_default('DEPLOY_PROCEED', '0');
 
+// The fingerprint of the SSH key.
+$deploy_ssh_key_fingerprint = getenv_default('DEPLOY_SSH_KEY_FINGERPRINT', '');
+
 // -----------------------------------------------------------------------------
+
+if ($deploy_ssh_key_fingerprint !== '') {
+  echo '-------------------------------' . PHP_EOL;
+  echo '          Setup SSH            ' . PHP_EOL;
+  echo '-------------------------------' . PHP_EOL;
+
+  $home = getenv('HOME') ?: '';
+  $ssh_dir = $home . '/.ssh';
+  if (!is_dir($ssh_dir)) {
+    mkdir($ssh_dir, 0700, TRUE);
+  }
+  file_put_contents($ssh_dir . '/config', "\nHost *\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile /dev/null\n");
+
+  // Find the MD5 hash if the DEPLOY_SSH_KEY_FINGERPRINT starts with SHA256.
+  if (str_starts_with($deploy_ssh_key_fingerprint, 'SHA256:')) {
+    foreach (glob($home . '/.ssh/id_rsa*') ?: [] as $key_file) {
+      $sha256_output = [];
+      exec(sprintf('ssh-keygen -l -E sha256 -f %s', escapeshellarg($key_file)), $sha256_output);
+      if (!empty($sha256_output[0])) {
+        $parts = explode(' ', $sha256_output[0]);
+        if (isset($parts[1]) && $parts[1] === $deploy_ssh_key_fingerprint) {
+          $md5_output = [];
+          exec(sprintf('ssh-keygen -l -E md5 -f %s', escapeshellarg($key_file)), $md5_output);
+          if (!empty($md5_output[0])) {
+            $md5_parts = explode(' ', $md5_output[0]);
+            if (isset($md5_parts[1])) {
+              $deploy_ssh_key_fingerprint = str_replace('MD5:', '', $md5_parts[1]);
+            }
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  $fingerprint_clean = str_replace([':', '"'], '', $deploy_ssh_key_fingerprint);
+  $key_file = $home . '/.ssh/id_rsa_' . $fingerprint_clean;
+
+  if (!file_exists($key_file)) {
+    FAIL('Unable to find SSH key file %s.', $key_file);
+  }
+
+  if (getenv_default('SSH_AGENT_PID', '') === '') {
+    passthru('eval "$(ssh-agent)"');
+  }
+
+  passthru('ssh-add -D');
+  passthru_or_fail(sprintf('ssh-add %s', escapeshellarg($key_file)));
+  passthru('ssh-add -l');
+}
 
 echo '===============================' . PHP_EOL;
 echo '           🚚 DEPLOY           ' . PHP_EOL;
