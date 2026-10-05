@@ -320,7 +320,7 @@ final class InitProcessTest extends UnitTestCase {
     // Selenium deps), per the normalisation in 'remove_tools()'.
     yield 'phpunit' => [
       ['phpunit'],
-      ['phpunit.xml', 'phpunit.d10.xml', 'tests', '.devtools/browser'],
+      ['phpunit.xml', 'phpunit.d10.xml', 'tests'],
       ['phpunit/phpunit', 'phpspec/prophecy-phpunit', 'mikey179/vfsstream', 'lullabot/mink-selenium2-driver', 'behat/mink'],
       [],
       ['vendor/bin/phpunit', 'selenium'],
@@ -328,7 +328,7 @@ final class InitProcessTest extends UnitTestCase {
 
     yield 'functional_javascript' => [
       ['functional_javascript'],
-      ['.devtools/browser', 'tests/src/FunctionalJavascript'],
+      ['tests/src/FunctionalJavascript'],
       ['behat/mink', 'lullabot/mink-selenium2-driver', 'symfony/browser-kit'],
       [],
       ['selenium', 'functional-javascript'],
@@ -447,7 +447,7 @@ final class InitProcessTest extends UnitTestCase {
     $this->assertSame($expect_make, preg_match('/\bmake ' . $commands . '/', $contributing) === 1, 'CONTRIBUTING.md make command presence mismatch.');
     $this->assertSame($expect_ahoy, preg_match('/\bahoy ' . $commands . '/', $contributing) === 1, 'CONTRIBUTING.md ahoy command presence mismatch.');
     $this->assertSame($expect_wrapper, str_contains($contributing, 'The `build` command is a wrapper'), 'CONTRIBUTING.md wrapper text presence mismatch.');
-    $this->assertSame(!$expect_wrapper, str_contains($contributing, '.devtools/assemble'), 'CONTRIBUTING.md direct command presence mismatch.');
+    $this->assertSame(!$expect_wrapper, str_contains($contributing, 'vendor/bin/eddy-assemble'), 'CONTRIBUTING.md direct command presence mismatch.');
     $this->assertStringNotContainsString('#;', $contributing, 'CONTRIBUTING.md keeps a marker line.');
   }
 
@@ -553,20 +553,24 @@ final class InitProcessTest extends UnitTestCase {
   }
 
   /**
-   * The local-dev assemble default follows the highest selected major.
+   * The local build default follows the highest selected major.
    *
    * @param array<string> $drupal_versions
    */
-  #[DataProvider('dataProviderProcessNarrowsAssembleDefault')]
-  public function testProcessNarrowsAssembleDefault(array $drupal_versions, string $expected_default): void {
+  #[DataProvider('dataProviderProcessSetsBuildDefault')]
+  public function testProcessSetsBuildDefault(array $drupal_versions, string $expected_default): void {
     process('My Extension', 'my_extension', 'module', $drupal_versions, ['ahoy'], [], FALSE, FALSE, FALSE);
 
-    $assemble = (string) file_get_contents(self::$sut . '/.devtools/assemble');
-    $this->assertStringContainsString("getenv_default('DRUPAL_VERSION', '" . $expected_default . "')", $assemble);
-    $this->assertSame(1, substr_count($assemble, "getenv_default('DRUPAL_VERSION',"));
+    $raw = (string) file_get_contents(self::$sut . '/composer.dev.json');
+    $config = json_decode($raw, TRUE);
+    $this->assertIsArray($config);
+
+    $this->assertSame($expected_default, $config['extra']['eddy']['drupal-version'] ?? NULL);
+    $this->assertArrayHasKey('drevops/eddy-tooling', $config['require-dev'] ?? [], 'The tooling constraint is kept.');
+    $this->assertStringContainsString('"patches": {}', $raw, 'The empty patches map stays a JSON object.');
   }
 
-  public static function dataProviderProcessNarrowsAssembleDefault(): \Iterator {
+  public static function dataProviderProcessSetsBuildDefault(): \Iterator {
     yield 'd10 and d11 keep 11' => [['10', '11'], '11'];
     yield 'd11 only keeps 11' => [['11'], '11'];
     yield 'd10 only narrows to 10' => [['10'], '10'];
