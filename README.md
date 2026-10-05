@@ -53,7 +53,7 @@ Eddy isn't for building websites. To stand up a Drupal site, use [Vortex](https:
   - CI provider: [GitHub Actions](.github/workflows/test.yml)
   - Code coverage with https://github.com/krakjoe/pcov pushed to [codecov.io](https://codecov.io).
   - Compatible with Drupal.org GitLab CI ([DrupalCI](#drupalorg-ci-drupalci)).
-- Develop locally using PHP running on your host using identical [`.devtools`](.devtools) scripts as in CI:
+- Develop locally using PHP running on your host with the same [tooling](.eddy/tooling) commands as CI, installed from the `drevops/eddy-tooling` Composer package:
   - Uses [drupal/recommended-project](https://www.drupal.org/docs/develop/using-composer/starting-a-site-using-drupal-composer-project-templates) to create Drupal site structure.
   - Additional development dependencies provided in [`composer.dev.json`](composer.dev.json). These are merged during the codebase assembly.
   - The extension can be installed as a module or a theme: modify `type` property set in the `info.yml` file.
@@ -103,7 +103,7 @@ The initial codebase setup script `php init.php` will ask you for some informati
 
 ## Building website
 
-`make build` or `ahoy build` assembles the codebase, starts the PHP server and provisions the Drupal website with your extension enabled. These operations are executed using scripts within [`.devtools`](.devtools) directory. CI uses the same scripts to build and test your extension.
+`make build` or `ahoy build` assembles the codebase, starts the PHP server and provisions the Drupal website with your extension enabled. These operations are run by the commands of the [`drevops/eddy-tooling`](#the-tooling-package) package. CI uses the same commands to build and test your extension.
 
 The resulting codebase is then placed in the `build` directory. Your extension files are symlinked into the Drupal site structure.
 
@@ -124,9 +124,23 @@ Your extension documents the same commands for its own contributors in [CONTRIBU
 
 ![Build process](.eddy/assets/build.svg)
 
+### The tooling package
+
+The commands that assemble, start, provision and deploy your extension ship as the [`drevops/eddy-tooling`](.eddy/tooling) Composer package rather than as files copied into your project, so fixes reach you through a version constraint instead of a manual merge. The package can't come from the site build it assembles, so `scripts/eddy-tooling` installs it into `vendor/`, with each command in `vendor/bin/eddy-*`. `make` and `ahoy` run the installer before their commands and CI runs it as a step of its own; without a wrapper, run `scripts/eddy-tooling` once yourself.
+
+The version constraint lives in `composer.dev.json`, next to the other development dependencies:
+
+```json
+"drevops/eddy-tooling": "~1.0.0"
+```
+
+The `~` accepts patch releases and holds the minor version, so CI picks up fixes on its own and a new minor version arrives with the next scaffold update. The installer runs Composer only when the constraint or the patches declared for the package change, or when a command is missing, so running it before every command costs next to nothing. A local checkout keeps the patch release it installed until `vendor/` is removed, which `make reset` and `ahoy reset` do.
+
+To add a project-specific step, use a [custom lifecycle script](#custom-lifecycle-scripts). To change what a command itself does, declare a patch for the package in `composer.dev.json` as described in the [package README](.eddy/tooling/README.md#patching-the-package).
+
 ### Drupal versions
 
-The Drupal version used for the codebase assembly is determined by the `DRUPAL_VERSION` variable and defaults to `11`, the newest stable Drupal 11 release. `init.php` changes that default to the highest Drupal major you select.
+The Drupal version used for the codebase assembly is determined by the `DRUPAL_VERSION` variable and defaults to `11`, the newest stable Drupal 11 release. The default is the `extra.eddy.drupal-version` value in `composer.dev.json`, which `init.php` sets to the highest Drupal major you select.
 
 You can specify a different version by setting the `DRUPAL_VERSION` environment variable before running the `make build` or `ahoy build` command:
 
@@ -298,7 +312,7 @@ A one-time login link will be printed to the console.
 
 ### Custom lifecycle scripts
 
-The `assemble`, `provision`, `start`, and `stop` scripts each look for project-local shell scripts in the `scripts/` directory and run them during their respective phase:
+The `assemble`, `provision`, `start`, and `stop` commands each look for project-local shell scripts in the `scripts/` directory and run them during their respective phase:
 
 - `scripts/assemble-*.sh` runs at the tail of `make assemble` / `ahoy assemble`, after dependencies are installed and the extension is symlinked into `build/`.
 - `scripts/provision-*.sh` runs at the tail of `make provision` / `ahoy provision`, after the site is installed, the extension is enabled, and caches are pre-warmed.
@@ -307,7 +321,7 @@ The `assemble`, `provision`, `start`, and `stop` scripts each look for project-l
 
 Matching files are executed in lexicographic order. The current working directory is the project root, and each script inherits the parent process environment. A non-zero exit from any script aborts the parent run.
 
-The directory is `export-ignore`d via `.gitattributes`, so anything under `scripts/` is excluded from distribution archives published to Drupal.org.
+The directory is `export-ignore`d via `.gitattributes`, so anything under `scripts/` is excluded from distribution archives published to Drupal.org. It also holds `scripts/eddy-tooling`, the [tooling installer](#the-tooling-package), which is not a hook: its name matches none of the phase prefixes.
 
 Example scripts ship with the scaffold (`scripts/assemble-example.sh`, `scripts/provision-example.sh`, `scripts/start-example.sh`, `scripts/stop-example.sh`). Each one prints a marker line so you can see its phase fire. `init.php` asks whether to keep them and removes them unless you say yes, so answer yes if you want them as a starting point for your own hooks.
 
@@ -329,7 +343,7 @@ Any tool that writes a `TUNNEL_URL` to `.env` (ngrok, tailscale funnel, etc.) is
 
 #### Scannable QR codes
 
-Render any URL as a terminal QR code with `./.devtools/qrcode <url>`. Scan it to open the URL on a phone or another device, which is most useful for a one-time login link while the site is exposed through a public tunnel. The command requires [`qrencode`](https://fukuchi.org/works/qrencode/) on `PATH` and exits with an install hint when it is missing.
+Render any URL as a terminal QR code with `vendor/bin/eddy-qrcode <url>`. Scan it to open the URL on a phone or another device, which is most useful for a one-time login link while the site is exposed through a public tunnel. The command requires [`qrencode`](https://fukuchi.org/works/qrencode/) on `PATH` and exits with an install hint when it is missing.
 
 A QR code below the `make login` / `ahoy login` link is opt-in. Set `LOGIN_QRCODE=1` in `.env` (or in your shell environment) and both commands render the one-time login link as a QR code under the printed URL. The wrappers test only that the variable is non-empty, so unset it to turn the QR code off rather than setting it to `0`. Left unset (the default) the login output is unchanged; set with `qrencode` missing, `login` prints the link and then fails with the install hint.
 

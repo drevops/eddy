@@ -79,7 +79,7 @@ Run each tool through its `ahoy` wrapper, never the binary directly:
 - `make start` - Start PHP development server
 - `make stop` - Stop development server
 - `make provision` - Install/provision Drupal site
-- `make reset` - Clean build directory and logs (aliases: `make delete`, `make destroy`)
+- `make reset` - Clean build directory, logs and installed tooling (aliases: `make delete`, `make destroy`)
 <!-- #;> DEV_MAKEFILE -->
 
 <!-- #;< DEV_AHOY -->
@@ -89,7 +89,7 @@ Run each tool through its `ahoy` wrapper, never the binary directly:
 - `ahoy start` - Start development server
 - `ahoy stop` - Stop development server
 - `ahoy provision` - Provision Drupal site
-- `ahoy reset` - Clean build directory and logs (aliases: `ahoy delete`, `ahoy destroy`)
+- `ahoy reset` - Clean build directory, logs and installed tooling (aliases: `ahoy delete`, `ahoy destroy`)
 <!-- #;> DEV_AHOY -->
 
 ### Code Quality
@@ -171,7 +171,8 @@ Run each tool through its `ahoy` wrapper, never the binary directly:
 <!-- #;> DEV_PHPUNIT -->
 - `config/schema/` - Configuration schema definitions
 - `build/` - Assembled Drupal codebase (symlinked extension)
-- `.devtools/` - Build and deployment scripts used by CI
+- `vendor/` - The installed `drevops/eddy-tooling` package, whose commands (`vendor/bin/eddy-*`) assemble, start, provision and deploy the extension. Not committed and not part of the extension
+- `scripts/eddy-tooling` - Installs the tooling package into `vendor/` from the constraint in `composer.dev.json`. The command wrappers and CI run it before the tooling commands
 - `scripts/` - Custom lifecycle hooks: post-assemble (`assemble-*.sh`), post-provision (`provision-*.sh`), post-start (`start-*.sh`), and pre-stop (`stop-*.sh`). Run automatically during each phase in lexicographic order; non-zero exit aborts the parent. Excluded from distribution archives via `.gitattributes`
 
 **Template Files (before init):**
@@ -187,7 +188,7 @@ Run each tool through its `ahoy` wrapper, never the binary directly:
 
 ## Environment Variables
 
-- `DRUPAL_VERSION` - Target Drupal version (e.g., `10`, `11`, `11@alpha`, `12@beta`)
+- `DRUPAL_VERSION` - Target Drupal version (e.g., `10`, `11`, `11@alpha`, `12@beta`). Defaults to `extra.eddy.drupal-version` in `composer.dev.json`
 - `WEBSERVER_HOST` - Development server host (default: localhost)
 - `WEBSERVER_PORT` - Development server port. Auto-discovered from range 8000-8099 and written to `.env` if not already set
 <!-- #;< DEV_FUNCTIONAL_JAVASCRIPT -->

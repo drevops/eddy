@@ -9,8 +9,8 @@ When someone runs `php init.php` to create a project from this template, this fi
 The repository is a working Drupal extension - the demo extension in the project root - plus the tooling that turns it into a reusable template:
 
 - `init.php` - the interactive script that renames, rewrites and prunes the template files for a new project.
-- `.devtools/` - build and provisioning scripts shared with generated projects and used by CI.
-- `.eddy/` - everything used to develop and test the scaffold itself. It is removed from generated projects.
+- `scripts/eddy-tooling` - installs the `drevops/eddy-tooling` package, whose commands build, provision and deploy the extension, into `vendor/`. Generated projects get the package from Packagist; this repository installs `.eddy/tooling` as a symlink, so an edit there applies to the next command without a release.
+- `.eddy/` - everything used to develop and test the scaffold itself, including the source of the tooling package. It is removed from generated projects.
 
 ## Building and testing the demo extension
 
@@ -19,7 +19,8 @@ The scaffold builds and tests itself exactly like a generated project, so the co
 ## The `.eddy` directory
 
 - `.eddy/assets/` - source files and the generator for the animated demos embedded in `README.md`.
-- `.eddy/tests/` - the PHPUnit suite that validates the scaffold: the `init.php` flow, the `.devtools` helpers, and the resulting project structure. Snapshot fixtures live under `.eddy/tests/fixtures/init/`.
+- `.eddy/tests/` - the PHPUnit suite that validates the scaffold: the `init.php` flow, the tooling commands and their installer, and the resulting project structure. Snapshot fixtures live under `.eddy/tests/fixtures/init/`.
+- `.eddy/tooling/` - the source of the [`drevops/eddy-tooling`](https://github.com/drevops/eddy-tooling) package, published to its own read-only repository (see below).
 - `.eddy/skills/` - the `update-consumer-eddy` skill that generated projects fetch to update themselves.
 
 ## Running the scaffold self-tests
@@ -52,6 +53,15 @@ composer update-snapshots
 ```
 
 It commits the regenerated baseline on its own, then amends it with each dataset fixture. Review the result with `git show --stat` and confirm `composer test -- --filter=InitTest` passes before pushing.
+
+## Publishing the tooling package
+
+Changes to the commands go into `.eddy/tooling/`, where the scaffold's own tests and builds use them straight away. On every push to `1.x`, `.github/workflows/scaffold-publish-tooling.yml` mirrors the directory to the `1.x` branch of [`drevops/eddy-tooling`](https://github.com/drevops/eddy-tooling), which Packagist serves. The workflow pushes with the `EDDY_TOOLING_DEPLOY_KEY` secret, a deploy key with write access to that repository.
+
+Releases are tagged on the mirror by hand:
+
+1. Tag the mirror commit that corresponds to the `1.x` commit you're releasing, for example `1.0.1`. Generated projects require `~1.0.0`, so they pick up a patch release on their next fresh install.
+2. For a new minor version, also raise the constraint in `composer.dev.json` (for example to `~1.1.0`). Generated projects receive it with their next scaffold update.
 
 ## Continuous integration
 
