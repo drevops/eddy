@@ -114,7 +114,7 @@ final class DeployTest extends UnitTestCase {
     $passthru_responses[] = ['cmd' => sprintf('git remote add deployremote %s', escapeshellarg($deploy_remote))];
 
     $effective_branch = $deploy_branch !== '' ? $deploy_branch : 'main';
-    $passthru_responses[] = ['cmd' => sprintf('git push --force deployremote HEAD:%s', escapeshellarg($effective_branch))];
+    $passthru_responses[] = ['cmd' => sprintf('git push --force deployremote %s', escapeshellarg('HEAD:refs/heads/' . $effective_branch))];
 
     $passthru_responses[] = ['cmd' => 'git push --force --tags deployremote'];
 
@@ -201,7 +201,7 @@ final class DeployTest extends UnitTestCase {
     $this->mockPassthruMultiple([
       ['cmd' => 'git config --global push.default matching'],
       ['cmd' => sprintf('git remote add deployremote %s', escapeshellarg($deploy_remote))],
-      ['cmd' => sprintf('git push --force deployremote HEAD:%s', escapeshellarg('1.x'))],
+      ['cmd' => sprintf('git push --force deployremote %s', escapeshellarg('HEAD:refs/heads/1.x'))],
       [
         'cmd' => 'git push --force --tags deployremote',
         'output' => ' ! [remote rejected] 1.0.0 -> 1.0.0 (pre-receive hook declined)' . PHP_EOL,

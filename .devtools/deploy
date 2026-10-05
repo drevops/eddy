@@ -95,7 +95,9 @@ if ($deploy_tag !== '') {
 }
 else {
   TASK('Pushing code to branch %s.', $deploy_branch);
-  passthru_or_fail(sprintf('git push --force deployremote HEAD:%s', escapeshellarg($deploy_branch)));
+  // Git cannot infer a new remote ref's type from a detached HEAD, so the
+  // destination is a full refname.
+  passthru_or_fail(sprintf('git push --force deployremote %s', escapeshellarg('HEAD:refs/heads/' . $deploy_branch)));
   PASS('Code pushed to %s:%s.', $deploy_remote, $deploy_branch);
 
   TASK('Pushing tags.');
