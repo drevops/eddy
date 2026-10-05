@@ -17,6 +17,10 @@ use Symfony\Component\Process\Process;
  * the run counts as a tag push only when that tag points at the triggering
  * commit.
  *
+ * A branch push deploys only while its commit is the branch tip that the
+ * checkout fetched. Runs finish out of order and can be re-run, and deploying
+ * an older commit would rewind the remote branch.
+ *
  * The step's shell is read out of the workflow and executed against a
  * purpose-built repository, so these assertions cover that script, not a
  * re-implementation.
@@ -50,7 +54,6 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
       'DEPLOY_BRANCH' => $deploy_branch,
       'HEAD_BRANCH' => $head_branch,
       'HEAD_SHA' => $this->resolveCommit($repository, $head_commit),
-      'DEFAULT_BRANCH' => self::DEFAULT_BRANCH,
     ]);
 
     $this->assertSame($expected, $this->readDeployment());
@@ -99,19 +102,53 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
       'expected' => ['DEPLOY_BRANCH' => '', 'DEPLOY_TAG' => self::LIGHTWEIGHT_TAG],
     ];
 
+    yield 'branch moved past the commit' => [
+      'deploy_branch' => '',
+      'head_branch' => self::FEATURE_BRANCH,
+      'head_commit' => 'tagged',
+      'expected' => NULL,
+    ];
+
+    yield 'repository variable does not override a branch that moved' => [
+      'deploy_branch' => 'custom',
+      'head_branch' => self::FEATURE_BRANCH,
+      'head_commit' => 'tagged',
+      'expected' => NULL,
+    ];
+
+    yield 'deleted branch' => [
+      'deploy_branch' => '',
+      'head_branch' => 'deleted',
+      'head_commit' => 'tip',
+      'expected' => NULL,
+    ];
+
     yield 'no head branch' => [
       'deploy_branch' => '',
       'head_branch' => '',
       'head_commit' => 'tip',
-      'expected' => ['DEPLOY_BRANCH' => self::DEFAULT_BRANCH, 'DEPLOY_TAG' => ''],
+      'expected' => NULL,
     ];
 
     yield 'head commit absent from the clone' => [
       'deploy_branch' => '',
       'head_branch' => self::LIGHTWEIGHT_TAG,
       'head_commit' => 'unknown',
-      'expected' => ['DEPLOY_BRANCH' => self::LIGHTWEIGHT_TAG, 'DEPLOY_TAG' => ''],
+      'expected' => NULL,
     ];
+  }
+
+  public function testSkippedRunReportsNotice(): void {
+    $repository = $this->createRepository();
+    $head_sha = $this->resolveCommit($repository, 'tagged');
+
+    $output = $this->runStep($repository, [
+      'DEPLOY_BRANCH' => '',
+      'HEAD_BRANCH' => self::FEATURE_BRANCH,
+      'HEAD_SHA' => $head_sha,
+    ]);
+
+    $this->assertSame(sprintf("::notice::Skip deployment because %s is no longer the tip of %s.\n", $head_sha, self::FEATURE_BRANCH), $output);
   }
 
   public function testStepTakesEveryValueFromEnvironment(): void {

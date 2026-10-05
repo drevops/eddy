@@ -462,7 +462,7 @@ Add the jobs for every Drupal major you selected in `init.php` as required statu
 
 The CI mirrors the code to your extension's Drupal.org repository (or any other git remote) once the tests pass. It deploys pushes to the `1.x` branch and release tags, and pull requests never deploy. To deploy another branch, such as `2.x`, add it to the `push` branches in `.github/workflows/test.yml`.
 
-A branch push deploys the commit that CI tested to the same branch of the destination repository. A release tag is deployed as that tag alone and leaves the destination branches untouched.
+A branch push deploys the commit that CI tested to the same branch of the destination repository. If the branch has moved on by the time the tests finish, or an older run is re-run, the deployment is skipped, so an older commit never replaces a newer one. A release tag is deployed as that tag alone and leaves the destination branches untouched.
 
 See this example of the deployment destination repository: [GitHub Actions](https://github.com/AlexSkrypnyk/drupal_extension_scaffold_destination_github)
 
