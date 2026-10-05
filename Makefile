@@ -82,7 +82,7 @@ help:
 	@#;> DEV_JEST
 
 # Every target that runs a tooling command installs the tooling first. Progress
-# goes to stderr, so a target's own output stays capturable.
+# goes to stderr, so a captured target output holds only the target's own.
 assemble build debug drush info login provision start stop: tooling
 #;< DEV_FUNCTIONAL_JAVASCRIPT
 browser-start browser-stop test-functional-javascript: tooling
