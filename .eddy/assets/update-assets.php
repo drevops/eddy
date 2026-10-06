@@ -279,9 +279,10 @@ function main(array $only = []): void {
   }
   finally {
     // The webserver and the browser outlive their workspace unless they are
-    // stopped before it is removed.
-    foreach (array_reverse($cleanups) as $cleanup) {
-      run_in_workspace($workspace_dir, $cleanup);
+    // stopped before it is removed. A failure is reported, not thrown: a throw
+    // from 'finally' replaces any exception already thrown from the 'try'.
+    foreach (run_cleanups($workspace_dir, $cleanups) as $failure) {
+      fwrite(STDERR, 'WARNING: ' . $failure . PHP_EOL);
     }
 
     info('Cleaning up workspace: ' . $workspace_dir);
@@ -355,6 +356,33 @@ function run_in_workspace(string $workspace_dir, string $command): array {
     'exit_code' => $exit_code,
     'output' => implode(PHP_EOL, $output),
   ];
+}
+
+/**
+ * Run cleanup commands in the workspace, last registered first.
+ *
+ * A failed command does not stop the ones after it.
+ *
+ * @param string $workspace_dir
+ *   Path to the workspace directory.
+ * @param list<string> $cleanups
+ *   Commands in the order they were registered.
+ *
+ * @return list<string>
+ *   A message for each command that failed, in the order they ran.
+ */
+function run_cleanups(string $workspace_dir, array $cleanups): array {
+  $failures = [];
+
+  foreach (array_reverse($cleanups) as $cleanup) {
+    $result = run_in_workspace($workspace_dir, $cleanup);
+
+    if ($result['exit_code'] !== 0) {
+      $failures[] = join_lines(sprintf("Cleanup '%s' failed with exit code %d.", $cleanup, $result['exit_code']), $result['output']);
+    }
+  }
+
+  return $failures;
 }
 
 /**
