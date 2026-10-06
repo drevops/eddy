@@ -97,6 +97,8 @@ Required tools: `asciinema` 3, `expect`, `node`, `npm`. The script checks for th
 
 Set `SCRIPT_QUIET=1` to suppress verbose progress messages. The recordings go to `.artifacts/tmp/asciinema`: they're removed after a successful run unless `SCRIPT_KEEP_CASTS=1` is set, and kept after a failed one.
 
+`UpdateAssetsTest` replays 2 real recordings of each session from `.eddy/tests/fixtures/assets/first/` and `.../second/` and expects them to render identically. They're plain copies of `.artifacts/tmp/asciinema/*.cast` from 2 back-to-back runs with `SCRIPT_KEEP_CASTS=1`, with the header reduced to `{"version":3,"term":{"cols":80,"rows":24}}`, the workspace path replaced with `/var/folders/aa/T/eddy-assets-111111111111` (first) or `/var/folders/aa/T/eddy-assets-222222222222` (second), and `$HOME` replaced with `/Users/maintainer`. Refresh them the same way when a change to the recordings makes the old ones unrepresentative.
+
 ## Regenerating the social preview
 
 `social-preview.png` is the card GitHub shows when someone shares a link to the repository. It's a 1280x640 screenshot of `social-preview.html`, a self-contained page that draws the logo inline and takes its fonts from the local system, so install the 2 fonts its `@font-face` rules name before rendering it.
