@@ -79,14 +79,23 @@ composer --working-dir=.eddy/tests update-assets
 
 This invokes `php .eddy/assets/update-assets.php`, which:
 
-1. Creates a clean workspace, copies the scaffold into it, and installs `svg-term` via `npm install --prefix .eddy/assets`.
-2. Records `init.php` and `ahoy build` sequentially using `asciinema` + `expect`.
-3. Records `ahoy lint` and `ahoy test` in parallel against the assembled workspace.
-4. Converts each `.cast` file to an animated SVG via `node .eddy/assets/svg-term-render.js` and writes `init.svg`, `build.svg`, `lint.svg`, `test.svg` into `.eddy/assets/`.
+1. Exports the committed `HEAD` into a clean workspace in the system temp directory (so commit your changes first), and installs `svg-term` via `npm install --prefix .eddy/assets`.
+2. Records `php init.php`, `ahoy build`, `ahoy lint` and `ahoy test` one after another with `asciinema` + `expect`, each typed at a shell prompt in the workspace the previous recordings left behind.
+3. Rewrites each recording onto a canonical timeline, converts it to an animated SVG via `node .eddy/assets/svg-term-render.js`, and writes `init.svg`, `build.svg`, `lint.svg` and `test.svg` into `.eddy/assets/`.
 
-Required tools: `asciinema`, `expect`, `node`, `npm`. The script checks for these and aborts if any are missing.
+Regeneration is reproducible: recording the same session twice produces the same bytes, so `git status` after a run is the check. A clean tree means the rendering didn't change, and any diff is a real change worth reading. 3 things make that hold:
 
-Set `SCRIPT_QUIET=1` to suppress verbose progress messages. To record a single asset, pass `--record <name> --workspace <dir>`.
+- Frames are cut where the session's own output defines them (1 per typed character, 1 per widget redraw in `init`, 1 per line of command output) rather than wherever the terminal happened to split a write.
+- Every gap becomes 1 of 2 fixed durations, a step or a frame within a step, so the recording machine's timing never reaches the SVG.
+- Values that change on every run, such as timings, random IDs, the one-time login link and the workspace path, are replaced with fixed ones.
+
+The recordings still show what the recording machine has installed (PHP, PHPUnit, the resolved Drupal release) and what its environment changes, such as whether `GITHUB_TOKEN` is set.
+
+Pass asset names to render only those, for example `php .eddy/assets/update-assets.php lint`. Every recording up to the last named one still runs, because each one prepares the workspace for the next.
+
+Required tools: `asciinema` 3, `expect`, `node`, `npm`. The script checks for these and aborts if any are missing.
+
+Set `SCRIPT_QUIET=1` to suppress verbose progress messages. The recordings go to `.artifacts/tmp/asciinema`: they're removed after a successful run unless `SCRIPT_KEEP_CASTS=1` is set, and kept after a failed one.
 
 ## Regenerating the social preview
 

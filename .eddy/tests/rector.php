@@ -33,6 +33,7 @@ use Rector\TypeDeclaration\Rector\StmtsAwareInterface\DeclareStrictTypesRector;
 return RectorConfig::configure()
   ->withPaths([
     __DIR__ . '/src/**',
+    __DIR__ . '/../assets/update-assets.php',
     __DIR__ . '/../../.devtools/assemble',
     __DIR__ . '/../../.devtools/browser',
     __DIR__ . '/../../.devtools/deploy',
