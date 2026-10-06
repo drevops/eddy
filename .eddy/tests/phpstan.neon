@@ -8,6 +8,7 @@ parameters:
 
   paths:
     - src
+    - ../assets/update-assets.php
     - ../../.devtools/assemble
     - ../../.devtools/browser
     - ../../.devtools/deploy

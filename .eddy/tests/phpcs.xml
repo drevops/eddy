@@ -13,6 +13,7 @@
     <arg name="colors"/>
 
     <file>src</file>
+    <file>../assets/update-assets.php</file>
     <file>../../.devtools/assemble</file>
     <file>../../.devtools/browser</file>
     <file>../../.devtools/deploy</file>
