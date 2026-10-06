@@ -562,6 +562,8 @@ final class UpdateAssetsTest extends UnitTestCase {
       'set env(TERM) xterm-256color',
       'set env(BASH_SILENCE_DEPRECATION_WARNING) 1',
       'spawn -noecho bash --norc --noprofile',
+      'fconfigure $spawn_id -encoding binary',
+      'fconfigure $user_spawn_id -encoding binary',
       'expect "\$ "',
       'send "\r"',
       'log_user 0',

@@ -500,6 +500,11 @@ set env(TERM) xterm-256color
 set env(BASH_SILENCE_DEPRECATION_WARNING) 1
 spawn -noecho bash --norc --noprofile
 
+# Tcl's UTF-8 decoding mangles characters beyond U+FFFF, such as emoji, so
+# the session's bytes pass through undecoded.
+fconfigure \$spawn_id -encoding binary
+fconfigure \$user_spawn_id -encoding binary
+
 expect "\\$ "
 settle
 type_text {{$command}}
