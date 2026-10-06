@@ -6,7 +6,8 @@
  * Deploy code to a remote repository.
  *
  * - Configures local git.
- * - Force-pushes code to a remote code repository branch.
+ * - Force-pushes code to a remote code repository branch, or only a tag when
+ *   DEPLOY_TAG is set.
  *
  * Add the following variables through CI provider UI.
  * - DEPLOY_USER_NAME - name of the user who will be committing to a remote
@@ -39,6 +40,10 @@ $deploy_remote = getenv_required('DEPLOY_REMOTE');
 
 // Git branch to deploy. If not provided - current branch will be used.
 $deploy_branch = getenv_default('DEPLOY_BRANCH', '');
+
+// Git tag to deploy. When set, only this tag is pushed and DEPLOY_BRANCH is
+// ignored.
+$deploy_tag = getenv_default('DEPLOY_TAG', '');
 
 // Set to 1 if the deployment should proceed. Useful for testing CI
 // configuration before an actual code push.
@@ -109,6 +114,14 @@ if ($deploy_proceed !== '1') {
   quit(0);
 }
 
+if ($deploy_tag === '' && $deploy_branch === '') {
+  $deploy_branch = trim((string) shell_exec('git symbolic-ref --quiet --short HEAD'));
+
+  if ($deploy_branch === '') {
+    FAIL('Unable to determine the branch to deploy because HEAD is detached. Set DEPLOY_BRANCH.');
+  }
+}
+
 $git_user_name = trim((string) shell_exec('git config --global user.name'));
 if ($git_user_name === '') {
   TASK('Configuring global git user name %s.', $deploy_user_name);
@@ -127,24 +140,46 @@ passthru_or_fail('git config --global push.default matching');
 TASK('Adding remote %s.', $deploy_remote);
 passthru_or_fail(sprintf('git remote add deployremote %s', escapeshellarg($deploy_remote)));
 
-if ($deploy_branch === '') {
-  $deploy_branch = trim((string) shell_exec('git symbolic-ref --short HEAD'));
+if ($deploy_tag !== '') {
+  TASK('Pushing tag %s.', $deploy_tag);
+  // The full refspec cannot resolve to a branch that shares the tag's name.
+  passthru_or_fail(sprintf('git push --force deployremote %s', escapeshellarg('refs/tags/' . $deploy_tag)));
+  PASS('Tag pushed to %s:%s.', $deploy_remote, $deploy_tag);
 }
+else {
+  TASK('Pushing code to branch %s.', $deploy_branch);
+  // Git cannot infer a new remote ref's type from a detached HEAD, so the
+  // destination is a full refname.
+  passthru_or_fail(sprintf('git push --force deployremote %s', escapeshellarg('HEAD:refs/heads/' . $deploy_branch)));
+  PASS('Code pushed to %s:%s.', $deploy_remote, $deploy_branch);
 
-TASK('Pushing code to branch %s.', $deploy_branch);
-passthru_or_fail(sprintf('git push --force deployremote HEAD:%s', escapeshellarg($deploy_branch)));
-PASS('Code pushed to %s:%s.', $deploy_remote, $deploy_branch);
+  TASK('Pushing tags.');
+  $tags_exit_code = 0;
+  $tags_output = passthru_capture('git push --force --tags deployremote', $tags_exit_code);
 
-TASK('Pushing tags.');
-passthru('git push --force --tags deployremote 2>/dev/null || true');
-PASS('Tags pushed to %s.', $deploy_remote);
+  if ($tags_exit_code === 0) {
+    PASS('Tags pushed to %s.', $deploy_remote);
+  }
+  else {
+    // The remote can refuse individual tags without affecting the branch.
+    echo $tags_output;
+    INFO('Some tags were not pushed to %s.', $deploy_remote);
+  }
+}
 
 echo '===============================' . PHP_EOL;
 echo '     🚚 DEPLOY COMPLETE ✅    ' . PHP_EOL;
 echo '===============================' . PHP_EOL;
 echo PHP_EOL;
 echo 'Remote URL    : ' . $deploy_remote . PHP_EOL;
-echo 'Remote branch : ' . $deploy_branch . PHP_EOL;
+
+if ($deploy_tag !== '') {
+  echo 'Remote tag    : ' . $deploy_tag . PHP_EOL;
+}
+else {
+  echo 'Remote branch : ' . $deploy_branch . PHP_EOL;
+}
+
 echo PHP_EOL;
 echo '> Next steps:' . PHP_EOL;
 echo '  Navigate to Drupal.org and check that the code was successfully pushed.' . PHP_EOL;

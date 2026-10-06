@@ -30,8 +30,14 @@ jobs:
       DEPLOY_REMOTE: ${{ secrets.DEPLOY_REMOTE }}
       DEPLOY_PROCEED: ${{ secrets.DEPLOY_PROCEED }}
 
+    # Deployment is optional, so its steps run only when DEPLOY_REMOTE is set.
     steps:
+      - name: Report missing deployment configuration
+        if: ${{ env.DEPLOY_REMOTE == '' }}
+        run: echo "::notice::Deployment is not configured. Set the DEPLOY_REMOTE secret to enable it."
+
       - name: Checkout code
+        if: ${{ env.DEPLOY_REMOTE != '' }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           # `workflow_run` resolves refs against the default branch, so the
@@ -41,7 +47,8 @@ jobs:
           persist-credentials: false
 
       - name: Install SSH key
-        uses: shimataro/ssh-key-action@6b84f2e793b32fa0b03a379cadadec75cc539391 # v2
+        if: ${{ env.DEPLOY_REMOTE != '' }}
+        uses: shimataro/ssh-key-action@87a8f067114a8ce263df83e9ed5c849953548bc3 # v2.8.1
         with:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           known_hosts: unnecessary
@@ -50,20 +57,30 @@ jobs:
               StrictHostKeyChecking no
 
       - name: Deploy to Remote
+        if: ${{ env.DEPLOY_REMOTE != '' }}
         env:
-          # Optional repository variable. Falls back to the branch that
-          # triggered the build, and then to the default branch.
+          # Optional repository variable for branch pushes. Falls back to the
+          # branch that triggered the build.
           DEPLOY_BRANCH: ${{ vars.DEPLOY_BRANCH }}
           HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
-          # A tag push reports the tag name as the head branch, which would
-          # deploy the release to a remote branch named after the tag. A
-          # branch can share a name with an unrelated tag, so match the tags
-          # on the commit that triggered the run rather than the name alone.
+          # A tag push reports the tag name as the head branch. A branch can
+          # share a name with an unrelated tag, so match the tags on the
+          # commit that triggered the run rather than the name alone.
           if git tag --points-at "${HEAD_SHA}" | grep -Fxq "${HEAD_BRANCH}"; then
-            HEAD_BRANCH=''
+            # Pushing the tagged commit to a branch rewinds the branch when the
+            # tag is behind its tip, so only the tag is deployed.
+            DEPLOY_BRANCH='' DEPLOY_TAG="${HEAD_BRANCH}" .devtools/deploy
+            exit 0
           fi
 
-          DEPLOY_BRANCH="${DEPLOY_BRANCH:-${HEAD_BRANCH:-${DEFAULT_BRANCH}}}" .devtools/deploy
+          # Runs finish out of order and can be re-run, so deploying a commit
+          # that is no longer the branch tip would rewind the remote branch.
+          HEAD_BRANCH_TIP="$(git rev-parse --verify --quiet "refs/remotes/origin/${HEAD_BRANCH}" || true)"
+          if [ "${HEAD_BRANCH_TIP}" != "${HEAD_SHA}" ]; then
+            echo "::notice::Skip deployment because ${HEAD_SHA} is no longer the tip of ${HEAD_BRANCH}."
+            exit 0
+          fi
+
+          DEPLOY_BRANCH="${DEPLOY_BRANCH:-${HEAD_BRANCH}}" .devtools/deploy

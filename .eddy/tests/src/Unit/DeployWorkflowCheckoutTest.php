@@ -61,6 +61,12 @@ final class DeployWorkflowCheckoutTest extends UnitTestCase {
     $this->assertSame([], $unnamed, sprintf('The deploy job checks out without naming a ref in: %s', implode(', ', $unnamed)));
   }
 
+  public function testCheckoutFetchesFullHistory(): void {
+    $fetch_depth = self::child(self::child(self::deployStep(self::STEP), 'with'), 'fetch-depth');
+
+    $this->assertSame(0, $fetch_depth, sprintf('The "%s" step must fetch every branch and tag: the deploy step compares the commit with its branch tip, detects tag pushes and pushes every tag.', self::STEP));
+  }
+
   #[DataProvider('dataProviderJobIsGated')]
   public function testJobIsGated(string $condition, string $message): void {
     $this->assertStringContainsString($condition, self::deployCondition(), $message);

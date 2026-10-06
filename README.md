@@ -462,7 +462,7 @@ Add the jobs for every Drupal major you selected in `init.php` as required statu
 
 The CI mirrors the code to your extension's Drupal.org repository (or any other git remote) once the tests pass. It deploys pushes to the `1.x` branch and release tags, and pull requests never deploy. To deploy another branch, such as `2.x`, add it to the `push` branches in `.github/workflows/test.yml`.
 
-The code pushed to the destination repository is the commit that CI tested, so a release tag deploys the tagged commit rather than the tip of the branch it was cut from.
+A branch push deploys the commit that CI tested to the same branch of the destination repository. If the branch has moved on by the time the tests finish, or an older run is re-run, the deployment is skipped, so an older commit never replaces a newer one. A release tag is deployed as that tag alone and leaves the destination branches untouched.
 
 See this example of the deployment destination repository: [GitHub Actions](https://github.com/AlexSkrypnyk/drupal_extension_scaffold_destination_github)
 
@@ -486,12 +486,12 @@ ssh-keygen -m PEM -t rsa -b 4096 -C "your_email+project_name@example.com"
 
 4. In CI, use UI to add the following variables as secrets:
 
-- `DEPLOY_REMOTE` - your extension's Drupal.org repository (for example, `git@git.drupal.org:project/myextension.git`).
+- `DEPLOY_REMOTE` - your extension's Drupal.org repository (for example, `git@git.drupal.org:project/myextension.git`). Until it is set, the deployment job skips deployment and reports a notice.
 - `DEPLOY_USER_NAME` - the name of the user who commits to the remote repository (i.e., your name on Drupal.org).
 - `DEPLOY_USER_EMAIL` - the email address of the user who commits to the remote repository (i.e., your email on Drupal.org).
 - `DEPLOY_PROCEED` - set to `1` once CI is working, and you are ready to deploy. Without this variable, the deployment job will run but will not push the code. This is useful for testing the deployment job.
 
-5. Optionally, set `DEPLOY_BRANCH` to the branch to push to in the destination repository. It is not a secret: add it as a repository variable in GitHub Actions (**Settings** -> **Secrets and variables** -> **Actions** -> **Variables**). Without it, the code is pushed to the branch that triggered the build, and a tagged release is pushed to the repository default branch.
+5. Optionally, set `DEPLOY_BRANCH` to the branch to push to in the destination repository. It is not a secret: add it as a repository variable in GitHub Actions (**Settings** -> **Secrets and variables** -> **Actions** -> **Variables**). Without it, the code is pushed to the branch that triggered the build. It has no effect on release tags, which are always pushed as tags.
 
 ### Drupal.org CI (DrupalCI)
 
