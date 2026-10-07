@@ -65,7 +65,7 @@ abstract class ForceCrystalFunctionalJavascriptTestBase extends WebDriverTestBas
 
     // The WebDriver endpoint is always reachable at 'localhost'; only the
     // port varies. Both backends serve the endpoint on the per-project
-    // port resolved by '.devtools/browser' (WEBDRIVER_PORT, default 4444).
+    // port resolved by 'eddy-browser' (WEBDRIVER_PORT, default 4444).
     $backend = getenv('WEBDRIVER_BACKEND') ?: 'chromedriver';
     $port = getenv('WEBDRIVER_PORT') ?: '4444';
     $decoded[2] = 'http://localhost:' . $port;

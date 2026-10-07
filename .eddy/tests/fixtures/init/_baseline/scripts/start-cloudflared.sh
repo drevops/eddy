@@ -5,7 +5,7 @@
 # Activates only when CLOUDFLARE_TUNNEL is truthy and the `cloudflared` binary
 # is on PATH. Starts (or reuses a healthy) quick tunnel pointing at the local
 # PHP webserver and writes the public HTTPS URL to `.env` as TUNNEL_URL, which
-# `.devtools/start`, `provision`, and `info` then display and which
+# `eddy-start`, `provision`, and `info` then display and which
 # `make`/`ahoy drush` and `login` pass to Drush.
 #
 # No Cloudflare account, DNS, or config is needed - quick tunnels mint an

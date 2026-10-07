@@ -4,6 +4,7 @@
         "behat/mink-browserkit-driver": "__VERSION__",
         "cweagans/composer-patches": "__VERSION__",
         "dealerdirect/phpcodesniffer-composer-installer": "__VERSION__",
+        "drevops/eddy-tooling": "__VERSION__",
         "drevops/phpcs-standard": "__VERSION__",
         "drupal/coder": "^8 || ^9",
         "drush/drush": "^12 || ^13 || ^14",
@@ -30,6 +31,9 @@
         }
     },
     "extra": {
+        "eddy": {
+            "drupal-version": "__VERSION__"
+        },
         "phpcodesniffer-search-depth": 10,
         "patches": {},
         "drupal-scaffold": {

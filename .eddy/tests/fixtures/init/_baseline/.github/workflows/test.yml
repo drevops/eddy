@@ -69,8 +69,13 @@ jobs:
           php-version: ${{ matrix.php-version }}
           extensions: gd, sqlite, pdo_sqlite
 
+      - name: Install the tooling
+        run: ./scripts/eddy-tooling
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Assemble the codebase
-        run: .devtools/assemble
+        run: vendor/bin/eddy-assemble
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -191,18 +196,23 @@ jobs:
             echo "SYMFONY_DEPRECATIONS_HELPER=disabled" >> "$GITHUB_ENV"
           fi
 
+      - name: Install the tooling
+        run: ./scripts/eddy-tooling
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Assemble the codebase
-        run: .devtools/assemble
+        run: vendor/bin/eddy-assemble
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Start built-in PHP server
-        run: .devtools/start
+        run: vendor/bin/eddy-start
         env:
           WEBSERVER_HOST: __VERSION__.0
 
       - name: Provision site
-        run: .devtools/provision
+        run: vendor/bin/eddy-provision
 
       - name: Run JavaScript tests
         if: ${{ env.CI_IS_JEST_RUNNER == 'true' && hashFiles('build/node_modules/.package-lock.json') != '' }}

@@ -14,7 +14,9 @@ This document explains how to set up a local development environment, build the 
 
 ## Building website
 
-Building the website assembles the codebase, starts the PHP server and provisions the Drupal website with this extension enabled. These operations are executed using scripts within [`.devtools`](.devtools) directory. CI uses the same scripts to build and test this extension.
+Building the website assembles the codebase, starts the PHP server and provisions the Drupal website with this extension enabled. These operations are run by the commands of the [`drevops/eddy-tooling`](https://github.com/drevops/eddy-tooling) package, which `scripts/eddy-tooling` installs into `vendor/`. CI uses the same commands to build and test this extension.
+
+The package version is set in `composer.dev.json`. The installer runs Composer only when that version, the patches declared for the package or the contents of a local patch file change, so a newer patch release reaches a local checkout once `vendor/` is removed.
 
 The resulting codebase is then placed in the `build` directory. The extension files are symlinked into the Drupal site structure.
 
@@ -30,7 +32,7 @@ The `provision` command is useful for re-installing the Drupal website without r
 
 ### Drupal versions
 
-The Drupal version used for the codebase assembly is determined by the `DRUPAL_VERSION` variable and defaults to the highest Drupal major this extension targets.
+The Drupal version used for the codebase assembly is determined by the `DRUPAL_VERSION` variable and defaults to the highest Drupal major this extension targets, which `composer.dev.json` sets as `extra.eddy.drupal-version`.
 
 You can specify a different version by setting the `DRUPAL_VERSION` environment variable when building the website:
 
@@ -66,7 +68,7 @@ The build installs [`cweagans/composer-patches`](https://github.com/cweagans/com
 }
 ```
 
-A patch that no longer applies fails the build.
+A patch that no longer applies fails the build. Patches declared for `drevops/eddy-tooling` don't reach the build: `scripts/eddy-tooling` applies them when it installs the tooling into `vendor/`.
 
 `composer.json` ships with the extension, so composer-patches 2.x on a site that installs the extension applies its patches too. Reference patches declared there by a public URL, since a local `patches/` path doesn't exist on that site.
 
