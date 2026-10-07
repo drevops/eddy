@@ -8,7 +8,7 @@ This file documents how to regenerate the scaffold's own artefacts (animated REA
 
 - `.eddy/assets/` - Source files for animated SVG demos used in the root `README.md` (`init.svg`, `build.svg`, `lint.svg`, `test.svg`) plus the `update-assets.php` generator and a small `svg-term` Node wrapper. It also holds the repository's social preview card, `social-preview.png`, and the `social-preview.html` page it's rendered from.
 - `.eddy/tests/` - PHPUnit suite that validates the scaffold itself: the `init.php` interactive flow, the tooling commands in `.eddy/tooling/src/` with their installer `scripts/eddy-tooling`, and the resulting project structure. Snapshots live under `.eddy/tests/fixtures/init/`.
-- `.eddy/tooling/` - Source of the `drevops/eddy-tooling` Composer package (the `eddy-*` commands). `scripts/eddy-tooling` installs it into `vendor/` as a symlink in this repository, and `scaffold-publish-tooling.yml` mirrors it to the read-only `drevops/eddy-tooling` repository on every push to `1.x`. Release tags are created on the mirror by hand - see `CONTRIBUTING.md`.
+- `.eddy/tooling/` - Source of the `drevops/eddy-tooling` Composer package (the `eddy-*` commands). `scripts/eddy-tooling` installs it into `vendor/` as a symlink in this repository, and `scaffold-publish-tooling.yml` mirrors it to the read-only `drevops/eddy-tooling` repository on every push to `1.x` and to a branch whose name contains `eddy-tooling`. Release tags are created on the mirror by hand - see `CONTRIBUTING.md`.
 - `.eddy/skills/update-consumer-eddy/` - the update skill that consumer projects fetch through the "Updating the scaffold" section of their `AGENTS.md`.
 
 ## Test groups
@@ -118,4 +118,4 @@ GitHub has no API for the social preview, so upload the new PNG by hand in the r
 
 `.github/workflows/scaffold-test.yml` runs the suite across the `p0`-`p5` groups on Ubuntu and macOS, runs `p3` and `p4` once per WebDriver backend (Selenium on Ubuntu only, chromedriver on both), and validates `composer.json` and the tooling package's `composer.json` (validate + normalize) plus the PHP lint step in `p0`. A second job (`scaffold-test-actions`) lints the workflow YAML with `yamllint` and `actionlint` and checks it for security issues with Zizmor.
 
-`.github/workflows/scaffold-publish-tooling.yml` publishes `.eddy/tooling/` to `drevops/eddy-tooling` on every push to `1.x`.
+`.github/workflows/scaffold-publish-tooling.yml` publishes `.eddy/tooling/` to the same-named branch of `drevops/eddy-tooling` on every push to `1.x` and to a branch whose name contains `eddy-tooling`.

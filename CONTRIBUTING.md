@@ -58,6 +58,8 @@ It commits the regenerated baseline on its own, then amends it with each dataset
 
 Changes to the commands go into `.eddy/tooling/`, where the scaffold's own tests and builds use them straight away. On every push to `1.x`, `.github/workflows/scaffold-publish-tooling.yml` mirrors the directory to the `1.x` branch of [`drevops/eddy-tooling`](https://github.com/drevops/eddy-tooling), which Packagist serves. The workflow pushes with the `EDDY_TOOLING_DEPLOY_KEY` secret, a deploy key with write access to that repository.
 
+A branch whose name contains `eddy-tooling`, such as `feature/123-eddy-tooling-fix`, is published too, into the mirror branch of the same name. A generated project can then try the change before it merges by requiring that branch in `composer.dev.json`, for example `"drevops/eddy-tooling": "dev-feature/123-eddy-tooling-fix"`. Other branches leave the mirror untouched, and a published branch stays on the mirror until you delete it there.
+
 Releases are tagged on the mirror by hand:
 
 1. Tag the mirror commit that corresponds to the `1.x` commit you're releasing, for example `1.0.1`. Generated projects require `~1.0.0`, so they pick up a patch release on their next fresh install.

@@ -1,9 +1,14 @@
 name: Publish Scaffold Tooling
 
-# Mirrors '.eddy/tooling/' to the read-only 'drevops/eddy-tooling' repository.
+# Mirrors '.eddy/tooling/' to the branch of the same name in the read-only
+# 'drevops/eddy-tooling' repository.
 #
-# Each run adds 1 commit to the mirror's '1.x' branch with the pushed commit's
-# subject, even when the directory is unchanged.
+# Besides '1.x', a branch whose name contains 'eddy-tooling' is published, so a
+# tooling change can be installed from the mirror before it merges. Other
+# branches leave the mirror untouched.
+#
+# Each run adds 1 commit with the pushed commit's subject, even when the
+# directory is unchanged.
 #
 # Runs queue rather than overlap, and GitHub cancels a queued run when a newer
 # push arrives. A push in a quick burst can get no commit of its own, but the
@@ -16,6 +21,7 @@ on:
   push:
     branches:
       - 1.x
+      - '**eddy-tooling**'
 
 concurrency:
   group: scaffold-publish-tooling-${{ github.ref }}
