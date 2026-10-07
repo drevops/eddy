@@ -1,10 +1,13 @@
 name: Publish Scaffold Tooling
 
 # Mirrors '.eddy/tooling/' to the read-only 'drevops/eddy-tooling' repository.
-# Each push to '1.x' becomes 1 commit on the mirror's '1.x' branch with the
-# same subject and the source commit in its body. A push that leaves the
-# directory unchanged publishes an empty commit, so every source commit has a
-# counterpart.
+#
+# Each run adds 1 commit to the mirror's '1.x' branch with the pushed commit's
+# subject, even when the directory is unchanged.
+#
+# Runs queue rather than overlap, and GitHub cancels a queued run when a newer
+# push arrives. A push in a quick burst can get no commit of its own, but the
+# latest state is always published.
 #
 # The 'EDDY_TOOLING_DEPLOY_KEY' secret holds a deploy key with write access to
 # the mirror.
@@ -37,7 +40,7 @@ jobs:
           persist-credentials: false
 
       - name: Install SSH key
-        uses: shimataro/ssh-key-action@6b84f2e793b32fa0b03a379cadadec75cc539391 # v2
+        uses: shimataro/ssh-key-action@87a8f067114a8ce263df83e9ed5c849953548bc3 # v2.8.1
         with:
           key: ${{ secrets.EDDY_TOOLING_DEPLOY_KEY }}
           known_hosts: unnecessary
