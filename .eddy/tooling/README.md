@@ -40,6 +40,19 @@ The installer runs Composer only when the constraint, the patches for the packag
 
 By default the commands print only their own `[TASK]`/`[ OK ]` progress and suppress the output of the tools they run (Composer, npm, Drush). When a tool fails, its captured output is shown so the failure is diagnosable. The output of the project's own commands - `npm run build` and the custom scripts below - is always shown. Set `DEBUG=1` to stream the full output of every tool live, for example `DEBUG=1 make build` or `DEBUG=1 ahoy build`.
 
+## Public tunnel
+
+`eddy-start`, `eddy-provision` and `eddy-stop` can expose the development server through a [Cloudflare quick tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/), a public `*.trycloudflare.com` HTTPS URL that needs no Cloudflare account, DNS or configuration. Set `CLOUDFLARE_TUNNEL=1` in the environment or in `.env`, and put the [`cloudflared`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/) binary on `PATH`:
+
+- `eddy-start` starts a tunnel, or reuses one whose URL still answers, and writes the URL to `.env` as `TUNNEL_URL`. Without `cloudflared` it skips the tunnel with a note.
+- `eddy-provision` adds the reverse-proxy and trusted-host settings Drupal needs behind the tunnel to `settings.php`.
+- `eddy-stop` stops the tunnel and removes its URL from `.env`, even once `CLOUDFLARE_TUNNEL` is unset.
+
+`eddy-start`, `eddy-provision` and `eddy-info` report `TUNNEL_URL` as the site URL whichever tool wrote it, so a [custom script](#custom-scripts) can wire in another tunnel the same way.
+
+> [!WARNING]
+> Anyone with the URL can reach the site while the tunnel is up. Use disposable test data only, and stop the tunnel when you're done.
+
 ## Custom scripts
 
 `eddy-assemble`, `eddy-provision`, `eddy-start` and `eddy-stop` each look for `scripts/<prefix>-*.sh` in the project root and run any matches: `assemble-*.sh` and `provision-*.sh` at the end of their phase, `start-*.sh` once the webserver is serving, and `stop-*.sh` before the webserver stops. Scripts run in lexicographic order from the project root, inherit the parent environment, and a non-zero exit aborts the parent.

@@ -97,7 +97,7 @@ See the sections below for more details.
 
 ## Codebase setup
 
-The initial codebase setup script `php init.php` will ask you for some information and update the codebase to reflect your extension's name and other details. It asks for the extension name, machine name and type, the Drupal versions to target, the command wrapper, the tools to keep, and whether to keep the Cloudflare tunnel and example lifecycle scripts. Each answer can be pre-filled with an `EDDY_*` environment variable for an unattended run - `php init.php --help` lists them.
+The initial codebase setup script `php init.php` will ask you for some information and update the codebase to reflect your extension's name and other details. It asks for the extension name, machine name and type, the Drupal versions to target, the command wrapper, the tools to keep, and whether to keep the example lifecycle scripts. Each answer can be pre-filled with an `EDDY_*` environment variable for an unattended run - `php init.php --help` lists them.
 
 ![Init process](.eddy/assets/init.svg)
 
@@ -327,9 +327,9 @@ The directory is `export-ignore`d via `.gitattributes`, so anything under `scrip
 
 Example scripts ship with the scaffold (`scripts/assemble-example.sh`, `scripts/provision-example.sh`, `scripts/start-example.sh`, `scripts/stop-example.sh`). Each one prints a marker line so you can see its phase fire. `init.php` asks whether to keep them and removes them unless you say yes, so answer yes if you want them as a starting point for your own hooks.
 
-#### Public HTTPS tunnel (Cloudflare)
+### Public HTTPS tunnel (Cloudflare)
 
-Remote and cloud development environments (Codespaces, DevPod, a remote Docker host, an SSH dev box) cannot reach the `localhost`-bound PHP dev server directly. The scaffold ships opt-in hook scripts that expose it through a [Cloudflare quick tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/) - a public `*.trycloudflare.com` HTTPS URL with no account, DNS, or config:
+Remote and cloud development environments (Codespaces, DevPod, a remote Docker host, an SSH dev box) cannot reach the `localhost`-bound PHP dev server directly. The [tooling](#the-tooling-package) can expose it through a [Cloudflare quick tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/) - a public `*.trycloudflare.com` HTTPS URL with no account, DNS, or config:
 
 ```bash
 export CLOUDFLARE_TUNNEL=1
@@ -339,9 +339,9 @@ make build
 > [!WARNING]
 > A quick tunnel publishes your local site to a public URL with no authentication in front of it - anyone with the URL can reach it while the tunnel is up. A local Drupal install typically ships with a known admin account and no firewall, so treat the exposed site as fully public: use disposable test data only, never real or sensitive content, and stop the tunnel with `make stop` when you are done.
 
-With `CLOUDFLARE_TUNNEL` set and the [`cloudflared`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/) binary on `PATH`, `scripts/start-cloudflared.sh` starts (or reuses a healthy) tunnel and writes its URL to `.env` as `TUNNEL_URL`. The `start`, `provision`, and `info` output, and `make`/`ahoy drush` and `login`, then use that URL. `scripts/provision-cloudflared.sh` configures Drupal's reverse-proxy and trusted-host settings so the tunnel serves correctly, and `scripts/stop-cloudflared.sh` tears the tunnel down on `make stop`. Without the env var, behaviour is unchanged; with it set but `cloudflared` absent, the hook skips with a note.
+With `CLOUDFLARE_TUNNEL` set, in the shell or in `.env`, and the [`cloudflared`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/) binary on `PATH`, `start` starts (or reuses a healthy) tunnel and writes its URL to `.env` as `TUNNEL_URL`. The `start`, `provision`, and `info` output, and `make`/`ahoy drush` and `login`, then use that URL. `provision` configures Drupal's reverse-proxy and trusted-host settings so the tunnel serves correctly, and `stop` tears the tunnel down and removes its URL from `.env`. Without the variable, behaviour is unchanged; with it set but `cloudflared` absent, `start` skips the tunnel with a note.
 
-Any tool that writes a `TUNNEL_URL` to `.env` (ngrok, tailscale funnel, etc.) is picked up the same way - the core scripts are tunnel-agnostic.
+Any tool that writes a `TUNNEL_URL` to `.env` (ngrok, tailscale funnel, etc.) is picked up the same way, for example from a [custom lifecycle script](#custom-lifecycle-scripts), and `stop` leaves a URL it didn't create alone.
 
 #### Scannable QR codes
 

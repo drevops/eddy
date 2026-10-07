@@ -22,6 +22,7 @@ final class ProvisionTest extends UnitTestCase {
   protected function setUp(): void {
     parent::setUp();
     require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
+    $this->envUnset('CLOUDFLARE_TUNNEL');
   }
 
   protected static function drushPrefix(string $cwd): string {
@@ -128,6 +129,7 @@ final class ProvisionTest extends UnitTestCase {
     $this->assertStringContainsString('Browser test output linked', $output);
     $this->assertStringContainsString('PROVISION COMPLETE', $output);
     $this->assertStringContainsString('http://' . $expected_host . ':' . $expected_port, $output);
+    $this->assertStringNotContainsString('tunnel settings', $output);
 
     $browser_output_link = $cwd . '/build/web/sites/simpletest/browser_output';
     $this->assertTrue(is_link($browser_output_link));
@@ -350,6 +352,58 @@ final class ProvisionTest extends UnitTestCase {
     $this->assertIsString($output);
     $this->assertStringContainsString('Site URL:            ' . $tunnel_url, $output);
     $this->assertStringNotContainsString('Site URL:            http://', $output);
+  }
+
+  public function testProvisionAddsTunnelSettingsWhenEnabled(): void {
+    $this->envSet('CLOUDFLARE_TUNNEL', '1');
+
+    $extension_name = 'test_extension';
+    $cwd = self::$tmp . '/provision_tunnel_' . uniqid();
+    $settings_file = $cwd . '/build/web/sites/default/settings.php';
+    mkdir(dirname($settings_file), 0755, TRUE);
+    file_put_contents($settings_file, "<?php\n");
+    chdir($cwd);
+
+    $this->registerMock('getcwd', 'DrevOps\\Eddy\\DevTools', fn(): string => $cwd);
+    $this->registerMock('glob', 'DrevOps\\Eddy\\DevTools', fn(): array => [$extension_name . '.info.yml']);
+
+    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\DevTools', function (string $file): string {
+      if (str_ends_with($file, '.info.yml')) {
+        return "name: Test\ntype: module\n";
+      }
+      if ($file === 'composer.json') {
+        return json_encode(['suggest' => []], JSON_THROW_ON_ERROR);
+      }
+      if (str_starts_with($file, 'http://')) {
+        return '<html></html>';
+      }
+
+      return (string) \file_get_contents($file);
+    });
+
+    $this->registerMock('file_exists', 'DrevOps\\Eddy\\DevTools', fn(): bool => FALSE);
+
+    $prefix = self::drushPrefix($cwd);
+    $db_file = site_db_file($extension_name);
+    $site_url = 'http://localhost:8000';
+    $this->mockPassthruMultiple([
+      ['cmd' => $prefix . 'status --field=db-status', 'output' => ''],
+      ['cmd' => $prefix . sprintf('site-install %s -y --db-url=%s --account-name=admin install_configure_form.enable_update_status_module=NULL install_configure_form.enable_update_status_emails=NULL', escapeshellarg('standard'), escapeshellarg('sqlite://localhost/' . $db_file))],
+      ['cmd' => $prefix . 'status'],
+      ['cmd' => $prefix . 'pm:enable ' . escapeshellarg($extension_name)],
+      ['cmd' => $prefix . 'cr'],
+      ['cmd' => $prefix . 'status --field=drush-version', 'output' => '13.8.0'],
+      ['cmd' => $prefix . sprintf('uli -l %s --no-browser', escapeshellarg($site_url)), 'output' => $site_url . '/user/reset/1/abc/login'],
+    ]);
+
+    ob_start();
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-provision';
+    $output = ob_get_clean();
+
+    $this->assertIsString($output);
+    $this->assertStringContainsString('Adding the tunnel settings to build/web/sites/default/settings.php.', $output);
+    $this->assertStringContainsString('Tunnel settings added.', $output);
+    $this->assertStringContainsString("# Cloudflare quick tunnel settings.\n\$settings['reverse_proxy'] = TRUE;", (string) file_get_contents($settings_file));
   }
 
 }

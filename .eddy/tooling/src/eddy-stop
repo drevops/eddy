@@ -30,6 +30,8 @@ echo PHP_EOL;
 // still reachable, if any.
 run_custom_scripts('scripts', 'stop-');
 
+tunnel_stop();
+
 TASK('Stopping previously started services on port %s, if any.', $webserver_port);
 kill_port($webserver_port);
 sleep(1);

@@ -180,10 +180,6 @@ press "\r"
 expect "Tools"
 press "\r"
 
-# Confirm: Keep Cloudflare tunnel support - accept the default "Yes".
-expect "Keep Cloudflare tunnel support"
-press "\r"
-
 # Confirm: Keep example lifecycle scripts - accept the default "No".
 expect "Keep example lifecycle scripts"
 press "\r"

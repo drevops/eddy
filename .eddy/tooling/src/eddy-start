@@ -79,6 +79,10 @@ if ($headers === FALSE || !isset($headers[0]) || !str_contains($headers[0], '200
 }
 PASS('Server can serve content.');
 
+if (tunnel_enabled()) {
+  tunnel_start($webserver_port);
+}
+
 // Run custom post-start scripts from "scripts/start-*.sh", if any.
 run_custom_scripts('scripts', 'start-');
 

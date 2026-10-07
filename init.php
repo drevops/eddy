@@ -117,10 +117,6 @@ function main(array $argv): void {
         default: array_keys($tool_options),
         description: 'All tools are included by default. Uncheck any to remove from your project.',
       ),
-      'cloudflare' => Prompty::confirm(
-        'Keep Cloudflare tunnel support',
-        description: 'Ships opt-in scripts that expose the local site through a public Cloudflare quick tunnel.',
-      ),
       'examples' => Prompty::confirm(
         'Keep example lifecycle scripts',
         default: FALSE,
@@ -158,9 +154,8 @@ function main(array $argv): void {
   /** @var array<string> $tools_keep */
   $tools_keep = array_filter((array) $results['tools'], static fn($v): bool => $v !== '');
   $tools_remove = array_values(array_diff(array_keys($tool_options), $tools_keep));
-  // The prompts ask whether to keep the tunnel and example scripts, so a 'no'
-  // answer is what triggers their removal.
-  $remove_cloudflare = !($results['cloudflare'] ?? FALSE);
+  // The prompt asks whether to keep the example scripts, so a 'no' answer is
+  // what triggers their removal.
   $remove_examples = !($results['examples'] ?? FALSE);
   $remove_self = $results['remove_self'] ?? FALSE;
 
@@ -170,7 +165,7 @@ function main(array $argv): void {
     $machine_name = convert_string($name, 'file_name');
   }
 
-  process($name, $machine_name, $type, $drupal_versions, $command_wrapper, $tools_remove, $remove_cloudflare, $remove_examples, $remove_self);
+  process($name, $machine_name, $type, $drupal_versions, $command_wrapper, $tools_remove, $remove_examples, $remove_self);
   // @codeCoverageIgnoreEnd
 }
 
@@ -237,7 +232,6 @@ Environment variables (to pre-fill prompts):
                        One or more of: phpcs, phpstan, rector, twigcs, eslint,
                        stylelint, cspell, jest, phpunit, functional_javascript,
                        renovate.
-  EDDY_CLOUDFLARE      Keep Cloudflare tunnel support: true or false.
   EDDY_EXAMPLES        Keep example lifecycle scripts: true or false. They
                        are removed by default.
   EDDY_REMOVE_SELF     Remove this script: true or false.
@@ -262,14 +256,12 @@ EOF;
  *   The selected command wrappers ('ahoy', 'makefile', or both).
  * @param array<string> $tools_remove
  *   The machine names of the development tools to remove.
- * @param bool $remove_cloudflare
- *   Whether to remove the Cloudflare tunnel scripts.
  * @param bool $remove_examples
  *   Whether to remove the example lifecycle scripts.
  * @param bool $remove_self
  *   Whether to remove this script.
  */
-function process(string $extension_name, string $extension_machine_name, string $extension_type, array $drupal_versions, array $command_wrapper, array $tools_remove, bool $remove_cloudflare, bool $remove_examples, bool $remove_self): void {
+function process(string $extension_name, string $extension_machine_name, string $extension_type, array $drupal_versions, array $command_wrapper, array $tools_remove, bool $remove_examples, bool $remove_self): void {
   // Validate required values.
   if ($extension_name === '') {
     throw new \Exception('Name is required.');
@@ -337,15 +329,6 @@ function process(string $extension_name, string $extension_machine_name, string 
   process_readme($extension_name);
 
   process_internal($extension_name, $extension_machine_name, $extension_type);
-
-  // Remove the opt-in Cloudflare quick-tunnel scripts when the tunnel support
-  // is declined. The tunnel-agnostic TUNNEL_URL handling in the core scripts
-  // stays regardless, so any other tunnel tool still integrates.
-  if ($remove_cloudflare) {
-    @unlink('scripts/provision-cloudflared.sh');
-    @unlink('scripts/start-cloudflared.sh');
-    @unlink('scripts/stop-cloudflared.sh');
-  }
 
   // Remove the sample lifecycle hooks. They demonstrate the naming convention
   // and print a marker line, so they carry no project behaviour. The 'scripts'

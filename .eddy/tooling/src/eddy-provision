@@ -90,6 +90,10 @@ TASK('Linking browser test output into %s.', '.logs/browser_output');
 link_browser_output(getcwd() . '/build/web', getcwd() . '/.logs');
 PASS('Browser test output linked.');
 
+if (tunnel_enabled()) {
+  tunnel_write_settings('build/web/sites/default/settings.php');
+}
+
 // Run custom post-provision scripts from "scripts/provision-*.sh", if any.
 run_custom_scripts('scripts', 'provision-');
 

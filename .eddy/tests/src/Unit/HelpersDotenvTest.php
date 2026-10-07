@@ -5,13 +5,15 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\DevTools\dotenv_read;
+use function DrevOps\Eddy\DevTools\dotenv_unset_var;
 use function DrevOps\Eddy\DevTools\dotenv_write_var;
+use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
 /**
- * Tests for dotenv_read() and dotenv_write_var() helpers.
+ * Tests for dotenv_read(), dotenv_write_var() and dotenv_unset_var() helpers.
  *
  * phpcs:disable Drupal.Classes.FullyQualifiedNamespace.UseStatementMissing
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
@@ -19,6 +21,7 @@ use PHPUnit\Framework\Attributes\Group;
  */
 #[CoversFunction('DrevOps\Eddy\DevTools\dotenv_read')]
 #[CoversFunction('DrevOps\Eddy\DevTools\dotenv_write_var')]
+#[CoversFunction('DrevOps\Eddy\DevTools\dotenv_unset_var')]
 #[Group('p0')]
 final class HelpersDotenvTest extends UnitTestCase {
 
@@ -170,6 +173,95 @@ final class HelpersDotenvTest extends UnitTestCase {
 
     $vars = dotenv_read($file);
     $this->assertSame(['WEBSERVER_PORT' => '8124', 'OTHER_VAR' => 'hello'], $vars);
+  }
+
+  #[DataProvider('dataProviderDotenvUnsetVar')]
+  public function testDotenvUnsetVar(string $contents, string $expected): void {
+    $file = self::$tmp . '/dotenv_unset_' . uniqid();
+    file_put_contents($file, $contents);
+
+    dotenv_unset_var('TUNNEL_URL', $file);
+
+    $this->assertSame($expected, file_get_contents($file));
+    $this->assertArrayNotHasKey('TUNNEL_URL', dotenv_read($file));
+  }
+
+  public static function dataProviderDotenvUnsetVar(): \Iterator {
+    yield 'only assignment' => [
+      'contents' => "TUNNEL_URL=https://abc.trycloudflare.com\n",
+      'expected' => '',
+    ];
+    yield 'other variables keep their order' => [
+      'contents' => "WEBSERVER_PORT=8123\nTUNNEL_URL=https://abc.trycloudflare.com\nOTHER=1\n",
+      'expected' => "WEBSERVER_PORT=8123\nOTHER=1\n",
+    ];
+    yield 'every duplicate is removed' => [
+      'contents' => "TUNNEL_URL=first\nOTHER=1\nTUNNEL_URL=second\n",
+      'expected' => "OTHER=1\n",
+    ];
+    yield 'comments and blank lines are kept' => [
+      'contents' => "# TUNNEL_URL=commented\n\nTUNNEL_URL=active\nOTHER=1\n",
+      'expected' => "# TUNNEL_URL=commented\n\nOTHER=1\n",
+    ];
+    yield 'whitespace around the key' => [
+      'contents' => "  TUNNEL_URL = active\nOTHER=1\n",
+      'expected' => "OTHER=1\n",
+    ];
+    yield 'empty value' => [
+      'contents' => "TUNNEL_URL=\nOTHER=1\n",
+      'expected' => "OTHER=1\n",
+    ];
+    yield 'keys sharing the name are kept' => [
+      'contents' => "TUNNEL_URL_PREVIOUS=a\nMY_TUNNEL_URL=b\nTUNNEL_URL=c\n",
+      'expected' => "TUNNEL_URL_PREVIOUS=a\nMY_TUNNEL_URL=b\n",
+    ];
+    yield 'file without trailing newline' => [
+      'contents' => "OTHER=1\nTUNNEL_URL=active",
+      'expected' => 'OTHER=1',
+    ];
+  }
+
+  public function testDotenvUnsetVarLeavesFileWithoutKeyUntouched(): void {
+    $file = self::$tmp . '/dotenv_unset_' . uniqid();
+    file_put_contents($file, "OTHER=1\r\nMORE=2\r\n");
+    // Writing to a read-only file fails, so the call passing proves that
+    // nothing was rewritten.
+    chmod($file, 0444);
+
+    dotenv_unset_var('TUNNEL_URL', $file);
+
+    $this->assertSame("OTHER=1\r\nMORE=2\r\n", file_get_contents($file));
+  }
+
+  public function testDotenvUnsetVarMissingFile(): void {
+    $file = self::$tmp . '/dotenv_unset_' . uniqid();
+
+    dotenv_unset_var('TUNNEL_URL', $file);
+
+    $this->assertFileDoesNotExist($file);
+  }
+
+  public function testDotenvUnsetVarWriteFailure(): void {
+    $file = self::$tmp . '/dotenv_unset_' . uniqid();
+    file_put_contents($file, "TUNNEL_URL=active\nOTHER=1\n");
+    chmod($file, 0444);
+    $this->mockQuit(1);
+    set_error_handler(static fn(): bool => TRUE);
+    ob_start();
+    try {
+      dotenv_unset_var('TUNNEL_URL', $file);
+      $this->fail('Expected QuitErrorException to be thrown.');
+    }
+    catch (QuitErrorException $e) {
+      $this->assertSame(1, $e->getCode());
+    }
+    finally {
+      restore_error_handler();
+      $output = (string) ob_get_clean();
+    }
+
+    $this->assertStringContainsString('Unable to write ' . $file, $output);
+    $this->assertSame("TUNNEL_URL=active\nOTHER=1\n", file_get_contents($file));
   }
 
 }
