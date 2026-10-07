@@ -2,7 +2,7 @@
 ##
 # Example post-provision script.
 #
-# Runs at the end of `.devtools/provision` (after the site is
+# Runs at the end of `eddy-provision` (after the site is
 # installed, the extension is enabled, and caches are pre-warmed). The
 # current working directory is the project root. Any non-zero exit
 # aborts the parent provision run.

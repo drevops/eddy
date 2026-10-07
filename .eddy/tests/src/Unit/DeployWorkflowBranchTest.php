@@ -217,12 +217,12 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
    */
   protected function createRepository(): string {
     $repository = self::$tmp . '/repository';
-    mkdir($repository . '/.devtools', 0755, TRUE);
+    mkdir($repository . '/vendor/bin', 0755, TRUE);
 
-    // The step ends by invoking the deploy script, so this stub records the
+    // The step ends by invoking the deploy command, so this stub records the
     // variables it receives.
-    file_put_contents($repository . '/.devtools/deploy', sprintf("#!/usr/bin/env bash\nprintf 'DEPLOY_BRANCH=%%s\\nDEPLOY_TAG=%%s\\n' \"\${DEPLOY_BRANCH:-}\" \"\${DEPLOY_TAG:-}\" > %s\n", escapeshellarg(self::deploymentFile())));
-    chmod($repository . '/.devtools/deploy', 0755);
+    file_put_contents($repository . '/vendor/bin/eddy-deploy', sprintf("#!/usr/bin/env bash\nprintf 'DEPLOY_BRANCH=%%s\\nDEPLOY_TAG=%%s\\n' \"\${DEPLOY_BRANCH:-}\" \"\${DEPLOY_TAG:-}\" > %s\n", escapeshellarg(self::deploymentFile())));
+    chmod($repository . '/vendor/bin/eddy-deploy', 0755);
 
     $this->git($repository, ['init', '--initial-branch=' . self::DEFAULT_BRANCH]);
     $this->git($repository, ['config', 'user.name', 'Test User']);

@@ -34,16 +34,17 @@ return RectorConfig::configure()
   ->withPaths([
     __DIR__ . '/src/**',
     __DIR__ . '/../assets/update-assets.php',
-    __DIR__ . '/../../.devtools/assemble',
-    __DIR__ . '/../../.devtools/browser',
-    __DIR__ . '/../../.devtools/deploy',
-    __DIR__ . '/../../.devtools/helpers.php',
-    __DIR__ . '/../../.devtools/info',
-    __DIR__ . '/../../.devtools/provision',
-    __DIR__ . '/../../.devtools/qrcode',
-    __DIR__ . '/../../.devtools/start',
-    __DIR__ . '/../../.devtools/stop',
+    __DIR__ . '/../../.eddy/tooling/src/eddy-assemble',
+    __DIR__ . '/../../.eddy/tooling/src/eddy-browser',
+    __DIR__ . '/../../.eddy/tooling/src/eddy-deploy',
+    __DIR__ . '/../../.eddy/tooling/src/helpers.php',
+    __DIR__ . '/../../.eddy/tooling/src/eddy-info',
+    __DIR__ . '/../../.eddy/tooling/src/eddy-provision',
+    __DIR__ . '/../../.eddy/tooling/src/eddy-qrcode',
+    __DIR__ . '/../../.eddy/tooling/src/eddy-start',
+    __DIR__ . '/../../.eddy/tooling/src/eddy-stop',
     __DIR__ . '/../../init.php',
+    __DIR__ . '/../../scripts/eddy-tooling',
   ])
   ->withPhpSets(php83: TRUE)
   ->withPreparedSets(

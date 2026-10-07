@@ -1,4 +1,4 @@
-@@ -136,11 +136,6 @@
+@@ -141,11 +141,6 @@
              drupal-version: 11@beta
              stability: canary
  
@@ -10,7 +10,7 @@
  
      name: ${{ matrix.name }}
  
-@@ -152,7 +147,6 @@
+@@ -157,7 +152,6 @@
        CI_RUNNER_INDEX: ${{ strategy.job-index }}
        CI_RUNNER_TOTAL: ${{ strategy.job-total }}
        CI_IS_JEST_RUNNER: true
@@ -18,7 +18,7 @@
  
      steps:
        - name: Checkout code
-@@ -210,39 +204,3 @@
+@@ -220,39 +214,3 @@
          run: npm test
          continue-on-error: ${{ vars.CI_NODEJS_TEST_IGNORE_FAILURE == '1' }}
  

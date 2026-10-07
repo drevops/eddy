@@ -15,7 +15,7 @@
  *
  * Two output modes:
  * - No arguments: print the formatted full summary.
- * - 'info <field>': print only that field's value on stdout, exit 0.
+ * - 'eddy-info <field>': print only that field's value on stdout, exit 0.
  *   Unknown field name prints '-' and exits 1.
  *
  * Field-mode keeps expensive subprocess probes lazy: only the requested

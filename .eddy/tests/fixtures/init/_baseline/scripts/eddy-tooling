@@ -1,0 +1,346 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * @file
+ * Install the 'drevops/eddy-tooling' package into 'vendor/'.
+ *
+ * The tooling commands assemble the site build, so they cannot come from the
+ * build's own Composer install. This script installs the package into the
+ * project-root 'vendor/' directory, with its commands in 'vendor/bin/eddy-*'.
+ *
+ * The version constraint and the patches for the package are read from
+ * 'composer.dev.json' and written to the 'vendor/eddy-tooling.json' manifest,
+ * together with a checksum of each local patch file. Composer runs from the
+ * project root, so local patch paths resolve against it. The install is
+ * skipped while the manifest is unchanged and every command of the installed
+ * package is in 'vendor/bin'.
+ *
+ * The package helpers are not available before the package is installed, so
+ * this script carries its own output functions.
+ *
+ * Set DEBUG=1 to stream the Composer output.
+ */
+
+declare(strict_types=1);
+
+namespace DrevOps\Eddy\ToolingInstaller;
+
+const PACKAGE = 'drevops/eddy-tooling';
+
+const PACKAGE_DIR = 'vendor/drevops/eddy-tooling';
+
+const BIN_DIR = 'vendor/bin';
+
+const MANIFEST = 'vendor/eddy-tooling.json';
+
+const PATCHES_LOCK = 'vendor/eddy-tooling-patches.lock.json';
+
+const DEV_MANIFEST = 'composer.dev.json';
+
+/**
+ * Install the package unless the installed copy matches the manifest.
+ *
+ * @return int
+ *   The exit code.
+ */
+function main(): int {
+  $manifest = manifest();
+
+  if ($manifest === NULL) {
+    return 1;
+  }
+
+  $encoded = json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL;
+
+  if (is_current($encoded)) {
+    return 0;
+  }
+
+  info(sprintf('Installing %s %s.', PACKAGE, $manifest['require'][PACKAGE]));
+
+  // Composer keeps an installed package whose version is unchanged, even when
+  // its patches changed, and keeps an existing bin proxy, so the previous
+  // install is removed first.
+  remove_path(PACKAGE_DIR);
+
+  foreach (glob(BIN_DIR . '/eddy-*') ?: [] as $bin) {
+    remove_path($bin);
+  }
+
+  remove_path(PATCHES_LOCK);
+
+  if (!is_dir('vendor')) {
+    @mkdir('vendor', 0755, TRUE);
+  }
+
+  if (@file_put_contents(MANIFEST, $encoded) === FALSE) {
+    fail(sprintf('Unable to write %s.', MANIFEST));
+
+    return 1;
+  }
+
+  $exit_code = composer('update --no-dev --no-interaction --no-audit');
+
+  if ($exit_code !== 0) {
+    // The manifest marks a completed install, so a failed one leaves none.
+    remove_path(MANIFEST);
+    fail(sprintf('Unable to install %s.', PACKAGE));
+
+    return $exit_code;
+  }
+
+  pass(sprintf('Installed %s.', PACKAGE));
+
+  return 0;
+}
+
+/**
+ * Build the Composer manifest that installs the package.
+ *
+ * @return array{require: array<string, string>, repositories?: list<array<string, string>>, config?: array<string, mixed>, extra?: array<string, mixed>}|null
+ *   The manifest, or NULL when 'composer.dev.json' does not declare a version
+ *   constraint for the package.
+ */
+function manifest(): ?array {
+  $dev = json_decode((string) @file_get_contents(DEV_MANIFEST), TRUE);
+
+  if (!is_array($dev)) {
+    fail(sprintf('Unable to read %s.', DEV_MANIFEST));
+
+    return NULL;
+  }
+
+  $constraint = json_value($dev, 'require-dev', PACKAGE);
+
+  if (!is_string($constraint) || $constraint === '') {
+    fail(sprintf('%s does not require %s in "require-dev".', DEV_MANIFEST, PACKAGE));
+
+    return NULL;
+  }
+
+  $manifest = ['require' => [PACKAGE => $constraint]];
+
+  $patches = json_value($dev, 'extra', 'patches', PACKAGE);
+
+  if (is_array($patches) && $patches !== []) {
+    $manifest['require']['cweagans/composer-patches'] = '^2';
+    $manifest['config'] = ['allow-plugins' => ['cweagans/composer-patches' => TRUE]];
+    $manifest['extra'] = ['patches' => [PACKAGE => $patches]];
+
+    // A patch edited in place keeps its path, so only its checksum changes the
+    // manifest and triggers a reinstall. Composer ignores this key.
+    $checksums = patch_checksums($patches);
+
+    if ($checksums !== []) {
+      $manifest['extra']['eddy-tooling'] = ['patch-checksums' => $checksums];
+    }
+  }
+
+  return $manifest;
+}
+
+/**
+ * Compute the checksum of each local patch file.
+ *
+ * @param array<mixed> $patches
+ *   The patches for the package in either composer-patches format: a map of
+ *   descriptions to paths, or a list of definitions with a 'url' key.
+ *
+ * @return array<string, string>
+ *   The SHA-256 checksum of each existing local patch file, keyed by its path.
+ *   Remote patches have none.
+ */
+function patch_checksums(array $patches): array {
+  $checksums = [];
+
+  foreach ($patches as $patch) {
+    $path = is_array($patch) ? ($patch['url'] ?? NULL) : $patch;
+
+    if (!is_string($path)) {
+      continue;
+    }
+
+    if (str_contains($path, '://')) {
+      continue;
+    }
+
+    if (!is_file($path)) {
+      continue;
+    }
+
+    $checksums[$path] = (string) hash_file('sha256', $path);
+  }
+
+  return $checksums;
+}
+
+/**
+ * Check whether the installed package matches the manifest.
+ *
+ * @param string $manifest
+ *   The encoded manifest.
+ *
+ * @return bool
+ *   TRUE when the last completed install used the same manifest and every
+ *   command the installed package declares is in 'vendor/bin'.
+ */
+function is_current(string $manifest): bool {
+  if (@file_get_contents(MANIFEST) !== $manifest) {
+    return FALSE;
+  }
+
+  $bins = json_value(json_decode((string) @file_get_contents(PACKAGE_DIR . '/composer.json'), TRUE), 'bin');
+
+  if (!is_array($bins) || $bins === []) {
+    return FALSE;
+  }
+
+  foreach ($bins as $bin) {
+    if (!is_string($bin) || !is_file(BIN_DIR . '/' . basename($bin))) {
+      return FALSE;
+    }
+  }
+
+  return TRUE;
+}
+
+/**
+ * Read a nested value from decoded JSON.
+ *
+ * @param mixed $data
+ *   The decoded JSON.
+ * @param string ...$keys
+ *   The keys leading to the value.
+ *
+ * @return mixed
+ *   The value, or NULL when any key is missing.
+ */
+function json_value(mixed $data, string ...$keys): mixed {
+  foreach ($keys as $key) {
+    if (!is_array($data) || !array_key_exists($key, $data)) {
+      return NULL;
+    }
+
+    $data = $data[$key];
+  }
+
+  return $data;
+}
+
+/**
+ * Run a Composer command against the manifest from the project root.
+ *
+ * The output is shown only when the command fails, unless DEBUG=1 is set.
+ *
+ * @param string $arguments
+ *   The command arguments.
+ *
+ * @return int
+ *   The exit code.
+ */
+function composer(string $arguments): int {
+  // An authenticated download avoids the anonymous GitHub API rate limit.
+  $token = getenv('GITHUB_TOKEN');
+
+  if (is_string($token) && $token !== '' && in_array(getenv('COMPOSER_AUTH'), [FALSE, ''], TRUE)) {
+    putenv('COMPOSER_AUTH=' . json_encode(['github-oauth' => ['github.com' => $token]], JSON_THROW_ON_ERROR));
+  }
+
+  $command = sprintf('COMPOSER=%s composer %s', escapeshellarg(MANIFEST), $arguments);
+  $exit_code = 0;
+
+  if (getenv('DEBUG') === '1') {
+    passthru($command, $exit_code);
+
+    return $exit_code;
+  }
+
+  ob_start();
+  passthru($command . ' 2>&1', $exit_code);
+  $output = (string) ob_get_clean();
+
+  if ($exit_code !== 0) {
+    echo $output;
+  }
+
+  return $exit_code;
+}
+
+/**
+ * Remove a file, a symlink or a directory tree.
+ *
+ * A symlink is removed without following it, so a symlinked package keeps its
+ * sources.
+ *
+ * @param string $path
+ *   The path to remove.
+ */
+function remove_path(string $path): void {
+  if (is_link($path) || is_file($path)) {
+    unlink($path);
+
+    return;
+  }
+
+  if (!is_dir($path)) {
+    return;
+  }
+
+  $items = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+
+  /** @var \SplFileInfo $item */
+  foreach ($items as $item) {
+    if ($item->isDir() && !$item->isLink()) {
+      rmdir($item->getPathname());
+    }
+    else {
+      unlink($item->getPathname());
+    }
+  }
+
+  rmdir($path);
+}
+
+/**
+ * Print an informational message.
+ */
+function info(string $message): void {
+  status('36', '[INFO] ' . $message);
+}
+
+/**
+ * Print a success message.
+ */
+function pass(string $message): void {
+  status('32', '[ OK ] ' . $message);
+}
+
+/**
+ * Print a failure message.
+ */
+function fail(string $message): void {
+  status('31', '[FAIL] ' . $message);
+}
+
+/**
+ * Print a status line, colored when the output is a terminal.
+ *
+ * @param string $color
+ *   The ANSI color code.
+ * @param string $line
+ *   The line to print.
+ */
+function status(string $color, string $line): void {
+  $term = getenv('TERM');
+  $colored = $term !== FALSE && $term !== 'dumb' && function_exists('posix_isatty') && @posix_isatty(STDOUT);
+
+  echo ($colored ? "\033[" . $color . 'm' . $line . "\033[0m" : $line) . PHP_EOL;
+}
+
+// PHPUnit loads this file to call main() directly, so it runs only outside it.
+// @codeCoverageIgnoreStart
+if (!class_exists('PHPUnit\Framework\TestCase')) {
+  exit(main());
+}
+// @codeCoverageIgnoreEnd

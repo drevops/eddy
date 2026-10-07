@@ -2,19 +2,17 @@
 
 /**
  * @file
- * Helper functions for DevTools tooling scripts.
+ * Helper functions for the Eddy tooling commands.
  *
- * This file provides reusable PHP helper functions shared by the
- * '.devtools/*' command scripts, enabling consistent behavior across all
- * tooling.
+ * This file provides reusable PHP helper functions shared by the 'eddy-*'
+ * command scripts, enabling consistent behavior across all tooling.
  *
  * ## Why We Use These Helpers
  *
  * These helper functions serve several critical purposes:
  *
  * 1. **Consistency**: Standardized output formatting (info, task, pass, fail)
- *    ensures all '.devtools/*' scripts produce uniform, recognizable
- *    messages.
+ *    ensures all 'eddy-*' scripts produce uniform, recognizable messages.
  *
  * 2. **Reusability**: Common operations (files operations, command execution,
  *    etc.) are centralized to avoid code duplication.
@@ -796,6 +794,27 @@ function extension_info(): array {
  */
 function site_db_file(string $extension_name): string {
   return '/tmp/site_' . $extension_name . '.sqlite';
+}
+
+/**
+ * Get the Drupal version a project builds when DRUPAL_VERSION is not set.
+ *
+ * @param string $dev_manifest
+ *   Path to the 'composer.dev.json' file.
+ *
+ * @return string
+ *   The 'extra.eddy.drupal-version' value of the file, or '11' when the file
+ *   does not set one.
+ */
+function default_drupal_version(string $dev_manifest = 'composer.dev.json'): string {
+  $config = json_decode((string) @file_get_contents($dev_manifest), TRUE);
+  $version = is_array($config) ? ($config['extra']['eddy']['drupal-version'] ?? NULL) : NULL;
+
+  if (is_int($version)) {
+    $version = (string) $version;
+  }
+
+  return is_string($version) && $version !== '' ? $version : '11';
 }
 
 /**

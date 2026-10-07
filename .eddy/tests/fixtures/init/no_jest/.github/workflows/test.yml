@@ -1,4 +1,4 @@
-@@ -151,7 +151,6 @@
+@@ -156,7 +156,6 @@
        # covering one Drupal and PHP pair, so every tool runs on all of them.
        CI_RUNNER_INDEX: ${{ strategy.job-index }}
        CI_RUNNER_TOTAL: ${{ strategy.job-total }}
@@ -6,9 +6,9 @@
        CI_IS_PHPUNIT_RUNNER: true
  
      steps:
-@@ -204,11 +203,6 @@
+@@ -214,11 +213,6 @@
        - name: Provision site
-         run: .devtools/provision
+         run: vendor/bin/eddy-provision
  
 -      - name: Run JavaScript tests
 -        if: ${{ env.CI_IS_JEST_RUNNER == 'true' && hashFiles('build/node_modules/.package-lock.json') != '' }}

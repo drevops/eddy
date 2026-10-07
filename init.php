@@ -199,7 +199,8 @@ function drupal_version_options(): array {
  *
  * A new extension targets current Drupal, so only the newest stable major
  * starts checked; older majors and a pre-release major are opted into. The
- * shipped '.devtools/assemble' default builds the highest of these majors.
+ * shipped 'composer.dev.json' sets the build default to the highest of these
+ * majors.
  *
  * @return non-empty-array<int, string>
  *   The majors to start checked.
@@ -305,14 +306,8 @@ function process(string $extension_name, string $extension_machine_name, string 
     }
   }
 
-  // Point the local-dev assemble default at the highest selected major. The
-  // template ships it set to the highest pre-selected major, so a rewrite is
-  // only needed when the selection tops out at a different major.
-  $shipped_default = (string) max(array_map(intval(...), drupal_version_default()));
-  $selected_default = (string) max(array_map(intval(...), $selected_majors));
-  if ($selected_default !== $shipped_default) {
-    replace_string_content("getenv_default('DRUPAL_VERSION', '" . $shipped_default . "')", "getenv_default('DRUPAL_VERSION', '" . $selected_default . "')");
-  }
+  // A local build defaults to the highest selected major.
+  set_composer_dev_drupal_version((string) max(array_map(intval(...), $selected_majors)));
 
   // Remove unwanted command wrappers and their wrapper-specific documentation
   // blocks (marked with '#;< DEV_AHOY' / '#;< DEV_MAKEFILE').
@@ -487,7 +482,6 @@ function process_internal(string $extension_name, string $extension_machine_name
   uncomment_line('.gitattributes', '.claude');
   uncomment_line('.gitattributes', '.ahoy.yml');
   uncomment_line('.gitattributes', '.cspell.json');
-  uncomment_line('.gitattributes', '.devtools');
   uncomment_line('.gitattributes', '.editorconfig');
   uncomment_line('.gitattributes', '.eslintignore');
   uncomment_line('.gitattributes', '.eslintrc.json');
@@ -720,7 +714,7 @@ function tool_specs(): array {
     ],
     'functional_javascript' => [
       'token' => 'DEV_FUNCTIONAL_JAVASCRIPT',
-      'files' => ['.devtools/browser'],
+      'files' => [],
       'dirs' => ['tests/src/FunctionalJavascript'],
       'composer_dev' => [
         'behat/mink',
@@ -742,6 +736,31 @@ function tool_specs(): array {
       'composer_extra' => [],
     ],
   ];
+}
+
+/**
+ * Read 'composer.dev.json'.
+ *
+ * @return array<int|string, mixed>|null
+ *   The decoded configuration, or NULL when the file is missing or holds no
+ *   JSON object.
+ */
+function read_composer_dev_json(): ?array {
+  $file = 'composer.dev.json';
+  if (!file_exists($file)) {
+    return NULL;
+  }
+
+  $raw = file_get_contents($file);
+  if ($raw === FALSE) {
+    // @codeCoverageIgnoreStart
+    return NULL;
+    // @codeCoverageIgnoreEnd
+  }
+
+  $config = json_decode($raw, TRUE, 512, JSON_THROW_ON_ERROR);
+
+  return is_array($config) ? $config : NULL;
 }
 
 /**
@@ -782,23 +801,9 @@ function remove_composer_dev_dependencies(array $packages, array $allow_plugins 
     return;
   }
 
-  $file = 'composer.dev.json';
-  if (!file_exists($file)) {
+  $config = read_composer_dev_json();
+  if ($config === NULL) {
     return;
-  }
-
-  $raw = file_get_contents($file);
-  if ($raw === FALSE) {
-    // @codeCoverageIgnoreStart
-    return;
-    // @codeCoverageIgnoreEnd
-  }
-
-  $config = json_decode($raw, TRUE, 512, JSON_THROW_ON_ERROR);
-  if (!is_array($config)) {
-    // @codeCoverageIgnoreStart
-    return;
-    // @codeCoverageIgnoreEnd
   }
 
   if (isset($config['require-dev']) && is_array($config['require-dev'])) {
@@ -843,23 +848,9 @@ function remove_composer_dev_dependencies(array $packages, array $allow_plugins 
  *   The file-mapping key to remove (e.g. '[web-root]/.eslintrc.json').
  */
 function remove_composer_scaffold_mapping(string $mapping): void {
-  $file = 'composer.dev.json';
-  if (!file_exists($file)) {
+  $config = read_composer_dev_json();
+  if ($config === NULL) {
     return;
-  }
-
-  $raw = file_get_contents($file);
-  if ($raw === FALSE) {
-    // @codeCoverageIgnoreStart
-    return;
-    // @codeCoverageIgnoreEnd
-  }
-
-  $config = json_decode($raw, TRUE, 512, JSON_THROW_ON_ERROR);
-  if (!is_array($config)) {
-    // @codeCoverageIgnoreStart
-    return;
-    // @codeCoverageIgnoreEnd
   }
 
   if (!isset($config['extra']) || !is_array($config['extra'])) {
@@ -883,6 +874,27 @@ function remove_composer_scaffold_mapping(string $mapping): void {
   if ($config['extra']['drupal-scaffold'] === []) {
     unset($config['extra']['drupal-scaffold']);
   }
+
+  write_composer_dev_json($config);
+}
+
+/**
+ * Set the Drupal version a local build uses when DRUPAL_VERSION is not set.
+ *
+ * @param string $version
+ *   The Drupal version, such as '11'.
+ */
+function set_composer_dev_drupal_version(string $version): void {
+  $config = read_composer_dev_json();
+  if ($config === NULL) {
+    return;
+  }
+
+  $extra = is_array($config['extra'] ?? NULL) ? $config['extra'] : [];
+  $eddy = is_array($extra['eddy'] ?? NULL) ? $extra['eddy'] : [];
+  $eddy['drupal-version'] = $version;
+  $extra['eddy'] = $eddy;
+  $config['extra'] = $extra;
 
   write_composer_dev_json($config);
 }

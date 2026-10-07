@@ -1,6 +1,6 @@
-@@ -31,11 +31,6 @@
-     },
-     "extra": {
+@@ -35,11 +35,6 @@
+             "drupal-version": "__VERSION__"
+         },
          "phpcodesniffer-search-depth": 10,
 -        "patches": {},
 -        "drupal-scaffold": {

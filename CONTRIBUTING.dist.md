@@ -22,15 +22,18 @@ This document explains how to set up a local development environment, build the 
 <!-- #;< DEV_NO_COMMAND_WRAPPER -->
 
    ```bash
-   .devtools/assemble     # Assemble the codebase
-   .devtools/start        # Start the PHP server
-   .devtools/provision    # Provision the Drupal website
+   scripts/eddy-tooling          # Install the tooling
+   vendor/bin/eddy-assemble      # Assemble the codebase
+   vendor/bin/eddy-start         # Start the PHP server
+   vendor/bin/eddy-provision     # Provision the Drupal website
    ```
 <!-- #;> DEV_NO_COMMAND_WRAPPER -->
 
 ## Building website
 
-Building the website assembles the codebase, starts the PHP server and provisions the Drupal website with this extension enabled. These operations are executed using scripts within [`.devtools`](.devtools) directory. CI uses the same scripts to build and test this extension.
+Building the website assembles the codebase, starts the PHP server and provisions the Drupal website with this extension enabled. These operations are run by the commands of the [`drevops/eddy-tooling`](https://github.com/drevops/eddy-tooling) package, which `scripts/eddy-tooling` installs into `vendor/`. CI uses the same commands to build and test this extension.
+
+The package version is set in `composer.dev.json`. The installer runs Composer only when that version, the patches declared for the package or the contents of a local patch file change, so a newer patch release reaches a local checkout once `vendor/` is removed.
 
 The resulting codebase is then placed in the `build` directory. The extension files are symlinked into the Drupal site structure.
 <!-- #;< DEV_COMMAND_WRAPPER -->
@@ -58,7 +61,7 @@ The `provision` command is useful for re-installing the Drupal website without r
 
 ### Drupal versions
 
-The Drupal version used for the codebase assembly is determined by the `DRUPAL_VERSION` variable and defaults to the highest Drupal major this extension targets.
+The Drupal version used for the codebase assembly is determined by the `DRUPAL_VERSION` variable and defaults to the highest Drupal major this extension targets, which `composer.dev.json` sets as `extra.eddy.drupal-version`.
 
 You can specify a different version by setting the `DRUPAL_VERSION` environment variable when building the website:
 <!-- #;< DEV_MAKEFILE -->
@@ -97,16 +100,16 @@ DRUPAL_VERSION=12 ahoy build
 
 ```bash
 # Newest stable Drupal 11 release.
-DRUPAL_VERSION=11 .devtools/assemble
+DRUPAL_VERSION=11 vendor/bin/eddy-assemble
 
 # Newest Drupal 11.1.x patch release.
-DRUPAL_VERSION=11.1.0 .devtools/assemble
+DRUPAL_VERSION=11.1.0 vendor/bin/eddy-assemble
 
 # Newest Drupal 11 beta, release candidate or stable release.
-DRUPAL_VERSION=11@beta .devtools/assemble
+DRUPAL_VERSION=11@beta vendor/bin/eddy-assemble
 
 # Newest stable Drupal 12 release, or newest pre-release if none.
-DRUPAL_VERSION=12 .devtools/assemble
+DRUPAL_VERSION=12 vendor/bin/eddy-assemble
 ```
 <!-- #;> DEV_NO_COMMAND_WRAPPER -->
 
@@ -128,7 +131,7 @@ The build installs [`cweagans/composer-patches`](https://github.com/cweagans/com
 }
 ```
 
-A patch that no longer applies fails the build.
+A patch that no longer applies fails the build. Patches declared for `drevops/eddy-tooling` don't reach the build: `scripts/eddy-tooling` applies them when it installs the tooling into `vendor/`.
 
 `composer.json` ships with the extension, so composer-patches 2.x on a site that installs the extension applies its patches too. Reference patches declared there by a public URL, since a local `patches/` path doesn't exist on that site.
 
@@ -174,8 +177,8 @@ ahoy start      # restart without XDebug
 <!-- #;< DEV_NO_COMMAND_WRAPPER -->
 
 ```bash
-XDEBUG=1 .devtools/start    # restart with XDebug enabled
-.devtools/start             # restart without XDebug
+XDEBUG=1 vendor/bin/eddy-start    # restart with XDebug enabled
+vendor/bin/eddy-start             # restart without XDebug
 ```
 <!-- #;> DEV_NO_COMMAND_WRAPPER -->
 <!-- #;< DEV_COMMAND_WRAPPER -->
@@ -383,14 +386,14 @@ ahoy browser-stop
 <!-- #;< DEV_NO_COMMAND_WRAPPER -->
 
 ```bash
-.devtools/start
-.devtools/provision
-.devtools/browser start
-export WEBDRIVER_PORT="$(.devtools/info webdriver-port)"
+vendor/bin/eddy-start
+vendor/bin/eddy-provision
+vendor/bin/eddy-browser start
+export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
 cd build
 php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional-javascript
 cd ..
-.devtools/browser stop
+vendor/bin/eddy-browser stop
 ```
 <!-- #;> DEV_NO_COMMAND_WRAPPER -->
 
@@ -416,14 +419,14 @@ ahoy browser-stop
 <!-- #;< DEV_NO_COMMAND_WRAPPER -->
 
 ```bash
-WEBSERVER_HOST=0.0.0.0 .devtools/start
-.devtools/provision
-WEBDRIVER_BACKEND=selenium .devtools/browser start
-export WEBDRIVER_PORT="$(.devtools/info webdriver-port)"
+WEBSERVER_HOST=0.0.0.0 vendor/bin/eddy-start
+vendor/bin/eddy-provision
+WEBDRIVER_BACKEND=selenium vendor/bin/eddy-browser start
+export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
 cd build
 WEBDRIVER_BACKEND=selenium php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional-javascript
 cd ..
-.devtools/browser stop
+vendor/bin/eddy-browser stop
 ```
 <!-- #;> DEV_NO_COMMAND_WRAPPER -->
 

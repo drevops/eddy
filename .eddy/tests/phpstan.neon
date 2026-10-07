@@ -9,16 +9,17 @@ parameters:
   paths:
     - src
     - ../assets/update-assets.php
-    - ../../.devtools/assemble
-    - ../../.devtools/browser
-    - ../../.devtools/deploy
-    - ../../.devtools/helpers.php
-    - ../../.devtools/info
-    - ../../.devtools/provision
-    - ../../.devtools/qrcode
-    - ../../.devtools/start
-    - ../../.devtools/stop
+    - ../../.eddy/tooling/src/eddy-assemble
+    - ../../.eddy/tooling/src/eddy-browser
+    - ../../.eddy/tooling/src/eddy-deploy
+    - ../../.eddy/tooling/src/helpers.php
+    - ../../.eddy/tooling/src/eddy-info
+    - ../../.eddy/tooling/src/eddy-provision
+    - ../../.eddy/tooling/src/eddy-qrcode
+    - ../../.eddy/tooling/src/eddy-start
+    - ../../.eddy/tooling/src/eddy-stop
     - ../../init.php
+    - ../../scripts/eddy-tooling
 
   scanFiles:
     - ../../init.php
@@ -31,13 +32,13 @@ parameters:
     -
       # Tests and data providers do not require parameter docblocks, so the
       # parameter type cannot be specified. The ignore has no 'paths', so it
-      # also covers the '.devtools' scripts and 'init.php'.
+      # also covers the tooling scripts, their installer and 'init.php'.
       message: '#.*no value type specified in iterable type array.#'
       reportUnmatched: false
     -
-      # Devtools scripts decode JSON into mixed arrays and access nested keys
+      # Tooling scripts decode JSON into mixed arrays and access nested keys
       # directly; strict offset typing is impractical for these scripts.
       identifier: offsetAccess.nonOffsetAccessible
       paths:
-        - ../../.devtools/*
+        - ../../.eddy/tooling/src/*
       reportUnmatched: false

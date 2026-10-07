@@ -8,7 +8,6 @@
 #;< DEV_CSPELL
 # .cspell.json       export-ignore
 #;> DEV_CSPELL
-# .devtools          export-ignore
 # .editorconfig      export-ignore
 #;< DEV_ESLINT
 # .eslintignore      export-ignore

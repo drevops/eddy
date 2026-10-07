@@ -11,9 +11,10 @@ use PHPUnit\Framework\Attributes\Group;
 /**
  * Functional tests for auto-port discovery across multiple projects.
  *
- * Each "project" is a minimal sandbox holding only the .devtools scripts and
- * a stubbed build/web tree. The test starts the real PHP webserver in each
- * sandbox and reads the resolved WEBSERVER_PORT from the generated .env file.
+ * Each "project" is a minimal sandbox holding only the start and stop tooling
+ * scripts, where the tooling package installs them, and a stubbed build/web
+ * tree. The test starts the real PHP webserver in each sandbox and reads the
+ * resolved WEBSERVER_PORT from the generated .env file.
  *
  * This verifies port resolution and .env persistence end to end.
  *
@@ -25,6 +26,11 @@ use PHPUnit\Framework\Attributes\Group;
 final class AutoPortDiscoveryTest extends UnitTestCase {
 
   use ProcessTrait;
+
+  /**
+   * Directory of the tooling scripts inside a sandbox.
+   */
+  protected const string TOOLING_DIR = 'vendor/drevops/eddy-tooling/src';
 
   protected int $defaultTimeout = 30;
 
@@ -67,7 +73,7 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
     $this->buildMinimalSut($this->sut2);
 
     $this->processCwd = $this->sut1;
-    $this->processRun('php', ['./.devtools/start'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->processRun('php', [self::TOOLING_DIR . '/eddy-start'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
     $this->assertProcessAnyOutputContains('ENVIRONMENT READY');
 
@@ -80,7 +86,7 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
     sleep(1);
 
     $this->processCwd = $this->sut2;
-    $this->processRun('php', ['./.devtools/start'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->processRun('php', [self::TOOLING_DIR . '/eddy-start'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
     $this->assertProcessAnyOutputContains('ENVIRONMENT READY');
 
@@ -91,22 +97,22 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
     $this->assertProcessAnyOutputContains('http://localhost:' . $port2);
 
     $this->processCwd = $this->sut2;
-    $this->processRun('php', ['./.devtools/stop'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->processRun('php', [self::TOOLING_DIR . '/eddy-stop'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
     $this->assertProcessAnyOutputContains('ENVIRONMENT STOPPED');
 
-    $this->processRun('php', ['./.devtools/start'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->processRun('php', [self::TOOLING_DIR . '/eddy-start'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
     $this->assertProcessAnyOutputContains('http://localhost:' . $port2);
     $this->assertSame($port2, $this->readEnvPort($this->sut2), '.env port must be reused after stop/restart.');
 
     $this->processCwd = $this->sut1;
-    $this->processRun('php', ['./.devtools/stop'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->processRun('php', [self::TOOLING_DIR . '/eddy-stop'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
     $this->assertSame($port1, $this->readEnvPort($this->sut1), 'stop must not modify .env.');
 
     $this->processCwd = $this->sut2;
-    $this->processRun('php', ['./.devtools/stop'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->processRun('php', [self::TOOLING_DIR . '/eddy-stop'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
     $this->assertSame($port2, $this->readEnvPort($this->sut2), 'stop must not modify .env.');
   }
@@ -120,7 +126,7 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
     $original_env = file_get_contents($sut . '/.env');
 
     $this->processCwd = $sut;
-    $this->processRun('php', ['./.devtools/start'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->processRun('php', [self::TOOLING_DIR . '/eddy-start'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
     $this->startedPorts[] = $preset_port;
     $this->assertProcessAnyOutputContains('http://localhost:' . $preset_port);
@@ -129,16 +135,13 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
   }
 
   protected function buildMinimalSut(string $sut): void {
-    mkdir($sut, 0755, TRUE);
-    mkdir($sut . '/.devtools', 0755, TRUE);
+    mkdir($sut . '/' . self::TOOLING_DIR, 0755, TRUE);
     mkdir($sut . '/build/web', 0755, TRUE);
 
-    $repo_root = dirname(__DIR__, 4);
-    foreach (['helpers.php', 'start', 'stop'] as $file) {
-      copy($repo_root . '/.devtools/' . $file, $sut . '/.devtools/' . $file);
+    $source_dir = dirname(__DIR__, 4) . '/.eddy/tooling/src';
+    foreach (['helpers.php', 'eddy-start', 'eddy-stop'] as $file) {
+      copy($source_dir . '/' . $file, $sut . '/' . self::TOOLING_DIR . '/' . $file);
     }
-    chmod($sut . '/.devtools/start', 0755);
-    chmod($sut . '/.devtools/stop', 0755);
 
     file_put_contents($sut . '/build/web/.ht.router.php', "<?php return FALSE;\n");
     file_put_contents($sut . '/build/web/index.html', "OK\n");

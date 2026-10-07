@@ -15,11 +15,13 @@ use function is_binary_file;
 use function normalize_cspell_words;
 use function print_help;
 use function process;
+use function read_composer_dev_json;
 use function remove_dir;
 use function remove_special_comments;
 use function remove_string_content;
 use function remove_tokens_with_content;
 use function replace_string_content;
+use function set_composer_dev_drupal_version;
 use function uncomment_line;
 
 /**
@@ -143,16 +145,75 @@ final class InitHelpersTest extends UnitTestCase {
   }
 
   /**
-   * The shipped assemble default builds the highest pre-selected major.
+   * The shipped build default is the highest pre-selected major.
    *
-   * 'process()' finds the default to rewrite by this exact value.
+   * The scaffold then builds what a project initialised with the default
+   * selection builds.
    */
-  public function testDrupalVersionShippedAssembleDefault(): void {
+  public function testDrupalVersionShippedBuildDefault(): void {
     $shipped_default = (string) max(array_map(intval(...), drupal_version_default()));
 
-    $assemble = (string) file_get_contents(dirname(__DIR__, 4) . '/.devtools/assemble');
+    $config = json_decode((string) file_get_contents(dirname(__DIR__, 4) . '/composer.dev.json'), TRUE);
+    $this->assertIsArray($config);
+    /** @var array{extra?: array{eddy?: array{'drupal-version'?: string}}} $config */
 
-    $this->assertStringContainsString("getenv_default('DRUPAL_VERSION', '" . $shipped_default . "')", $assemble);
+    $this->assertSame($shipped_default, $config['extra']['eddy']['drupal-version'] ?? NULL);
+  }
+
+  #[DataProvider('dataProviderReadComposerDevJson')]
+  public function testReadComposerDevJson(?string $contents, ?array $expected): void {
+    chdir(self::$sut);
+
+    if ($contents !== NULL) {
+      file_put_contents('composer.dev.json', $contents);
+    }
+
+    $this->assertSame($expected, read_composer_dev_json());
+  }
+
+  public static function dataProviderReadComposerDevJson(): \Iterator {
+    yield 'missing file' => [NULL, NULL];
+    yield 'not an object' => ['"text"', NULL];
+    yield 'empty object' => ['{}', []];
+    yield 'object' => ['{"require-dev": {"drupal/coder": "^8"}}', ['require-dev' => ['drupal/coder' => '^8']]];
+  }
+
+  #[DataProvider('dataProviderSetComposerDevDrupalVersion')]
+  public function testSetComposerDevDrupalVersion(?string $contents, ?string $expected): void {
+    chdir(self::$sut);
+
+    if ($contents !== NULL) {
+      file_put_contents('composer.dev.json', $contents);
+    }
+
+    set_composer_dev_drupal_version('12');
+
+    if ($expected === NULL) {
+      $this->assertFileDoesNotExist('composer.dev.json');
+
+      return;
+    }
+
+    $this->assertSame($expected, file_get_contents('composer.dev.json'));
+  }
+
+  public static function dataProviderSetComposerDevDrupalVersion(): \Iterator {
+    yield 'missing file' => [NULL, NULL];
+
+    yield 'no extra' => [
+      '{"require-dev": {"drupal/coder": "^8"}}',
+      "{\n    \"require-dev\": {\n        \"drupal/coder\": \"^8\"\n    },\n    \"extra\": {\n        \"eddy\": {\n            \"drupal-version\": \"12\"\n        }\n    }\n}\n",
+    ];
+
+    yield 'extra is not a map' => [
+      '{"extra": "none"}',
+      "{\n    \"extra\": {\n        \"eddy\": {\n            \"drupal-version\": \"12\"\n        }\n    }\n}\n",
+    ];
+
+    yield 'existing version and an empty patches map' => [
+      '{"extra": {"eddy": {"drupal-version": "11"}, "patches": {}}}',
+      "{\n    \"extra\": {\n        \"eddy\": {\n            \"drupal-version\": \"12\"\n        },\n        \"patches\": {}\n    }\n}\n",
+    ];
   }
 
   #[DataProvider('dataProviderRemoveDir')]

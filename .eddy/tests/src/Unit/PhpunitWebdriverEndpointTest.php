@@ -18,7 +18,7 @@ use PHPUnit\Framework\Attributes\Group;
  *
  * - The FunctionalJavascript base class rewrites the endpoint from
  *   WEBDRIVER_PORT, so every test that extends it reaches the browser
- *   wherever '.devtools/browser' put it.
+ *   wherever 'eddy-browser' put it.
  * - The env entry is not forced, so a project whose tests do not extend that
  *   base class can still export its own MINK_DRIVER_ARGS_WEBDRIVER.
  *

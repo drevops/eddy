@@ -1,0 +1,83 @@
+name: Publish Scaffold Tooling
+
+# Mirrors '.eddy/tooling/' to the branch of the same name in the read-only
+# 'drevops/eddy-tooling' repository.
+#
+# Besides '1.x', a branch whose name contains 'eddy-tooling' is published, so a
+# tooling change can be installed from the mirror before it merges. Other
+# branches leave the mirror untouched.
+#
+# Each run adds 1 commit with the pushed commit's subject, even when the
+# directory is unchanged.
+#
+# Runs queue rather than overlap, and GitHub cancels a queued run when a newer
+# push arrives. A push in a quick burst can get no commit of its own, but the
+# latest state is always published.
+#
+# The 'EDDY_TOOLING_DEPLOY_KEY' secret holds a deploy key with write access to
+# the mirror.
+
+on:
+  push:
+    branches:
+      - 1.x
+      - '**eddy-tooling**'
+
+concurrency:
+  group: scaffold-publish-tooling-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  scaffold-publish-tooling:
+    if: github.repository == 'drevops/eddy'
+
+    runs-on: ubuntu-26.04
+
+    permissions:
+      contents: read # Read the source; the mirror is pushed with a deploy key.
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@87a8f067114a8ce263df83e9ed5c849953548bc3 # v2.8.1
+        with:
+          key: ${{ secrets.EDDY_TOOLING_DEPLOY_KEY }}
+          known_hosts: unnecessary
+
+      - name: Publish '.eddy/tooling/' to 'drevops/eddy-tooling'
+        env:
+          SOURCE_DIR: ${{ github.workspace }}/.eddy/tooling
+          BRANCH: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+          REPO_SRC: ${{ github.repository }}
+          REPO_DST: git@github.com:drevops/eddy-tooling.git
+        run: |
+          set -eu
+
+          work_dir="${RUNNER_TEMP}/eddy-tooling"
+          subject="$(git log -1 --pretty=%s "${SHA}")"
+
+          # A branch the mirror does not have yet starts without history.
+          if ! git clone --quiet --branch "${BRANCH}" --single-branch "${REPO_DST}" "${work_dir}"; then
+            rm -rf "${work_dir}"
+            git clone --quiet "${REPO_DST}" "${work_dir}"
+            git -C "${work_dir}" checkout --quiet --orphan "${BRANCH}"
+          fi
+
+          find "${work_dir}" -mindepth 1 -maxdepth 1 -not -name '.git' -exec rm -rf {} +
+          cp -R "${SOURCE_DIR}/." "${work_dir}/"
+
+          git -C "${work_dir}" config user.name 'Eddy Publisher'
+          git -C "${work_dir}" config user.email 'noreply@drevops.com'
+          git -C "${work_dir}" add --all
+          git -C "${work_dir}" commit --quiet --allow-empty --message "${subject}" --message "Source: ${REPO_SRC}@${SHA}"
+          git -C "${work_dir}" push --quiet origin "${BRANCH}"
+
+          echo "Published ${REPO_SRC}@${SHA} to drevops/eddy-tooling ${BRANCH}."

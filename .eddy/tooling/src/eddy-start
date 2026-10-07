@@ -94,5 +94,5 @@ echo 'URL       : ' . $site_url . PHP_EOL;
 echo 'XDebug    : ' . ($xdebug_enabled ? 'Enabled' : 'Disabled') . PHP_EOL;
 echo PHP_EOL;
 echo '> Next steps:' . PHP_EOL;
-echo '  .devtools/provision    # Provision the website' . PHP_EOL;
+echo '  vendor/bin/eddy-provision    # Provision the website' . PHP_EOL;
 echo PHP_EOL;

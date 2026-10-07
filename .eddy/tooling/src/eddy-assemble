@@ -27,7 +27,7 @@ require_once __DIR__ . '/helpers.php';
 // -----------------------------------------------------------------------------
 
 // Drupal core version to use.
-$drupal_version = getenv_default('DRUPAL_VERSION', '11');
+$drupal_version = getenv_default('DRUPAL_VERSION', default_drupal_version());
 
 // -----------------------------------------------------------------------------
 
@@ -140,6 +140,9 @@ PASS('Test dependencies configured.');
 
 TASK('Merging configuration from composer.dev.json.');
 $dev_json = (array) json_decode((string) file_get_contents('composer.dev.json'), TRUE);
+// The tooling runs from the project root rather than the site build, so its
+// package, patches and settings stay out of the build.
+unset($dev_json['require-dev']['drevops/eddy-tooling'], $dev_json['extra']['patches']['drevops/eddy-tooling'], $dev_json['extra']['eddy']);
 $build_json = (array) json_decode((string) file_get_contents($build_composer_json), TRUE);
 $merged = array_replace_recursive($dev_json, $build_json);
 file_put_contents($build_composer_json, json_encode($merged, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
@@ -276,8 +279,9 @@ mkdir($extension_dir, 0755, TRUE);
 $cwd = getcwd();
 foreach (glob($cwd . '/*') ?: [] as $item) {
   $basename = basename($item);
-  // Do not symlink the build directory into itself.
-  if ($basename !== $build_dir) {
+  // The build directory and the project-root 'vendor' directory, which holds
+  // the tooling, are not part of the extension.
+  if (!in_array($basename, [$build_dir, 'vendor'], TRUE)) {
     symlink($item, $extension_dir . '/' . $basename);
   }
 }
@@ -311,6 +315,6 @@ echo '    🏗 ASSEMBLE COMPLETE ✅   ' . PHP_EOL;
 echo '===============================' . PHP_EOL;
 echo PHP_EOL;
 echo '> Next steps:' . PHP_EOL;
-echo '  .devtools/start        # Start the webserver' . PHP_EOL;
-echo '  .devtools/provision    # Provision the website' . PHP_EOL;
+echo '  vendor/bin/eddy-start        # Start the webserver' . PHP_EOL;
+echo '  vendor/bin/eddy-provision    # Provision the website' . PHP_EOL;
 echo PHP_EOL;

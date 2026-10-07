@@ -10,7 +10,7 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * Tests for the assemble devtools script.
+ * Tests for the 'eddy-assemble' command.
  *
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
@@ -29,9 +29,16 @@ final class AssembleTest extends UnitTestCase {
    */
   protected array $capturedBuildComposerJson = [];
 
+  /**
+   * Names of the items symlinked into the extension directory.
+   *
+   * @var array<int, string>
+   */
+  protected array $symlinkedItems = [];
+
   protected function setUp(): void {
     parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.devtools/helpers.php';
+    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
   }
 
   /**
@@ -137,7 +144,7 @@ final class AssembleTest extends UnitTestCase {
         return [$config['extension_name'] . '.info.yml'];
       }
       if ($pattern === $cwd . '/*') {
-        return [$cwd . '/src', $cwd . '/composer.json', $cwd . '/build'];
+        return [$cwd . '/src', $cwd . '/composer.json', $cwd . '/vendor', $cwd . '/build'];
       }
       return [];
     });
@@ -236,7 +243,12 @@ final class AssembleTest extends UnitTestCase {
 
     $this->registerMock('copy', 'DrevOps\\Eddy\\DevTools', fn(): true => TRUE);
 
-    $this->registerMock('symlink', 'DrevOps\\Eddy\\DevTools', fn(): true => TRUE);
+    $this->symlinkedItems = [];
+    $this->registerMock('symlink', 'DrevOps\\Eddy\\DevTools', function (string $target, string $link): bool {
+      $this->symlinkedItems[] = basename($link);
+
+      return TRUE;
+    });
 
     $this->registerMock('putenv', 'DrevOps\\Eddy\\DevTools', fn(): true => TRUE);
 
@@ -325,7 +337,7 @@ final class AssembleTest extends UnitTestCase {
 
     try {
       ob_start();
-      require dirname(__DIR__, 4) . '/.devtools/assemble';
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
       $output = ob_get_clean();
     }
     finally {
@@ -342,6 +354,7 @@ final class AssembleTest extends UnitTestCase {
     $this->assertStringContainsString('Drupal project created', $output);
     $this->assertStringContainsString('Dependencies installed', $output);
     $this->assertStringContainsString("Extension's code symlinked", $output);
+    $this->assertSame(['src', 'composer.json'], $this->symlinkedItems, 'The build and vendor directories are not symlinked into the extension.');
     $this->assertStringContainsString('ASSEMBLE COMPLETE', $output);
 
     $this->assertStringContainsString('Test dependencies configured', $output);
@@ -647,7 +660,7 @@ final class AssembleTest extends UnitTestCase {
     $this->setupAssembleMocks(['drupal_version' => $drupal_version, 'drupal_release' => $expected_release, 'releases' => $releases]);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.devtools/assemble';
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
     $output = (string) ob_get_clean();
 
     $this->assertStringContainsString('Resolved Drupal ' . $drupal_version . ' to ' . $expected_release . '.', $output);
@@ -701,7 +714,7 @@ final class AssembleTest extends UnitTestCase {
     ]);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.devtools/assemble';
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
     ob_end_clean();
 
     $last_write = end($this->capturedBuildComposerJson);
@@ -729,7 +742,7 @@ final class AssembleTest extends UnitTestCase {
     $this->setupAssembleMocks(['drupal_version' => '12', 'drupal_release' => '12.0.0-beta1', 'installed_packages' => $installed_packages]);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.devtools/assemble';
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
     $output = (string) ob_get_clean();
 
     if ($expected_lines === []) {
@@ -752,6 +765,71 @@ final class AssembleTest extends UnitTestCase {
     yield 'releases only' => [['drupal/core' => '12.0.0-beta1', 'drush/drush' => '14.0.0'], []];
   }
 
+  public function testAssembleLeavesToolingOutOfBuild(): void {
+    $this->envSet('DRUPAL_VERSION', '11');
+    $this->envSet('GITHUB_TOKEN', '');
+    $this->envSet('SYMFONY_DEPRECATIONS_HELPER', '');
+
+    $patch = ['Fix' => 'patches/fix.patch'];
+    $this->setupAssembleMocks([
+      'dev_composer_json' => [
+        'require-dev' => ['drupal/coder' => '^8', 'drevops/eddy-tooling' => '~1.0.0'],
+        'extra' => [
+          'eddy' => ['drupal-version' => '11'],
+          'patches' => ['drupal/coder' => $patch, 'drevops/eddy-tooling' => $patch],
+        ],
+      ],
+    ]);
+
+    ob_start();
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
+    ob_end_clean();
+
+    $last_write = end($this->capturedBuildComposerJson);
+    $this->assertIsString($last_write);
+    $build_json = json_decode($last_write, TRUE, 512, JSON_THROW_ON_ERROR);
+    $this->assertIsArray($build_json);
+    /** @var array{'require-dev': array<string, string>, extra: array<string, mixed>} $build_json */
+
+    $this->assertArrayHasKey('drupal/coder', $build_json['require-dev']);
+    $this->assertArrayNotHasKey('drevops/eddy-tooling', $build_json['require-dev']);
+    $this->assertSame(['drupal/coder' => $patch], $build_json['extra']['patches']);
+    $this->assertArrayNotHasKey('eddy', $build_json['extra']);
+  }
+
+  #[DataProvider('dataProviderAssembleDrupalVersionDefault')]
+  public function testAssembleDrupalVersionDefault(?string $env_version, array $extra, string $expected_version, string $expected_release): void {
+    if ($env_version === NULL) {
+      $this->envUnset('DRUPAL_VERSION');
+    }
+    else {
+      $this->envSet('DRUPAL_VERSION', $env_version);
+    }
+
+    $this->envSet('GITHUB_TOKEN', '');
+    $this->envSet('SYMFONY_DEPRECATIONS_HELPER', '');
+
+    $this->setupAssembleMocks([
+      'drupal_version' => $expected_version,
+      'drupal_release' => $expected_release,
+      'dev_composer_json' => ['require-dev' => ['drupal/coder' => '^8'], 'extra' => $extra],
+    ]);
+
+    ob_start();
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
+    $output = (string) ob_get_clean();
+
+    $this->assertStringContainsString('Resolved Drupal ' . $expected_version . ' to ' . $expected_release . '.', $output);
+    $this->assertStringContainsString('Creating Drupal ' . $expected_version . ' project', $output);
+  }
+
+  public static function dataProviderAssembleDrupalVersionDefault(): \Iterator {
+    yield 'project default' => [NULL, ['eddy' => ['drupal-version' => '10']], '10', '10.6.18'];
+    yield 'project default with a stability flag' => [NULL, ['eddy' => ['drupal-version' => '12@beta']], '12@beta', '12.0.0-beta1'];
+    yield 'no project default' => [NULL, [], '11', '11.4.8'];
+    yield 'environment overrides the project default' => ['11', ['eddy' => ['drupal-version' => '10']], '11', '11.4.8'];
+  }
+
   #[DataProvider('dataProviderAssembleReleaseFailure')]
   public function testAssembleReleaseFailure(string $drupal_version, int $releases_result_code, string $expected_message): void {
     $this->envSet('DRUPAL_VERSION', $drupal_version);
@@ -764,7 +842,7 @@ final class AssembleTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.devtools/assemble';
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {
@@ -795,7 +873,7 @@ final class AssembleTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.devtools/assemble';
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {
@@ -819,7 +897,7 @@ final class AssembleTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.devtools/assemble';
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {

@@ -14,11 +14,14 @@ endif
 WEBSERVER_HOST ?= localhost
 WEBSERVER_PORT ?= 8000
 
-# Resolve the site URL through the shared `.devtools/info` resolver so `drush`
+# Resolve the site URL through the shared `eddy-info` resolver so `drush`
 # and `login` report the same tunnel-aware URL as start, provision, and info
 # (see resolve_site_url()). Lazy `=` so the probe runs only when the recipes
 # that expand it are invoked.
-DRUSH = build/vendor/bin/drush -l "$(shell ./.devtools/info site-url)"
+DRUSH = build/vendor/bin/drush -l "$(shell vendor/bin/eddy-info site-url)"
+# Recipes expand $(DRUSH) themselves. Exported, it would run the probe for
+# every recipe, including the one that installs the tooling.
+unexport DRUSH
 
 # Test environment exported to every recipe (see the blanket `export` above),
 # matching what the ahoy entrypoint exports for every command, so `make
@@ -33,7 +36,7 @@ define title
 	@echo -e "\n\033[36m$(1)\033[0m"
 endef
 
-.PHONY: assemble build debug debug-off debug-on delete describe destroy drush help info lint lint-fix login provision reset start stop test xdebug xdebug-off xdebug-on
+.PHONY: assemble build debug debug-off debug-on delete describe destroy drush help info lint lint-fix login provision reset start stop test tooling xdebug xdebug-off xdebug-on
 
 help:
 	@echo "COMMANDS"
@@ -52,6 +55,13 @@ help:
 	@echo "stop                       - Stop development environment."
 	@echo "test                       - Run all tests."
 
+# Every target that runs a tooling command installs the tooling first. Progress
+# goes to stderr, so a captured target output holds only the target's own.
+assemble build debug drush info login provision start stop: tooling
+
+tooling:
+	@./scripts/eddy-tooling >&2
+
 build:
 	@$(MAKE) stop >/dev/null 2>&1 || true
 	$(MAKE) assemble
@@ -59,24 +69,24 @@ build:
 	$(MAKE) provision
 
 assemble:
-	./.devtools/assemble
+	vendor/bin/eddy-assemble
 
 start:
-	./.devtools/start
+	vendor/bin/eddy-start
 
 stop:
-	./.devtools/stop
+	vendor/bin/eddy-stop
 
 info:
-	@./.devtools/info
+	@vendor/bin/eddy-info
 
 # Enable PHP XDebug step-debugging by restarting the PHP server with
 # `-d xdebug.mode=debug -d xdebug.start_with_request=yes`. State is
 # probed by `info xdebug`, which inspects the running server's command
 # line. Run `make start` to disable.
 debug:
-	@[ "$$(./.devtools/info xdebug)" = "enabled" ] && echo "XDebug is already enabled. Run 'make start' to disable." || \
-		(XDEBUG=1 ./.devtools/start && sleep 1 && [ "$$(./.devtools/info xdebug)" = "enabled" ] && echo "Enabled XDebug. Run 'make start' to disable." || (echo "Failed to enable XDebug." && exit 1))
+	@[ "$$(vendor/bin/eddy-info xdebug)" = "enabled" ] && echo "XDebug is already enabled. Run 'make start' to disable." || \
+		(XDEBUG=1 vendor/bin/eddy-start && sleep 1 && [ "$$(vendor/bin/eddy-info xdebug)" = "enabled" ] && echo "Enabled XDebug. Run 'make start' to disable." || (echo "Failed to enable XDebug." && exit 1))
 
 # Make has no native command aliases - the alias targets declare `debug` as
 # their sole prerequisite, so running e.g. `make xdebug` executes the `debug`
@@ -104,10 +114,10 @@ drush:
 	$(DRUSH) $(DRUSH_RUN_ARGS)
 
 login:
-	@url="$$($(DRUSH) uli)"; printf '%s\n' "$$url"; if [ -n "$$LOGIN_QRCODE" ]; then ./.devtools/qrcode "$$url"; fi
+	@url="$$($(DRUSH) uli)"; printf '%s\n' "$$url"; if [ -n "$$LOGIN_QRCODE" ]; then vendor/bin/eddy-qrcode "$$url"; fi
 
 provision:
-	./.devtools/provision
+	vendor/bin/eddy-provision
 
 lint:
 
@@ -133,5 +143,6 @@ reset:
 	chmod -Rf 777 build .logs > /dev/null 2>&1 || true
 	rm -Rf build > /dev/null 2>&1 || true
 	rm -Rf .logs > /dev/null 2>&1 || true
+	rm -Rf vendor > /dev/null 2>&1 || true
 
 .DEFAULT_GOAL := build

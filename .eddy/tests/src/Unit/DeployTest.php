@@ -11,7 +11,7 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * Tests for the deploy devtools script.
+ * Tests for the 'eddy-deploy' command.
  *
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
@@ -22,7 +22,7 @@ final class DeployTest extends UnitTestCase {
 
   protected function setUp(): void {
     parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.devtools/helpers.php';
+    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
   }
 
   public function testDeploySkipWhenProceedNotSet(): void {
@@ -34,7 +34,7 @@ final class DeployTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.devtools/deploy';
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
       $this->fail('Expected QuitSuccessException to be thrown');
     }
     catch (QuitSuccessException $e) {
@@ -58,7 +58,7 @@ final class DeployTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.devtools/deploy';
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
       $this->fail('Expected QuitSuccessException to be thrown');
     }
     catch (QuitSuccessException $e) {
@@ -121,7 +121,7 @@ final class DeployTest extends UnitTestCase {
     $this->mockPassthruMultiple($passthru_responses);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.devtools/deploy';
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
     $output = ob_get_clean();
 
     $this->assertIsString($output);
@@ -174,7 +174,7 @@ final class DeployTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.devtools/deploy';
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {
@@ -210,7 +210,7 @@ final class DeployTest extends UnitTestCase {
     ]);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.devtools/deploy';
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
     $output = ob_get_clean();
 
     $this->assertIsString($output);
@@ -246,7 +246,7 @@ final class DeployTest extends UnitTestCase {
     ]);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.devtools/deploy';
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
     $output = ob_get_clean();
 
     $this->assertIsString($output);
@@ -291,7 +291,7 @@ final class DeployTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.devtools/deploy';
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {
@@ -310,7 +310,7 @@ final class DeployTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.devtools/deploy';
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {
@@ -352,7 +352,7 @@ final class DeployTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.devtools/deploy';
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
       $this->fail('Expected QuitSuccessException to be thrown');
     }
     catch (QuitSuccessException) {
@@ -409,7 +409,7 @@ final class DeployTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.devtools/deploy';
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
       $this->fail('Expected QuitSuccessException to be thrown');
     }
     catch (QuitSuccessException) {
@@ -438,7 +438,7 @@ final class DeployTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.devtools/deploy';
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {
@@ -483,7 +483,7 @@ final class DeployTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.devtools/deploy';
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
       $this->fail('Expected QuitSuccessException to be thrown');
     }
     catch (QuitSuccessException) {
@@ -521,7 +521,7 @@ final class DeployTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.devtools/deploy';
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
       $this->fail('Expected QuitSuccessException to be thrown');
     }
     catch (QuitSuccessException) {
@@ -561,7 +561,7 @@ final class DeployTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.devtools/deploy';
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {
@@ -593,7 +593,7 @@ final class DeployTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.devtools/deploy';
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {
@@ -629,7 +629,7 @@ final class DeployTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.devtools/deploy';
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {
@@ -667,7 +667,7 @@ final class DeployTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.devtools/deploy';
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
       $this->fail('Expected QuitSuccessException to be thrown');
     }
     catch (QuitSuccessException) {

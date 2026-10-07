@@ -47,7 +47,7 @@ Read the project to determine the init.php answers:
 4. **CI provider** (4.x releases only): `gha` if `.github/workflows/` exists, `circleci` if `.circleci/` exists. Later releases support only GitHub Actions and do not ask.
 5. **Command wrapper**: `ahoy` if `.ahoy.yml` exists and `makefile` if `Makefile` exists - `ahoy,makefile` when both exist, and an empty string when neither does.
 6. **Drupal versions**: the Drupal majors in the CI matrix - the `drupal-version` values in `.github/workflows/test.yml`, or the `DRUPAL_VERSION` values in `.circleci/config.yml` for a project that still uses CircleCI - as a comma-separated list (e.g. `10,11`).
-7. **Tools**: every tool whose file still exists - `phpcs` (`phpcs.xml`), `phpstan` (`phpstan.neon`), `rector` (`rector.php`), `twigcs` (`.twig-cs-fixer.php`), `eslint` (`.eslintrc.json`), `stylelint` (`.stylelintrc.js`), `cspell` (`.cspell.json`), `jest` (`jest.config.js`), `phpunit` (`phpunit.xml`), `functional_javascript` (`.devtools/browser`) and `renovate` (`renovate.json`).
+7. **Tools**: every tool whose file still exists - `phpcs` (`phpcs.xml`), `phpstan` (`phpstan.neon`), `rector` (`rector.php`), `twigcs` (`.twig-cs-fixer.php`), `eslint` (`.eslintrc.json`), `stylelint` (`.stylelintrc.js`), `cspell` (`.cspell.json`), `jest` (`jest.config.js`), `phpunit` (`phpunit.xml`), `functional_javascript` (a `functional-javascript` test suite in `phpunit.xml`) and `renovate` (`renovate.json`).
 8. **Cloudflare**: `true` if `scripts/start-cloudflared.sh` exists, `false` otherwise.
 
 Also detect the **default branch** of the repository (not the current checkout):
@@ -168,6 +168,7 @@ git checkout HEAD -- \
   tests/ \
   config/ \
   scripts/ \
+  ':!scripts/eddy-tooling' \
   composer.json \
   LICENSE \
   *.module \
@@ -181,6 +182,8 @@ git checkout HEAD -- \
 ```
 
 Only restore paths that actually exist in the project - skip any that produce errors.
+
+`scripts/` holds the project's lifecycle hooks, but `scripts/eddy-tooling` is the scaffold's tooling installer, so the exclusion keeps the copy the release just provided.
 
 ## Step 8: Remove the scaffold examples
 
@@ -258,18 +261,22 @@ For a Makefile-only project:
 make build
 ```
 
-With neither wrapper, run the devtools scripts as separate commands:
+With neither wrapper, install the tooling and run its commands separately. They are PHP scripts, so run them through `php` to match the permissions from Step 0:
 
 ```bash
-.devtools/assemble
+php scripts/eddy-tooling
 ```
 
 ```bash
-.devtools/start
+php vendor/bin/eddy-assemble
 ```
 
 ```bash
-.devtools/provision
+php vendor/bin/eddy-start
+```
+
+```bash
+php vendor/bin/eddy-provision
 ```
 
 Then run linting and tests through the same wrapper - `ahoy lint` and `ahoy test`, or `make lint` and `make test` for a Makefile-only project:
@@ -300,9 +307,9 @@ Push the branch and open a pull request. Use the `/open-pr` skill or create the 
 - Always remove the scaffold's example extension and example scripts - a real project never ships them.
 - Never overwrite project-specific code (src/, tests/, config/, *.module, etc.).
 - After copying workflow files, always verify branch references match the project.
-- If the devtools scripts changed format (e.g., Bash to PHP), remove the old files and copy the new ones - do not try to merge them.
+- A project created before 5.0.0 keeps its build scripts in `.devtools/`. Step 4 removes the directory with the rest of the root and the release ships the scripts as the `drevops/eddy-tooling` package instead, so never restore `.devtools/` or merge changes into it. Customisations a project made there become a lifecycle hook in `scripts/` or a patch for the package in `composer.dev.json`.
 - Run the full test suite before opening the PR to catch regressions.
-- Prefer `ahoy` or `Makefile` commands over running tools directly. For example, use `ahoy lint` instead of `composer lint`, `ahoy test` instead of `composer test`, `ahoy build` instead of running `.devtools/*` scripts manually. Only fall back to direct commands when no `ahoy` or `Makefile` equivalent exists.
+- Prefer `ahoy` or `Makefile` commands over running tools directly. For example, use `ahoy lint` instead of `composer lint`, `ahoy test` instead of `composer test`, `ahoy build` instead of running `vendor/bin/eddy-*` commands manually. Only fall back to direct commands when no `ahoy` or `Makefile` equivalent exists.
 
 ## Working directory rules
 

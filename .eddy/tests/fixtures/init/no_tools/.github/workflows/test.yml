@@ -8,7 +8,7 @@
  
        - name: Cache Composer dependencies
          uses: actions/cache@__HASH__ # __VERSION__
-@@ -74,31 +71,10 @@
+@@ -79,31 +76,10 @@
          env:
            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
  
@@ -40,7 +40,7 @@
  
    test:
      runs-on: ubuntu-26.04
-@@ -136,11 +112,6 @@
+@@ -141,11 +117,6 @@
              drupal-version: 11@beta
              stability: canary
  
@@ -52,7 +52,7 @@
  
      name: ${{ matrix.name }}
  
-@@ -151,8 +122,6 @@
+@@ -156,8 +127,6 @@
        # covering one Drupal and PHP pair, so every tool runs on all of them.
        CI_RUNNER_INDEX: ${{ strategy.job-index }}
        CI_RUNNER_TOTAL: ${{ strategy.job-total }}
@@ -61,9 +61,9 @@
  
      steps:
        - name: Checkout code
-@@ -204,45 +173,4 @@
+@@ -214,45 +183,4 @@
        - name: Provision site
-         run: .devtools/provision
+         run: vendor/bin/eddy-provision
  
 -      - name: Run JavaScript tests
 -        if: ${{ env.CI_IS_JEST_RUNNER == 'true' && hashFiles('build/node_modules/.package-lock.json') != '' }}

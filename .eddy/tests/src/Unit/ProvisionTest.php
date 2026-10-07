@@ -10,7 +10,7 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * Tests for the provision devtools script.
+ * Tests for the 'eddy-provision' command.
  *
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
@@ -21,7 +21,7 @@ final class ProvisionTest extends UnitTestCase {
 
   protected function setUp(): void {
     parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.devtools/helpers.php';
+    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
   }
 
   protected static function drushPrefix(string $cwd): string {
@@ -114,7 +114,7 @@ final class ProvisionTest extends UnitTestCase {
     $this->mockPassthruMultiple($passthru_responses);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.devtools/provision';
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-provision';
     $output = ob_get_clean();
 
     $this->assertIsString($output);
@@ -242,7 +242,7 @@ final class ProvisionTest extends UnitTestCase {
     ]);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.devtools/provision';
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-provision';
     $output = ob_get_clean();
 
     $this->assertIsString($output);
@@ -287,7 +287,7 @@ final class ProvisionTest extends UnitTestCase {
     ]);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.devtools/provision';
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-provision';
     $output = ob_get_clean();
 
     $this->assertIsString($output);
@@ -344,7 +344,7 @@ final class ProvisionTest extends UnitTestCase {
     ]);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.devtools/provision';
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-provision';
     $output = ob_get_clean();
 
     $this->assertIsString($output);

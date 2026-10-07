@@ -8,7 +8,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
 /**
- * Tests for the assemble devtools command.
+ * Tests for the 'eddy-assemble' command.
  *
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
@@ -23,7 +23,14 @@ final class AssembleTest extends DevtoolsTestCase {
     $this->declareCorePatch('composer.json', 'add-composer-json-file.patch', self::coreFileAdditionDiff('eddy-composer-json.txt'));
     $this->declareCorePatch('composer.dev.json', 'add-composer-dev-json-file.patch', self::coreFileAdditionDiff('eddy-composer-dev-json.txt'));
 
-    $this->processRun('./.devtools/assemble', [], [], $env, $this->longTimeout, $this->defaultIdleTimeout);
+    $this->installTooling();
+    $this->assertProcessAnyOutputContains('Installed drevops/eddy-tooling.');
+
+    // The scaffold installs its own copy of the package as a symlink.
+    $this->assertTrue(is_link(self::$sut . '/vendor/drevops/eddy-tooling'), 'The scaffold installs the package from .eddy/tooling as a symlink.');
+    $this->assertSame(realpath(self::$sut . '/.eddy/tooling'), realpath(self::$sut . '/vendor/drevops/eddy-tooling'));
+
+    $this->processRun('vendor/bin/eddy-assemble', [], [], $env, $this->longTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
 
     $this->assertProcessAnyOutputContains($init_message);
@@ -34,6 +41,8 @@ final class AssembleTest extends DevtoolsTestCase {
     $this->assertFileExists(self::$sut . '/build/composer.lock');
     $this->assertFileExists(self::$sut . '/build/web/core/eddy-composer-json.txt');
     $this->assertFileExists(self::$sut . '/build/web/core/eddy-composer-dev-json.txt');
+    $this->assertDirectoryDoesNotExist(self::$sut . '/build/vendor/drevops/eddy-tooling', 'The site build leaves the tooling package out.');
+    $this->assertFileDoesNotExist(self::$sut . '/build/web/modules/custom/your_extension/vendor', 'The project-root vendor directory is not symlinked into the extension.');
 
     // @see https://github.com/composer/composer/issues/12215
     $this->processRun('composer', ['--working-dir=' . self::$sut . '/build', 'require', '--dev', 'drupal/coder', '--with-all-dependencies', '--dry-run'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
@@ -56,12 +65,22 @@ final class AssembleTest extends DevtoolsTestCase {
       '',
     ]));
 
-    $this->processRun('./.devtools/assemble', [], [], [], $this->longTimeout, $this->defaultIdleTimeout);
+    $this->installTooling();
+
+    $this->processRun('vendor/bin/eddy-assemble', [], [], [], $this->longTimeout, $this->defaultIdleTimeout);
     $this->assertProcessFailed();
 
     $this->assertProcessAnyOutputContains('No available patcher was able to apply patch');
     $this->assertProcessAnyOutputContains('patches/broken.patch');
     $this->assertProcessAnyOutputNotContains('ASSEMBLE COMPLETE');
+  }
+
+  /**
+   * Install the tooling package, as the command wrappers do.
+   */
+  protected function installTooling(): void {
+    $this->processRun('./scripts/eddy-tooling', [], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->assertProcessSuccessful();
   }
 
   /**

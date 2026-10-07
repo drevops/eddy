@@ -2,7 +2,7 @@
 ##
 # Example post-start script.
 #
-# Runs at the end of `.devtools/start` (after the PHP webserver is up and
+# Runs at the end of `eddy-start` (after the PHP webserver is up and
 # serving). The current working directory is the project root. Any non-zero
 # exit aborts the parent start run.
 #

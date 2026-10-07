@@ -26,7 +26,7 @@
 +- `make start` - Start PHP development server
 +- `make stop` - Stop development server
 +- `make provision` - Install/provision Drupal site
-+- `make reset` - Clean build directory and logs (aliases: `make delete`, `make destroy`)
++- `make reset` - Clean build directory, logs and installed tooling (aliases: `make delete`, `make destroy`)
  
  **Using Ahoy (alternative):**
  - `ahoy build` - Complete build process
@@ -70,9 +70,9 @@
 -- `tests/src/` - PHPUnit tests (Unit/, Kernel/, Functional/)
  - `config/schema/` - Configuration schema definitions
  - `build/` - Assembled Drupal codebase (symlinked extension)
- - `.devtools/` - Build and deployment scripts used by CI
-@@ -85,9 +85,6 @@
- - `DRUPAL_VERSION` - Target Drupal version (e.g., `10`, `11`, `11@alpha`, `12@beta`)
+ - `vendor/` - The installed `drevops/eddy-tooling` package, whose commands (`vendor/bin/eddy-*`) assemble, start, provision and deploy the extension. Not committed and not part of the extension
+@@ -86,9 +86,6 @@
+ - `DRUPAL_VERSION` - Target Drupal version (e.g., `10`, `11`, `11@alpha`, `12@beta`). Defaults to `extra.eddy.drupal-version` in `composer.dev.json`
  - `WEBSERVER_HOST` - Development server host (default: localhost)
  - `WEBSERVER_PORT` - Development server port. Auto-discovered from range 8000-8099 and written to `.env` if not already set
 -- `WEBDRIVER_BACKEND` - FunctionalJavascript WebDriver backend: `chromedriver` (default, drives the locally installed Chrome with no Docker) or `selenium` (Docker container)
@@ -81,7 +81,7 @@
  - `GITHUB_TOKEN` - GitHub API token to avoid rate limits
  - `DEBUG` - Set to `1` to stream the full output of the underlying commands (Composer, npm, Drush). By default this output is suppressed and shown only when a command fails
  
-@@ -102,11 +99,6 @@
+@@ -103,11 +100,6 @@
  
  ## Code Quality Tools
  

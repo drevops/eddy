@@ -27,7 +27,7 @@
 +- `make start` - Start PHP development server
 +- `make stop` - Stop development server
 +- `make provision` - Install/provision Drupal site
-+- `make reset` - Clean build directory and logs (aliases: `make delete`, `make destroy`)
++- `make reset` - Clean build directory, logs and installed tooling (aliases: `make delete`, `make destroy`)
  
  **Using Ahoy (alternative):**
  - `ahoy build` - Complete build process

@@ -2,7 +2,7 @@
 ##
 # Example pre-stop script.
 #
-# Runs during `.devtools/stop` before the PHP webserver is stopped, while it
+# Runs during `eddy-stop` before the PHP webserver is stopped, while it
 # is still reachable. The current working directory is the project root. Any
 # non-zero exit aborts the parent stop run.
 #

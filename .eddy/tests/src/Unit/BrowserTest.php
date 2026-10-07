@@ -10,7 +10,7 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * Tests for the .devtools/browser script.
+ * Tests for the 'eddy-browser' command.
  *
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
@@ -32,7 +32,7 @@ final class BrowserTest extends UnitTestCase {
 
   protected function setUp(): void {
     parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.devtools/helpers.php';
+    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
     $this->envUnset('WEBDRIVER_PORT');
     $this->envUnset('WEBDRIVER_BACKEND');
 
@@ -334,7 +334,7 @@ final class BrowserTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.devtools/browser';
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-browser';
       $this->fail('Expected browser to call quit().');
     }
     catch (QuitSuccessException | QuitErrorException $e) {

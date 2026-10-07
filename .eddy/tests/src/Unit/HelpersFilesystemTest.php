@@ -20,7 +20,7 @@ final class HelpersFilesystemTest extends UnitTestCase {
 
   protected function setUp(): void {
     parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.devtools/helpers.php';
+    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
   }
 
   public function testRemoveDirMissing(): void {

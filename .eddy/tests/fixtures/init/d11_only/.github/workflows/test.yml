@@ -9,7 +9,7 @@
            - name: lint-d11
              php-version: 8.5
              drupal-version: 11
-@@ -111,14 +107,6 @@
+@@ -116,14 +112,6 @@
  
        matrix:
          include:

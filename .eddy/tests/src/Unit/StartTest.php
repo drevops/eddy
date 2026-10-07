@@ -10,7 +10,7 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * Tests for the start devtools script.
+ * Tests for the 'eddy-start' command.
  *
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
@@ -21,7 +21,7 @@ final class StartTest extends UnitTestCase {
 
   protected function setUp(): void {
     parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.devtools/helpers.php';
+    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
   }
 
   #[DataProvider('dataProviderStartSuccess')]
@@ -53,7 +53,7 @@ final class StartTest extends UnitTestCase {
     $this->registerMock('get_headers', 'DrevOps\\Eddy\\DevTools', fn(): array => ['HTTP/1.1 200 OK']);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.devtools/start';
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
     $output = ob_get_clean();
 
     $this->assertIsString($output);
@@ -112,7 +112,7 @@ final class StartTest extends UnitTestCase {
     $this->registerMock('get_headers', 'DrevOps\\Eddy\\DevTools', fn(): array => ['HTTP/1.1 302 Found']);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.devtools/start';
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
     $output = ob_get_clean();
 
     $this->assertIsString($output);
@@ -143,7 +143,7 @@ final class StartTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.devtools/start';
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {
@@ -179,7 +179,7 @@ final class StartTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.devtools/start';
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {
@@ -219,7 +219,7 @@ final class StartTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.devtools/start';
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {
@@ -262,7 +262,7 @@ final class StartTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.devtools/start';
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {
@@ -316,7 +316,7 @@ final class StartTest extends UnitTestCase {
     $this->registerMock('get_headers', 'DrevOps\\Eddy\\DevTools', fn(): array => ['HTTP/1.1 200 OK']);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.devtools/start';
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
     $output = ob_get_clean();
 
     $this->assertIsString($output);
@@ -374,7 +374,7 @@ final class StartTest extends UnitTestCase {
     $this->registerMock('get_headers', 'DrevOps\\Eddy\\DevTools', fn(): array => ['HTTP/1.1 200 OK']);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.devtools/start';
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
     $output = ob_get_clean();
 
     $this->assertIsString($output);
@@ -416,7 +416,7 @@ final class StartTest extends UnitTestCase {
     $this->registerMock('get_headers', 'DrevOps\\Eddy\\DevTools', fn(): array => ['HTTP/1.1 200 OK']);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.devtools/start';
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
     $output = ob_get_clean();
 
     $this->assertIsString($output);
@@ -453,7 +453,7 @@ final class StartTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.devtools/start';
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {
