@@ -399,6 +399,9 @@ $databases = [];
 $settings['reverse_proxy'] = TRUE;
 $settings['reverse_proxy_addresses'] = ['127.0.0.1', '::1'];
 $settings['trusted_host_patterns'][] = '^[a-z0-9-]+\.trycloudflare\.com$';
+$settings['trusted_host_patterns'][] = '^localhost$';
+$settings['trusted_host_patterns'][] = '^127\.0\.0\.1$';
+$settings['trusted_host_patterns'][] = '^0\.0\.0\.0$';
 
 PHP;
 
