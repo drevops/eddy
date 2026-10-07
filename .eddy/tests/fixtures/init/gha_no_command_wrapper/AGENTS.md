@@ -23,7 +23,7 @@
 -- `ahoy start` - Start development server
 -- `ahoy stop` - Stop development server
 -- `ahoy provision` - Provision Drupal site
--- `ahoy reset` - Clean build directory and logs (aliases: `ahoy delete`, `ahoy destroy`)
+-- `ahoy reset` - Clean build directory, logs and installed tooling (aliases: `ahoy delete`, `ahoy destroy`)
  
  ### Code Quality
  

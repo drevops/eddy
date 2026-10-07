@@ -9,7 +9,7 @@
     ahoy build
     ```
  
-@@ -21,6 +25,12 @@
+@@ -23,6 +27,12 @@
  The `build` command is a wrapper for more granular commands:
  
  ```bash
@@ -22,7 +22,7 @@
  ahoy assemble     # Assemble the codebase
  ahoy start        # Start the PHP server
  ahoy provision    # Provision the Drupal website
-@@ -36,6 +46,20 @@
+@@ -38,6 +48,20 @@
  
  ```bash
  # Newest stable Drupal 11 release.
@@ -43,7 +43,7 @@
  DRUPAL_VERSION=11 ahoy build
  
  # Newest Drupal 11.1.x patch release.
-@@ -97,6 +121,11 @@
+@@ -99,6 +123,11 @@
  PHP step-debugging is supported via [XDebug](https://xdebug.org/docs/install). Install the XDebug PHP extension on your host (`php -v` should mention `with Xdebug`), then toggle it on the development server:
  
  ```bash
@@ -55,7 +55,7 @@
  ahoy debug      # restart with XDebug enabled
  ahoy start      # restart without XDebug
  ```
-@@ -124,6 +153,10 @@
+@@ -126,6 +155,10 @@
  Run all checks with:
  
  ```bash
@@ -66,7 +66,7 @@
  ahoy lint
  ```
  
-@@ -132,6 +165,10 @@
+@@ -134,6 +167,10 @@
  To fix coding standards issues automatically, run the same tools with the `--fix` option (for the tools that support it):
  
  ```bash
@@ -77,7 +77,7 @@
  ahoy lint-fix
  ```
  
-@@ -140,6 +177,10 @@
+@@ -142,6 +179,10 @@
  Run the tests for this extension with:
  
  ```bash
@@ -88,7 +88,7 @@
  ahoy test
  ```
  
-@@ -148,6 +189,13 @@
+@@ -150,6 +191,13 @@
  The `test` command is a wrapper for multiple test commands:
  
  ```bash
@@ -102,7 +102,7 @@
  ahoy test-unit                    # Run Unit tests
  ahoy test-kernel                  # Run Kernel tests
  ahoy test-functional              # Run Functional tests
-@@ -159,6 +207,13 @@
+@@ -161,6 +209,13 @@
  FunctionalJavascript tests need a real browser driven via WebDriver. By default they use the Google Chrome already installed on your machine - a matching `chromedriver` is downloaded automatically on first run, so no Docker is required:
  
  ```bash
@@ -116,7 +116,7 @@
  ahoy start
  ahoy provision
  ahoy test-functional-javascript
-@@ -168,6 +223,13 @@
+@@ -170,6 +225,13 @@
  To run the browser in a Docker Selenium container instead, set `WEBDRIVER_BACKEND=selenium`. The container cannot reach the host's `localhost`, so start the webserver on all interfaces:
  
  ```bash
@@ -130,7 +130,7 @@
  WEBSERVER_HOST=__VERSION__.0 ahoy start
  ahoy provision
  WEBDRIVER_BACKEND=selenium ahoy test-functional-javascript
-@@ -181,6 +243,11 @@
+@@ -183,6 +245,11 @@
  ### Running specific tests
  
  You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the test commands. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site (`web/themes/custom/` for a theme):

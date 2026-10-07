@@ -64,7 +64,7 @@
 -    usage: Run FunctionalJavascript tests.
 -    cmd: |
 -      ahoy browser-start || exit 1
--      export WEBDRIVER_PORT="$(./.devtools/info webdriver-port)"
+-      export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
 -      pushd "build" >/dev/null || exit 1
 -      php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional-javascript "$@"
 -      popd >/dev/null || exit 1
@@ -79,11 +79,11 @@
 -
 -  browser-start:
 -    usage: Start the browser for FunctionalJavascript tests.
--    cmd: ./.devtools/browser start
+-    cmd: vendor/bin/eddy-browser start
 -
 -  browser-stop:
 -    usage: Stop the browser.
--    cmd: ./.devtools/browser stop
+-    cmd: vendor/bin/eddy-browser stop
  
    reset:
      usage: Reset project to the default state.

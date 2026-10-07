@@ -5,8 +5,8 @@
 -        "behat/mink-browserkit-driver": "__VERSION__",
          "cweagans/composer-patches": "__VERSION__",
          "dealerdirect/phpcodesniffer-composer-installer": "__VERSION__",
-         "drevops/phpcs-standard": "__VERSION__",
-@@ -8,7 +6,6 @@
+         "drevops/eddy-tooling": "__VERSION__",
+@@ -9,7 +7,6 @@
          "drupal/coder": "^8 || ^9",
          "drush/drush": "^12 || ^13 || ^14",
          "jangregor/phpstan-prophecy": "__VERSION__ || ^2",
@@ -14,7 +14,7 @@
          "mglaman/phpstan-drupal": "__VERSION__ || ^2",
          "mikey179/vfsstream": "__VERSION__",
          "palantirnet/drupal-rector": "__VERSION__",
-@@ -17,9 +14,6 @@
+@@ -18,9 +15,6 @@
          "phpstan/extension-installer": "__VERSION__",
          "phpstan/phpstan-phpunit": "^1 || ^2",
          "phpunit/phpunit": "^9.6 || ^10.5 || ^11",
