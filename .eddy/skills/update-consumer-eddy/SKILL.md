@@ -130,18 +130,18 @@ rm eddy.tar.gz
 
 ## Step 6: Run init.php
 
-Run init.php from the project root. Set `EDDY_REMOVE_SELF=true` and `EDDY_PROCEED=true` to auto-accept the confirmations:
+Run init.php from the project root. Set `INIT_REMOVE_SELF=true` and `INIT_PROCEED=true` to auto-accept the confirmations:
 
 ```bash
-EDDY_NAME='<Name>' \
-EDDY_MACHINE_NAME='<machine_name>' \
-EDDY_TYPE='<type>' \
-EDDY_DRUPAL_VERSION='<drupal_version>' \
-EDDY_COMMAND_WRAPPER='<command_wrapper>' \
-EDDY_TOOLS='<tools>' \
-EDDY_EXAMPLES=false \
-EDDY_REMOVE_SELF=true \
-EDDY_PROCEED=true \
+INIT_NAME='<Name>' \
+INIT_MACHINE_NAME='<machine_name>' \
+INIT_TYPE='<type>' \
+INIT_DRUPAL_VERSION='<drupal_version>' \
+INIT_COMMAND_WRAPPER='<command_wrapper>' \
+INIT_TOOLS='<tools>' \
+INIT_EXAMPLES=false \
+INIT_REMOVE_SELF=true \
+INIT_PROCEED=true \
 php init.php
 ```
 
@@ -149,9 +149,9 @@ Wrap every value in single quotes, never double quotes. The values come from the
 
 **Every one of these variables is mandatory.** A prompt with no matching variable is not silently defaulted - it falls through to the interactive input loop and reads `STDIN`, which never returns under automation. Derive each value from the project's detected settings, and run `php init.php --help` for the full list and accepted values if the prompts change in a future release.
 
-The `EDDY_` prefix applies to releases after 4.x. When the tag from Step 2 is a 4.x release, run `php init.php --help` first and use the prefix it lists instead (`DEX_` in 4.19.0, `PROMPTY_` before it). 4.x releases also ask for the CI provider, and 4.18.0 and 4.19.0 whether to keep the Cloudflare tunnel scripts, so pass those variables too, with the values from Step 1.
+The `INIT_` prefix applies to releases after 4.x. When the tag from Step 2 is a 4.x release, run `php init.php --help` first and use the prefix it lists instead (`DEX_` in 4.19.0, `PROMPTY_` before it). 4.x releases also ask for the CI provider, and 4.18.0 and 4.19.0 whether to keep the Cloudflare tunnel scripts, so pass those variables too, with the values from Step 1.
 
-`EDDY_EXAMPLES=false` drops the scaffold's example lifecycle scripts. Step 7 restores `scripts/` from git straight after, so any hook the project actually tracks comes back untouched.
+`INIT_EXAMPLES=false` drops the scaffold's example lifecycle scripts. Step 7 restores `scripts/` from git straight after, so any hook the project actually tracks comes back untouched.
 
 `<command_wrapper>` accepts a comma-separated list (`ahoy`, `makefile`, or `ahoy,makefile`), or an empty string for neither.
 
@@ -327,5 +327,5 @@ NEVER use compound or composite commands in a single Bash tool call. Every Bash 
 
 **ALWAYS:**
 - Use multiple separate Bash tool calls, one command per call
-- Use non-interactive flags or env vars for scripts that support them (e.g. `composer --no-interaction`, `EDDY_*` for `init.php`)
+- Use non-interactive flags or env vars for scripts that support them (e.g. `composer --no-interaction`, `INIT_*` for `init.php`)
 - For git commits, use: `git commit -m "Message here."`
