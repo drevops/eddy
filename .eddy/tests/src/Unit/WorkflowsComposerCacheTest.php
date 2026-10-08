@@ -24,6 +24,11 @@ use Symfony\Component\Yaml\Yaml;
 #[Group('p0')]
 final class WorkflowsComposerCacheTest extends UnitTestCase {
 
+  /**
+   * The jobs that run Composer.
+   */
+  protected const array JOBS = ['lint', 'test'];
+
   protected const string CACHE_STEP = 'Cache Composer dependencies';
 
   /**
@@ -146,12 +151,8 @@ final class WorkflowsComposerCacheTest extends UnitTestCase {
    *   The job names, keyed by job name.
    */
   protected static function composerJobs(): \Iterator {
-    foreach (array_keys(self::jobs()) as $job) {
-      $names = array_column(self::steps((string) $job), 'name');
-
-      if (in_array(self::INSTALL_STEP, $names, TRUE)) {
-        yield (string) $job => ['job' => (string) $job];
-      }
+    foreach (self::JOBS as $job) {
+      yield $job => ['job' => $job];
     }
   }
 
