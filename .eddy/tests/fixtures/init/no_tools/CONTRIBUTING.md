@@ -90,7 +90,7 @@
  ahoy lint-fix
  ```
  
-@@ -142,58 +173,9 @@
+@@ -142,60 +173,9 @@
  Run the tests for this extension with:
  
  ```bash
@@ -100,7 +100,7 @@
  
 -The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests. It uses Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
 -
--The `test` command is a wrapper for multiple test commands:
+-Each test suite can also be run on its own:
 -
  ```bash
 -ahoy test-unit                    # Run Unit tests
@@ -119,6 +119,8 @@
 -ahoy test-functional-javascript
 -ahoy browser-stop
 -```
+-
+-The `test-functional-javascript` command starts the browser before it runs the suite. The `test` command runs the suite too but doesn't start the browser, so run `browser-start` before it.
 -
 -To run the browser in a Docker Selenium container instead, set `WEBDRIVER_BACKEND=selenium`. The container cannot reach the host's `localhost`, so start the webserver on all interfaces:
 -

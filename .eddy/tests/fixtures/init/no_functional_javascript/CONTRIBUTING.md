@@ -1,4 +1,4 @@
-@@ -153,32 +153,7 @@
+@@ -153,34 +153,7 @@
  ahoy test-unit                    # Run Unit tests
  ahoy test-kernel                  # Run Kernel tests
  ahoy test-functional              # Run Functional tests
@@ -15,6 +15,8 @@
 -ahoy test-functional-javascript
 -ahoy browser-stop
 -```
+-
+-The `test-functional-javascript` command starts the browser before it runs the suite. The `test` command runs the suite too but doesn't start the browser, so run `browser-start` before it.
 -
 -To run the browser in a Docker Selenium container instead, set `WEBDRIVER_BACKEND=selenium`. The container cannot reach the host's `localhost`, so start the webserver on all interfaces:
 -

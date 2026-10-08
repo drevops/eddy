@@ -89,7 +89,7 @@
  ```
  
 @@ -150,6 +191,13 @@
- The `test` command is a wrapper for multiple test commands:
+ Each test suite can also be run on its own:
  
  ```bash
 +make test-unit                    # Run Unit tests
@@ -116,7 +116,7 @@
  ahoy start
  ahoy provision
  ahoy test-functional-javascript
-@@ -170,6 +225,13 @@
+@@ -172,6 +227,13 @@
  To run the browser in a Docker Selenium container instead, set `WEBDRIVER_BACKEND=selenium`. The container cannot reach the host's `localhost`, so start the webserver on all interfaces:
  
  ```bash
@@ -130,7 +130,7 @@
  WEBSERVER_HOST=__VERSION__.0 ahoy start
  ahoy provision
  WEBDRIVER_BACKEND=selenium ahoy test-functional-javascript
-@@ -183,6 +245,11 @@
+@@ -185,6 +247,11 @@
  ### Running specific tests
  
  You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the test commands. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site (`web/themes/custom/` for a theme):

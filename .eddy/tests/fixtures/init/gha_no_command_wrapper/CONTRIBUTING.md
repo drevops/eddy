@@ -93,7 +93,7 @@
  ```
  
  ## Testing
-@@ -142,18 +145,20 @@
+@@ -142,7 +145,9 @@
  Run the tests for this extension with:
  
  ```bash
@@ -104,9 +104,8 @@
  ```
  
  The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests. It uses Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
- 
--The `test` command is a wrapper for multiple test commands:
-+Each test suite can also be run on its own:
+@@ -150,10 +155,10 @@
+ Each test suite can also be run on its own:
  
  ```bash
 -ahoy test-unit                    # Run Unit tests
@@ -114,13 +113,13 @@
 -ahoy test-functional              # Run Functional tests
 -ahoy test-functional-javascript   # Run FunctionalJavascript tests
 +cd build
-+php -d pcov.directory=.. vendor/bin/phpunit --testsuite unit         # Run Unit tests
-+php -d pcov.directory=.. vendor/bin/phpunit --testsuite kernel       # Run Kernel tests
-+php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional   # Run Functional tests
++php -d pcov.directory=.. vendor/bin/phpunit --testsuite unit
++php -d pcov.directory=.. vendor/bin/phpunit --testsuite kernel
++php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional
  ```
  
  ### Running FunctionalJavascript tests
-@@ -161,19 +166,27 @@
+@@ -161,21 +166,28 @@
  FunctionalJavascript tests need a real browser driven via WebDriver. By default they use the Google Chrome already installed on your machine - a matching `chromedriver` is downloaded automatically on first run, so no Docker is required:
  
  ```bash
@@ -138,6 +137,8 @@
 +vendor/bin/eddy-browser-stop
  ```
  
+-The `test-functional-javascript` command starts the browser before it runs the suite. The `test` command runs the suite too but doesn't start the browser, so run `browser-start` before it.
+-
  To run the browser in a Docker Selenium container instead, set `WEBDRIVER_BACKEND=selenium`. The container cannot reach the host's `localhost`, so start the webserver on all interfaces:
  
  ```bash
@@ -150,13 +151,14 @@
 +WEBDRIVER_BACKEND=selenium vendor/bin/eddy-browser-start
 +export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
 +cd build
-+WEBDRIVER_BACKEND=selenium php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional-javascript
++WEBDRIVER_BACKEND=selenium php -d pcov.directory=.. vendor/bin/phpunit \
++  --testsuite functional-javascript
 +cd ..
 +vendor/bin/eddy-browser-stop
  ```
  
  The browser reaches the webserver at `localhost` with the default backend, and at `host.docker.internal` (macOS) or `__VERSION__.1` (other systems) from the Selenium container. Set `WEBDRIVER_HOST` to use a different address.
-@@ -183,13 +196,6 @@
+@@ -185,13 +197,6 @@
  ### Running specific tests
  
  You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the test commands. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site (`web/themes/custom/` for a theme):
