@@ -1,0 +1,51 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * @file
+ * Stop the WebDriver backend for FunctionalJavascript tests.
+ *
+ * Whichever backend is running is stopped, regardless of WEBDRIVER_BACKEND.
+ * The port is resolved via the env -> '.env' -> 4444 chain instead of
+ * discovered, so the command targets the endpoint that 'eddy-browser-start'
+ * created.
+ */
+
+declare(strict_types=1);
+
+namespace DrevOps\Eddy\DevTools;
+
+require_once __DIR__ . '/helpers.php';
+
+// -----------------------------------------------------------------------------
+// Variables.
+// -----------------------------------------------------------------------------
+
+// WebDriver port resolved via the env -> '.env' -> default chain.
+$webdriver_port = resolve_webdriver_port()['port'];
+
+// -----------------------------------------------------------------------------
+
+echo '===============================' . PHP_EOL;
+echo '        🌐 STOP BROWSER        ' . PHP_EOL;
+echo '===============================' . PHP_EOL;
+echo PHP_EOL;
+
+// The Selenium container publishes the port chromedriver would bind, so
+// killing the port process alone stops only the container's docker proxy.
+// Removing the container first frees the port whichever backend is running.
+if (command_path('docker') !== FALSE) {
+  TASK('Removing the Selenium container, if any.');
+  @passthru(sprintf('docker rm -f %s >/dev/null 2>&1', escapeshellarg(selenium_container($webdriver_port))));
+}
+
+TASK('Stopping the WebDriver process on port %s, if any.', $webdriver_port);
+kill_port($webdriver_port);
+sleep(1);
+PASS('Browser stopped on port %s.', $webdriver_port);
+
+echo PHP_EOL;
+echo '===============================' . PHP_EOL;
+echo '     🌐 BROWSER STOPPED ✅    ' . PHP_EOL;
+echo '===============================' . PHP_EOL;
+echo PHP_EOL;

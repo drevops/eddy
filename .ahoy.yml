@@ -167,11 +167,11 @@ commands:
   #;< DEV_FUNCTIONAL_JAVASCRIPT
   browser-start:
     usage: Start the browser for FunctionalJavascript tests.
-    cmd: vendor/bin/eddy-browser start
+    cmd: vendor/bin/eddy-browser-start
 
   browser-stop:
     usage: Stop the browser.
-    cmd: vendor/bin/eddy-browser stop
+    cmd: vendor/bin/eddy-browser-stop
   #;> DEV_FUNCTIONAL_JAVASCRIPT
 
   reset:

@@ -10,7 +10,8 @@ parameters:
     - src
     - ../assets/update-assets.php
     - ../../.eddy/tooling/src/eddy-assemble
-    - ../../.eddy/tooling/src/eddy-browser
+    - ../../.eddy/tooling/src/eddy-browser-start
+    - ../../.eddy/tooling/src/eddy-browser-stop
     - ../../.eddy/tooling/src/eddy-deploy
     - ../../.eddy/tooling/src/helpers.php
     - ../../.eddy/tooling/src/eddy-info

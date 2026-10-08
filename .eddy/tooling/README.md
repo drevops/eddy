@@ -23,16 +23,17 @@ The installer runs Composer only when the constraint, the patches for the packag
 
 ## Commands
 
-| Command          | Purpose                                                                                                |
-|------------------|--------------------------------------------------------------------------------------------------------|
-| `eddy-assemble`  | Assemble a Drupal codebase in `build/`, install dependencies, and symlink the extension.               |
-| `eddy-start`     | Launch the built-in PHP development server. Auto-discovers a free port in 8000-8099 and writes `.env`. |
-| `eddy-stop`      | Stop the development server.                                                                           |
-| `eddy-provision` | Install Drupal on the assembled site and enable the extension.                                         |
-| `eddy-deploy`    | Mirror the extension to a remote git repository (e.g. drupal.org). Used in CI.                         |
-| `eddy-browser`   | Start or stop the WebDriver backend used by FunctionalJavascript tests.                                |
-| `eddy-info`      | Print a summary of the environment, or a single field such as `site-url`, for the wrappers to consume. |
-| `eddy-qrcode`    | Render a URL as a scannable QR code in the terminal.                                                   |
+| Command              | Purpose                                                                                                                 |
+|----------------------|-------------------------------------------------------------------------------------------------------------------------|
+| `eddy-assemble`      | Assemble a Drupal codebase in `build/`, install dependencies, and symlink the extension.                                |
+| `eddy-start`         | Launch the built-in PHP development server. Auto-discovers a free port in 8000-8099 and writes `.env`.                  |
+| `eddy-stop`          | Stop the development server.                                                                                            |
+| `eddy-provision`     | Install Drupal on the assembled site and enable the extension.                                                          |
+| `eddy-deploy`        | Mirror the extension to a remote git repository (e.g. drupal.org). Used in CI.                                          |
+| `eddy-browser-start` | Start the WebDriver backend used by FunctionalJavascript tests. Auto-discovers a free port from 4444 and writes `.env`. |
+| `eddy-browser-stop`  | Stop the WebDriver backend.                                                                                             |
+| `eddy-info`          | Print a summary of the environment, or a single field such as `site-url`, for the wrappers to consume.                  |
+| `eddy-qrcode`        | Render a URL as a scannable QR code in the terminal.                                                                    |
 
 `eddy-assemble` builds the Drupal version in `DRUPAL_VERSION`. When the variable isn't set, it builds the version in `extra.eddy.drupal-version` of `composer.dev.json`, and Drupal 11 when that isn't set either.
 

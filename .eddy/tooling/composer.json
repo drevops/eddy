@@ -21,7 +21,8 @@
     },
     "bin": [
         "src/eddy-assemble",
-        "src/eddy-browser",
+        "src/eddy-browser-start",
+        "src/eddy-browser-stop",
         "src/eddy-deploy",
         "src/eddy-info",
         "src/eddy-provision",
