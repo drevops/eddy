@@ -70,7 +70,7 @@ The package is installed into `vendor/`, so an edit made there is lost on the ne
 "extra": {
     "patches": {
         "drevops/eddy-tooling": {
-            "Describe the change": "patches/eddy-tooling-describe-the-change.patch"
+            "Describe the change": "patches/eddy-tooling-change.patch"
         }
     }
 }

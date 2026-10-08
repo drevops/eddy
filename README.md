@@ -51,7 +51,7 @@ Eddy isn't for building websites. To stand up a Drupal site, use [Vortex](https:
   - PHP version matrix: `8.3`, `8.4`, `8.5`.
   - Drupal version matrix: `stable` on Drupal 10, 11 and 12, plus `legacy` and `canary` tiers on Drupal 11 and 12.
   - CI provider: [GitHub Actions](.github/workflows/test.yml)
-  - Code coverage with https://github.com/krakjoe/pcov pushed to [codecov.io](https://codecov.io).
+  - Code coverage with [pcov](https://github.com/krakjoe/pcov) pushed to [codecov.io](https://codecov.io).
   - Compatible with Drupal.org GitLab CI ([DrupalCI](#drupalorg-ci-drupalci)).
 - Develop locally using PHP running on your host with the same [tooling](.eddy/tooling) commands as CI, installed from the `drevops/eddy-tooling` Composer package:
   - Uses [drupal/recommended-project](https://www.drupal.org/docs/develop/using-composer/starting-a-site-using-drupal-composer-project-templates) to create Drupal site structure.
@@ -108,6 +108,7 @@ The initial codebase setup script `php init.php` will ask you for some informati
 The resulting codebase is then placed in the `build` directory. Your extension files are symlinked into the Drupal site structure.
 
 The `build` command is a wrapper for more granular commands:
+
 ```bash
 make assemble     # Assemble the codebase
 make start        # Start the PHP server
@@ -242,6 +243,23 @@ To shard a tool across extra runners, add a matrix dimension for the shard and c
 
 One trap is worth knowing before moving a tool. Where a test runner derives a shard or profile name from the runner index, excluding runner 0 from that tool orphans the first shard, and if that shard is the catch-all then everything untagged silently stops being tested. Give such a tool the *last* runner rather than the first when it needs one to itself.
 
+### Allowing a CI step to fail
+
+Each lint and test step in [`.github/workflows/test.yml`](.github/workflows/test.yml) can be allowed to fail without failing its job. Set the step's repository variable to `1` in **Settings** -> **Secrets and variables** -> **Actions** -> **Variables**:
+
+| Variable | Step |
+|----------|------|
+| `CI_CSPELL_IGNORE_FAILURE` | CSpell |
+| `CI_PHPCS_IGNORE_FAILURE` | PHPCS |
+| `CI_PHPSTAN_IGNORE_FAILURE` | PHPStan |
+| `CI_RECTOR_IGNORE_FAILURE` | Rector |
+| `CI_TWIGCSFIXER_IGNORE_FAILURE` | Twig CS Fixer |
+| `CI_NODEJS_LINT_IGNORE_FAILURE` | ESLint and Stylelint |
+| `CI_NODEJS_TEST_IGNORE_FAILURE` | Jest |
+| `CI_TEST_IGNORE_FAILURE` | PHPUnit |
+
+The step still runs and reports what it finds, but its job passes.
+
 ### Patching dependencies
 
 The build installs [`cweagans/composer-patches`](https://github.com/cweagans/composer-patches) 2.x and applies the patches declared in the `patches` section of `composer.dev.json` or `composer.json`. Each entry maps a description to a local path or a URL:
@@ -370,6 +388,7 @@ To start and stop debug sessions from the browser, install the Xdebug Helper ext
 ## Coding standards
 
 The `make lint` or `ahoy lint` command checks the codebase using multiple tools:
+
 - Spell checking with CSpell.
 - PHP code standards checking against `Drupal` and `DrupalPractice` standards.
 - PHP code static analysis with PHPStan.
@@ -390,11 +409,12 @@ If automatic fixes are not accurate, you can adjust the configuration files to e
 
 ## Testing
 
-The `make test` or `ahoy test` command runs the PHPUnit tests for your extension.
+The `make test` or `ahoy test` command runs every PHPUnit test suite and the Jest tests for your extension.
 
 The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests. It uses Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
 
-The `test` command is a wrapper for multiple test commands:
+Each suite also has a command of its own:
+
 ```bash
 make test-unit                    # Run Unit tests
 make test-kernel                  # Run Kernel tests
@@ -419,6 +439,8 @@ ahoy provision
 ahoy test-functional-javascript
 ahoy browser-stop
 ```
+
+`test-functional-javascript` starts the browser before it runs the suite. `test` runs the suite too but doesn't start the browser, so run `browser-start` before it.
 
 To run the browser in a Docker Selenium container instead, set `WEBDRIVER_BACKEND=selenium`. The container cannot reach the host's `localhost`, so start the webserver on all interfaces:
 
@@ -456,6 +478,10 @@ php -d pcov.directory=.. vendor/bin/phpunit \
 php -d pcov.directory=.. vendor/bin/phpunit --group=wip
 ```
 
+### Code coverage
+
+PHPUnit collects code coverage with [pcov](https://github.com/krakjoe/pcov) and Jest with V8, and both write their reports to `.logs/coverage`. CI uploads the reports as a workflow artifact, and to [Codecov](https://codecov.io) when the `CODECOV_TOKEN` repository secret is set.
+
 ### Deprecated code testing
 
 The tests are configured to check for deprecated code usage and fail if any is found. You can fix the deprecated code or ignore the deprecations by adding a `.deprecation-ignore.txt` file to the root of the codebase and setting the `SYMFONY_DEPRECATIONS_HELPER` environment variable in the `phpunit.xml` to `ignoreFile=../.deprecation-ignore.txt`. PHPUnit runs from the `build` directory, so the path is relative to it. See https://www.drupal.org/node/3285162 for more details.
@@ -490,22 +516,22 @@ It is a good practice to use a dedicated SSH key for every project.
 
 1. Generate a new SSH key without the pass phrase:
 
-```bash
-ssh-keygen -m PEM -t rsa -b 4096 -C "your_email+project_name@example.com"
-```
+   ```bash
+   ssh-keygen -m PEM -t rsa -b 4096 -C "your_email+project_name@example.com"
+   ```
 
 2. Add **public** key to your [Drupal.org account](https://git.drupalcode.org/-/user_settings/ssh_keys)
 3. Add **private** key to your CI:
-  - GitHub Actions:
-    - Go to your project -> **Settings** -> **Secrets and variables** -> **Actions**
-    - Add a new secret with the `DEPLOY_SSH_KEY` name and the private key as the value.
+   - GitHub Actions:
+     - Go to your project -> **Settings** -> **Secrets and variables** -> **Actions**
+     - Add a new secret with the `DEPLOY_SSH_KEY` name and the private key as the value.
 
 4. In CI, use UI to add the following variables as secrets:
 
-- `DEPLOY_REMOTE` - your extension's Drupal.org repository (for example, `git@git.drupal.org:project/myextension.git`). Until it is set, the deployment job skips deployment and reports a notice.
-- `DEPLOY_USER_NAME` - the name of the user who commits to the remote repository (i.e., your name on Drupal.org).
-- `DEPLOY_USER_EMAIL` - the email address of the user who commits to the remote repository (i.e., your email on Drupal.org).
-- `DEPLOY_PROCEED` - set to `1` once CI is working, and you are ready to deploy. Without this variable, the deployment job will run but will not push the code. This is useful for testing the deployment job.
+   - `DEPLOY_REMOTE` - your extension's Drupal.org repository (for example, `git@git.drupal.org:project/myextension.git`). Until it is set, the deployment job skips deployment and reports a notice.
+   - `DEPLOY_USER_NAME` - the name of the user who commits to the remote repository (i.e., your name on Drupal.org).
+   - `DEPLOY_USER_EMAIL` - the email address of the user who commits to the remote repository (i.e., your email on Drupal.org).
+   - `DEPLOY_PROCEED` - set to `1` once CI is working, and you are ready to deploy. Without this variable, the deployment job will run but will not push the code. This is useful for testing the deployment job.
 
 5. Optionally, set `DEPLOY_BRANCH` to the branch to push to in the destination repository. It is not a secret: add it as a repository variable in GitHub Actions (**Settings** -> **Secrets and variables** -> **Actions** -> **Variables**). Without it, the code is pushed to the branch that triggered the build. It has no effect on release tags, which are always pushed as tags.
 
