@@ -202,7 +202,15 @@ final class TemplateMarkersTest extends UnitTestCase {
     $paths = [];
 
     foreach (new \RecursiveIteratorIterator($filter) as $file) {
-      if (!$file instanceof \SplFileInfo || !$file->isFile() || $file->getPathname() === $root . '/init.php') {
+      if (!$file instanceof \SplFileInfo) {
+        continue;
+      }
+
+      if (!$file->isFile()) {
+        continue;
+      }
+
+      if ($file->getPathname() === $root . '/init.php') {
         continue;
       }
 
@@ -298,23 +306,20 @@ final class TemplateMarkersTest extends UnitTestCase {
       }
 
       $token = $marker['token'];
-      $opens = $marker['direction'] === '<';
+      $since = $open[$token] ?? NULL;
 
-      if ($opens && isset($open[$token])) {
-        $unclosed[] = sprintf('line %d opens %s again, open since line %d', $line, $token, $open[$token]);
-      }
-
-      if (!$opens && !isset($open[$token])) {
-        $unclosed[] = sprintf('line %d closes %s, which is not open', $line, $token);
-      }
-
-      if ($opens) {
+      if ($marker['direction'] === '<') {
         $open[$token] = $line;
-
-        continue;
+        $problem = $since === NULL ? NULL : sprintf('line %d opens %s again, open since line %d', $line, $token, $since);
+      }
+      else {
+        unset($open[$token]);
+        $problem = $since === NULL ? sprintf('line %d closes %s, which is not open', $line, $token) : NULL;
       }
 
-      unset($open[$token]);
+      if ($problem !== NULL) {
+        $unclosed[] = $problem;
+      }
     }
 
     foreach ($open as $token => $line) {
