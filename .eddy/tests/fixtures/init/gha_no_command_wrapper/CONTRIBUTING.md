@@ -130,12 +130,12 @@
 -ahoy browser-stop
 +vendor/bin/eddy-start
 +vendor/bin/eddy-provision
-+vendor/bin/eddy-browser start
++vendor/bin/eddy-browser-start
 +export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
 +cd build
 +php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional-javascript
 +cd ..
-+vendor/bin/eddy-browser stop
++vendor/bin/eddy-browser-stop
  ```
  
  To run the browser in a Docker Selenium container instead, set `WEBDRIVER_BACKEND=selenium`. The container cannot reach the host's `localhost`, so start the webserver on all interfaces:
@@ -147,12 +147,12 @@
 -ahoy browser-stop
 +WEBSERVER_HOST=__VERSION__.0 vendor/bin/eddy-start
 +vendor/bin/eddy-provision
-+WEBDRIVER_BACKEND=selenium vendor/bin/eddy-browser start
++WEBDRIVER_BACKEND=selenium vendor/bin/eddy-browser-start
 +export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
 +cd build
 +WEBDRIVER_BACKEND=selenium php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional-javascript
 +cd ..
-+vendor/bin/eddy-browser stop
++vendor/bin/eddy-browser-stop
  ```
  
  The browser reaches the webserver at `localhost` with the default backend, and at `host.docker.internal` (macOS) or `__VERSION__.1` (other systems) from the Selenium container. Set `WEBDRIVER_HOST` to use a different address.

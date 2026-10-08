@@ -195,10 +195,10 @@ test-functional-javascript:
 	popd >/dev/null || exit 1
 
 browser-start:
-	vendor/bin/eddy-browser start
+	vendor/bin/eddy-browser-start
 
 browser-stop:
-	vendor/bin/eddy-browser stop
+	vendor/bin/eddy-browser-stop
 
 test-javascript:
 	pushd "build" >/dev/null || exit 1 && \
