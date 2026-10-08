@@ -49,7 +49,6 @@ final class DeployRemoteTest extends UnitTestCase {
     // The remote branch is ahead of the release, as after a later deployment.
     $this->git($clone, ['push', '--quiet', $remote, 'main:refs/heads/' . self::BRANCH]);
 
-    // A local branch that shares the tag's name.
     $this->git($clone, ['branch', self::RELEASE_TAG, 'main']);
 
     $this->git($clone, ['checkout', '--quiet', '--detach', 'refs/tags/' . self::RELEASE_TAG . '^{commit}']);
@@ -151,12 +150,6 @@ final class DeployRemoteTest extends UnitTestCase {
     return $clone;
   }
 
-  /**
-   * Create an empty bare repository to deploy to.
-   *
-   * @return string
-   *   Directory of the repository.
-   */
   protected function createRemote(): string {
     $remote = self::$tmp . '/remote.git';
     mkdir($remote, 0755, TRUE);

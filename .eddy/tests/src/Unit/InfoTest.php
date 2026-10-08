@@ -171,8 +171,6 @@ final class InfoTest extends UnitTestCase {
 
     $output = $this->runInfo();
 
-    // Host and port still report the local values; only the site URL uses the
-    // tunnel.
     $this->assertStringContainsString('Webserver port:     8000 (.env)', $output);
     $this->assertStringContainsString('Site URL:           ' . $tunnel_url, $output);
   }
@@ -437,8 +435,6 @@ final class InfoTest extends UnitTestCase {
   }
 
   public function testInfoFieldModeBypassedForFlagLikeArg(): void {
-    // Arguments starting with '-' are flags, not field names, so they must not
-    // trigger field mode.
     $this->setupInfoMocks(
       shell_exec_map: ['*' => ''],
       files: [],
@@ -455,9 +451,6 @@ final class InfoTest extends UnitTestCase {
     $this->assertStringContainsString('ENVIRONMENT INFO', $output);
   }
 
-  /**
-   * Run the info script and capture its output.
-   */
   protected function runInfo(): string {
     ob_start();
     require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-info';
@@ -465,9 +458,6 @@ final class InfoTest extends UnitTestCase {
     return (string) ob_get_clean();
   }
 
-  /**
-   * Run the info script in field mode and capture its output.
-   */
   protected function runInfoField(string $field, int $expected_exit_code): string {
     $this->mockQuit($expected_exit_code);
 

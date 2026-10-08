@@ -13,9 +13,6 @@ use function process;
 /**
  * In-process tests for the high-level orchestration functions in init.php.
  *
- * The tests cover 'main()', 'process()', 'process_readme()' and
- * 'process_internal()'.
- *
  * The functional 'InitTest' exercises these paths end-to-end via a
  * subprocess and PCOV cannot capture coverage from there. The tests in
  * this class run the same logic in-process so PCOV records it.

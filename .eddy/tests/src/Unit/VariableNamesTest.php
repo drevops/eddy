@@ -11,8 +11,8 @@ use Symfony\Component\Yaml\Yaml;
 /**
  * Tests the names given to environment and CI variables.
  *
- * A name says what the variable configures rather than which project owns it,
- * so no name carries a project segment such as 'EDDY_' or 'DREVOPS_'. A
+ * A name says what the variable configures, not which project owns it, so no
+ * name carries a project segment such as 'EDDY_' or 'DREVOPS_'. A
  * segment that spells a package, such as 'EDDY_TOOLING' for 'eddy-tooling',
  * names what the variable configures and is allowed.
  *
@@ -168,12 +168,6 @@ final class VariableNamesTest extends UnitTestCase {
     return $values;
   }
 
-  /**
-   * Get the project root directory.
-   *
-   * @return string
-   *   The absolute path to the project root.
-   */
   protected static function rootDir(): string {
     return dirname(__DIR__, 4);
   }

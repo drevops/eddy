@@ -629,9 +629,6 @@ final class StartTest extends UnitTestCase {
     fclose($fp);
   }
 
-  /**
-   * Build the command that launches the PHP webserver.
-   */
   protected static function serverCommand(string $host, string $port, string $cwd): string {
     return sprintf('nohup php -S %s:%s -t %s/build/web %s/build/web/.ht.router.php >%s 2>&1 &', escapeshellarg($host), escapeshellarg($port), escapeshellarg($cwd), escapeshellarg($cwd), escapeshellarg('.logs/php.log'));
   }

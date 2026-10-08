@@ -11,13 +11,6 @@ use PHPUnit\Framework\Attributes\Group;
 /**
  * Functional tests for auto-port discovery across multiple projects.
  *
- * Each "project" is a minimal sandbox holding only the start and stop tooling
- * scripts, where the tooling package installs them, and a stubbed build/web
- * tree. The test starts the real PHP webserver in each sandbox and reads the
- * resolved WEBSERVER_PORT from the generated .env file.
- *
- * This verifies port resolution and .env persistence end to end.
- *
  * phpcs:disable Drupal.Classes.FullyQualifiedNamespace.UseStatementMissing
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
@@ -27,23 +20,14 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
 
   use ProcessTrait;
 
-  /**
-   * Directory of the tooling scripts inside a sandbox.
-   */
   protected const string TOOLING_DIR = 'vendor/drevops/eddy-tooling/src';
 
   protected int $defaultTimeout = 30;
 
   protected int $defaultIdleTimeout = 15;
 
-  /**
-   * First minimal project sandbox.
-   */
   protected string $sut1 = '';
 
-  /**
-   * Second minimal project sandbox.
-   */
   protected string $sut2 = '';
 
   /**

@@ -114,12 +114,6 @@ final class PhpunitAttributesTest extends UnitTestCase {
     return $patterns;
   }
 
-  /**
-   * Get the project root directory.
-   *
-   * @return string
-   *   The absolute path to the project root.
-   */
   protected static function rootDir(): string {
     return dirname(__DIR__, 4);
   }

@@ -95,10 +95,10 @@ final class InitHelpersTest extends UnitTestCase {
   }
 
   public function testIsBinaryFileMissing(): void {
-    // The defensive 'fopen() === FALSE' branch is unreachable from production
-    // code (the only caller, 'get_files()', passes files it has just found), so
-    // 'fopen()' is allowed to warn. Suppress 'E_WARNING' so PHPUnit's
-    // 'failOnWarning' does not abort the test.
+    // The only caller, 'get_files()', passes files it has just found, so the
+    // defensive 'fopen() === FALSE' branch is unreachable from production
+    // code. 'fopen()' is allowed to warn, so suppress 'E_WARNING' to keep
+    // PHPUnit's 'failOnWarning' from aborting the test.
     set_error_handler(static fn(): bool => TRUE, E_WARNING);
     try {
       $this->assertTrue(is_binary_file(self::$sut . '/nonexistent_file'));

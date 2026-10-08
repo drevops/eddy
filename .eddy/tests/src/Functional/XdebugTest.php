@@ -11,8 +11,7 @@ use PHPUnit\Framework\Attributes\Group;
  *
  * The runner PHP for this group has the xdebug extension installed with a
  * baseline `xdebug.mode=off`. The `debug` command overrides it via the
- * `-d xdebug.mode=debug` runtime flag, and the running server is queried
- * through a probe file dropped in the docroot.
+ * `-d xdebug.mode=debug` runtime flag.
  *
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
@@ -39,9 +38,9 @@ final class XdebugTest extends DevtoolsTestCase {
     $this->assertProcessSuccessful();
     $this->assertProcessAnyOutputContains('XDebug    : Disabled');
 
-    // The Drupal `.ht.router.php` serves any file that physically exists, so
-    // a PHP file dropped in the docroot runs in the same webserver whose
-    // xdebug configuration the test toggles.
+    // The Drupal `.ht.router.php` serves any existing file, so a PHP file in
+    // the docroot runs in the webserver whose xdebug configuration the test
+    // toggles.
     $probe = self::$sut . '/build/web/_xdebug_check.php';
     file_put_contents($probe, '<?php echo ini_get("xdebug.mode") ?: "off";');
 

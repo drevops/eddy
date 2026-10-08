@@ -38,8 +38,8 @@ final class AhoyTest extends DevtoolsTestCase {
     $this->processRun('ahoy', ['lint'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
 
-    // assemble symlinks each top-level extension item into the build, so a
-    // real templates/ directory becomes a symlink inside the tree that
+    // The assemble command symlinks each top-level extension item into the
+    // build, so a real templates/ directory becomes a symlink in the tree
     // twig-cs-fixer scans. Recreate that layout with a template carrying a
     // fixable delimiter-spacing violation, reachable from the scanned build
     // directory only by following the templates/ symlink.

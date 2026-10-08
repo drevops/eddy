@@ -57,8 +57,8 @@ const TYPE_DELAY = 0.1;
 /**
  * Silence that ends a settle in the expect scripts (seconds).
  *
- * Every deliberate key waits for it, so the key's redraw arrives well after
- * the output before it.
+ * The scripts wait for this silence before every deliberate key, so the key's
+ * redraw arrives well after the output before it.
  */
 const SETTLE_TIME = 1;
 
@@ -300,7 +300,7 @@ function main(array $only = []): void {
  * Resolve which recordings run and which of them are rendered.
  *
  * Each recording prepares the workspace for the next, so every recording up
- * to the last requested one runs, and only the requested ones are rendered.
+ * to the last requested one runs. Only the requested ones are rendered.
  *
  * @param list<string> $names
  *   All job names, in the order they run.
@@ -629,8 +629,7 @@ function read_cast(string $content): array {
       continue;
     }
 
-    // Timestamps are relative, so an event that draws nothing still moves
-    // the clock.
+    // Timestamps are relative, so events that draw nothing still add to $time.
     $time += (float) $event[0];
 
     if ($event[1] !== 'o') {
@@ -651,11 +650,10 @@ function read_cast(string $content): array {
 /**
  * Rewrite a recording onto a canonical timeline.
  *
- * A recording carries whatever chunks the terminal delivered, at whatever
- * moment the scheduler delivered them, so 2 recordings of one session differ
- * in their frames and durations. The output is joined into 1 stream, cut
- * into frames where the session's own output defines them, and every frame
- * gets 1 of 2 fixed delays.
+ * A recording's chunks depend on the terminal and their timing on the
+ * scheduler, so recording a session twice produces different frames and
+ * durations. The output is joined into 1 stream, cut into frames where the
+ * session's own output defines them, and every frame gets 1 of 2 fixed delays.
  *
  * The stream opens with the shell prompt and the typed command; each typed
  * character becomes a frame. The rest is cut according to $frames:
@@ -954,8 +952,8 @@ function remove_dir(string $directory): void {
     return;
   }
 
-  // Drupal's installer makes 'sites/default' read-only, and a read-only
-  // directory keeps its files.
+  // Drupal's installer makes 'sites/default' read-only, and files in a
+  // read-only directory cannot be deleted.
   exec(sprintf('chmod -R u+w %s 2>&1', escapeshellarg($directory)));
   exec(sprintf('rm -rf %s 2>&1', escapeshellarg($directory)));
 }
@@ -974,8 +972,6 @@ function info(string $message): void {
   print $message . PHP_EOL;
 }
 
-// Entrypoint.
-//
 // @codeCoverageIgnoreStart
 if (getenv('SCRIPT_RUN_SKIP') != 1) {
   ini_set('display_errors', '1');

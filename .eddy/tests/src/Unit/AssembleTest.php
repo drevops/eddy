@@ -104,8 +104,8 @@ final class AssembleTest extends UnitTestCase {
     }
     $composer_json_str = json_encode($composer_json, JSON_THROW_ON_ERROR);
 
-    // The scaffold's build/composer.json merges the extension's require and
-    // require-dev, mirroring the real assemble flow.
+    // The mocked build/composer.json includes the extension's require and
+    // require-dev, as the real assemble flow merges them in.
     $build_composer_json = json_encode([
       'repositories' => [
         ['type' => 'composer', 'url' => 'https://packages.drupal.org/8'],
