@@ -37,7 +37,7 @@ final class StartTest extends UnitTestCase {
 
     $this->mockPassthruMultiple([
       ['cmd' => sprintf('lsof -ti:%s 2>/dev/null | xargs kill -9 2>/dev/null', escapeshellarg($expected_port))],
-      ['cmd' => sprintf('nohup php -S %s:%s -t %s/build/web %s/build/web/.ht.router.php >/tmp/php.log 2>&1 &', escapeshellarg($expected_host), escapeshellarg($expected_port), escapeshellarg($cwd), escapeshellarg($cwd))],
+      ['cmd' => self::serverCommand($expected_host, $expected_port, $cwd)],
     ]);
 
     $this->mockSleep();
@@ -98,7 +98,7 @@ final class StartTest extends UnitTestCase {
 
     $this->mockPassthruMultiple([
       ['cmd' => "lsof -ti:'8000' 2>/dev/null | xargs kill -9 2>/dev/null"],
-      ['cmd' => sprintf('nohup php -S %s:%s -t %s/build/web %s/build/web/.ht.router.php >/tmp/php.log 2>&1 &', escapeshellarg('localhost'), escapeshellarg('8000'), escapeshellarg($cwd), escapeshellarg($cwd))],
+      ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
     $this->mockSleep();
@@ -124,6 +124,44 @@ final class StartTest extends UnitTestCase {
     fclose($fp);
   }
 
+  public function testStartCreatesLogsDirectory(): void {
+    $project_dir = self::$tmp . '/start_logs_' . uniqid();
+    mkdir($project_dir, 0755, TRUE);
+    chdir($project_dir);
+
+    $this->envSet('WEBSERVER_PORT', '8000');
+    $cwd = '/test/project';
+
+    $this->registerMock('getcwd', 'DrevOps\\Eddy\\DevTools', fn(): string => $cwd);
+
+    // The server output is redirected into '.logs', so the directory must
+    // exist before the server is launched.
+    $this->mockPassthruMultiple([
+      ['cmd' => "lsof -ti:'8000' 2>/dev/null | xargs kill -9 2>/dev/null"],
+      ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
+    ]);
+
+    $this->mockSleep();
+
+    $fp = fopen('php://memory', 'r');
+    $this->assertNotFalse($fp);
+    $this->registerMock('fsockopen', 'DrevOps\\Eddy\\DevTools', fn() => $fp);
+    $this->registerMock('fclose', 'DrevOps\\Eddy\\DevTools', fn(): true => TRUE);
+
+    $context = stream_context_create();
+    $this->registerMock('stream_context_create', 'DrevOps\\Eddy\\DevTools', fn() => $context);
+    $this->registerMock('get_headers', 'DrevOps\\Eddy\\DevTools', fn(): array => ['HTTP/1.1 200 OK']);
+
+    ob_start();
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
+    $output = (string) ob_get_clean();
+
+    $this->assertStringContainsString('ENVIRONMENT READY', $output);
+    $this->assertDirectoryExists($project_dir . '/.logs');
+
+    fclose($fp);
+  }
+
   public function testStartFsockopenFailure(): void {
     $this->envSet('WEBSERVER_PORT', '8000');
     $cwd = '/test/project';
@@ -132,14 +170,14 @@ final class StartTest extends UnitTestCase {
 
     $this->mockPassthruMultiple([
       ['cmd' => "lsof -ti:'8000' 2>/dev/null | xargs kill -9 2>/dev/null"],
-      ['cmd' => sprintf('nohup php -S %s:%s -t %s/build/web %s/build/web/.ht.router.php >/tmp/php.log 2>&1 &', escapeshellarg('localhost'), escapeshellarg('8000'), escapeshellarg($cwd), escapeshellarg($cwd))],
+      ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
     $this->mockSleep();
 
     $this->registerMock('fsockopen', 'DrevOps\\Eddy\\DevTools', fn(): false => FALSE);
 
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\DevTools', fn(): string => 'PHP Fatal error: some error');
+    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\DevTools', fn(string $file): string|false => $file === '.logs/php.log' ? 'PHP Fatal error: some error' : FALSE);
 
     $this->mockQuit(1);
 
@@ -168,7 +206,7 @@ final class StartTest extends UnitTestCase {
 
     $this->mockPassthruMultiple([
       ['cmd' => "lsof -ti:'8000' 2>/dev/null | xargs kill -9 2>/dev/null"],
-      ['cmd' => sprintf('nohup php -S %s:%s -t %s/build/web %s/build/web/.ht.router.php >/tmp/php.log 2>&1 &', escapeshellarg('localhost'), escapeshellarg('8000'), escapeshellarg($cwd), escapeshellarg($cwd))],
+      ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
     $this->mockSleep();
@@ -202,7 +240,7 @@ final class StartTest extends UnitTestCase {
 
     $this->mockPassthruMultiple([
       ['cmd' => "lsof -ti:'8000' 2>/dev/null | xargs kill -9 2>/dev/null"],
-      ['cmd' => sprintf('nohup php -S %s:%s -t %s/build/web %s/build/web/.ht.router.php >/tmp/php.log 2>&1 &', escapeshellarg('localhost'), escapeshellarg('8000'), escapeshellarg($cwd), escapeshellarg($cwd))],
+      ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
     $this->mockSleep();
@@ -245,7 +283,7 @@ final class StartTest extends UnitTestCase {
 
     $this->mockPassthruMultiple([
       ['cmd' => "lsof -ti:'8000' 2>/dev/null | xargs kill -9 2>/dev/null"],
-      ['cmd' => sprintf('nohup php -S %s:%s -t %s/build/web %s/build/web/.ht.router.php >/tmp/php.log 2>&1 &', escapeshellarg('localhost'), escapeshellarg('8000'), escapeshellarg($cwd), escapeshellarg($cwd))],
+      ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
     $this->mockSleep();
@@ -303,7 +341,7 @@ final class StartTest extends UnitTestCase {
 
     $this->mockPassthruMultiple([
       ['cmd' => "lsof -ti:'8123' 2>/dev/null | xargs kill -9 2>/dev/null"],
-      ['cmd' => sprintf('nohup php -S %s:%s -t %s/build/web %s/build/web/.ht.router.php >/tmp/php.log 2>&1 &', escapeshellarg('localhost'), escapeshellarg('8123'), escapeshellarg($cwd), escapeshellarg($cwd))],
+      ['cmd' => self::serverCommand('localhost', '8123', $cwd)],
     ]);
 
     $this->mockSleep();
@@ -361,7 +399,7 @@ final class StartTest extends UnitTestCase {
 
     $this->mockPassthruMultiple([
       ['cmd' => "lsof -ti:'8001' 2>/dev/null | xargs kill -9 2>/dev/null"],
-      ['cmd' => sprintf('nohup php -S %s:%s -t %s/build/web %s/build/web/.ht.router.php >/tmp/php.log 2>&1 &', escapeshellarg('localhost'), escapeshellarg('8001'), escapeshellarg($cwd), escapeshellarg($cwd))],
+      ['cmd' => self::serverCommand('localhost', '8001', $cwd)],
     ]);
 
     $this->mockSleep();
@@ -403,7 +441,7 @@ final class StartTest extends UnitTestCase {
 
     $this->mockPassthruMultiple([
       ['cmd' => "lsof -ti:'8000' 2>/dev/null | xargs kill -9 2>/dev/null"],
-      ['cmd' => sprintf('nohup php -S %s:%s -t %s/build/web %s/build/web/.ht.router.php >/tmp/php.log 2>&1 &', escapeshellarg('localhost'), escapeshellarg('8000'), escapeshellarg($cwd), escapeshellarg($cwd))],
+      ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
     $this->mockSleep();
@@ -441,7 +479,7 @@ final class StartTest extends UnitTestCase {
 
     $this->mockPassthruMultiple([
       ['cmd' => "lsof -ti:'8000' 2>/dev/null | xargs kill -9 2>/dev/null"],
-      ['cmd' => sprintf('nohup php -S %s:%s -t %s/build/web %s/build/web/.ht.router.php >/tmp/php.log 2>&1 &', escapeshellarg('localhost'), escapeshellarg('8000'), escapeshellarg($cwd), escapeshellarg($cwd))],
+      ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
     $this->mockSleep();
@@ -493,7 +531,7 @@ final class StartTest extends UnitTestCase {
 
     $this->mockPassthruMultiple([
       ['cmd' => "lsof -ti:'8000' 2>/dev/null | xargs kill -9 2>/dev/null"],
-      ['cmd' => sprintf('nohup php -S %s:%s -t %s/build/web %s/build/web/.ht.router.php >/tmp/php.log 2>&1 &', escapeshellarg('localhost'), escapeshellarg('8000'), escapeshellarg($cwd), escapeshellarg($cwd))],
+      ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
     $this->mockSleep();
@@ -528,7 +566,7 @@ final class StartTest extends UnitTestCase {
 
     $this->mockPassthruMultiple([
       ['cmd' => "lsof -ti:'8000' 2>/dev/null | xargs kill -9 2>/dev/null"],
-      ['cmd' => sprintf('nohup php -S %s:%s -t %s/build/web %s/build/web/.ht.router.php >/tmp/php.log 2>&1 &', escapeshellarg('localhost'), escapeshellarg('8000'), escapeshellarg($cwd), escapeshellarg($cwd))],
+      ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
     $this->mockSleep();
@@ -560,6 +598,13 @@ final class StartTest extends UnitTestCase {
     }
 
     fclose($fp);
+  }
+
+  /**
+   * Build the command that launches the PHP webserver.
+   */
+  protected static function serverCommand(string $host, string $port, string $cwd): string {
+    return sprintf('nohup php -S %s:%s -t %s/build/web %s/build/web/.ht.router.php >%s 2>&1 &', escapeshellarg($host), escapeshellarg($port), escapeshellarg($cwd), escapeshellarg($cwd), escapeshellarg('.logs/php.log'));
   }
 
 }

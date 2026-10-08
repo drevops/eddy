@@ -29,6 +29,11 @@ final class BrowserStartTest extends UnitTestCase {
 
   protected int $readyIndex = 0;
 
+  /**
+   * @var array<int, string>
+   */
+  protected array $createdDirs = [];
+
   protected function setUp(): void {
     parent::setUp();
     require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
@@ -56,7 +61,11 @@ final class BrowserStartTest extends UnitTestCase {
 
       return FALSE;
     });
-    $this->registerMock('mkdir', 'DrevOps\\Eddy\\DevTools', fn(): true => TRUE);
+    $this->registerMock('mkdir', 'DrevOps\\Eddy\\DevTools', function (string $dir): true {
+      $this->createdDirs[] = $dir;
+
+      return TRUE;
+    });
     $this->mockSleep();
   }
 
@@ -106,6 +115,8 @@ final class BrowserStartTest extends UnitTestCase {
     $this->assertNotEmpty($commands);
     $this->assertStringContainsString('nohup', $commands[0]);
     $this->assertStringContainsString('--port=', $commands[0]);
+    $this->assertStringContainsString(">'.logs/chromedriver.log' 2>&1", $commands[0], 'chromedriver must log to the project logs directory.');
+    $this->assertContains('.logs', $this->createdDirs, 'The logs directory must exist before chromedriver is launched.');
     foreach ($commands as $command) {
       $this->assertStringNotContainsString('npx', $command, 'A matching installed driver must not trigger an npx download.');
     }
@@ -199,7 +210,7 @@ final class BrowserStartTest extends UnitTestCase {
 
     $output = $this->runBrowserStart(1);
 
-    $this->assertStringContainsString('failed to become ready on port 4444', $output);
+    $this->assertStringContainsString('failed to become ready on port 4444 after 30 seconds; see .logs/chromedriver.log.', $output);
   }
 
   public function testBrowserStartAutoDiscoversPort(): void {

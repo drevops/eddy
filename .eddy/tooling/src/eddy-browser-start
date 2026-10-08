@@ -25,9 +25,11 @@ namespace DrevOps\Eddy\DevTools;
 
 require_once __DIR__ . '/helpers.php';
 
-// Directory holding the downloaded chromedriver binary and run logs. Ignored
-// by git and safe to delete.
+// Directory holding the downloaded chromedriver binary and its install log.
+// Ignored by git and safe to delete.
 const CHROMEDRIVER_DIR = '.chromedriver';
+
+const CHROMEDRIVER_LOG_FILE = '.logs/chromedriver.log';
 
 const SELENIUM_IMAGE = 'selenium/standalone-chromium:latest';
 
@@ -97,10 +99,10 @@ function chromedriver_start(string $port): void {
 
   $binary = resolve_chromedriver_binary($chrome_version);
 
-  @mkdir(CHROMEDRIVER_DIR, 0755, TRUE);
+  @mkdir(dirname(CHROMEDRIVER_LOG_FILE), 0755, TRUE);
 
   TASK('Starting chromedriver on port %s.', $port);
-  @passthru(sprintf('nohup %s --port=%s >%s 2>&1 &', escapeshellarg($binary), escapeshellarg($port), escapeshellarg(CHROMEDRIVER_DIR . '/chromedriver.log')));
+  @passthru(sprintf('nohup %s --port=%s >%s 2>&1 &', escapeshellarg($binary), escapeshellarg($port), escapeshellarg(CHROMEDRIVER_LOG_FILE)));
 
   NOTE('Waiting for chromedriver to be ready.');
   for ($i = 0; $i < 30; $i++) {
@@ -112,7 +114,7 @@ function chromedriver_start(string $port): void {
     sleep(1);
   }
 
-  FAIL('chromedriver failed to become ready on port %s after 30 seconds.', $port);
+  FAIL('chromedriver failed to become ready on port %s after 30 seconds; see %s.', $port, CHROMEDRIVER_LOG_FILE);
 }
 
 /**
