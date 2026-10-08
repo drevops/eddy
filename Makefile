@@ -84,6 +84,9 @@ help:
 # Every target that runs a tooling command installs the tooling first. Progress
 # goes to stderr, so a captured target output holds only the target's own.
 assemble build debug drush info login provision start stop: tooling
+#;< DEV_PHPUNIT
+test: tooling
+#;> DEV_PHPUNIT
 #;< DEV_FUNCTIONAL_JAVASCRIPT
 browser-start browser-stop test-functional-javascript: tooling
 #;> DEV_FUNCTIONAL_JAVASCRIPT
@@ -209,9 +212,15 @@ ifneq (,$(filter $(firstword $(MAKECMDGOALS)),$(TEST_TARGETS)))
 endif
 
 test:
+	@#;< DEV_FUNCTIONAL_JAVASCRIPT
+	$(MAKE) browser-start
+	@#;> DEV_FUNCTIONAL_JAVASCRIPT
 	@#;< DEV_PHPUNIT
 	$(call title,Running PHPUnit)
-	pushd "build" >/dev/null || exit 1 && php -d pcov.directory=.. vendor/bin/phpunit $(TEST_RUN_ARGS) && popd >/dev/null || exit 1
+	export WEBDRIVER_PORT="$$(vendor/bin/eddy-info webdriver-port)" && \
+	pushd "build" >/dev/null || exit 1 && \
+	php -d pcov.directory=.. vendor/bin/phpunit $(TEST_RUN_ARGS) && \
+	popd >/dev/null || exit 1
 	@#;> DEV_PHPUNIT
 	@#;< DEV_JEST
 	$(call title,Running Jest)

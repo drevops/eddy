@@ -1,4 +1,13 @@
-@@ -117,14 +117,6 @@
+@@ -90,8 +90,6 @@
+   test:
+     usage: Run all tests.
+     cmd: |
+-      ahoy browser-start || exit 1
+-      export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
+       pushd "build" >/dev/null || exit 1
+       ahoy title "Running PHPUnit"
+       php -d pcov.directory=.. vendor/bin/phpunit "$@"
+@@ -119,14 +117,6 @@
        php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional "$@"
        popd >/dev/null || exit 1
  
@@ -13,7 +22,7 @@
  
    test-javascript:
      usage: Run JavaScript unit tests.
-@@ -134,13 +126,6 @@
+@@ -136,13 +126,6 @@
        [ ! -d node_modules ] || npm test
        popd >/dev/null || exit 1
  
