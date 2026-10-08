@@ -46,6 +46,7 @@ TASK('Installing Drupal into SQLite database %s.', $db_file);
 
 $exit_code = 0;
 $db_status = trim(drush('status --field=db-status', NULL, $exit_code));
+
 if ($db_status === 'Connected') {
   drush('sql:drop -y', NULL, $exit_code);
 }
@@ -57,6 +58,7 @@ PASS('Drupal installed.');
 drush('status');
 
 TASK('Enabling extension %s.', $extension_name);
+
 if ($extension_type === 'theme') {
   drush('theme:enable %s', [$extension_name]);
 }
@@ -69,17 +71,20 @@ drush('cr');
 
 TASK('Enabling suggested modules, if any.');
 $ext_json = (array) json_decode((string) file_get_contents('composer.json'), TRUE);
+
 if (isset($ext_json['suggest']) && is_array($ext_json['suggest'])) {
   foreach (array_keys($ext_json['suggest']) as $suggest) {
     if (!str_starts_with((string) $suggest, 'drupal/')) {
       continue;
     }
+
     // Remove "drupal/" prefix and anything after ":".
     $module_name = preg_replace('/^drupal\//', '', (string) $suggest);
     $module_name = explode(':', (string) $module_name)[0];
     drush('pm:enable %s', [$module_name]);
   }
 }
+
 PASS('Suggested modules enabled.');
 
 TASK('Pre-warming caches.');
@@ -112,10 +117,13 @@ echo 'Site URL:            ' . $site_url . PHP_EOL;
 echo 'One-time login link: ';
 echo drush('uli -l %s' . $uli_options, [$site_url]);
 echo PHP_EOL;
+
 if (file_exists('.ahoy.yml')) {
   echo 'Run `ahoy` to see available commands.' . PHP_EOL;
 }
+
 if (file_exists('Makefile')) {
   echo 'Run `make` to see available commands.' . PHP_EOL;
 }
+
 echo PHP_EOL;

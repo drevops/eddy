@@ -76,11 +76,13 @@ $fields = [
 // -----------------------------------------------------------------------------
 
 $field = isset($argv[1]) && !str_starts_with($argv[1], '-') ? $argv[1] : NULL;
+
 if ($field !== NULL) {
   if (isset($fields[$field])) {
     echo $fields[$field]() . PHP_EOL;
     quit(0);
   }
+
   echo '-' . PHP_EOL;
   quit(1);
 }
@@ -122,6 +124,7 @@ echo PHP_EOL;
  */
 function info_php_version(): string {
   $out = (string) @shell_exec('php -v 2>/dev/null');
+
   if ($out === '' || !preg_match('/^PHP\s+(\S+)/m', $out, $matches)) {
     return '-';
   }
@@ -137,6 +140,7 @@ function info_php_version(): string {
  */
 function info_tool_version(string $cmd, string $pattern): string {
   $out = trim((string) @shell_exec($cmd));
+
   if ($out === '' || !preg_match($pattern, $out, $matches)) {
     return '-';
   }

@@ -26,7 +26,6 @@ final class AssembleTest extends DevtoolsTestCase {
     $this->installTooling();
     $this->assertProcessAnyOutputContains('Installed drevops/eddy-tooling.');
 
-    // The scaffold installs its own copy of the package as a symlink.
     $this->assertTrue(is_link(self::$sut . '/vendor/drevops/eddy-tooling'), 'The scaffold installs the package from .eddy/tooling as a symlink.');
     $this->assertSame(realpath(self::$sut . '/.eddy/tooling'), realpath(self::$sut . '/vendor/drevops/eddy-tooling'));
 
@@ -75,9 +74,6 @@ final class AssembleTest extends DevtoolsTestCase {
     $this->assertProcessAnyOutputNotContains('ASSEMBLE COMPLETE');
   }
 
-  /**
-   * Install the tooling package, as the command wrappers do.
-   */
   protected function installTooling(): void {
     $this->processRun('./scripts/eddy-tooling', [], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();

@@ -57,7 +57,7 @@ Run each tool through its `ahoy` wrapper, never the binary directly:
 
 ### Diagnostics
 
-- `ahoy info` - Print a read-only summary of PHP/Drupal/Composer/Drush/Node versions, webserver host/port (with source), XDebug state, build directory, database path, and active profile. (alias: `ahoy describe`)
+- `ahoy info` - Print a read-only summary of PHP/Drupal/Composer/Drush/Node/npm versions, webserver host/port (with source), site URL, XDebug state, WebDriver port, build directory, database path, and active profile. (alias: `ahoy describe`)
 
 ## Project Structure
 
@@ -135,7 +135,8 @@ When the user asks to update this project's scaffold (e.g. "update scaffold" or 
 2. Download the skill:
 
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/drevops/eddy/1.x/.eddy/skills/update-consumer-eddy/SKILL.md -o .claude/skills/update-consumer-eddy/SKILL.md
+   curl -fsSL -o .claude/skills/update-consumer-eddy/SKILL.md \
+     https://raw.githubusercontent.com/drevops/eddy/1.x/.eddy/skills/update-consumer-eddy/SKILL.md
    ```
 
 3. Invoke the `update-consumer-eddy` skill and follow its steps.

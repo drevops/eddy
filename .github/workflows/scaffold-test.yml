@@ -1,7 +1,5 @@
 name: Test Scaffold
 
-# Validates the integrity of the scaffold template itself.
-
 on:
   push:
     branches:

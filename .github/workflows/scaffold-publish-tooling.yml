@@ -4,8 +4,7 @@ name: Publish Scaffold Tooling
 # 'drevops/eddy-tooling' repository.
 #
 # Besides '1.x', a branch whose name contains 'eddy-tooling' is published, so a
-# tooling change can be installed from the mirror before it merges. Other
-# branches leave the mirror untouched.
+# tooling change can be installed from the mirror before it merges.
 #
 # Each run adds 1 commit with the pushed commit's subject, even when the
 # directory is unchanged.

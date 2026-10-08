@@ -109,7 +109,8 @@ Delete everything in the project root **except** `.claude/`, `.git/` and `.idea`
 **IMPORTANT:** This command MUST use a relative path (`.`) and be run from the project root. Using an absolute path causes `-name '.'` to fail to match the root directory, which results in the root directory itself (including `.git/`) being deleted. Ensure the shell working directory is the project root before running this command.
 
 ```bash
-find . -maxdepth 1 ! -name '.' ! -name '.git' ! -name '.claude' ! -name '.idea' -exec rm -rf {} +
+find . -maxdepth 1 ! -name '.' ! -name '.git' ! -name '.claude' \
+  ! -name '.idea' -exec rm -rf {} +
 ```
 
 ## Step 5: Download and extract scaffold
@@ -117,7 +118,8 @@ find . -maxdepth 1 ! -name '.' ! -name '.git' ! -name '.claude' ! -name '.idea' 
 Download the release archive directly into the project root (not a git clone - the release archive has scaffold-only files removed):
 
 ```bash
-gh release download <version> --repo drevops/eddy --archive tar.gz --output eddy.tar.gz
+gh release download <version> --repo drevops/eddy --archive tar.gz \
+  --output eddy.tar.gz
 ```
 
 ```bash

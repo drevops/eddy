@@ -14,17 +14,17 @@ rules:
     #   needs a write token on fork PRs and never checks out PR code.
     # - deploy: a chained run after the 'Test' workflow completes; it checks
     #   out the commit that run tested and deploys it over an SSH key. The job
-    #   is gated on a push from this repository, so fork-controlled code never
-    #   reaches the deployment key.
+    #   is gated on a push from this repository, so the deployment key is never
+    #   exposed to fork-controlled code.
     ignore:
       - assign-author.yml
       - deploy.yml
   cache-poisoning:
-    # Low-confidence findings on 'test.yml'. The 'actions/cache' and
-    # 'actions/setup-node' caches are keyed on lock files and consumed only by
-    # the test jobs themselves; deployment mirrors the source tree to Drupal.org
-    # over SSH ('eddy-deploy') and never builds release artifacts from these
-    # caches, so the poisoning surface is accepted.
+    # The low-confidence findings cover the 'actions/cache' and
+    # 'actions/setup-node' caches of 'test.yml', which are keyed on lock files
+    # and read only by its jobs. 'eddy-deploy' mirrors the source tree to
+    # Drupal.org over SSH and builds no release artifacts from these caches, so
+    # the poisoning surface is accepted.
     ignore:
       - test.yml
   ref-version-mismatch:

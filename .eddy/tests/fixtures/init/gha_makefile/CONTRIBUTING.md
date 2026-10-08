@@ -80,7 +80,7 @@
  
  The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests. It uses Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
 @@ -150,10 +150,10 @@
- The `test` command is a wrapper for multiple test commands:
+ Each test suite can also be run on its own:
  
  ```bash
 -ahoy test-unit                    # Run Unit tests
@@ -94,7 +94,7 @@
  ```
  
  ### Running FunctionalJavascript tests
-@@ -161,19 +161,19 @@
+@@ -161,10 +161,10 @@
  FunctionalJavascript tests need a real browser driven via WebDriver. By default they use the Google Chrome already installed on your machine - a matching `chromedriver` is downloaded automatically on first run, so no Docker is required:
  
  ```bash
@@ -108,6 +108,8 @@
 +make browser-stop
  ```
  
+ The `test-functional-javascript` command starts the browser before it runs the suite. The `test` command runs the suite too but doesn't start the browser, so run `browser-start` before it.
+@@ -172,10 +172,10 @@
  To run the browser in a Docker Selenium container instead, set `WEBDRIVER_BACKEND=selenium`. The container cannot reach the host's `localhost`, so start the webserver on all interfaces:
  
  ```bash
@@ -122,7 +124,7 @@
  ```
  
  The browser reaches the webserver at `localhost` with the default backend, and at `host.docker.internal` (macOS) or `__VERSION__.1` (other systems) from the Selenium container. Set `WEBDRIVER_HOST` to use a different address.
-@@ -185,8 +185,8 @@
+@@ -187,8 +187,8 @@
  You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the test commands. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site (`web/themes/custom/` for a theme):
  
  ```bash

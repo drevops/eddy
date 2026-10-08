@@ -266,24 +266,30 @@ function process(string $extension_name, string $extension_machine_name, string 
   if ($extension_name === '') {
     throw new \Exception('Name is required.');
   }
+
   if ($extension_machine_name === '') {
     throw new \Exception('Machine name is required.');
   }
+
   if (!preg_match('/^[a-z][a-z0-9_]*$/', $extension_machine_name)) {
     throw new \Exception('Machine name must start with a lowercase letter and contain only lowercase letters, digits, and underscores.');
   }
+
   if ($extension_type === '') {
     throw new \Exception('Type is required.');
   }
+
   if ($drupal_versions === []) {
     throw new \Exception('At least one Drupal version is required.');
   }
+
   // Normalize both sides to strings: PHP casts numeric-string array keys to
   // integers, so 'array_keys()' returns ints that would never strictly match
   // the string selection.
   $supported_majors = array_map(strval(...), array_keys(drupal_version_options()));
   $selected_majors = array_map(strval(...), $drupal_versions);
   $unsupported_majors = array_diff($selected_majors, $supported_majors);
+
   if ($unsupported_majors !== []) {
     throw new \Exception(sprintf('Unsupported Drupal version: %s.', implode(', ', $unsupported_majors)));
   }
@@ -307,6 +313,7 @@ function process(string $extension_name, string $extension_machine_name, string 
     @unlink('.ahoy.yml');
     remove_tokens_with_content('DEV_AHOY');
   }
+
   if (!in_array('makefile', $command_wrapper, TRUE)) {
     @unlink('Makefile');
     remove_tokens_with_content('DEV_MAKEFILE');
@@ -359,11 +366,13 @@ function process(string $extension_name, string $extension_machine_name, string 
  */
 function trim_claude_settings_permissions(array $command_wrapper): void {
   $file = '.claude/settings.json';
+
   if (!file_exists($file)) {
     return;
   }
 
   $raw = file_get_contents($file);
+
   if ($raw === FALSE) {
     // @codeCoverageIgnoreStart
     return;
@@ -371,6 +380,7 @@ function trim_claude_settings_permissions(array $command_wrapper): void {
   }
 
   $config = json_decode($raw, TRUE, 512, JSON_THROW_ON_ERROR);
+
   if (!is_array($config) || !isset($config['permissions']) || !is_array($config['permissions']) || !isset($config['permissions']['allow']) || !is_array($config['permissions']['allow'])) {
     throw new \RuntimeException('Invalid .claude/settings.json structure.');
   }
@@ -383,11 +393,13 @@ function trim_claude_settings_permissions(array $command_wrapper): void {
         'Bash(make:*)' => 'makefile',
         default => NULL,
       };
+
       return $wrapper === NULL || in_array($wrapper, $command_wrapper, TRUE);
     },
   ));
 
   $encoded = json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+
   if (file_put_contents($file, $encoded . PHP_EOL) === FALSE) {
     // @codeCoverageIgnoreStart
     throw new \RuntimeException('Unable to write .claude/settings.json.');
@@ -407,6 +419,7 @@ function process_readme(string $extension_name): void {
 
   $url = 'https://placehold.jp/000000/ffffff/200x200.png?text=' . str_replace(' ', '+', $extension_name) . '&css=%7B%22border-radius%22%3A%22%20100px%22%7D';
   $logo = @file_get_contents($url);
+
   if ($logo !== FALSE && $logo !== '') {
     file_put_contents('logo.png', $logo);
   }
@@ -518,9 +531,11 @@ function process_internal(string $extension_name, string $extension_machine_name
   @unlink('LICENSE.txt');
   @unlink('SECURITY.md');
   @unlink('logo.svg');
+
   foreach (glob('.github/workflows/scaffold*.yml') ?: [] as $file) {
     @unlink($file);
   }
+
   remove_dir('.eddy');
 
   // Remove scaffold-only Claude skills placeholder and its gitignore entry.
@@ -730,11 +745,13 @@ function tool_specs(): array {
  */
 function read_composer_dev_json(): ?array {
   $file = 'composer.dev.json';
+
   if (!file_exists($file)) {
     return NULL;
   }
 
   $raw = file_get_contents($file);
+
   if ($raw === FALSE) {
     // @codeCoverageIgnoreStart
     return NULL;
@@ -762,6 +779,7 @@ function write_composer_dev_json(array $config): void {
   }
 
   $encoded = json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+
   if (file_put_contents('composer.dev.json', $encoded . PHP_EOL) === FALSE) {
     // @codeCoverageIgnoreStart
     throw new \RuntimeException('Unable to write composer.dev.json.');
@@ -785,6 +803,7 @@ function remove_composer_dev_dependencies(array $packages, array $allow_plugins 
   }
 
   $config = read_composer_dev_json();
+
   if ($config === NULL) {
     return;
   }
@@ -832,6 +851,7 @@ function remove_composer_dev_dependencies(array $packages, array $allow_plugins 
  */
 function remove_composer_scaffold_mapping(string $mapping): void {
   $config = read_composer_dev_json();
+
   if ($config === NULL) {
     return;
   }
@@ -869,6 +889,7 @@ function remove_composer_scaffold_mapping(string $mapping): void {
  */
 function set_composer_dev_drupal_version(string $version): void {
   $config = read_composer_dev_json();
+
   if ($config === NULL) {
     return;
   }
@@ -896,11 +917,13 @@ function set_composer_dev_drupal_version(string $version): void {
 function remove_npm(array $tools_remove): void {
   $npm_specs = npm_specs();
   $remove = array_intersect($tools_remove, array_keys($npm_specs));
+
   if ($remove === []) {
     return;
   }
 
   $file = 'package.json';
+
   if (!file_exists($file)) {
     // @codeCoverageIgnoreStart
     return;
@@ -908,6 +931,7 @@ function remove_npm(array $tools_remove): void {
   }
 
   $raw = file_get_contents($file);
+
   if ($raw === FALSE) {
     // @codeCoverageIgnoreStart
     return;
@@ -915,6 +939,7 @@ function remove_npm(array $tools_remove): void {
   }
 
   $config = json_decode($raw, TRUE, 512, JSON_THROW_ON_ERROR);
+
   if (!is_array($config)) {
     // @codeCoverageIgnoreStart
     return;
@@ -948,6 +973,7 @@ function remove_npm(array $tools_remove): void {
   $encoded = json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
   // JSON_PRETTY_PRINT indents with four spaces; package.json uses two.
   $encoded = preg_replace_callback('/^ +/m', static fn(array $m): string => str_repeat(' ', intdiv(strlen($m[0]), 2)), $encoded) ?? $encoded;
+
   if (file_put_contents($file, $encoded . PHP_EOL) === FALSE) {
     // @codeCoverageIgnoreStart
     throw new \RuntimeException('Unable to write ' . $file . '.');
@@ -1053,14 +1079,17 @@ function convert_string(string $input, string $type): string {
 function replace_string_content(string $needle, string $replacement): void {
   foreach (get_files() as $file) {
     $content = file_get_contents($file);
+
     if ($content === FALSE) {
       // @codeCoverageIgnoreStart
       continue;
       // @codeCoverageIgnoreEnd
     }
+
     if (!str_contains($content, $needle)) {
       continue;
     }
+
     file_put_contents($file, str_replace($needle, $replacement, $content));
   }
 }
@@ -1074,14 +1103,17 @@ function replace_string_content(string $needle, string $replacement): void {
 function remove_string_content(string $token): void {
   foreach (get_files() as $file) {
     $content = file_get_contents($file);
+
     if ($content === FALSE) {
       // @codeCoverageIgnoreStart
       continue;
       // @codeCoverageIgnoreEnd
     }
+
     if (!str_contains($content, $token)) {
       continue;
     }
+
     $lines = explode("\n", $content);
     $lines = array_filter($lines, static fn(string $line): bool => !str_starts_with($line, $token));
     file_put_contents($file, implode("\n", $lines));
@@ -1103,30 +1135,37 @@ function remove_tokens_with_content(string $token): void {
 
   foreach (get_files() as $file) {
     $content = file_get_contents($file);
+
     if ($content === FALSE) {
       // @codeCoverageIgnoreStart
       continue;
       // @codeCoverageIgnoreEnd
     }
+
     if (!str_contains($content, $end_marker)) {
       continue;
     }
+
     $lines = explode("\n", $content);
     $result = [];
     $inside = FALSE;
+
     foreach ($lines as $line) {
       if (str_contains($line, $start_marker)) {
         $inside = TRUE;
         continue;
       }
+
       if (str_contains($line, $end_marker)) {
         $inside = FALSE;
         continue;
       }
+
       if (!$inside) {
         $result[] = $line;
       }
     }
+
     file_put_contents($file, implode("\n", $result));
   }
 }
@@ -1143,19 +1182,24 @@ function uncomment_line(string $file, string $start_string): void {
   if (!file_exists($file)) {
     return;
   }
+
   $content = file_get_contents($file);
+
   if ($content === FALSE) {
     // @codeCoverageIgnoreStart
     return;
     // @codeCoverageIgnoreEnd
   }
+
   $prefix = '# ' . $start_string;
   $lines = explode("\n", $content);
+
   foreach ($lines as &$line) {
     if (str_starts_with($line, $prefix)) {
       $line = substr($line, 2);
     }
   }
+
   unset($line);
   file_put_contents($file, implode("\n", $lines));
 }
@@ -1166,14 +1210,17 @@ function uncomment_line(string $file, string $start_string): void {
 function remove_special_comments(): void {
   foreach (get_files() as $file) {
     $content = file_get_contents($file);
+
     if ($content === FALSE) {
       // @codeCoverageIgnoreStart
       continue;
       // @codeCoverageIgnoreEnd
     }
+
     if (!str_contains($content, '#;')) {
       continue;
     }
+
     $lines = explode("\n", $content);
     $lines = array_filter($lines, static fn(string $line): bool => !str_contains($line, '#;'));
     file_put_contents($file, implode("\n", $lines));
@@ -1194,6 +1241,7 @@ function normalize_cspell_words(): void {
   }
 
   $raw = file_get_contents('.cspell.json');
+
   if ($raw === FALSE) {
     // @codeCoverageIgnoreStart
     return;
@@ -1201,16 +1249,19 @@ function normalize_cspell_words(): void {
   }
 
   $config = json_decode($raw, TRUE, 512, JSON_THROW_ON_ERROR);
+
   if (!is_array($config)) {
     return;
   }
 
   $raw_words = $config['words'] ?? NULL;
+
   if (!is_array($raw_words)) {
     return;
   }
 
   $deduped = [];
+
   foreach ($raw_words as $w) {
     if (!is_string($w)) {
       continue;
@@ -1224,6 +1275,7 @@ function normalize_cspell_words(): void {
   $config['words'] = $words;
 
   $encoded = json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+
   if (file_put_contents('.cspell.json', $encoded . PHP_EOL) === FALSE) {
     // @codeCoverageIgnoreStart
     throw new \RuntimeException('Unable to write .cspell.json.');
@@ -1244,6 +1296,7 @@ function get_files(): array {
   $iterator = new \RecursiveIteratorIterator($filter);
 
   $files = [];
+
   /** @var \SplFileInfo $item */
   foreach ($iterator as $item) {
     if ($item->isFile() && !is_binary_file($item->getPathname())) {
@@ -1265,11 +1318,14 @@ function get_files(): array {
  */
 function is_binary_file(string $file): bool {
   $handle = fopen($file, 'rb');
+
   if ($handle === FALSE) {
     return TRUE;
   }
+
   $chunk = fread($handle, 8192);
   fclose($handle);
+
   if ($chunk === FALSE) {
     // @codeCoverageIgnoreStart
     return TRUE;
@@ -1317,6 +1373,7 @@ if (getenv('SCRIPT_RUN_SKIP') != 1) {
       // execution with the normal error handler.
       return FALSE;
     }
+
     throw new ErrorException($message, 0, $severity, $file, $line);
   });
 

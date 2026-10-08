@@ -57,8 +57,8 @@ const TYPE_DELAY = 0.1;
 /**
  * Silence that ends a settle in the expect scripts (seconds).
  *
- * Every deliberate key waits for it, so the key's redraw arrives well after
- * the output before it.
+ * The scripts wait for this silence before every deliberate key, so the key's
+ * redraw arrives well after the output before it.
  */
 const SETTLE_TIME = 1;
 
@@ -300,7 +300,7 @@ function main(array $only = []): void {
  * Resolve which recordings run and which of them are rendered.
  *
  * Each recording prepares the workspace for the next, so every recording up
- * to the last requested one runs, and only the requested ones are rendered.
+ * to the last requested one runs. Only the requested ones are rendered.
  *
  * @param list<string> $names
  *   All job names, in the order they run.
@@ -411,6 +411,7 @@ function install_node_dependencies(string $assets_dir): void {
   info('Installing svg-term Node.js dependency...');
 
   $node_modules = $assets_dir . '/node_modules';
+
   if (is_dir($node_modules . '/svg-term')) {
     info('svg-term already installed.');
 
@@ -419,6 +420,7 @@ function install_node_dependencies(string $assets_dir): void {
 
   $cmd = sprintf('npm install --prefix %s svg-term@1.3.1 2>&1', escapeshellarg($assets_dir));
   $output = shell_exec($cmd);
+
   if (!is_dir($node_modules . '/svg-term')) {
     throw new \RuntimeException('Failed to install svg-term: ' . (is_string($output) ? $output : 'unknown error'));
   }
@@ -448,6 +450,7 @@ function create_workspace(string $project_dir): string {
   );
 
   $output = shell_exec($cmd);
+
   if (!file_exists($workspace_dir . '/init.php')) {
     throw new \RuntimeException('Failed to export git archive: ' . (is_string($output) ? $output : 'unknown error'));
   }
@@ -471,6 +474,7 @@ function create_workspace(string $project_dir): string {
  */
 function create_expect_script(string $path, string $workspace_dir, array $job): void {
   $env = '';
+
   foreach ($job['env'] ?? [] as $name => $value) {
     $env .= sprintf('set env(%s) {%s}', $name, $value) . "\n";
   }
@@ -625,8 +629,7 @@ function read_cast(string $content): array {
       continue;
     }
 
-    // Timestamps are relative, so an event that draws nothing still moves
-    // the clock.
+    // Timestamps are relative, so events that draw nothing still add to $time.
     $time += (float) $event[0];
 
     if ($event[1] !== 'o') {
@@ -647,11 +650,10 @@ function read_cast(string $content): array {
 /**
  * Rewrite a recording onto a canonical timeline.
  *
- * A recording carries whatever chunks the terminal delivered, at whatever
- * moment the scheduler delivered them, so 2 recordings of one session differ
- * in their frames and durations. The output is joined into 1 stream, cut
- * into frames where the session's own output defines them, and every frame
- * gets 1 of 2 fixed delays.
+ * A recording's chunks depend on the terminal and their timing on the
+ * scheduler, so recording a session twice produces different frames and
+ * durations. The output is joined into 1 stream, cut into frames where the
+ * session's own output defines them, and every frame gets 1 of 2 fixed delays.
  *
  * The stream opens with the shell prompt and the typed command; each typed
  * character becomes a frame. The rest is cut according to $frames:
@@ -681,11 +683,13 @@ function canonicalize_cast(string $content, string $command, string $frames, arr
   ['header' => $header, 'stream' => $stream, 'arrivals' => $arrivals] = read_cast($content);
 
   $term = $header['term'] ?? NULL;
+
   if (($header['version'] ?? NULL) !== 3 || !is_array($term) || !is_int($term['cols'] ?? NULL) || !is_int($term['rows'] ?? NULL)) {
     throw new \RuntimeException('The recording is not in asciicast v3 format.');
   }
 
   $prompt = strpos($stream, '$ ');
+
   if ($prompt === FALSE || substr($stream, $prompt + 2, strlen($command)) !== $command) {
     throw new \RuntimeException(sprintf("The recording does not open with the prompt and the typed command '%s'.", $command));
   }
@@ -834,11 +838,13 @@ function path_replacements(string $workspace_dir): array {
 
   // Tools print the resolved path, which on macOS gains a '/private' prefix.
   $real_workspace_dir = realpath($workspace_dir);
+
   if ($real_workspace_dir !== FALSE) {
     $replacements[$real_workspace_dir] = '/home/user/project';
   }
 
   $home = getenv('HOME');
+
   if (is_string($home) && strlen($home) > 1) {
     $replacements[$home] = '/home/user';
   }
@@ -946,8 +952,8 @@ function remove_dir(string $directory): void {
     return;
   }
 
-  // Drupal's installer makes 'sites/default' read-only, and a read-only
-  // directory keeps its files.
+  // Drupal's installer makes 'sites/default' read-only, and files in a
+  // read-only directory cannot be deleted.
   exec(sprintf('chmod -R u+w %s 2>&1', escapeshellarg($directory)));
   exec(sprintf('rm -rf %s 2>&1', escapeshellarg($directory)));
 }
@@ -962,11 +968,10 @@ function info(string $message): void {
   if (getenv('SCRIPT_QUIET') === '1') {
     return;
   }
+
   print $message . PHP_EOL;
 }
 
-// Entrypoint.
-//
 // @codeCoverageIgnoreStart
 if (getenv('SCRIPT_RUN_SKIP') != 1) {
   ini_set('display_errors', '1');
@@ -979,6 +984,7 @@ if (getenv('SCRIPT_RUN_SKIP') != 1) {
     if ((error_reporting() & $severity) === 0) {
       return FALSE;
     }
+
     throw new \ErrorException($message, 0, $severity, $file, $line);
   });
 

@@ -328,7 +328,7 @@ final class HelpersTunnelTest extends UnitTestCase {
     $this->mockCommandAvailable('cloudflared', TRUE);
     $this->mockShellExec([self::PS => $command, self::LAUNCH => "5151\n"], self::banner(self::NEW_URL));
     $this->mockPassthru(['cmd' => 'kill 4242 >/dev/null 2>&1']);
-    // The URL can answer for whatever listens on the other port now.
+    // Whatever listens on the other port now can answer requests to the URL.
     $this->registerMock('get_headers', 'DrevOps\\Eddy\\DevTools', function (): never {
       throw new \RuntimeException('A tunnel to another port must not be requested.');
     });
@@ -551,9 +551,6 @@ PHP;
     ]) . PHP_EOL;
   }
 
-  /**
-   * Run a callback and return its output.
-   */
   protected function capture(callable $callback): string {
     ob_start();
 

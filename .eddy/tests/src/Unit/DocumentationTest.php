@@ -138,22 +138,10 @@ final class DocumentationTest extends UnitTestCase {
     }
   }
 
-  /**
-   * Get the project root directory.
-   *
-   * @return string
-   *   The absolute path to the project root.
-   */
   protected static function rootDir(): string {
     return dirname(__DIR__, 4);
   }
 
-  /**
-   * Get the tooling package directory.
-   *
-   * @return string
-   *   The absolute path to the tooling package.
-   */
   protected static function toolingDir(): string {
     return self::rootDir() . '/.eddy/tooling';
   }

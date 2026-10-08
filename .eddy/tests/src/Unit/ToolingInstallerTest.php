@@ -14,8 +14,8 @@ use function DrevOps\Eddy\ToolingInstaller\main;
  * Tests for the 'scripts/eddy-tooling' installer.
  *
  * Each test runs in an empty project directory with real files. Only the
- * Composer call is mocked, and the mock leaves behind what a successful
- * install leaves: the package manifest and a proxy for each command.
+ * Composer call is mocked, and the mock writes what a successful install
+ * leaves: the package manifest and a proxy for each command.
  *
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
@@ -453,8 +453,9 @@ final class ToolingInstallerTest extends UnitTestCase {
       $this->envSet('TERM', $term);
     }
 
-    // A fixed answer rather than queued responses: a short-circuited check
-    // never asks, and every printed line asks again.
+    // The color check calls posix_isatty() once per printed line, or never
+    // when it short-circuits, so the mock returns a fixed answer, not queued
+    // responses.
     $this->registerMock('posix_isatty', self::NAMESPACE, fn(): bool => $tty);
     $this->writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
     $this->mockComposer();
@@ -472,9 +473,6 @@ final class ToolingInstallerTest extends UnitTestCase {
     yield 'no TERM' => [NULL, TRUE, FALSE];
   }
 
-  /**
-   * Run the installer and return its output.
-   */
   protected function runMain(int $expected_exit_code): string {
     ob_start();
     $exit_code = main();
@@ -485,9 +483,6 @@ final class ToolingInstallerTest extends UnitTestCase {
     return $output;
   }
 
-  /**
-   * Write 'composer.dev.json' into the project directory.
-   */
   protected function writeDevManifest(array $contents): void {
     file_put_contents('composer.dev.json', json_encode($contents, JSON_THROW_ON_ERROR));
   }

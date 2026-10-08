@@ -1,4 +1,3 @@
-# Yamllint configuration file used to check GitHub Actions configuration files. 
 extends: default
 
 rules:

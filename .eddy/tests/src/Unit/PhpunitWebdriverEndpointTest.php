@@ -87,9 +87,6 @@ final class PhpunitWebdriverEndpointTest extends UnitTestCase {
     }
   }
 
-  /**
-   * Get the MINK_DRIVER_ARGS_WEBDRIVER env element from a PHPUnit config.
-   */
   protected static function minkDriverArgsElement(string $path): \DOMElement {
     $document = new \DOMDocument();
     self::assertTrue($document->load($path), sprintf('Unable to parse %s.', $path));

@@ -1,7 +1,3 @@
-##
-# Configuration file for PHPStan static code checking, see https://phpstan.org .
-#
-
 parameters:
 
   level: 9

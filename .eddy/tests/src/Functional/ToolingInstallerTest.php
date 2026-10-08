@@ -11,10 +11,10 @@ use PHPUnit\Framework\Attributes\Group;
 /**
  * Functional tests for the 'scripts/eddy-tooling' installer.
  *
- * Each test runs the real installer and Composer in a sandbox project that has
- * no '.eddy/tooling' directory, so the installer resolves the package the way
- * a generated project does. A Composer home with a global path repository
- * serves the in-tree package as a release, so no published release is needed.
+ * Each test runs the real installer and Composer in a sandbox without
+ * '.eddy/tooling', so the installer resolves the package as a generated
+ * project does. A Composer home with a global path repository serves the
+ * in-tree package as a release, so no published release is needed.
  *
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
@@ -28,9 +28,6 @@ final class ToolingInstallerTest extends UnitTestCase {
 
   protected int $defaultIdleTimeout = 120;
 
-  /**
-   * A patch that adds a file to the package.
-   */
   protected const string PATCH = "diff --git a/PATCHED.txt b/PATCHED.txt\nnew file mode 100644\n--- /dev/null\n+++ b/PATCHED.txt\n@@ -0,0 +1 @@\n+patched\n";
 
   protected function setUp(): void {
@@ -183,9 +180,6 @@ final class ToolingInstallerTest extends UnitTestCase {
     return $names;
   }
 
-  /**
-   * Read the installed package version from the lock file.
-   */
   protected function lockedVersion(): string {
     $lock = json_decode((string) file_get_contents(self::$sut . '/vendor/eddy-tooling.lock'), TRUE);
     $this->assertIsArray($lock);

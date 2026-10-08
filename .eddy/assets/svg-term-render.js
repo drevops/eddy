@@ -54,7 +54,6 @@ for (let i = 2; i < args.length; i++) {
   }
 }
 
-// Read input cast file and convert v3 to v2 if needed.
 // svg-term only supports asciicast v1 and v2 formats, but asciinema 3.x
 // produces v3 format with 2 breaking differences:
 //   1. Header uses {term: {cols, rows, type}} instead of {width, height}

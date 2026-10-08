@@ -21,9 +21,6 @@ use Symfony\Component\Yaml\Yaml;
 #[Group('p0')]
 final class ZizmorInputsTest extends UnitTestCase {
 
-  /**
-   * The init fixtures, relative to the repository root.
-   */
   protected const string FIXTURES = '.eddy/tests/fixtures';
 
   public function testFixturesAreNotAudited(): void {
@@ -100,15 +97,6 @@ final class ZizmorInputsTest extends UnitTestCase {
     return $inputs;
   }
 
-  /**
-   * Strip the leading './' and the trailing '/' from a path.
-   *
-   * @param string $path
-   *   A path relative to the repository root, such as './.github/'.
-   *
-   * @return string
-   *   The path, or '.' for the repository root.
-   */
   protected static function normalize(string $path): string {
     $path = rtrim($path, '/');
 
@@ -119,27 +107,10 @@ final class ZizmorInputsTest extends UnitTestCase {
     return $path === '' ? '.' : $path;
   }
 
-  /**
-   * Check whether a path is a directory or lies below it.
-   *
-   * @param string $directory
-   *   The directory, relative to the repository root.
-   * @param string $path
-   *   The path, relative to the repository root.
-   *
-   * @return bool
-   *   TRUE when the path is the directory or lies below it.
-   */
   protected static function covers(string $directory, string $path): bool {
     return $directory === '.' || $path === $directory || str_starts_with($path, $directory . '/');
   }
 
-  /**
-   * Get the repository root directory.
-   *
-   * @return string
-   *   The absolute path to the repository root.
-   */
   protected static function rootDir(): string {
     return dirname(__DIR__, 4);
   }

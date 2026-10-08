@@ -320,14 +320,8 @@ npm test
 <!-- #;< DEV_PHPUNIT -->
 
 The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests. It uses Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
-<!-- #;< DEV_COMMAND_WRAPPER -->
-
-The `test` command is a wrapper for multiple test commands:
-<!-- #;> DEV_COMMAND_WRAPPER -->
-<!-- #;< DEV_NO_COMMAND_WRAPPER -->
 
 Each test suite can also be run on its own:
-<!-- #;> DEV_NO_COMMAND_WRAPPER -->
 <!-- #;< DEV_MAKEFILE -->
 
 ```bash
@@ -354,9 +348,9 @@ ahoy test-functional-javascript   # Run FunctionalJavascript tests
 
 ```bash
 cd build
-php -d pcov.directory=.. vendor/bin/phpunit --testsuite unit         # Run Unit tests
-php -d pcov.directory=.. vendor/bin/phpunit --testsuite kernel       # Run Kernel tests
-php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional   # Run Functional tests
+php -d pcov.directory=.. vendor/bin/phpunit --testsuite unit
+php -d pcov.directory=.. vendor/bin/phpunit --testsuite kernel
+php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional
 ```
 <!-- #;> DEV_NO_COMMAND_WRAPPER -->
 
@@ -396,6 +390,10 @@ cd ..
 vendor/bin/eddy-browser-stop
 ```
 <!-- #;> DEV_NO_COMMAND_WRAPPER -->
+<!-- #;< DEV_COMMAND_WRAPPER -->
+
+The `test-functional-javascript` command starts the browser before it runs the suite. The `test` command runs the suite too but doesn't start the browser, so run `browser-start` before it.
+<!-- #;> DEV_COMMAND_WRAPPER -->
 
 To run the browser in a Docker Selenium container instead, set `WEBDRIVER_BACKEND=selenium`. The container cannot reach the host's `localhost`, so start the webserver on all interfaces:
 <!-- #;< DEV_MAKEFILE -->
@@ -424,7 +422,8 @@ vendor/bin/eddy-provision
 WEBDRIVER_BACKEND=selenium vendor/bin/eddy-browser-start
 export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
 cd build
-WEBDRIVER_BACKEND=selenium php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional-javascript
+WEBDRIVER_BACKEND=selenium php -d pcov.directory=.. vendor/bin/phpunit \
+  --testsuite functional-javascript
 cd ..
 vendor/bin/eddy-browser-stop
 ```
