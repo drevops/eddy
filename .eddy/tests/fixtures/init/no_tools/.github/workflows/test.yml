@@ -6,9 +6,9 @@
 -        run: npm run lint-spell
 -        continue-on-error: ${{ vars.CI_CSPELL_IGNORE_FAILURE == '1' }}
  
-       - name: Cache Composer dependencies
-         uses: actions/cache@__HASH__ # __VERSION__
-@@ -79,31 +76,10 @@
+       - name: Setup PHP
+         uses: shivammathur/setup-php@__HASH__ # __VERSION__
+@@ -90,31 +87,10 @@
          env:
            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
  
@@ -40,7 +40,7 @@
  
    test:
      runs-on: ubuntu-26.04
-@@ -141,11 +117,6 @@
+@@ -152,11 +128,6 @@
              drupal-version: 11@beta
              stability: canary
  
@@ -52,7 +52,7 @@
  
      name: ${{ matrix.name }}
  
-@@ -156,8 +127,6 @@
+@@ -167,8 +138,6 @@
        # covering one Drupal and PHP pair, so every tool runs on all of them.
        CI_RUNNER_INDEX: ${{ strategy.job-index }}
        CI_RUNNER_TOTAL: ${{ strategy.job-total }}
@@ -61,7 +61,7 @@
  
      steps:
        - name: Checkout code
-@@ -214,45 +183,4 @@
+@@ -236,45 +205,4 @@
        - name: Provision site
          run: vendor/bin/eddy-provision
  

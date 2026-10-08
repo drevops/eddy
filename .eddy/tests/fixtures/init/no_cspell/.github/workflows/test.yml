@@ -6,5 +6,5 @@
 -        run: npm run lint-spell
 -        continue-on-error: ${{ vars.CI_CSPELL_IGNORE_FAILURE == '1' }}
  
-       - name: Cache Composer dependencies
-         uses: actions/cache@__HASH__ # __VERSION__
+       - name: Setup PHP
+         uses: shivammathur/setup-php@__HASH__ # __VERSION__

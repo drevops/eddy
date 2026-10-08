@@ -9,7 +9,7 @@
      name: ${{ matrix.name }}
  
      env:
-@@ -123,23 +119,6 @@
+@@ -134,23 +130,6 @@
            - name: test-php-max-d10-stable
              php-version: 8.4
              drupal-version: 10

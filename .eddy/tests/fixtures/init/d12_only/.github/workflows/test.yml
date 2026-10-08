@@ -14,7 +14,7 @@
  
      name: ${{ matrix.name }}
  
-@@ -116,29 +112,21 @@
+@@ -127,29 +123,21 @@
  
        matrix:
          include:
