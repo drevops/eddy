@@ -246,10 +246,10 @@ test-functional-javascript:
 
 #;< DEV_FUNCTIONAL_JAVASCRIPT
 browser-start:
-	vendor/bin/eddy-browser start
+	vendor/bin/eddy-browser-start
 
 browser-stop:
-	vendor/bin/eddy-browser stop
+	vendor/bin/eddy-browser-stop
 #;> DEV_FUNCTIONAL_JAVASCRIPT
 
 #;< DEV_JEST

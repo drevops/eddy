@@ -3,7 +3,7 @@
 
 /**
  * @file
- * Start or stop the WebDriver backend for FunctionalJavascript tests.
+ * Start the WebDriver backend for FunctionalJavascript tests.
  *
  * The backend is selected via WEBDRIVER_BACKEND:
  * - 'chromedriver' (default): a small WebDriver server that drives the Chrome
@@ -14,12 +14,9 @@
  * (env -> '.env' -> 4444). Starting either one auto-discovers a free port
  * from 4444 and persists it to '.env' like the webserver port, so several
  * projects can run their own endpoint simultaneously without contending for
- * a single port. Stopping reads the persisted port instead of discovering,
- * so it targets the endpoint the matching start created.
+ * a single port.
  *
- * Usage:
- * - 'eddy-browser start': ensure the selected backend is listening.
- * - 'eddy-browser stop': stop whichever backend is running.
+ * A WebDriver server that already accepts sessions on the port is reused.
  */
 
 declare(strict_types=1);
@@ -28,85 +25,67 @@ namespace DrevOps\Eddy\DevTools;
 
 require_once __DIR__ . '/helpers.php';
 
-// Directory holding the downloaded chromedriver binary and run logs. Ignored
-// by git and safe to delete.
+// Directory holding the downloaded chromedriver binary and its install log.
+// Ignored by git and safe to delete.
 const CHROMEDRIVER_DIR = '.chromedriver';
 
-const SELENIUM_CONTAINER_PREFIX = 'selenium';
+const CHROMEDRIVER_LOG_FILE = '.logs/chromedriver.log';
+
 const SELENIUM_IMAGE = 'selenium/standalone-chromium:latest';
 
-$command = $argv[1] ?? '';
+// -----------------------------------------------------------------------------
+// Variables.
+// -----------------------------------------------------------------------------
 
-if ($command === 'start') {
-  browser_start();
-  quit(0);
-}
+// WebDriver backend: 'chromedriver' (default) or 'selenium'.
+$webdriver_backend = webdriver_backend();
 
-if ($command === 'stop') {
-  browser_stop();
-  quit(0);
-}
-
-FAIL("Unknown command '%s'. Use 'start' or 'stop'.", $command);
+// WebDriver port resolved via the env -> '.env' -> default chain. With
+// auto_discover: TRUE, a free port is allocated and persisted to '.env' when
+// neither env nor '.env' provides one.
+$webdriver_port = resolve_webdriver_port(auto_discover: TRUE)['port'];
 
 // -----------------------------------------------------------------------------
-// Commands.
+
+echo '===============================' . PHP_EOL;
+echo '       🌐 START BROWSER        ' . PHP_EOL;
+echo '===============================' . PHP_EOL;
+echo PHP_EOL;
+
+if ($webdriver_backend === 'selenium') {
+  selenium_start($webdriver_port);
+}
+else {
+  chromedriver_start($webdriver_port);
+}
+
+echo PHP_EOL;
+echo '===============================' . PHP_EOL;
+echo '      🌐 BROWSER READY ✅     ' . PHP_EOL;
+echo '===============================' . PHP_EOL;
+echo PHP_EOL;
+
+// -----------------------------------------------------------------------------
+// Local helpers.
 // -----------------------------------------------------------------------------
 
 /**
- * Ensure the selected WebDriver backend is listening.
+ * Resolve the WebDriver backend, aborting on an unsupported value.
  */
-function browser_start(): void {
-  echo '===============================' . PHP_EOL;
-  echo '       🌐 START BROWSER        ' . PHP_EOL;
-  echo '===============================' . PHP_EOL;
-  echo PHP_EOL;
+function webdriver_backend(): string {
+  $backend = resolve_env_value('WEBDRIVER_BACKEND', 'chromedriver')['value'];
 
-  if (webdriver_backend() === 'selenium') {
-    selenium_start();
-
-    return;
+  if (!in_array($backend, ['chromedriver', 'selenium'], TRUE)) {
+    FAIL("Unknown WEBDRIVER_BACKEND '%s'. Use 'chromedriver' or 'selenium'.", $backend);
   }
 
-  chromedriver_start();
-}
-
-/**
- * Stop whichever WebDriver backend is running.
- *
- * Backend-agnostic on purpose: the Selenium container publishes the same
- * port the chromedriver process would bind, so dispatching on the selected
- * backend could kill the container's docker proxy instead of the container
- * when WEBDRIVER_BACKEND is not set for the stop invocation. The container
- * is removed first, freeing the port, and any remaining process on the
- * port is then terminated.
- */
-function browser_stop(): void {
-  $port = resolve_webdriver_port()['port'];
-
-  echo '===============================' . PHP_EOL;
-  echo '        🌐 STOP BROWSER        ' . PHP_EOL;
-  echo '===============================' . PHP_EOL;
-  echo PHP_EOL;
-
-  if (command_path('docker') !== FALSE) {
-    TASK('Removing the Selenium container, if any.');
-    @passthru(sprintf('docker rm -f %s >/dev/null 2>&1', escapeshellarg(selenium_container($port))));
-  }
-
-  TASK('Stopping the WebDriver process on port %s, if any.', $port);
-  kill_port($port);
-  sleep(1);
-
-  PASS('Browser stopped on port %s.', $port);
+  return $backend;
 }
 
 /**
  * Ensure a chromedriver matching the installed Chrome is listening.
  */
-function chromedriver_start(): void {
-  $port = resolve_webdriver_port(auto_discover: TRUE)['port'];
-
+function chromedriver_start(string $port): void {
   if (webdriver_ready($port)) {
     PASS('chromedriver is already running on port %s.', $port);
 
@@ -120,10 +99,10 @@ function chromedriver_start(): void {
 
   $binary = resolve_chromedriver_binary($chrome_version);
 
-  @mkdir(CHROMEDRIVER_DIR, 0755, TRUE);
+  mkdir_or_fail(dirname(CHROMEDRIVER_LOG_FILE));
 
   TASK('Starting chromedriver on port %s.', $port);
-  @passthru(sprintf('nohup %s --port=%s >%s 2>&1 &', escapeshellarg($binary), escapeshellarg($port), escapeshellarg(CHROMEDRIVER_DIR . '/chromedriver.log')));
+  @passthru(sprintf('nohup %s --port=%s >%s 2>&1 &', escapeshellarg($binary), escapeshellarg($port), escapeshellarg(CHROMEDRIVER_LOG_FILE)));
 
   NOTE('Waiting for chromedriver to be ready.');
   for ($i = 0; $i < 30; $i++) {
@@ -135,15 +114,13 @@ function chromedriver_start(): void {
     sleep(1);
   }
 
-  FAIL('chromedriver failed to become ready on port %s after 30 seconds.', $port);
+  FAIL('chromedriver failed to become ready on port %s after 30 seconds; see %s.', $port, CHROMEDRIVER_LOG_FILE);
 }
 
 /**
  * Ensure a Selenium container is serving the WebDriver endpoint.
  */
-function selenium_start(): void {
-  $port = resolve_webdriver_port(auto_discover: TRUE)['port'];
-
+function selenium_start(string $port): void {
   if (webdriver_ready($port)) {
     PASS('Selenium is already running on port %s.', $port);
 
@@ -172,34 +149,6 @@ function selenium_start(): void {
   }
 
   FAIL('Selenium failed to become ready on port %s after 30 seconds.', $port);
-}
-
-// -----------------------------------------------------------------------------
-// Helpers.
-// -----------------------------------------------------------------------------
-
-/**
- * Resolve the WebDriver backend, aborting on an unsupported value.
- */
-function webdriver_backend(): string {
-  $backend = resolve_env_value('WEBDRIVER_BACKEND', 'chromedriver')['value'];
-
-  if (!in_array($backend, ['chromedriver', 'selenium'], TRUE)) {
-    FAIL("Unknown WEBDRIVER_BACKEND '%s'. Use 'chromedriver' or 'selenium'.", $backend);
-  }
-
-  return $backend;
-}
-
-/**
- * Build the container name for the Selenium endpoint on the given port.
- *
- * The port is the per-project identity of the endpoint, so naming the
- * container after it stops projects running side by side from removing or
- * overwriting each other's container.
- */
-function selenium_container(string $port): string {
-  return SELENIUM_CONTAINER_PREFIX . '-' . $port;
 }
 
 /**

@@ -123,7 +123,7 @@ jobs:
         if: matrix.backend == 'chromedriver' && (matrix.group == 'p3' || matrix.group == 'p4')
         run: |
           ./scripts/eddy-tooling
-          vendor/bin/eddy-browser start
+          vendor/bin/eddy-browser-start
 
       - name: Install PHP test dependencies
         run: composer install --no-interaction

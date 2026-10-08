@@ -54,10 +54,13 @@ $deploy_ssh_key_fingerprint = getenv_default('DEPLOY_SSH_KEY_FINGERPRINT', '');
 
 // -----------------------------------------------------------------------------
 
+echo '===============================' . PHP_EOL;
+echo '           🚚 DEPLOY           ' . PHP_EOL;
+echo '===============================' . PHP_EOL;
+echo PHP_EOL;
+
 if ($deploy_ssh_key_fingerprint !== '') {
-  echo '-------------------------------' . PHP_EOL;
-  echo '          Setup SSH            ' . PHP_EOL;
-  echo '-------------------------------' . PHP_EOL;
+  TASK('Setting up SSH.');
 
   $home = getenv('HOME') ?: '';
   $ssh_dir = $home . '/.ssh';
@@ -102,12 +105,8 @@ if ($deploy_ssh_key_fingerprint !== '') {
   passthru('ssh-add -D');
   passthru_or_fail(sprintf('ssh-add %s', escapeshellarg($key_file)));
   passthru('ssh-add -l');
+  PASS('SSH key %s added.', $key_file);
 }
-
-echo '===============================' . PHP_EOL;
-echo '           🚚 DEPLOY           ' . PHP_EOL;
-echo '===============================' . PHP_EOL;
-echo PHP_EOL;
 
 if ($deploy_proceed !== '1') {
   PASS('Skip deployment because DEPLOY_PROCEED is not set to 1.');

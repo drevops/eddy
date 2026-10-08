@@ -23,22 +23,25 @@ The installer runs Composer only when the constraint, the patches for the packag
 
 ## Commands
 
-| Command          | Purpose                                                                                                |
-|------------------|--------------------------------------------------------------------------------------------------------|
-| `eddy-assemble`  | Assemble a Drupal codebase in `build/`, install dependencies, and symlink the extension.               |
-| `eddy-start`     | Launch the built-in PHP development server. Auto-discovers a free port in 8000-8099 and writes `.env`. |
-| `eddy-stop`      | Stop the development server.                                                                           |
-| `eddy-provision` | Install Drupal on the assembled site and enable the extension.                                         |
-| `eddy-deploy`    | Mirror the extension to a remote git repository (e.g. drupal.org). Used in CI.                         |
-| `eddy-browser`   | Start or stop the WebDriver backend used by FunctionalJavascript tests.                                |
-| `eddy-info`      | Print a summary of the environment, or a single field such as `site-url`, for the wrappers to consume. |
-| `eddy-qrcode`    | Render a URL as a scannable QR code in the terminal.                                                   |
+| Command              | Purpose                                                                                                                 |
+|----------------------|-------------------------------------------------------------------------------------------------------------------------|
+| `eddy-assemble`      | Assemble a Drupal codebase in `build/`, install dependencies, and symlink the extension.                                |
+| `eddy-start`         | Launch the built-in PHP development server. Auto-discovers a free port in 8000-8099 and writes `.env`.                  |
+| `eddy-stop`          | Stop the development server.                                                                                            |
+| `eddy-provision`     | Install Drupal on the assembled site and enable the extension.                                                          |
+| `eddy-deploy`        | Mirror the extension to a remote git repository (e.g. drupal.org). Used in CI.                                          |
+| `eddy-browser-start` | Start the WebDriver backend used by FunctionalJavascript tests. Auto-discovers a free port from 4444 and writes `.env`. |
+| `eddy-browser-stop`  | Stop the WebDriver backend.                                                                                             |
+| `eddy-info`          | Print a summary of the environment, or a single field such as `site-url`, for the wrappers to consume.                  |
+| `eddy-qrcode`        | Render a URL as a scannable QR code in the terminal.                                                                    |
 
 `eddy-assemble` builds the Drupal version in `DRUPAL_VERSION`. When the variable isn't set, it builds the version in `extra.eddy.drupal-version` of `composer.dev.json`, and Drupal 11 when that isn't set either.
 
 ## Verbose output
 
 By default the commands print only their own `[TASK]`/`[ OK ]` progress and suppress the output of the tools they run (Composer, npm, Drush). When a tool fails, its captured output is shown so the failure is diagnosable. The output of the project's own commands - `npm run build` and the custom scripts below - is always shown. Set `DEBUG=1` to stream the full output of every tool live, for example `DEBUG=1 make build` or `DEBUG=1 ahoy build`.
+
+The processes that keep running after a command returns - the PHP webserver, chromedriver and the Cloudflare tunnel - write their output to `php.log`, `chromedriver.log` and `cloudflared.log` in the project's `.logs/` directory.
 
 ## Public tunnel
 

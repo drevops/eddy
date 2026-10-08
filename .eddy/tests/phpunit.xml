@@ -28,7 +28,8 @@
         <include>
             <file>../assets/update-assets.php</file>
             <file>../../.eddy/tooling/src/eddy-assemble</file>
-            <file>../../.eddy/tooling/src/eddy-browser</file>
+            <file>../../.eddy/tooling/src/eddy-browser-start</file>
+            <file>../../.eddy/tooling/src/eddy-browser-stop</file>
             <file>../../.eddy/tooling/src/eddy-deploy</file>
             <file>../../.eddy/tooling/src/helpers.php</file>
             <file>../../.eddy/tooling/src/eddy-info</file>

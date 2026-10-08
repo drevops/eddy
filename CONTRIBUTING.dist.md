@@ -388,12 +388,12 @@ ahoy browser-stop
 ```bash
 vendor/bin/eddy-start
 vendor/bin/eddy-provision
-vendor/bin/eddy-browser start
+vendor/bin/eddy-browser-start
 export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
 cd build
 php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional-javascript
 cd ..
-vendor/bin/eddy-browser stop
+vendor/bin/eddy-browser-stop
 ```
 <!-- #;> DEV_NO_COMMAND_WRAPPER -->
 
@@ -421,12 +421,12 @@ ahoy browser-stop
 ```bash
 WEBSERVER_HOST=0.0.0.0 vendor/bin/eddy-start
 vendor/bin/eddy-provision
-WEBDRIVER_BACKEND=selenium vendor/bin/eddy-browser start
+WEBDRIVER_BACKEND=selenium vendor/bin/eddy-browser-start
 export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
 cd build
 WEBDRIVER_BACKEND=selenium php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional-javascript
 cd ..
-vendor/bin/eddy-browser stop
+vendor/bin/eddy-browser-stop
 ```
 <!-- #;> DEV_NO_COMMAND_WRAPPER -->
 

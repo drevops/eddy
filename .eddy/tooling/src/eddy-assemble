@@ -311,7 +311,7 @@ run_custom_scripts('scripts', 'assemble-');
 
 echo PHP_EOL;
 echo '===============================' . PHP_EOL;
-echo '    🏗 ASSEMBLE COMPLETE ✅   ' . PHP_EOL;
+echo '    🏗️ ASSEMBLE COMPLETE ✅   ' . PHP_EOL;
 echo '===============================' . PHP_EOL;
 echo PHP_EOL;
 echo '> Next steps:' . PHP_EOL;

@@ -374,6 +374,25 @@ function resolve_webdriver_port(bool $auto_discover = FALSE, bool $validate_port
   ];
 }
 
+const SELENIUM_CONTAINER_PREFIX = 'selenium';
+
+/**
+ * Build the container name for the Selenium endpoint on the given port.
+ *
+ * The port is the per-project identity of the endpoint, so naming the
+ * container after it stops projects running side by side from removing or
+ * overwriting each other's container.
+ *
+ * @param string $port
+ *   The WebDriver port the container publishes.
+ *
+ * @return string
+ *   The container name, such as 'selenium-4444'.
+ */
+function selenium_container(string $port): string {
+  return SELENIUM_CONTAINER_PREFIX . '-' . $port;
+}
+
 /**
  * Resolve the public site URL, preferring an active tunnel URL.
  *
@@ -1063,6 +1082,21 @@ function chmod_recursive(string $dir, int $mode): void {
     }
   }
   @chmod($dir, $mode);
+}
+
+/**
+ * Create a directory, failing when it cannot be created.
+ *
+ * A directory that already exists, or that another process creates
+ * concurrently, counts as created.
+ *
+ * @param string $dir
+ *   The directory path.
+ */
+function mkdir_or_fail(string $dir): void {
+  if (!@mkdir($dir, 0755, TRUE) && !is_dir($dir)) {
+    FAIL('Unable to create directory %s.', $dir);
+  }
 }
 
 /**

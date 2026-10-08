@@ -361,8 +361,18 @@ final class DeployTest extends UnitTestCase {
     finally {
       $output = ob_get_clean();
       $this->assertIsString($output);
-      $this->assertStringContainsString('Setup SSH', $output);
+      $this->assertStringContainsString('Setting up SSH.', $output);
+      $this->assertStringContainsString('SSH key ' . $key_file . ' added.', $output);
       $this->assertStringContainsString('Skip deployment', $output);
+
+      $banner = strpos($output, '🚚 DEPLOY');
+      $ssh = strpos($output, 'Setting up SSH.');
+      $skip = strpos($output, 'Skip deployment');
+      $this->assertIsInt($banner);
+      $this->assertIsInt($ssh);
+      $this->assertIsInt($skip);
+      $this->assertLessThan($ssh, $banner, 'The banner must open the output, before the SSH setup.');
+      $this->assertLessThan($skip, $ssh, 'SSH must be set up before the proceed check.');
     }
   }
 
@@ -418,7 +428,7 @@ final class DeployTest extends UnitTestCase {
     finally {
       $output = ob_get_clean();
       $this->assertIsString($output);
-      $this->assertStringContainsString('Setup SSH', $output);
+      $this->assertStringContainsString('Setting up SSH.', $output);
     }
   }
 
@@ -530,7 +540,7 @@ final class DeployTest extends UnitTestCase {
     finally {
       $output = ob_get_clean();
       $this->assertIsString($output);
-      $this->assertStringContainsString('Setup SSH', $output);
+      $this->assertStringContainsString('Setting up SSH.', $output);
     }
   }
 
