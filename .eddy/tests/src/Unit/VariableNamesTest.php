@@ -52,6 +52,7 @@ final class VariableNamesTest extends UnitTestCase {
       glob($root . '/.eddy/tooling/src/*') ?: [],
       glob($root . '/scripts/*') ?: [],
       glob($root . '/tests/src/*/*.php') ?: [],
+      glob($root . '/.eddy/tests/src/*/*.php') ?: [],
       [
         $root . '/.ahoy.yml',
         $root . '/Makefile',
@@ -66,6 +67,11 @@ final class VariableNamesTest extends UnitTestCase {
     );
 
     foreach ($paths as $path) {
+      // The sample data of this test holds project-prefixed names on purpose.
+      if ($path === __FILE__) {
+        continue;
+      }
+
       yield substr($path, strlen($root) + 1) => ['path' => $path];
     }
   }
