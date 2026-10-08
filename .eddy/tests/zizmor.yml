@@ -21,10 +21,10 @@ rules:
       - deploy.yml
   cache-poisoning:
     # The low-confidence findings cover the 'actions/cache' and
-    # 'actions/setup-node' caches of 'test.yml', which are keyed on lock files
-    # and read only by its jobs. 'eddy-deploy' mirrors the source tree to
-    # Drupal.org over SSH and builds no release artifacts from these caches, so
-    # the poisoning surface is accepted.
+    # 'actions/setup-node' caches of 'test.yml', which are read only by its
+    # jobs. 'eddy-deploy' mirrors the source tree to Drupal.org over SSH and
+    # builds no release artifacts from these caches, so the poisoning surface is
+    # accepted.
     ignore:
       - test.yml
   ref-version-mismatch:

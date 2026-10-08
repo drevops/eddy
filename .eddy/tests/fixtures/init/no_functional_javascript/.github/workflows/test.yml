@@ -1,4 +1,4 @@
-@@ -141,11 +141,6 @@
+@@ -152,11 +152,6 @@
              drupal-version: 11@beta
              stability: canary
  
@@ -10,7 +10,7 @@
  
      name: ${{ matrix.name }}
  
-@@ -228,7 +223,6 @@
+@@ -250,7 +245,6 @@
          env:
            BROWSERTEST_OUTPUT_DIRECTORY: ../.logs/browser_output
            SIMPLETEST_DB: sqlite://tmp/db.sqlite

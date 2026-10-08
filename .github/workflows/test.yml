@@ -69,17 +69,28 @@ jobs:
         continue-on-error: ${{ vars.CI_CSPELL_IGNORE_FAILURE == '1' }}
       #;> DEV_CSPELL
 
-      - name: Cache Composer dependencies
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        with:
-          path: /tmp/composer-cache
-          key: ${{ runner.os }}-${{ hashFiles('**/composer.lock') }}
-
       - name: Setup PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:
           php-version: ${{ matrix.php-version }}
           extensions: gd, sqlite, pdo_sqlite
+
+      - name: Prepare Composer cache
+        id: composer-cache
+        run: |
+          {
+            echo "dir=$(composer config cache-files-dir)"
+            echo "month=$(date -u +%Y-%m)"
+          } >> "$GITHUB_OUTPUT"
+
+      # Builds resolve without a lock file, so the key changes monthly to also
+      # cache newer releases.
+      - name: Cache Composer dependencies
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ matrix.name }}-${{ steps.composer-cache.outputs.month }}-${{ hashFiles('composer.json', 'composer.dev.json') }}
+          restore-keys: ${{ runner.os }}-composer-${{ matrix.name }}-
 
       - name: Install the tooling
         run: ./scripts/eddy-tooling
@@ -216,12 +227,6 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Cache Composer dependencies
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        with:
-          path: /tmp/composer-cache
-          key: ${{ runner.os }}-${{ hashFiles('**/composer.lock') }}
-
       - name: Upgrade sqlite3
         run: |
           wget https://www.sqlite.org/2024/sqlite-autoconf-3450300.tar.gz -O /tmp/sqlite.tar.gz
@@ -246,6 +251,23 @@ jobs:
           if [ "$(php -r 'echo PHP_MAJOR_VERSION . PHP_MINOR_VERSION;')" -ge "84" ]; then
             echo "SYMFONY_DEPRECATIONS_HELPER=disabled" >> "$GITHUB_ENV"
           fi
+
+      - name: Prepare Composer cache
+        id: composer-cache
+        run: |
+          {
+            echo "dir=$(composer config cache-files-dir)"
+            echo "month=$(date -u +%Y-%m)"
+          } >> "$GITHUB_OUTPUT"
+
+      # Builds resolve without a lock file, so the key changes monthly to also
+      # cache newer releases.
+      - name: Cache Composer dependencies
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ matrix.name }}-${{ steps.composer-cache.outputs.month }}-${{ hashFiles('composer.json', 'composer.dev.json') }}
+          restore-keys: ${{ runner.os }}-composer-${{ matrix.name }}-
 
       - name: Install the tooling
         run: ./scripts/eddy-tooling

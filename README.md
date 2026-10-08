@@ -260,6 +260,18 @@ Each lint and test step in [`.github/workflows/test.yml`](.github/workflows/test
 
 The step still runs and reports what it finds, but its job passes.
 
+### Caching Composer downloads in CI
+
+Each job in [`.github/workflows/test.yml`](.github/workflows/test.yml) caches the package archives Composer downloads, so its next run unpacks them from the cache instead of fetching every one again. The cached directory is whatever `composer config cache-files-dir` reports on the runner, so it's always the directory Composer actually writes to.
+
+Every job keeps a cache of its own, because the jobs build different Drupal and PHP pairs and each pair needs different packages. The cache key holds the job's name, the current month (UTC) and a hash of `composer.json` and `composer.dev.json`.
+
+The month is there because the build resolves dependencies without a lock file, so newer releases keep arriving while those 2 files stay the same. A key that already has a cache never saves again, so without the month the cache would keep the first run's versions until either file changes. Instead, the first successful run in a new month, or after either file changes, restores the job's most recent cache, downloads whatever is missing and saves the result under the new key.
+
+Only the archives are cached. Drupal 12 builds install `drupal/core` from a git checkout (see [Drupal 12](#drupal-12)), and a copy of that repository is bigger than all the archives combined, so those builds still clone core on every run.
+
+To start a job's cache over, delete its `Linux-composer-<job name>-*` entries under **Actions** -> **Caches**.
+
 ### Patching dependencies
 
 The build installs [`cweagans/composer-patches`](https://github.com/cweagans/composer-patches) 2.x and applies the patches declared in the `patches` section of `composer.dev.json` or `composer.json`. Each entry maps a description to a local path or a URL:
