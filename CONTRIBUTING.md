@@ -67,4 +67,4 @@ Releases are tagged on the mirror by hand:
 
 ## Continuous integration
 
-`.github/workflows/scaffold-test.yml` runs the suite across the `p0` to `p5` groups. See [`.eddy/CLAUDE.md`](.eddy/CLAUDE.md) for the full maintenance reference, including how to regenerate the animated demo assets.
+`.github/workflows/scaffold-test.yml` runs the suite across the `p0` to `p5` groups. See [`.eddy/CLAUDE.md`](.eddy/CLAUDE.md) for the full maintenance reference, including the marker blocks `init.php` prunes the template with, the steps for adding a Drupal major or a tool, and how to regenerate the animated demo assets.
