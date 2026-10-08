@@ -90,6 +90,8 @@ commands:
   test:
     usage: Run all tests.
     cmd: |
+      ahoy browser-start || exit 1
+      export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
       pushd "build" >/dev/null || exit 1
       ahoy title "Running PHPUnit"
       php -d pcov.directory=.. vendor/bin/phpunit "$@"

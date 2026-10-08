@@ -1,4 +1,4 @@
-@@ -60,31 +60,12 @@
+@@ -60,89 +60,23 @@
      usage: Check coding standards for violations.
      cmd: |
        pushd "build" >/dev/null || exit 1
@@ -30,9 +30,10 @@
        popd >/dev/null || exit 1
  
    test:
-@@ -91,56 +72,11 @@
      usage: Run all tests.
      cmd: |
+-      ahoy browser-start || exit 1
+-      export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
        pushd "build" >/dev/null || exit 1
 -      ahoy title "Running PHPUnit"
 -      php -d pcov.directory=.. vendor/bin/phpunit "$@"
