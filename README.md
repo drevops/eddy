@@ -97,7 +97,7 @@ See the sections below for more details.
 
 ## Codebase setup
 
-The initial codebase setup script `php init.php` will ask you for some information and update the codebase to reflect your extension's name and other details. It asks for the extension name, machine name and type, the Drupal versions to target, the command wrapper, the tools to keep, and whether to keep the example lifecycle scripts. Each answer can be pre-filled with an `EDDY_*` environment variable for an unattended run - `php init.php --help` lists them.
+The initial codebase setup script `php init.php` will ask you for some information and update the codebase to reflect your extension's name and other details. It asks for the extension name, machine name and type, the Drupal versions to target, the command wrapper, the tools to keep, and whether to keep the example lifecycle scripts. Each answer can be pre-filled with an `INIT_*` environment variable for an unattended run - `php init.php --help` lists them.
 
 ![Init process](.eddy/assets/init.svg)
 

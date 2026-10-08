@@ -117,13 +117,15 @@ final class InitHelpersTest extends UnitTestCase {
     $this->assertStringContainsString('Usage:', $output);
     $this->assertStringContainsString('init.php', $output);
     $this->assertStringContainsString('--help', $output);
-    $this->assertStringContainsString('EDDY_NAME', $output);
-    $this->assertStringContainsString('EDDY_MACHINE_NAME', $output);
-    $this->assertStringContainsString('EDDY_TYPE', $output);
-    $this->assertStringContainsString('EDDY_COMMAND_WRAPPER', $output);
-    $this->assertStringContainsString('EDDY_EXAMPLES', $output);
-    $this->assertStringContainsString('EDDY_REMOVE_SELF', $output);
-    $this->assertStringContainsString('EDDY_PROCEED', $output);
+    $this->assertStringContainsString('INIT_NAME', $output);
+    $this->assertStringContainsString('INIT_MACHINE_NAME', $output);
+    $this->assertStringContainsString('INIT_TYPE', $output);
+    $this->assertStringContainsString('INIT_DRUPAL_VERSION', $output);
+    $this->assertStringContainsString('INIT_COMMAND_WRAPPER', $output);
+    $this->assertStringContainsString('INIT_TOOLS', $output);
+    $this->assertStringContainsString('INIT_EXAMPLES', $output);
+    $this->assertStringContainsString('INIT_REMOVE_SELF', $output);
+    $this->assertStringContainsString('INIT_PROCEED', $output);
   }
 
   /**

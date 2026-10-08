@@ -41,7 +41,7 @@ final class InitTest extends FunctionalTestCase {
     // Build env vars to pre-fill all prompts.
     $env = [];
     foreach ($answers as $key => $value) {
-      $env['EDDY_' . strtoupper((string) $key)] = $value;
+      $env['INIT_' . strtoupper((string) $key)] = $value;
     }
 
     $this->processRun(self::$sut . DIRECTORY_SEPARATOR . 'init.php', [], [], $env);
