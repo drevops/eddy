@@ -411,6 +411,7 @@ function install_node_dependencies(string $assets_dir): void {
   info('Installing svg-term Node.js dependency...');
 
   $node_modules = $assets_dir . '/node_modules';
+
   if (is_dir($node_modules . '/svg-term')) {
     info('svg-term already installed.');
 
@@ -419,6 +420,7 @@ function install_node_dependencies(string $assets_dir): void {
 
   $cmd = sprintf('npm install --prefix %s svg-term@1.3.1 2>&1', escapeshellarg($assets_dir));
   $output = shell_exec($cmd);
+
   if (!is_dir($node_modules . '/svg-term')) {
     throw new \RuntimeException('Failed to install svg-term: ' . (is_string($output) ? $output : 'unknown error'));
   }
@@ -448,6 +450,7 @@ function create_workspace(string $project_dir): string {
   );
 
   $output = shell_exec($cmd);
+
   if (!file_exists($workspace_dir . '/init.php')) {
     throw new \RuntimeException('Failed to export git archive: ' . (is_string($output) ? $output : 'unknown error'));
   }
@@ -471,6 +474,7 @@ function create_workspace(string $project_dir): string {
  */
 function create_expect_script(string $path, string $workspace_dir, array $job): void {
   $env = '';
+
   foreach ($job['env'] ?? [] as $name => $value) {
     $env .= sprintf('set env(%s) {%s}', $name, $value) . "\n";
   }
@@ -681,11 +685,13 @@ function canonicalize_cast(string $content, string $command, string $frames, arr
   ['header' => $header, 'stream' => $stream, 'arrivals' => $arrivals] = read_cast($content);
 
   $term = $header['term'] ?? NULL;
+
   if (($header['version'] ?? NULL) !== 3 || !is_array($term) || !is_int($term['cols'] ?? NULL) || !is_int($term['rows'] ?? NULL)) {
     throw new \RuntimeException('The recording is not in asciicast v3 format.');
   }
 
   $prompt = strpos($stream, '$ ');
+
   if ($prompt === FALSE || substr($stream, $prompt + 2, strlen($command)) !== $command) {
     throw new \RuntimeException(sprintf("The recording does not open with the prompt and the typed command '%s'.", $command));
   }
@@ -834,11 +840,13 @@ function path_replacements(string $workspace_dir): array {
 
   // Tools print the resolved path, which on macOS gains a '/private' prefix.
   $real_workspace_dir = realpath($workspace_dir);
+
   if ($real_workspace_dir !== FALSE) {
     $replacements[$real_workspace_dir] = '/home/user/project';
   }
 
   $home = getenv('HOME');
+
   if (is_string($home) && strlen($home) > 1) {
     $replacements[$home] = '/home/user';
   }
@@ -962,6 +970,7 @@ function info(string $message): void {
   if (getenv('SCRIPT_QUIET') === '1') {
     return;
   }
+
   print $message . PHP_EOL;
 }
 
@@ -979,6 +988,7 @@ if (getenv('SCRIPT_RUN_SKIP') != 1) {
     if ((error_reporting() & $severity) === 0) {
       return FALSE;
     }
+
     throw new \ErrorException($message, 0, $severity, $file, $line);
   });
 

@@ -93,6 +93,7 @@ function chromedriver_start(string $port): void {
   }
 
   $chrome_version = detect_chrome_version();
+
   if ($chrome_version === '') {
     FAIL('Google Chrome or Chromium was not found. Install Chrome, or set WEBDRIVER_BACKEND=selenium to use Docker.');
   }
@@ -105,12 +106,14 @@ function chromedriver_start(string $port): void {
   @passthru(sprintf('nohup %s --port=%s >%s 2>&1 &', escapeshellarg($binary), escapeshellarg($port), escapeshellarg(CHROMEDRIVER_LOG_FILE)));
 
   NOTE('Waiting for chromedriver to be ready.');
+
   for ($i = 0; $i < 30; $i++) {
     if (webdriver_ready($port)) {
       PASS('chromedriver is ready on port %s.', $port);
 
       return;
     }
+
     sleep(1);
   }
 
@@ -139,12 +142,14 @@ function selenium_start(string $port): void {
   passthru_or_fail(sprintf('docker run -d --name %s --shm-size=2g -p %s:4444 %s', escapeshellarg(selenium_container($port)), escapeshellarg($port), escapeshellarg(SELENIUM_IMAGE)), 'Failed to start the Selenium container.');
 
   NOTE('Waiting for Selenium to be ready.');
+
   for ($i = 0; $i < 30; $i++) {
     if (webdriver_ready($port)) {
       PASS('Selenium is ready on port %s.', $port);
 
       return;
     }
+
     sleep(1);
   }
 
@@ -178,6 +183,7 @@ function detect_chrome_version(): string {
   }
   else {
     $raw = '';
+
     foreach (['google-chrome', 'chromium', 'chromium-browser'] as $binary) {
       if (command_path($binary) !== FALSE) {
         $raw = (string) @shell_exec($binary . ' --version 2>/dev/null');
@@ -200,13 +206,16 @@ function resolve_chromedriver_binary(string $chrome_version): string {
   $chrome_major = explode('.', $chrome_version)[0];
 
   $path = command_path('chromedriver');
+
   if ($path !== FALSE) {
     $raw = (string) @shell_exec(escapeshellarg($path) . ' --version 2>/dev/null');
+
     if (preg_match('/(\d+)\./', $raw, $matches) === 1 && $matches[1] === $chrome_major) {
       NOTE('Using installed chromedriver at %s.', $path);
 
       return $path;
     }
+
     NOTE('Installed chromedriver does not match Chrome %s; fetching a matching build.', $chrome_version);
   }
 
@@ -221,6 +230,7 @@ function resolve_chromedriver_binary(string $chrome_version): string {
   passthru_or_fail(sprintf('npx -y @puppeteer/browsers install %s --path %s >%s', escapeshellarg('chromedriver@' . $chrome_version), escapeshellarg(CHROMEDRIVER_DIR), escapeshellarg($log)), 'Failed to install chromedriver matching Chrome %s.', $chrome_version);
 
   $binary = parse_installed_binary($log);
+
   if ($binary === '') {
     FAIL('Could not determine the chromedriver binary path.');
   }
@@ -236,11 +246,13 @@ function resolve_chromedriver_binary(string $chrome_version): string {
  */
 function parse_installed_binary(string $log): string {
   $contents = @file_get_contents($log);
+
   if ($contents === FALSE) {
     return '';
   }
 
   $lines = array_values(array_filter(preg_split('/\r\n|\r|\n/', trim($contents)) ?: []));
+
   if ($lines === []) {
     return '';
   }

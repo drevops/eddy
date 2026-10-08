@@ -40,6 +40,7 @@ $build_dir = 'build';
 
 TASK('Validating scaffold.');
 $composer_json = 'composer.json';
+
 if (!file_exists($composer_json)) {
   FAIL('Missing composer.json file in the extension root directory.');
 }
@@ -88,12 +89,14 @@ PASS('Insecure package blocking disabled.');
 
 TASK('Pinning Drupal core packages to a specific version %s.', $drupal_release);
 $composer_json_content = replace_in_file($build_composer_json, '/("drupal\/core[^"]*")\s*:\s*"[^"]*"/', '$1: "' . $drupal_release . '"');
+
 // Print the pinned versions for verification.
 foreach (explode("\n", $composer_json_content) as $line) {
   if (preg_match('/"drupal\/core-.*":\s*"/', $line)) {
     NOTE(trim($line));
   }
 }
+
 PASS('Drupal core packages pinned.');
 
 TASK('Updating stability.');
@@ -101,6 +104,7 @@ TASK('Updating stability.');
 // dependencies. Each takes its most stable release that fits, falling back to
 // a pre-release or a development branch only when no stable release does.
 $composer_json_content = replace_in_file($build_composer_json, '/("minimum-stability")\s*:\s*"[^"]*"/', '$1: "dev"');
+
 foreach (explode("\n", $composer_json_content) as $line) {
   if (str_contains($line, 'minimum-stability')) {
     NOTE(trim($line));
@@ -108,11 +112,13 @@ foreach (explode("\n", $composer_json_content) as $line) {
 }
 
 $composer_json_content = replace_in_file($build_composer_json, '/("prefer-stable")\s*:\s*\w+/', '$1: true');
+
 foreach (explode("\n", $composer_json_content) as $line) {
   if (str_contains($line, 'prefer-stable')) {
     NOTE(trim($line));
   }
 }
+
 PASS('Stability updated.');
 
 TASK('Configuring test dependencies.');
@@ -127,6 +133,7 @@ $build_json['require-dev']['symfony/phpunit-bridge'] = (int) $drupal_version_maj
 // constants removed in 2.6.2. Constrained per-build so the extension's own
 // dependencies carry no upper bound.
 $build_json['require-dev']['rector/rector'] = (int) $drupal_version_major < 11 ? '^2 <2.6.2' : '^2 <2.6.5';
+
 if ((int) $drupal_version_major >= 12) {
   // Drupal 12 core requires a 'sebastian/diff' that only PHPUnit 12 accepts.
   // 'composer.dev.json' stops at PHPUnit 11, which Drupal 11 is tested with.
@@ -135,6 +142,7 @@ if ((int) $drupal_version_major >= 12) {
   // test base classes and the PHPUnit bootstrap, so core installs from source.
   $build_json['config']['preferred-install'] = ['drupal/core' => 'source'];
 }
+
 file_put_contents($build_composer_json, json_encode($build_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
 PASS('Test dependencies configured.');
 
@@ -157,14 +165,17 @@ PASS("Configuration from extension's composer.json merged.");
 
 if (is_dir('patches')) {
   TASK('Copying patches.');
+
   if (!is_dir($build_dir . '/patches')) {
     mkdir($build_dir . '/patches', 0755, TRUE);
   }
+
   copy_dir('patches', $build_dir . '/patches');
   PASS('Patches copied.');
 }
 
 $github_token = getenv_default('GITHUB_TOKEN', '');
+
 if ($github_token !== '') {
   TASK('Adding GitHub authentication token if provided.');
   passthru_or_fail(sprintf('composer config --global github-oauth.github.com %s', escapeshellarg($github_token)));
@@ -172,12 +183,15 @@ if ($github_token !== '') {
 }
 
 TASK('Creating custom directories.');
+
 if (!is_dir($build_dir . '/web/modules/custom')) {
   mkdir($build_dir . '/web/modules/custom', 0755, TRUE);
 }
+
 if (!is_dir($build_dir . '/web/themes/custom')) {
   mkdir($build_dir . '/web/themes/custom', 0755, TRUE);
 }
+
 PASS('Custom directories created.');
 
 // Make sure Composer doesn't run out of memory.
@@ -192,22 +206,27 @@ PASS('Dependencies installed.');
 TASK("Installing suggested dependencies from extension's composer.json.");
 $ext_json = (array) json_decode((string) file_get_contents('composer.json'), TRUE);
 $build_json = (array) json_decode((string) file_get_contents($build_composer_json), TRUE);
+
 if (isset($ext_json['suggest']) && is_array($ext_json['suggest'])) {
   foreach (array_keys($ext_json['suggest']) as $suggest) {
     if (isset($build_json['require'][$suggest]) || isset($build_json['require-dev'][$suggest])) {
       NOTE('Skipping %s (already in require or require-dev).', $suggest);
       continue;
     }
+
     passthru_or_fail(sprintf('composer --working-dir=build require %s', escapeshellarg((string) $suggest)));
   }
 }
+
 PASS('Suggested dependencies installed.');
 
 // A dependency with no release that fits installs from a development branch,
 // so the build output names each one.
 $dev_branch_packages = dev_branch_packages($build_dir . '/composer.lock');
+
 if ($dev_branch_packages !== []) {
   INFO('Dependencies installed from development branches:');
+
   foreach ($dev_branch_packages as $name => $version) {
     NOTE('%s %s', $name, $version);
   }
@@ -229,6 +248,7 @@ if (getenv('SYMFONY_DEPRECATIONS_HELPER') === 'disabled') {
   replace_in_file($build_dir . '/web/index.php', '/^<\?php/', '<?php error_reporting(E_ALL & ~E_DEPRECATED);');
 
   $bootstrap_file = $build_dir . '/vendor/symfony/polyfill-php83/bootstrap.php';
+
   if (file_exists($bootstrap_file)) {
     replace_in_file($bootstrap_file, '/string \$request_data = null, array \$controls = null/', 'string $request_data, array $controls');
   }
@@ -254,6 +274,7 @@ $tool_files = [
   'phpunit.xml',
   'rector.php',
 ];
+
 foreach ($tool_files as $tool_file) {
   if (file_exists($tool_file)) {
     copy($tool_file, $build_dir . '/' . $tool_file);
@@ -261,9 +282,11 @@ foreach ($tool_files as $tool_file) {
 }
 
 $version_specific_phpunit = 'phpunit.d' . $drupal_version_major . '.xml';
+
 if (file_exists($version_specific_phpunit)) {
   copy($version_specific_phpunit, $build_dir . '/phpunit.xml');
 }
+
 PASS('Tools configuration files copied.');
 
 TASK("Symlinking extension's code.");
@@ -277,14 +300,17 @@ $extension_dir = $custom_dir . '/' . $extension_name;
 mkdir($extension_dir, 0755, TRUE);
 
 $cwd = getcwd();
+
 foreach (glob($cwd . '/*') ?: [] as $item) {
   $basename = basename($item);
+
   // The build directory and the project-root 'vendor' directory, which holds
   // the tooling, are not part of the extension.
   if (!in_array($basename, [$build_dir, 'vendor'], TRUE)) {
     symlink($item, $extension_dir . '/' . $basename);
   }
 }
+
 PASS("Extension's code symlinked.");
 
 // Install front-end dependencies and run the build in the build directory.
@@ -296,11 +322,13 @@ if (file_exists($build_dir . '/package-lock.json') && !file_exists('.skip_npm_bu
   TASK('Processing front-end dependencies.');
 
   $nvm = file_exists('.nvmrc') ? 'nvm use && ' : '';
+
   // Suppress the dependency install noise, but show the build output - the
   // build is the project's own and its output is meaningful.
   if (!is_dir($build_dir . '/node_modules')) {
     passthru_or_fail($nvm . 'npm --prefix ' . $build_dir . ' ci');
   }
+
   passthru_verbose_or_fail($nvm . 'npm --prefix ' . $build_dir . ' run build');
 
   PASS('Front-end dependencies processed.');

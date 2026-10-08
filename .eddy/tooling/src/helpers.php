@@ -42,6 +42,7 @@ function getenv_default(mixed ...$vars): string {
 
   foreach ($vars as $var) {
     $value = is_string($var) ? getenv($var) : $default;
+
     if ($value !== FALSE && is_string($value) && $value !== '') {
       return $value;
     }
@@ -70,16 +71,20 @@ function dotenv_read(string $dotenv_file = '.env'): array {
   }
 
   $contents = file_get_contents($dotenv_file);
+
   if ($contents === FALSE) {
     return [];
   }
 
   $vars = [];
+
   foreach (preg_split('/\r\n|\r|\n/', $contents) ?: [] as $line) {
     $trimmed = trim($line);
+
     if ($trimmed === '') {
       continue;
     }
+
     if (str_starts_with($trimmed, '#')) {
       continue;
     }
@@ -99,6 +104,7 @@ function dotenv_read(string $dotenv_file = '.env'): array {
     if (strlen($value) >= 2) {
       $first = $value[0];
       $last = $value[strlen($value) - 1];
+
       if (($first === '"' && $last === '"') || ($first === "'" && $last === "'")) {
         $value = substr($value, 1, -1);
       }
@@ -137,6 +143,7 @@ function dotenv_write_var(string $key, string $value, string $dotenv_file = '.en
   }
 
   $contents = file_get_contents($dotenv_file);
+
   if ($contents === FALSE) {
     FAIL('Unable to read %s', $dotenv_file);
 
@@ -147,6 +154,7 @@ function dotenv_write_var(string $key, string $value, string $dotenv_file = '.en
 
   $lines = preg_split('/\r\n|\r|\n/', $contents) ?: [];
   $trailing_newline = $contents !== '' && (str_ends_with($contents, "\n") || str_ends_with($contents, "\r"));
+
   if ($trailing_newline && end($lines) === '') {
     array_pop($lines);
   }
@@ -154,19 +162,24 @@ function dotenv_write_var(string $key, string $value, string $dotenv_file = '.en
   // Replace the LAST matching assignment so dotenv_read()'s
   // last-assignment-wins semantics agree with what is written.
   $replace_index = NULL;
+
   foreach ($lines as $i => $line) {
     $trimmed = trim($line);
+
     if ($trimmed === '') {
       continue;
     }
+
     if (str_starts_with($trimmed, '#')) {
       continue;
     }
+
     if (!str_contains($trimmed, '=')) {
       continue;
     }
 
     [$existing_key] = explode('=', $trimmed, 2);
+
     if (trim($existing_key) === $key) {
       $replace_index = $i;
     }
@@ -236,11 +249,13 @@ function dotenv_unset_var(string $key, string $dotenv_file = '.env'): void {
  */
 function resolve_env_value(string $name, string $default, string $dotenv_file = '.env'): array {
   $env = getenv($name);
+
   if ($env !== FALSE && $env !== '') {
     return ['value' => $env, 'source' => 'env'];
   }
 
   $dotenv = dotenv_read($dotenv_file);
+
   if (isset($dotenv[$name]) && $dotenv[$name] !== '') {
     return ['value' => $dotenv[$name], 'source' => $dotenv_file];
   }
@@ -429,6 +444,7 @@ function resolve_site_url(string $host, string $port, string $dotenv_file = '.en
 function xdebug_state(string $port): string {
   $command = sprintf('ps -o command= -p "$(lsof -ti:%s 2>/dev/null | head -1)" 2>/dev/null', escapeshellarg($port));
   $out = trim((string) @shell_exec($command));
+
   if ($out === '') {
     return '-';
   }
@@ -475,15 +491,18 @@ function find_free_port(int $start = 8000, int $max_attempts = 100): int {
   if ($start < 1 || $start > 65535) {
     FAIL('Start port must be between 1 and 65535, got %d', $start);
   }
+
   if ($max_attempts < 1) {
     FAIL('Max attempts must be a positive integer, got %d', $max_attempts);
   }
 
   for ($port = $start; $port < $start + $max_attempts; $port++) {
     $conn = @stream_socket_client(sprintf('tcp://localhost:%d', $port), $errno, $errstr, 0.2);
+
     if ($conn === FALSE) {
       return $port;
     }
+
     fclose($conn);
   }
 
@@ -596,7 +615,9 @@ function command_path(string $command): string|false {
   if (!preg_match('/^[A-Za-z0-9_\-]+(?: [A-Za-z0-9_\-]+)*$/', $command)) {
     return FALSE;
   }
+
   exec(sprintf('command -v %s 2>/dev/null', $command), $output, $code);
+
   return $code === 0 && !empty($output[0]) ? trim($output[0]) : FALSE;
 }
 
@@ -735,6 +756,7 @@ function run_custom_scripts(string $dir, string $prefix): void {
   }
 
   $files = glob($dir . '/' . $prefix . '*.sh') ?: [];
+
   if ($files === []) {
     return;
   }
@@ -745,6 +767,7 @@ function run_custom_scripts(string $dir, string $prefix): void {
     if (!is_file($file)) {
       continue;
     }
+
     TASK("Running custom script '%s'.", $file);
     // Show the hook's output - these scripts are the project's own and their
     // output is intentional, unlike the suppressed dependency-tool commands.
@@ -814,6 +837,7 @@ function drush(string $command, mixed $args = NULL, ?int &$exit_code = NULL): st
  */
 function extension_info(): array {
   $info_files = glob('*.info.yml');
+
   if ($info_files === FALSE || $info_files === []) {
     FAIL('No .info.yml file found.');
 
@@ -821,6 +845,7 @@ function extension_info(): array {
     return ['name' => '', 'type' => ''];
     // @codeCoverageIgnoreEnd
   }
+
   $name = basename($info_files[0], '.info.yml');
   $type = str_contains((string) file_get_contents($info_files[0]), 'type: theme') ? 'theme' : 'module';
 
@@ -883,6 +908,7 @@ function drupal_release(string $constraint): string {
   exec('composer show --all --format=json drupal/recommended-project', $output, $exit_code);
 
   $package = json_decode(implode("\n", $output), TRUE);
+
   if ($exit_code !== 0 || !is_array($package) || !isset($package['versions']) || !is_array($package['versions'])) {
     FAIL('Unable to list the Drupal releases.');
 
@@ -892,6 +918,7 @@ function drupal_release(string $constraint): string {
   }
 
   $release = drupal_release_select($constraint, array_values(array_filter($package['versions'], is_string(...))));
+
   if ($release === NULL) {
     FAIL('No Drupal release matches %s.', $constraint);
 
@@ -935,6 +962,7 @@ function drupal_release_select(string $constraint, array $versions): ?string {
   $floor = $ranks[strtolower($matches[2] ?? 'stable')] ?? 0;
 
   $releases = [];
+
   foreach ($versions as $version) {
     if (str_starts_with($version, $prefix) && preg_match('/^\d+\.\d+\.\d+(?:-(rc|beta|alpha)\d+)?$/i', $version, $parts) === 1) {
       $releases[$version] = $ranks[strtolower($parts[1] ?? 'stable')] ?? 0;
@@ -944,6 +972,7 @@ function drupal_release_select(string $constraint, array $versions): ?string {
   $qualified = array_keys(array_filter($releases, static fn(int $rank): bool => $rank <= $floor)) ?: array_keys($releases);
 
   $newest = NULL;
+
   foreach ($qualified as $release) {
     if ($newest === NULL || version_compare($release, $newest, '>')) {
       $newest = $release;
@@ -965,6 +994,7 @@ function drupal_release_select(string $constraint, array $versions): ?string {
  */
 function dev_branch_packages(string $lock_file): array {
   $lock = json_decode((string) @file_get_contents($lock_file), TRUE);
+
   if (!is_array($lock)) {
     return [];
   }
@@ -990,6 +1020,7 @@ function is_debug(): bool {
  */
 function replace_in_file(string $file, string $pattern, string $replacement): string {
   $content = file_get_contents($file);
+
   if ($content === FALSE) {
     FAIL('Unable to read file %s.', $file);
 
@@ -999,6 +1030,7 @@ function replace_in_file(string $file, string $pattern, string $replacement): st
   }
 
   $replaced = preg_replace($pattern, $replacement, $content);
+
   if ($replaced === NULL) {
     FAIL('Regex replacement failed in file %s with pattern %s.', $file, $pattern);
 
@@ -1019,13 +1051,16 @@ function remove_dir(string $dir): void {
   if (!is_dir($dir)) {
     return;
   }
+
   $items = new \RecursiveIteratorIterator(
     new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::UNIX_PATHS),
     \RecursiveIteratorIterator::CHILD_FIRST
   );
+
   /** @var \SplFileInfo $item */
   foreach ($items as $item) {
     $path = $item->getPathname();
+
     if (is_link($path)) {
       @unlink($path);
     }
@@ -1036,6 +1071,7 @@ function remove_dir(string $dir): void {
       @unlink($path);
     }
   }
+
   @rmdir($dir);
 }
 
@@ -1046,13 +1082,16 @@ function copy_dir(string $src, string $dst): void {
   if (!is_dir($dst)) {
     mkdir($dst, 0755, TRUE);
   }
+
   $iterator = new \RecursiveIteratorIterator(
     new \RecursiveDirectoryIterator($src, \RecursiveDirectoryIterator::SKIP_DOTS),
     \RecursiveIteratorIterator::SELF_FIRST
   );
+
   /** @var \RecursiveDirectoryIterator $item */
   foreach ($iterator as $item) {
     $target = $dst . DIRECTORY_SEPARATOR . $iterator->getSubPathname();
+
     if ($item->isDir()) {
       if (!is_dir($target)) {
         mkdir($target, 0755, TRUE);
@@ -1071,16 +1110,19 @@ function chmod_recursive(string $dir, int $mode): void {
   if (!is_dir($dir)) {
     return;
   }
+
   $iterator = new \RecursiveIteratorIterator(
     new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::UNIX_PATHS),
     \RecursiveIteratorIterator::SELF_FIRST
   );
+
   /** @var \SplFileInfo $item */
   foreach ($iterator as $item) {
     if (!is_link($item->getPathname())) {
       @chmod($item->getPathname(), $mode);
     }
   }
+
   @chmod($dir, $mode);
 }
 
@@ -1123,16 +1165,19 @@ function link_browser_output(string $webroot, string $logs_dir): void {
   }
 
   $target = $logs_dir . '/browser_output';
+
   if (!is_dir($target)) {
     mkdir($target, 0755, TRUE);
   }
 
   $simpletest_dir = $webroot . '/sites/simpletest';
+
   if (!is_dir($simpletest_dir)) {
     mkdir($simpletest_dir, 0755, TRUE);
   }
 
   $link = $simpletest_dir . '/browser_output';
+
   if (is_link($link) || is_file($link)) {
     unlink($link);
   }

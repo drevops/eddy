@@ -47,9 +47,11 @@ echo PHP_EOL;
 if ($xdebug_enabled) {
   TASK('Verifying that the XDebug PHP extension is installed.');
   $php_v = (string) shell_exec('php -v 2>/dev/null');
+
   if (stripos($php_v, 'xdebug') === FALSE) {
     FAIL('XDEBUG=1 is set but the XDebug PHP extension is not installed on the host. Install it (see https://xdebug.org/docs/install) and try again.');
   }
+
   PASS('XDebug extension is loaded.');
 }
 
@@ -66,6 +68,7 @@ sleep($webserver_wait_timeout);
 
 NOTE('Checking that the server was started.');
 $fp = @fsockopen($webserver_host, (int) $webserver_port, $errno, $errstr, 5);
+
 if ($fp === FALSE) {
   $log = @file_get_contents($webserver_log) ?: '';
   FAIL('Unable to start inbuilt PHP server' . ($log !== '' ? "\n" . $log : ''));
@@ -73,14 +76,17 @@ if ($fp === FALSE) {
 else {
   fclose($fp);
 }
+
 PASS('Server started successfully.');
 
 TASK('Checking that the server can serve content.');
 $context = stream_context_create(['http' => ['method' => 'HEAD', 'timeout' => 5, 'ignore_errors' => TRUE]]);
 $headers = @get_headers(sprintf('http://%s:%s', $webserver_host, $webserver_port), FALSE, $context);
-if ($headers === FALSE || !isset($headers[0]) || !str_contains($headers[0], '200') && !str_contains($headers[0], '302')) {
+
+if ($headers === FALSE || !isset($headers[0]) || (!str_contains($headers[0], '200') && !str_contains($headers[0], '302'))) {
   FAIL('Server is started, but site cannot be served.');
 }
+
 PASS('Server can serve content.');
 
 if (tunnel_enabled()) {
