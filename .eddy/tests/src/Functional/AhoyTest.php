@@ -122,6 +122,7 @@ final class AhoyTest extends DevtoolsTestCase {
 
     $this->processRun('ahoy', ['test'], [], [], $this->longTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
+    $this->assertProcessAnyOutputContains('BROWSER READY');
     $this->assertDirectoryExists(self::$sut . '/build/web/sites/simpletest/browser_output');
 
     $this->runJavascriptTests();

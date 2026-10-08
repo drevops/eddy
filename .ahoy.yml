@@ -110,6 +110,10 @@ commands:
   test:
     usage: Run all tests.
     cmd: |
+      #;< DEV_FUNCTIONAL_JAVASCRIPT
+      ahoy browser-start || exit 1
+      export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
+      #;> DEV_FUNCTIONAL_JAVASCRIPT
       pushd "build" >/dev/null || exit 1
       #;< DEV_PHPUNIT
       ahoy title "Running PHPUnit"

@@ -135,9 +135,8 @@ function get_jobs(): array {
       'command' => 'ahoy test',
       'frames' => 'lines',
       'env' => ['CI' => 'true', 'FORCE_COLOR' => '1'],
-      // 'ahoy test' runs the FunctionalJavascript suite but, unlike
-      // 'ahoy test-functional-javascript', does not start the browser it
-      // needs.
+      // 'ahoy test' reuses a running browser, so the recording shows the test
+      // run rather than the browser start-up.
       'prepare' => 'ahoy browser-start',
       'cleanup' => 'ahoy browser-stop',
     ],
