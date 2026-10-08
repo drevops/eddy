@@ -22,6 +22,7 @@ final class StartTest extends UnitTestCase {
   protected function setUp(): void {
     parent::setUp();
     require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
+    $this->envUnset('CLOUDFLARE_TUNNEL');
   }
 
   #[DataProvider('dataProviderStartSuccess')]
@@ -63,6 +64,7 @@ final class StartTest extends UnitTestCase {
     $this->assertStringContainsString('ENVIRONMENT READY', $output);
     $this->assertStringContainsString($cwd . '/build/web', $output);
     $this->assertStringContainsString('http://' . $expected_host . ':' . $expected_port, $output);
+    $this->assertStringNotContainsString('Cloudflare', $output);
 
     fclose($fp);
   }
@@ -422,6 +424,98 @@ final class StartTest extends UnitTestCase {
     $this->assertIsString($output);
     $this->assertStringContainsString('URL       : ' . $tunnel_url, $output);
     $this->assertStringNotContainsString('URL       : http://localhost:8000', $output);
+
+    fclose($fp);
+  }
+
+  public function testStartStartsTunnelWhenEnabled(): void {
+    $project_dir = self::$tmp . '/start_tunnel_' . uniqid();
+    mkdir($project_dir, 0755, TRUE);
+    chdir($project_dir);
+    file_put_contents('.env', "WEBSERVER_PORT=8000\nCLOUDFLARE_TUNNEL=1\n");
+
+    $cwd = '/test/project';
+    $tunnel_url = 'https://seasonal-deck-organisms-sf.trycloudflare.com';
+
+    $this->registerMock('getcwd', 'DrevOps\\Eddy\\DevTools', fn(): string => $cwd);
+
+    $this->mockPassthruMultiple([
+      ['cmd' => "lsof -ti:'8000' 2>/dev/null | xargs kill -9 2>/dev/null"],
+      ['cmd' => sprintf('nohup php -S %s:%s -t %s/build/web %s/build/web/.ht.router.php >/tmp/php.log 2>&1 &', escapeshellarg('localhost'), escapeshellarg('8000'), escapeshellarg($cwd), escapeshellarg($cwd))],
+    ]);
+
+    $this->mockSleep();
+
+    $fp = fopen('php://memory', 'r');
+    $this->assertNotFalse($fp);
+    $this->registerMock('fsockopen', 'DrevOps\\Eddy\\DevTools', fn() => $fp);
+    $this->registerMock('fclose', 'DrevOps\\Eddy\\DevTools', fn(): true => TRUE);
+
+    $context = stream_context_create();
+    $this->registerMock('stream_context_create', 'DrevOps\\Eddy\\DevTools', fn() => $context);
+    $this->registerMock('get_headers', 'DrevOps\\Eddy\\DevTools', fn(): array => ['HTTP/1.1 200 OK']);
+
+    $this->mockCommandAvailable('cloudflared', TRUE);
+    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\DevTools', function (string $command) use ($tunnel_url): string {
+      if (!str_starts_with($command, 'nohup cloudflared tunnel --url ')) {
+        throw new \RuntimeException(sprintf('shell_exec() called with unexpected command "%s".', $command));
+      }
+
+      file_put_contents('.logs/cloudflared.log', 'INF |  ' . $tunnel_url . '  |' . PHP_EOL);
+
+      return "4242\n";
+    });
+
+    ob_start();
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
+    $output = (string) ob_get_clean();
+
+    $served = strpos($output, 'Server can serve content');
+    $tunnel = strpos($output, 'Tunnel started at ' . $tunnel_url . '.');
+    $ready = strpos($output, 'ENVIRONMENT READY');
+    $this->assertIsInt($served);
+    $this->assertIsInt($tunnel);
+    $this->assertIsInt($ready);
+    $this->assertGreaterThan($served, $tunnel, 'The tunnel starts once the server serves content.');
+    $this->assertGreaterThan($tunnel, $ready);
+    $this->assertStringContainsString('URL       : ' . $tunnel_url, $output);
+    $this->assertSame("WEBSERVER_PORT=8000\nCLOUDFLARE_TUNNEL=1\nTUNNEL_URL=" . $tunnel_url . "\n", file_get_contents('.env'));
+
+    fclose($fp);
+  }
+
+  public function testStartSkipsTunnelWithoutCloudflared(): void {
+    $this->envSet('CLOUDFLARE_TUNNEL', '1');
+    $this->envSet('WEBSERVER_PORT', '8000');
+    $cwd = '/test/project';
+
+    $this->registerMock('getcwd', 'DrevOps\\Eddy\\DevTools', fn(): string => $cwd);
+
+    $this->mockPassthruMultiple([
+      ['cmd' => "lsof -ti:'8000' 2>/dev/null | xargs kill -9 2>/dev/null"],
+      ['cmd' => sprintf('nohup php -S %s:%s -t %s/build/web %s/build/web/.ht.router.php >/tmp/php.log 2>&1 &', escapeshellarg('localhost'), escapeshellarg('8000'), escapeshellarg($cwd), escapeshellarg($cwd))],
+    ]);
+
+    $this->mockSleep();
+
+    $fp = fopen('php://memory', 'r');
+    $this->assertNotFalse($fp);
+    $this->registerMock('fsockopen', 'DrevOps\\Eddy\\DevTools', fn() => $fp);
+    $this->registerMock('fclose', 'DrevOps\\Eddy\\DevTools', fn(): true => TRUE);
+
+    $context = stream_context_create();
+    $this->registerMock('stream_context_create', 'DrevOps\\Eddy\\DevTools', fn() => $context);
+    $this->registerMock('get_headers', 'DrevOps\\Eddy\\DevTools', fn(): array => ['HTTP/1.1 200 OK']);
+
+    $this->mockCommandAvailable('cloudflared', FALSE);
+
+    ob_start();
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
+    $output = (string) ob_get_clean();
+
+    $this->assertStringContainsString('cloudflared is not on PATH; skipping the tunnel.', $output);
+    $this->assertStringContainsString('ENVIRONMENT READY', $output);
+    $this->assertStringContainsString('URL       : http://localhost:8000', $output);
 
     fclose($fp);
   }

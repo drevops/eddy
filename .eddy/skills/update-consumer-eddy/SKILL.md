@@ -48,7 +48,7 @@ Read the project to determine the init.php answers:
 5. **Command wrapper**: `ahoy` if `.ahoy.yml` exists and `makefile` if `Makefile` exists - `ahoy,makefile` when both exist, and an empty string when neither does.
 6. **Drupal versions**: the Drupal majors in the CI matrix - the `drupal-version` values in `.github/workflows/test.yml`, or the `DRUPAL_VERSION` values in `.circleci/config.yml` for a project that still uses CircleCI - as a comma-separated list (e.g. `10,11`).
 7. **Tools**: every tool whose file still exists - `phpcs` (`phpcs.xml`), `phpstan` (`phpstan.neon`), `rector` (`rector.php`), `twigcs` (`.twig-cs-fixer.php`), `eslint` (`.eslintrc.json`), `stylelint` (`.stylelintrc.js`), `cspell` (`.cspell.json`), `jest` (`jest.config.js`), `phpunit` (`phpunit.xml`), `functional_javascript` (a `functional-javascript` test suite in `phpunit.xml`) and `renovate` (`renovate.json`).
-8. **Cloudflare**: `true` if `scripts/start-cloudflared.sh` exists, `false` otherwise.
+8. **Cloudflare** (4.18.0 and 4.19.0 only): `true` if `scripts/start-cloudflared.sh` exists, `false` otherwise. Later releases run the tunnel from the tooling package and do not ask.
 
 Also detect the **default branch** of the repository (not the current checkout):
 
@@ -139,7 +139,6 @@ EDDY_TYPE='<type>' \
 EDDY_DRUPAL_VERSION='<drupal_version>' \
 EDDY_COMMAND_WRAPPER='<command_wrapper>' \
 EDDY_TOOLS='<tools>' \
-EDDY_CLOUDFLARE=<cloudflare> \
 EDDY_EXAMPLES=false \
 EDDY_REMOVE_SELF=true \
 EDDY_PROCEED=true \
@@ -150,13 +149,13 @@ Wrap every value in single quotes, never double quotes. The values come from the
 
 **Every one of these variables is mandatory.** A prompt with no matching variable is not silently defaulted - it falls through to the interactive input loop and reads `STDIN`, which never returns under automation. Derive each value from the project's detected settings, and run `php init.php --help` for the full list and accepted values if the prompts change in a future release.
 
-The `EDDY_` prefix applies to releases after 4.x. When the tag from Step 2 is a 4.x release, run `php init.php --help` first and use the prefix it lists instead (`DEX_` in 4.19.0, `PROMPTY_` before it). 4.x releases also ask for the CI provider, so pass that variable too, with the value from Step 1.
+The `EDDY_` prefix applies to releases after 4.x. When the tag from Step 2 is a 4.x release, run `php init.php --help` first and use the prefix it lists instead (`DEX_` in 4.19.0, `PROMPTY_` before it). 4.x releases also ask for the CI provider, and 4.18.0 and 4.19.0 whether to keep the Cloudflare tunnel scripts, so pass those variables too, with the values from Step 1.
 
 `EDDY_EXAMPLES=false` drops the scaffold's example lifecycle scripts. Step 7 restores `scripts/` from git straight after, so any hook the project actually tracks comes back untouched.
 
 `<command_wrapper>` accepts a comma-separated list (`ahoy`, `makefile`, or `ahoy,makefile`), or an empty string for neither.
 
-`<drupal_version>` is a comma-separated list of Drupal majors to target (e.g. `11`, `10,11` or `11,12`). `<tools>` is a comma-separated list of the tools to keep - list every tool the project still uses, since anything omitted is removed. `<cloudflare>` is `true` or `false`, and keeps or drops the Cloudflare tunnel scripts.
+`<drupal_version>` is a comma-separated list of Drupal majors to target (e.g. `11`, `10,11` or `11,12`). `<tools>` is a comma-separated list of the tools to keep - list every tool the project still uses, since anything omitted is removed.
 
 ## Step 7: Restore project-specific files from git
 
@@ -169,6 +168,7 @@ git checkout HEAD -- \
   config/ \
   scripts/ \
   ':!scripts/eddy-tooling' \
+  ':!scripts/*-cloudflared.sh' \
   composer.json \
   LICENSE \
   *.module \
@@ -183,7 +183,7 @@ git checkout HEAD -- \
 
 Only restore paths that actually exist in the project - skip any that produce errors.
 
-`scripts/` holds the project's lifecycle hooks, but `scripts/eddy-tooling` is the scaffold's tooling installer, so the exclusion keeps the copy the release just provided.
+`scripts/` holds the project's lifecycle hooks, but `scripts/eddy-tooling` is the scaffold's tooling installer, so the exclusion keeps the copy the release just provided. The `scripts/*-cloudflared.sh` hooks belong to the scaffold too: 4.18.0 and 4.19.0 ship them, and later releases run the tunnel from the tooling package instead, so a project's old copies never come back.
 
 ## Step 8: Remove the scaffold examples
 
@@ -308,6 +308,7 @@ Push the branch and open a pull request. Use the `/open-pr` skill or create the 
 - Never overwrite project-specific code (src/, tests/, config/, *.module, etc.).
 - After copying workflow files, always verify branch references match the project.
 - A project created before 5.0.0 keeps its build scripts in `.devtools/`. Step 4 removes the directory with the rest of the root and the release ships the scripts as the `drevops/eddy-tooling` package instead, so never restore `.devtools/` or merge changes into it. Customisations a project made there become a lifecycle hook in `scripts/` or a patch for the package in `composer.dev.json`.
+- A project created from 4.18.0 or 4.19.0 can carry the Cloudflare tunnel hooks `scripts/provision-cloudflared.sh`, `scripts/start-cloudflared.sh` and `scripts/stop-cloudflared.sh`. Later releases run the tunnel from the tooling package, so Step 7 never restores the hooks, and a customisation made in them becomes a patch for the package in `composer.dev.json`.
 - Run the full test suite before opening the PR to catch regressions.
 - Prefer `ahoy` or `Makefile` commands over running tools directly. For example, use `ahoy lint` instead of `composer lint`, `ahoy test` instead of `composer test`, `ahoy build` instead of running `vendor/bin/eddy-*` commands manually. Only fall back to direct commands when no `ahoy` or `Makefile` equivalent exists.
 

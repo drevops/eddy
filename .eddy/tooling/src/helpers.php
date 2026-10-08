@@ -185,6 +185,32 @@ function dotenv_write_var(string $key, string $value, string $dotenv_file = '.en
 }
 
 /**
+ * Remove a variable from a dotenv-style file.
+ *
+ * Every assignment of the key is removed, so dotenv_read() no longer returns
+ * it. Comments, blank lines and other variables keep their order. A missing
+ * file, or one that does not assign the key, is left untouched.
+ *
+ * @param string $key
+ *   Variable name to remove.
+ * @param string $dotenv_file
+ *   Path to the dotenv file.
+ */
+function dotenv_unset_var(string $key, string $dotenv_file = '.env'): void {
+  $contents = file_exists($dotenv_file) ? (string) file_get_contents($dotenv_file) : '';
+  $lines = preg_split('/\r\n|\r|\n/', $contents) ?: [];
+  $kept = preg_grep('/^\s*' . preg_quote($key, '/') . '\s*=/', $lines, PREG_GREP_INVERT) ?: [];
+
+  if (count($kept) === count($lines)) {
+    return;
+  }
+
+  if (file_put_contents($dotenv_file, implode(PHP_EOL, $kept)) === FALSE) {
+    FAIL('Unable to write %s', $dotenv_file);
+  }
+}
+
+/**
  * Resolve an environment value from env, then dotenv, then default.
  *
  * Mirrors the precedence chain used by the start, stop, provision, and
@@ -1081,6 +1107,299 @@ function link_browser_output(string $webroot, string $logs_dir): void {
   }
 
   symlink($target, $link);
+}
+
+const TUNNEL_PID_FILE = '.logs/cloudflared.pid';
+
+const TUNNEL_LOG_FILE = '.logs/cloudflared.log';
+
+// 'cloudflared' logs 'https://api.trycloudflare.com' when the request that
+// creates a quick tunnel fails, so that host is excluded.
+const TUNNEL_URL_PATTERN = 'https://(?!api\.)[a-z0-9-]+\.trycloudflare\.com';
+
+/**
+ * Check whether the Cloudflare quick tunnel is enabled.
+ *
+ * Resolves CLOUDFLARE_TUNNEL via the env -> '.env' chain. An empty value and
+ * '0', 'false', 'no' and 'off', in any letter case, disable the tunnel.
+ *
+ * @return bool
+ *   TRUE when the tunnel is enabled.
+ */
+function tunnel_enabled(): bool {
+  $value = strtolower(trim(resolve_env_value('CLOUDFLARE_TUNNEL', '')['value']));
+
+  return !in_array($value, ['', '0', 'false', 'no', 'off'], TRUE);
+}
+
+/**
+ * Expose the webserver through a Cloudflare quick tunnel.
+ *
+ * A running tunnel is reused while its URL responds. Otherwise a new tunnel
+ * is started and its public URL is written to '.env' as TUNNEL_URL. A missing
+ * 'cloudflared' binary, a launch without a PID or a tunnel that publishes no
+ * URL is reported without failing, so the webserver stays available locally.
+ *
+ * @param string $port
+ *   The webserver port the tunnel forwards to.
+ */
+function tunnel_start(string $port): void {
+  TASK('Starting the Cloudflare quick tunnel.');
+
+  $pid = tunnel_pid();
+
+  if ($pid !== NULL) {
+    $url = tunnel_log_url();
+
+    // A quick tunnel can lose its edge connection while 'cloudflared' keeps
+    // running, so a live process does not prove a reachable URL.
+    if ($url !== '' && tunnel_forwards_to($pid, $port) && tunnel_responds($url)) {
+      dotenv_write_var('TUNNEL_URL', $url);
+      PASS('Reusing the tunnel at %s.', $url);
+
+      return;
+    }
+
+    NOTE('The running tunnel cannot be reused; stopping it.');
+    tunnel_kill($pid);
+  }
+
+  if (command_path('cloudflared') === FALSE) {
+    // A previous tunnel's URL would otherwise be reported as the site URL.
+    tunnel_forget();
+    NOTE('cloudflared is not on PATH; skipping the tunnel.');
+
+    return;
+  }
+
+  if (!is_dir(dirname(TUNNEL_LOG_FILE))) {
+    mkdir(dirname(TUNNEL_LOG_FILE), 0755, TRUE);
+  }
+
+  // Empty the log before the new process starts, so the URL of the previous
+  // tunnel cannot be read back as the new one.
+  file_put_contents(TUNNEL_LOG_FILE, '');
+
+  $pid = (int) trim((string) shell_exec(sprintf('nohup cloudflared tunnel --url %s --no-autoupdate >%s 2>&1 & echo $!', escapeshellarg('http://localhost:' . $port), escapeshellarg(TUNNEL_LOG_FILE))));
+
+  if ($pid < 1) {
+    tunnel_forget();
+    NOTE('Unable to read the cloudflared PID; see %s. Continuing without the tunnel.', TUNNEL_LOG_FILE);
+
+    return;
+  }
+
+  file_put_contents(TUNNEL_PID_FILE, $pid . PHP_EOL);
+
+  NOTE('Waiting for the tunnel URL.');
+  $url = '';
+
+  for ($i = 0; $i < 30; $i++) {
+    $url = tunnel_log_url();
+
+    if ($url !== '') {
+      break;
+    }
+
+    sleep(1);
+  }
+
+  if ($url === '') {
+    tunnel_kill($pid);
+    tunnel_forget();
+    NOTE('The tunnel published no URL; see %s. Continuing without the tunnel.', TUNNEL_LOG_FILE);
+
+    return;
+  }
+
+  dotenv_write_var('TUNNEL_URL', $url);
+  PASS('Tunnel started at %s.', $url);
+}
+
+/**
+ * Stop the Cloudflare quick tunnel and forget its URL.
+ *
+ * Runs whether or not the tunnel is enabled, so a tunnel started before it
+ * was disabled is still stopped.
+ */
+function tunnel_stop(): void {
+  $pid = tunnel_pid();
+
+  if ($pid !== NULL) {
+    TASK('Stopping the Cloudflare quick tunnel.');
+    tunnel_kill($pid);
+
+    // 'cloudflared' drains open requests before it exits, so wait up to 3
+    // seconds for it.
+    for ($i = 0; $i < 3; $i++) {
+      $exit_code = 0;
+      passthru(sprintf('kill -0 %d >/dev/null 2>&1', $pid), $exit_code);
+
+      if ($exit_code !== 0) {
+        break;
+      }
+
+      sleep(1);
+    }
+
+    PASS('Tunnel stopped.');
+  }
+
+  tunnel_forget();
+}
+
+/**
+ * Add the settings Drupal needs to serve the site through the tunnel.
+ *
+ * The reverse-proxy settings make Drupal trust the X-Forwarded-* headers that
+ * 'cloudflared' sends from the local host, so it detects HTTPS. The
+ * trusted-host patterns accept the '*.trycloudflare.com' host and the local
+ * webserver hosts, because Drupal rejects every host that no pattern matches
+ * once any pattern is set. The settings are appended to 'settings.php' once.
+ *
+ * @param string $settings_file
+ *   The path to the site's 'settings.php'.
+ */
+function tunnel_write_settings(string $settings_file): void {
+  if (!is_file($settings_file)) {
+    NOTE('%s not found; skipping the tunnel settings.', $settings_file);
+
+    return;
+  }
+
+  $marker = '# Cloudflare quick tunnel settings.';
+
+  if (str_contains((string) file_get_contents($settings_file), $marker)) {
+    return;
+  }
+
+  TASK('Adding the tunnel settings to %s.', $settings_file);
+
+  $settings = <<<'PHP'
+$settings['reverse_proxy'] = TRUE;
+$settings['reverse_proxy_addresses'] = ['127.0.0.1', '::1'];
+$settings['trusted_host_patterns'][] = '^[a-z0-9-]+\.trycloudflare\.com$';
+$settings['trusted_host_patterns'][] = '^localhost$';
+$settings['trusted_host_patterns'][] = '^127\.0\.0\.1$';
+$settings['trusted_host_patterns'][] = '^0\.0\.0\.0$';
+PHP;
+
+  // The installer leaves 'settings.php' read-only.
+  $mode = fileperms($settings_file) ?: 0644;
+  chmod($settings_file, ($mode & 0777) | 0200);
+
+  if (file_put_contents($settings_file, PHP_EOL . $marker . PHP_EOL . $settings . PHP_EOL, FILE_APPEND) === FALSE) {
+    FAIL('Unable to write %s.', $settings_file);
+  }
+
+  PASS('Tunnel settings added.');
+}
+
+/**
+ * Get the PID of the running Cloudflare quick tunnel.
+ *
+ * @return int|null
+ *   The PID from the PID file while it belongs to a running 'cloudflared'
+ *   process, or NULL. The process check keeps a recycled PID from being
+ *   signalled.
+ */
+function tunnel_pid(): ?int {
+  $pid = is_file(TUNNEL_PID_FILE) ? trim((string) file_get_contents(TUNNEL_PID_FILE)) : '';
+
+  if (!ctype_digit($pid) || (int) $pid < 1) {
+    return NULL;
+  }
+
+  return str_contains(tunnel_command((int) $pid), 'cloudflared') ? (int) $pid : NULL;
+}
+
+/**
+ * Check whether a tunnel process forwards to a webserver port.
+ *
+ * @param int $pid
+ *   The tunnel process ID.
+ * @param string $port
+ *   The webserver port.
+ *
+ * @return bool
+ *   TRUE when the process was started with '--url http://localhost:<port>'.
+ */
+function tunnel_forwards_to(int $pid, string $port): bool {
+  return preg_match('#--url http://localhost:' . preg_quote($port, '#') . '(?:\s|$)#', tunnel_command($pid)) === 1;
+}
+
+/**
+ * Get the command line of a process.
+ *
+ * @param int $pid
+ *   The process ID.
+ *
+ * @return string
+ *   The command line, or an empty string when no such process runs.
+ */
+function tunnel_command(int $pid): string {
+  return trim((string) shell_exec(sprintf('ps -p %d -o command= 2>/dev/null', $pid)));
+}
+
+/**
+ * Get the public URL that the tunnel wrote to its log.
+ *
+ * @return string
+ *   The quick tunnel URL, or an empty string while the log holds none.
+ */
+function tunnel_log_url(): string {
+  $log = is_file(TUNNEL_LOG_FILE) ? (string) file_get_contents(TUNNEL_LOG_FILE) : '';
+
+  return preg_match('#' . TUNNEL_URL_PATTERN . '#', $log, $matches) === 1 ? $matches[0] : '';
+}
+
+/**
+ * Check whether a tunnel URL answers.
+ *
+ * @param string $url
+ *   The tunnel URL.
+ *
+ * @return bool
+ *   TRUE when the URL answers with a status below 400. Redirects are not
+ *   followed.
+ */
+function tunnel_responds(string $url): bool {
+  $options = ['method' => 'HEAD', 'timeout' => 5, 'ignore_errors' => TRUE, 'follow_location' => 0];
+  $headers = @get_headers($url, FALSE, stream_context_create(['http' => $options]));
+
+  return is_array($headers) && preg_match('#^HTTP/\S+\s+[1-3]\d\d\b#', $headers[0] ?? '') === 1;
+}
+
+/**
+ * Terminate a tunnel process with 'kill'.
+ *
+ * A process ID below 1 is ignored, because 'kill' signals a whole process
+ * group for 0 and negative IDs.
+ *
+ * @param int $pid
+ *   The process ID.
+ */
+function tunnel_kill(int $pid): void {
+  if ($pid < 1) {
+    return;
+  }
+
+  passthru(sprintf('kill %d >/dev/null 2>&1', $pid));
+}
+
+/**
+ * Remove the tunnel's PID file and its URL from '.env'.
+ *
+ * A TUNNEL_URL that another tunnel tool wrote is kept.
+ */
+function tunnel_forget(): void {
+  if (is_file(TUNNEL_PID_FILE)) {
+    unlink(TUNNEL_PID_FILE);
+  }
+
+  if (preg_match('#^' . TUNNEL_URL_PATTERN . '$#', dotenv_read()['TUNNEL_URL'] ?? '') === 1) {
+    dotenv_unset_var('TUNNEL_URL');
+  }
 }
 
 // Never run the real quit() function during tests. This also avoids bleeding
