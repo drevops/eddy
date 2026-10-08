@@ -285,7 +285,15 @@ final class WorkflowsComposerCacheTest extends UnitTestCase {
       $id = $step['id'] ?? NULL;
       $run = $step['run'] ?? NULL;
 
-      if (!is_string($id) || !is_string($run) || !str_contains($run, 'GITHUB_OUTPUT')) {
+      if (!is_string($id)) {
+        continue;
+      }
+
+      if (!is_string($run)) {
+        continue;
+      }
+
+      if (!str_contains($run, 'GITHUB_OUTPUT')) {
         continue;
       }
 
