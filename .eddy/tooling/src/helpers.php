@@ -1159,14 +1159,14 @@ function tunnel_start(string $port): void {
 
     // A quick tunnel can lose its edge connection while 'cloudflared' keeps
     // running, so a live process does not prove a reachable URL.
-    if ($url !== '' && tunnel_responds($url)) {
+    if ($url !== '' && tunnel_forwards_to($pid, $port) && tunnel_responds($url)) {
       dotenv_write_var('TUNNEL_URL', $url);
       PASS('Reusing the tunnel at %s.', $url);
 
       return;
     }
 
-    NOTE('The running tunnel does not respond; restarting it.');
+    NOTE('The running tunnel cannot be reused; restarting it.');
     tunnel_kill($pid);
   }
 
@@ -1300,9 +1300,35 @@ function tunnel_pid(): ?int {
     return NULL;
   }
 
-  $command = (string) shell_exec(sprintf('ps -p %d -o command= 2>/dev/null', (int) $pid));
+  return str_contains(tunnel_command((int) $pid), 'cloudflared') ? (int) $pid : NULL;
+}
 
-  return str_contains($command, 'cloudflared') ? (int) $pid : NULL;
+/**
+ * Check whether a tunnel process forwards to a webserver port.
+ *
+ * @param int $pid
+ *   The tunnel process ID.
+ * @param string $port
+ *   The webserver port.
+ *
+ * @return bool
+ *   TRUE when the process was started with '--url http://localhost:<port>'.
+ */
+function tunnel_forwards_to(int $pid, string $port): bool {
+  return preg_match('#--url http://localhost:' . preg_quote($port, '#') . '(?:\s|$)#', tunnel_command($pid)) === 1;
+}
+
+/**
+ * Get the command line of a process.
+ *
+ * @param int $pid
+ *   The process ID.
+ *
+ * @return string
+ *   The command line, or an empty string when no such process runs.
+ */
+function tunnel_command(int $pid): string {
+  return trim((string) shell_exec(sprintf('ps -p %d -o command= 2>/dev/null', $pid)));
 }
 
 /**

@@ -29,6 +29,8 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[CoversFunction('DrevOps\Eddy\DevTools\tunnel_stop')]
 #[CoversFunction('DrevOps\Eddy\DevTools\tunnel_write_settings')]
 #[CoversFunction('DrevOps\Eddy\DevTools\tunnel_pid')]
+#[CoversFunction('DrevOps\Eddy\DevTools\tunnel_forwards_to')]
+#[CoversFunction('DrevOps\Eddy\DevTools\tunnel_command')]
 #[CoversFunction('DrevOps\Eddy\DevTools\tunnel_log_url')]
 #[CoversFunction('DrevOps\Eddy\DevTools\tunnel_responds')]
 #[CoversFunction('DrevOps\Eddy\DevTools\tunnel_kill')]
@@ -233,7 +235,7 @@ final class HelpersTunnelTest extends UnitTestCase {
       $this->assertSame('TUNNEL_URL=' . self::URL . "\n", file_get_contents('.env'));
     }
     else {
-      $this->assertStringContainsString('The running tunnel does not respond; restarting it.', $output);
+      $this->assertStringContainsString('The running tunnel cannot be reused; restarting it.', $output);
       $this->assertStringContainsString('Tunnel started at ' . self::NEW_URL . '.', $output);
       $this->assertSame("5151\n", file_get_contents('.logs/cloudflared.pid'));
       $this->assertSame('TUNNEL_URL=' . self::NEW_URL . "\n", file_get_contents('.env'));
@@ -264,9 +266,35 @@ final class HelpersTunnelTest extends UnitTestCase {
 
     $output = $this->capture(static fn() => tunnel_start('8000'));
 
-    $this->assertStringContainsString('The running tunnel does not respond; restarting it.', $output);
+    $this->assertStringContainsString('The running tunnel cannot be reused; restarting it.', $output);
     $this->assertStringContainsString('Tunnel started at ' . self::NEW_URL . '.', $output);
     $this->assertSame("5151\n", file_get_contents('.logs/cloudflared.pid'));
+  }
+
+  #[DataProvider('dataProviderTunnelStartRestartsTunnelForAnotherPort')]
+  public function testTunnelStartRestartsTunnelForAnotherPort(string $command): void {
+    mkdir('.logs');
+    file_put_contents('.logs/cloudflared.pid', "4242\n");
+    file_put_contents('.logs/cloudflared.log', self::banner(self::URL));
+    $this->mockCommandAvailable('cloudflared', TRUE);
+    $this->mockShellExec([self::PS => $command, self::LAUNCH => "5151\n"], self::banner(self::NEW_URL));
+    $this->mockPassthru(['cmd' => 'kill 4242 >/dev/null 2>&1']);
+    // The URL can answer for whatever listens on the other port now.
+    $this->registerMock('get_headers', 'DrevOps\\Eddy\\DevTools', function (): never {
+      throw new \RuntimeException('A tunnel to another port must not be requested.');
+    });
+
+    $output = $this->capture(static fn() => tunnel_start('8000'));
+
+    $this->assertStringContainsString('The running tunnel cannot be reused; restarting it.', $output);
+    $this->assertStringContainsString('Tunnel started at ' . self::NEW_URL . '.', $output);
+    $this->assertSame("5151\n", file_get_contents('.logs/cloudflared.pid'));
+    $this->assertSame('TUNNEL_URL=' . self::NEW_URL . "\n", file_get_contents('.env'));
+  }
+
+  public static function dataProviderTunnelStartRestartsTunnelForAnotherPort(): \Iterator {
+    yield 'another port' => ["cloudflared tunnel --url http://localhost:9000 --no-autoupdate\n"];
+    yield 'a port starting with the same digits' => ["cloudflared tunnel --url http://localhost:80001 --no-autoupdate\n"];
   }
 
   public function testTunnelStartIgnoresRecycledPid(): void {
