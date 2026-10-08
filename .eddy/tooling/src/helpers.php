@@ -1137,20 +1137,14 @@ function tunnel_enabled(): bool {
  *
  * A running tunnel is reused while its URL responds. Otherwise a new tunnel
  * is started and its public URL is written to '.env' as TUNNEL_URL. A missing
- * 'cloudflared' binary or a tunnel that publishes no URL is reported without
- * failing, so the webserver stays available locally.
+ * 'cloudflared' binary, a launch without a PID or a tunnel that publishes no
+ * URL is reported without failing, so the webserver stays available locally.
  *
  * @param string $port
  *   The webserver port the tunnel forwards to.
  */
 function tunnel_start(string $port): void {
   TASK('Starting the Cloudflare quick tunnel.');
-
-  if (command_path('cloudflared') === FALSE) {
-    NOTE('cloudflared is not on PATH; skipping the tunnel.');
-
-    return;
-  }
 
   $pid = tunnel_pid();
 
@@ -1166,8 +1160,16 @@ function tunnel_start(string $port): void {
       return;
     }
 
-    NOTE('The running tunnel cannot be reused; restarting it.');
+    NOTE('The running tunnel cannot be reused; stopping it.');
     tunnel_kill($pid);
+  }
+
+  if (command_path('cloudflared') === FALSE) {
+    // A previous tunnel's URL would otherwise be reported as the site URL.
+    tunnel_forget();
+    NOTE('cloudflared is not on PATH; skipping the tunnel.');
+
+    return;
   }
 
   if (!is_dir(dirname(TUNNEL_LOG_FILE))) {
@@ -1179,6 +1181,14 @@ function tunnel_start(string $port): void {
   file_put_contents(TUNNEL_LOG_FILE, '');
 
   $pid = (int) trim((string) shell_exec(sprintf('nohup cloudflared tunnel --url %s --no-autoupdate >%s 2>&1 & echo $!', escapeshellarg('http://localhost:' . $port), escapeshellarg(TUNNEL_LOG_FILE))));
+
+  if ($pid < 1) {
+    tunnel_forget();
+    NOTE('Unable to read the cloudflared PID; see %s. Continuing without the tunnel.', TUNNEL_LOG_FILE);
+
+    return;
+  }
+
   file_put_contents(TUNNEL_PID_FILE, $pid . PHP_EOL);
 
   NOTE('Waiting for the tunnel URL.');

@@ -114,6 +114,52 @@ final class HelpersTunnelTest extends UnitTestCase {
     $this->assertDirectoryDoesNotExist('.logs');
   }
 
+  /**
+   * @param array<int, array{cmd: string}> $kills
+   *   The commands expected to stop the previous tunnel.
+   */
+  #[DataProvider('dataProviderTunnelStartWithoutCloudflaredForgetsTunnel')]
+  public function testTunnelStartWithoutCloudflaredForgetsTunnel(string $command, array $kills): void {
+    mkdir('.logs');
+    file_put_contents('.logs/cloudflared.pid', "4242\n");
+    file_put_contents('.logs/cloudflared.log', self::banner(self::URL));
+    file_put_contents('.env', 'TUNNEL_URL=' . self::URL . "\nOTHER=1\n");
+    $this->mockCommandAvailable('cloudflared', FALSE);
+    $this->mockShellExec([self::PS => $command]);
+    $this->registerMock('get_headers', 'DrevOps\\Eddy\\DevTools', fn(): false => FALSE);
+    $this->mockPassthruMultiple($kills);
+
+    $output = $this->capture(static fn() => tunnel_start('8000'));
+
+    $this->assertStringContainsString('cloudflared is not on PATH; skipping the tunnel.', $output);
+    $this->assertFileDoesNotExist('.logs/cloudflared.pid');
+    $this->assertSame("OTHER=1\n", file_get_contents('.env'));
+  }
+
+  public static function dataProviderTunnelStartWithoutCloudflaredForgetsTunnel(): \Iterator {
+    yield 'exited tunnel' => ['', []];
+    yield 'unreachable tunnel' => ["cloudflared tunnel --url http://localhost:8000 --no-autoupdate\n", [['cmd' => 'kill 4242 >/dev/null 2>&1']]];
+  }
+
+  public function testTunnelStartWithoutCloudflaredReusesRunningTunnel(): void {
+    mkdir('.logs');
+    file_put_contents('.logs/cloudflared.pid', "4242\n");
+    file_put_contents('.logs/cloudflared.log', self::banner(self::URL));
+    // A running tunnel needs no binary to be reused, for example after PATH
+    // changed.
+    $this->mockCommandAvailable('cloudflared', FALSE);
+    $this->mockShellExec([self::PS => "cloudflared tunnel --url http://localhost:8000 --no-autoupdate\n"]);
+    $this->registerMock('get_headers', 'DrevOps\\Eddy\\DevTools', fn(): array => ['HTTP/1.1 200 OK']);
+    $this->mockPassthruNever();
+
+    $output = $this->capture(static fn() => tunnel_start('8000'));
+
+    $this->assertStringContainsString('Reusing the tunnel at ' . self::URL . '.', $output);
+    $this->assertStringNotContainsString('not on PATH', $output);
+    $this->assertSame("4242\n", file_get_contents('.logs/cloudflared.pid'));
+    $this->assertSame('TUNNEL_URL=' . self::URL . "\n", file_get_contents('.env'));
+  }
+
   public function testTunnelStartStartsTunnel(): void {
     file_put_contents('.env', "WEBSERVER_PORT=8000\n");
     $this->mockCommandAvailable('cloudflared', TRUE);
@@ -185,6 +231,7 @@ final class HelpersTunnelTest extends UnitTestCase {
   }
 
   public function testTunnelStartWithoutPid(): void {
+    file_put_contents('.env', 'TUNNEL_URL=' . self::URL . "\n");
     $this->mockCommandAvailable('cloudflared', TRUE);
     $this->mockShellExec([self::LAUNCH => NULL]);
     // 'kill 0' would signal this process group, so nothing may be killed.
@@ -194,9 +241,11 @@ final class HelpersTunnelTest extends UnitTestCase {
 
     $output = $this->capture(static fn() => tunnel_start('8000'));
 
-    $this->assertStringContainsString('The tunnel published no URL', $output);
-    $this->assertSame(30, $sleeps);
+    $this->assertStringContainsString('Unable to read the cloudflared PID; see .logs/cloudflared.log. Continuing without the tunnel.', $output);
+    $this->assertStringNotContainsString('Waiting for the tunnel URL.', $output);
+    $this->assertSame(0, $sleeps);
     $this->assertFileDoesNotExist('.logs/cloudflared.pid');
+    $this->assertSame('', file_get_contents('.env'));
   }
 
   #[DataProvider('dataProviderTunnelStartChecksRunningTunnel')]
@@ -235,7 +284,7 @@ final class HelpersTunnelTest extends UnitTestCase {
       $this->assertSame('TUNNEL_URL=' . self::URL . "\n", file_get_contents('.env'));
     }
     else {
-      $this->assertStringContainsString('The running tunnel cannot be reused; restarting it.', $output);
+      $this->assertStringContainsString('The running tunnel cannot be reused; stopping it.', $output);
       $this->assertStringContainsString('Tunnel started at ' . self::NEW_URL . '.', $output);
       $this->assertSame("5151\n", file_get_contents('.logs/cloudflared.pid'));
       $this->assertSame('TUNNEL_URL=' . self::NEW_URL . "\n", file_get_contents('.env'));
@@ -266,7 +315,7 @@ final class HelpersTunnelTest extends UnitTestCase {
 
     $output = $this->capture(static fn() => tunnel_start('8000'));
 
-    $this->assertStringContainsString('The running tunnel cannot be reused; restarting it.', $output);
+    $this->assertStringContainsString('The running tunnel cannot be reused; stopping it.', $output);
     $this->assertStringContainsString('Tunnel started at ' . self::NEW_URL . '.', $output);
     $this->assertSame("5151\n", file_get_contents('.logs/cloudflared.pid'));
   }
@@ -286,7 +335,7 @@ final class HelpersTunnelTest extends UnitTestCase {
 
     $output = $this->capture(static fn() => tunnel_start('8000'));
 
-    $this->assertStringContainsString('The running tunnel cannot be reused; restarting it.', $output);
+    $this->assertStringContainsString('The running tunnel cannot be reused; stopping it.', $output);
     $this->assertStringContainsString('Tunnel started at ' . self::NEW_URL . '.', $output);
     $this->assertSame("5151\n", file_get_contents('.logs/cloudflared.pid'));
     $this->assertSame('TUNNEL_URL=' . self::NEW_URL . "\n", file_get_contents('.env'));
@@ -308,7 +357,7 @@ final class HelpersTunnelTest extends UnitTestCase {
 
     $output = $this->capture(static fn() => tunnel_start('8000'));
 
-    $this->assertStringNotContainsString('restarting', $output);
+    $this->assertStringNotContainsString('cannot be reused', $output);
     $this->assertStringContainsString('Tunnel started at ' . self::URL . '.', $output);
     $this->assertSame("5151\n", file_get_contents('.logs/cloudflared.pid'));
   }
