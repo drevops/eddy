@@ -173,9 +173,10 @@ function main(array $argv): void {
  * Define the selectable Drupal major versions.
  *
  * The canonical list of supported majors, used both to build the 'init'
- * prompt and to prune the CI matrix in 'process()'. Extending support takes
- * a new entry here, plus the major's CI corners wrapped in
- * '#;< DRUPAL_<major>' markers.
+ * prompt and to prune deselected majors in 'process()'.
+ *
+ * Extending support takes a new entry here and '#;< DRUPAL_<major>' blocks
+ * wherever the existing majors have them. '.eddy/CLAUDE.md' lists every step.
  *
  * @return non-empty-array<int, string>
  *   Map of major version to its human-readable label. PHP casts the
@@ -294,9 +295,8 @@ function process(string $extension_name, string $extension_machine_name, string 
     throw new \Exception(sprintf('Unsupported Drupal version: %s.', implode(', ', $unsupported_majors)));
   }
 
-  // Prune CI matrix corners for deselected Drupal majors. Each major's corners
-  // are wrapped in '#;< DRUPAL_<major>' markers across the CI files; removing a
-  // major strips those blocks. Markers for kept majors are cleared later by
+  // Strip the '#;< DRUPAL_<major>' blocks of deselected majors from every
+  // project file. Markers for kept majors are cleared later by
   // 'remove_special_comments()'.
   foreach ($supported_majors as $major) {
     if (!in_array($major, $selected_majors, TRUE)) {
@@ -561,11 +561,15 @@ function process_internal(string $extension_name, string $extension_machine_name
 /**
  * Remove deselected development tools from the project.
  *
- * Each tool's lines across the wrapper, CI, and configuration files are
- * wrapped in '#;< DEV_<TOOL> ... #;> DEV_<TOOL>' markers; removing a tool
- * strips those blocks, deletes its config files and directories, and drops
- * its dependencies from 'composer.dev.json'. Markers for kept tools are
- * stripped later by 'remove_special_comments()'.
+ * Removing a tool strips its '#;< DEV_<TOOL> ... #;> DEV_<TOOL>' blocks from
+ * every project file. Markers for kept tools are stripped later by
+ * 'remove_special_comments()'.
+ *
+ * It also removes the tool's files, directories and 'composer.dev.json'
+ * entries listed in 'tool_specs()', and its 'package.json' entries listed in
+ * 'npm_specs()'.
+ *
+ * '.eddy/CLAUDE.md' lists the steps for adding a tool.
  *
  * @param array<string> $tools_remove
  *   The machine names of the tools to remove.

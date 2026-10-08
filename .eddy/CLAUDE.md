@@ -2,7 +2,7 @@
 
 Maintenance guide for the Eddy template itself.
 
-This file documents how to regenerate the scaffold's own artefacts (animated README SVGs, the social preview card, snapshot fixtures) and how to run its self-tests. It does **not** apply to consumer projects produced by running `init.php`.
+This file documents how `init.php` prunes the template, how to regenerate the scaffold's own artifacts (animated README SVGs, the social preview card, snapshot fixtures) and how to run its self-tests. It does **not** apply to consumer projects produced by running `init.php`.
 
 ## Layout
 
@@ -10,6 +10,67 @@ This file documents how to regenerate the scaffold's own artefacts (animated REA
 - `.eddy/tests/` - PHPUnit suite that validates the scaffold itself: the `init.php` interactive flow, the tooling commands in `.eddy/tooling/src/` with their installer `scripts/eddy-tooling`, and the resulting project structure. Snapshots live under `.eddy/tests/fixtures/init/`.
 - `.eddy/tooling/` - Source of the `drevops/eddy-tooling` Composer package (the `eddy-*` commands). `scripts/eddy-tooling` installs it into `vendor/` as a symlink in this repository, and `scaffold-publish-tooling.yml` mirrors it to the read-only `drevops/eddy-tooling` repository on every push to `1.x` and to a branch whose name contains `eddy-tooling`. Release tags are created on the mirror by hand - see `CONTRIBUTING.md`.
 - `.eddy/skills/update-consumer-eddy/` - the update skill that consumer projects fetch through the "Updating the scaffold" section of their `AGENTS.md`.
+
+## Template markers
+
+Besides renaming files and replacing placeholders, `init.php` deletes whatever the answers to its prompts rule out: a Drupal major you didn't select, a tool you unchecked, a command wrapper you dropped. Whole files go by name, such as `phpstan.neon` when PHPStan goes. Lines inside the files that stay go through marker blocks.
+
+A block opens with a line holding `#;< TOKEN` and closes with a line holding `#;> TOKEN`, and each marker line uses whatever comment syntax keeps its file valid:
+
+| File                                                                         | Marker line          |
+|------------------------------------------------------------------------------|----------------------|
+| YAML, NEON, `.gitattributes`, `.editorconfig`, shell code blocks in Markdown | `#;< TOKEN`          |
+| Makefile recipe                                                              | `@#;< TOKEN`         |
+| Markdown and XML                                                             | `<!-- #;< TOKEN -->` |
+| PHP                                                                          | `// #;< TOKEN`       |
+
+In a Makefile recipe the `@` stops `make` from echoing the line, and the shell then reads it as a comment.
+
+For each token it strips, `remove_tokens_with_content()` deletes every block of that token, markers included, from every text file in the project. It walks the whole tree apart from `.git`, `.idea`, `vendor` and `node_modules`, so a block works in any file you put it in. Once the pruning is done, `remove_special_comments()` deletes every remaining line that contains `#;`, which clears the markers of the blocks that stayed.
+
+| Token                                               | Stripped when                                |
+|-----------------------------------------------------|----------------------------------------------|
+| `DRUPAL_<major>`, such as `DRUPAL_11`               | The major isn't selected                     |
+| `DEV_<TOOL>`, the `token` of a `tool_specs()` entry | The tool isn't selected                      |
+| `DEV_NODEJS_LINT`                                   | Neither ESLint nor Stylelint is selected     |
+| `DEV_AHOY`, `DEV_MAKEFILE`                          | That command wrapper isn't selected          |
+| `DEV_COMMAND_WRAPPER`                               | No command wrapper is selected               |
+| `DEV_NO_COMMAND_WRAPPER`                            | At least 1 command wrapper is selected       |
+| `META`                                              | Always, since it wraps scaffold-only content |
+
+Dropping PHPUnit drops FunctionalJavascript with it, since those tests run on PHPUnit.
+
+Blocks of different tokens can nest, because `init.php` strips 1 token at a time: a `DEV_FUNCTIONAL_JAVASCRIPT` block inside a `DEV_MAKEFILE` block goes when either token is stripped.
+
+### Rules for a block
+
+A broken block fails quietly. Every file stays valid, and `composer update-snapshots` records the broken output as the new baseline, so these rules matter more than they look:
+
+- **Give each marker a line of its own.** `remove_special_comments()` deletes any line containing `#;`, so content that shares a line with a marker never reaches a generated project, and neither does a `#;` in ordinary content.
+- **Close a block before you open the same token again.** `remove_tokens_with_content()` skips a file that has no `#;> TOKEN` at all, so an unclosed block there ships in full. In a file that does close the token somewhere, the unclosed block runs on to the next `#;> TOKEN` or the end of the file and takes everything in between with it.
+- **Use a token `init.php` strips.** A misspelled or unknown token is never stripped, so its block ships in every generated project, minus the marker lines.
+- **Don't start a token with another token's name.** Markers match as substrings, so stripping `DEV_PHPCS` would also strip a `DEV_PHPCS_FIXER` block.
+- **Wrap a new Drupal major everywhere the other majors are wrapped.** A selected major keeps only the blocks that exist for it, so a missing one leaves a gap, such as a project with Drupal 13 CI jobs but no Drupal 13 badge.
+
+`TemplateMarkersTest` checks all 5 rules across the template.
+
+### Adding a Drupal major
+
+1. In `init.php`, add the major to `drupal_version_options()` and to the `INIT_DRUPAL_VERSION` entry of `print_help()`.
+2. Add a `DRUPAL_<major>` block wherever the existing majors have one. `git grep -n '#;< DRUPAL_'` lists them: today that's the `lint` and `test` matrices in `.github/workflows/test.yml` and the badges in `README.dist.md`.
+3. To have the major start checked, add it to `drupal_version_default()` and update the defaults that `print_help()` and `README.md` name. Then set `extra.eddy.drupal-version` in `composer.dev.json` to the highest major `drupal_version_default()` returns: `InitHelpersTest` fails until they agree.
+4. Review `.eddy/tooling/src/eddy-assemble`. It picks the PHPUnit, `symfony/phpunit-bridge` and Rector constraints by major, and it uses `phpunit.d<major>.xml` in place of `phpunit.xml` when that file exists.
+5. Update `README.md` where it lists the majors (the badges, the CI job table and the branch protection table) and the matrix line in `AGENTS.md`.
+6. Update the expected majors in `InitHelpersTest` and the Drupal data providers in `InitProcessTest`, add a `d<major>_only` dataset to `InitTest`, then regenerate the snapshot fixtures.
+
+### Adding a development tool
+
+1. In `init.php`, add the tool to `$tool_options` in `main()` and to the `INIT_TOOLS` entry of `print_help()`.
+2. Give it a `tool_specs()` entry: its `DEV_<TOOL>` token plus the files, directories and `composer.dev.json` entries that go with it. Its npm packages and scripts, if it has any, go in `npm_specs()`.
+3. Wrap every line you add for the tool in a `DEV_<TOOL>` block, wherever it lands: the command wrappers, `.github/workflows/test.yml`, configuration files such as `.gitattributes` and `.editorconfig`, and the docs in `AGENTS.md`, `README.dist.md` and `CONTRIBUTING.dist.md`. A `CI_IS_<TOOL>_RUNNER` flag in `test.yml` belongs inside the block too, and `CiRunnerVariablesTest` checks it's there.
+4. If the tool runs through the shared `npm run lint` step, add it to the condition in `remove_tools()` that strips `DEV_NODEJS_LINT`, and add its sub-scripts to the `rebuild_npm_chain()` calls in `remove_npm()`.
+5. Document it in `README.md`: the feature list, and the ignore-failure table when its CI step has a `CI_<TOOL>_IGNORE_FAILURE` variable.
+6. Add the tool to `dataProviderProcessRemovesTools()` and `dataProviderProcessRemovesGitattributes()` in `InitProcessTest`. In `InitTest`, add it to every `tools` answer and add a `no_<tool>` dataset, then regenerate the snapshot fixtures.
 
 ## Test groups
 
@@ -41,7 +102,7 @@ All commands run from the repository root. Install dependencies once with `compo
 
 ## Regenerating snapshot fixtures
 
-**HARD RULE - never edit fixtures directly.** Files under `.eddy/tests/fixtures/init/` are generated artefacts. They must always be regenerated with the `update-snapshots` Composer script - run from inside `.eddy/tests` (see below) - after any source change that affects `init.php` output. Hand-editing a fixture risks drift between what the generator would produce and what is checked in - subsequent regenerations would then overwrite the manual edit and the failure mode would only surface in CI.
+**HARD RULE - never edit fixtures directly.** Files under `.eddy/tests/fixtures/init/` are generated artifacts. They must always be regenerated with the `update-snapshots` Composer script - run from inside `.eddy/tests` (see below) - after any source change that affects `init.php` output. Hand-editing a fixture risks drift between what the generator would produce and what is checked in - subsequent regenerations would then overwrite the manual edit and the failure mode would only surface in CI.
 
 `InitTest` runs `init.php` end-to-end and diffs the output against `fixtures/init/_baseline/` plus one fixture directory per dataset (`gha_makefile/`, `theme/`, etc. - see `InitTest::dataProviderInit()`).
 
@@ -68,7 +129,7 @@ This wraps `vendor/bin/update-snapshots` from `alexskrypnyk/snapshot`. It:
 
 After it finishes, `git show --stat` the resulting commit to confirm it touches only the files your change should have affected, then run `composer test -- --filter=InitTest` from inside `.eddy/tests` to confirm everything is green before pushing.
 
-The trait that drives the diff-and-update behaviour is `SnapshotTrait` (see `tearDown()` in `InitTest`); it calls `snapshotUpdateOnFailure()` so a normal `test` run will also rewrite fixtures if you have not used the dedicated `update-snapshots` command.
+The trait that drives the diff-and-update behavior is `SnapshotTrait` (see `tearDown()` in `InitTest`); it calls `snapshotUpdateOnFailure()` so a normal `test` run will also rewrite fixtures if you have not used the dedicated `update-snapshots` command.
 
 ## Regenerating animated SVG assets
 
