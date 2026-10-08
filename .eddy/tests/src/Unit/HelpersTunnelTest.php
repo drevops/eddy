@@ -39,15 +39,15 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class HelpersTunnelTest extends UnitTestCase {
 
-  protected const URL = 'https://seasonal-deck-organisms-sf.trycloudflare.com';
+  protected const string URL = 'https://seasonal-deck-organisms-sf.trycloudflare.com';
 
-  protected const NEW_URL = 'https://quiet-river-stone-xyz.trycloudflare.com';
+  protected const string NEW_URL = 'https://quiet-river-stone-xyz.trycloudflare.com';
 
-  protected const LAUNCH = "nohup cloudflared tunnel --url 'http://localhost:8000' --no-autoupdate >'.logs/cloudflared.log' 2>&1 & echo \$!";
+  protected const string LAUNCH = "nohup cloudflared tunnel --url 'http://localhost:8000' --no-autoupdate >'.logs/cloudflared.log' 2>&1 & echo \$!";
 
-  protected const PS = 'ps -p 4242 -o command= 2>/dev/null';
+  protected const string PS = 'ps -p 4242 -o command= 2>/dev/null';
 
-  protected const API_ERROR = '2026-10-08T00:00:01Z ERR failed to request quick Tunnel: Post "https://api.trycloudflare.com/tunnel": dial tcp: lookup api.trycloudflare.com: no such host' . PHP_EOL;
+  protected const string API_ERROR = '2026-10-08T00:00:01Z ERR failed to request quick Tunnel: Post "https://api.trycloudflare.com/tunnel": dial tcp: lookup api.trycloudflare.com: no such host' . PHP_EOL;
 
   protected string $originalCwd;
 

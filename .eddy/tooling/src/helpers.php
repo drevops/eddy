@@ -1354,8 +1354,8 @@ function tunnel_log_url(): string {
  *   followed.
  */
 function tunnel_responds(string $url): bool {
-  $context = stream_context_create(['http' => ['method' => 'HEAD', 'timeout' => 5, 'ignore_errors' => TRUE, 'follow_location' => 0]]);
-  $headers = @get_headers($url, FALSE, $context);
+  $options = ['method' => 'HEAD', 'timeout' => 5, 'ignore_errors' => TRUE, 'follow_location' => 0];
+  $headers = @get_headers($url, FALSE, stream_context_create(['http' => $options]));
 
   return is_array($headers) && preg_match('#^HTTP/\S+\s+[1-3]\d\d\b#', $headers[0] ?? '') === 1;
 }
