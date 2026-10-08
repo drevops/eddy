@@ -57,9 +57,7 @@ TASK('Stopping previously started services, if any.');
 kill_port($webserver_port);
 
 TASK('Starting the PHP webserver.');
-if (!is_dir(dirname($webserver_log))) {
-  mkdir(dirname($webserver_log), 0755, TRUE);
-}
+mkdir_or_fail(dirname($webserver_log));
 $cwd = (string) getcwd();
 passthru(sprintf('nohup php%s -S %s:%s -t %s/build/web %s/build/web/.ht.router.php >%s 2>&1 &', $xdebug_flags, escapeshellarg($webserver_host), escapeshellarg($webserver_port), escapeshellarg($cwd), escapeshellarg($cwd), escapeshellarg($webserver_log)));
 

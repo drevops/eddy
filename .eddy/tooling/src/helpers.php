@@ -1085,6 +1085,21 @@ function chmod_recursive(string $dir, int $mode): void {
 }
 
 /**
+ * Create a directory, failing when it cannot be created.
+ *
+ * A directory that already exists, or that another process creates
+ * concurrently, counts as created.
+ *
+ * @param string $dir
+ *   The directory path.
+ */
+function mkdir_or_fail(string $dir): void {
+  if (!@mkdir($dir, 0755, TRUE) && !is_dir($dir)) {
+    FAIL('Unable to create directory %s.', $dir);
+  }
+}
+
+/**
  * Redirect Drupal's browser test output directory into the logs directory.
  *
  * Drupal writes functional test HTML dumps - and, for JavaScript tests,

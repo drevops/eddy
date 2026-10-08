@@ -162,6 +162,35 @@ final class StartTest extends UnitTestCase {
     fclose($fp);
   }
 
+  public function testStartFailsWhenLogsDirectoryCannotBeCreated(): void {
+    $project_dir = self::$tmp . '/start_logs_file_' . uniqid();
+    mkdir($project_dir, 0755, TRUE);
+    chdir($project_dir);
+    file_put_contents('.logs', '');
+
+    $this->envSet('WEBSERVER_PORT', '8000');
+
+    // Only the port is freed: the server is not launched without its log
+    // directory.
+    $this->mockPassthru(['cmd' => "lsof -ti:'8000' 2>/dev/null | xargs kill -9 2>/dev/null"]);
+    $this->mockQuit(1);
+
+    ob_start();
+    try {
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
+      $this->fail('Expected QuitErrorException to be thrown.');
+    }
+    catch (QuitErrorException $e) {
+      $this->assertSame(1, $e->getCode());
+    }
+    finally {
+      $output = (string) ob_get_clean();
+    }
+
+    $this->assertStringContainsString('Unable to create directory .logs.', $output);
+    $this->assertStringNotContainsString('ENVIRONMENT READY', $output);
+  }
+
   public function testStartFsockopenFailure(): void {
     $this->envSet('WEBSERVER_PORT', '8000');
     $cwd = '/test/project';

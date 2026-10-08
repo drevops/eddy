@@ -99,7 +99,7 @@ function chromedriver_start(string $port): void {
 
   $binary = resolve_chromedriver_binary($chrome_version);
 
-  @mkdir(dirname(CHROMEDRIVER_LOG_FILE), 0755, TRUE);
+  mkdir_or_fail(dirname(CHROMEDRIVER_LOG_FILE));
 
   TASK('Starting chromedriver on port %s.', $port);
   @passthru(sprintf('nohup %s --port=%s >%s 2>&1 &', escapeshellarg($binary), escapeshellarg($port), escapeshellarg(CHROMEDRIVER_LOG_FILE)));
