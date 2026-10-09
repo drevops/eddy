@@ -216,8 +216,8 @@ jobs:
       - name: Check GitHub Actions security with Zizmor
         uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
         with:
-          # The init fixtures hold workflows with placeholder action refs, so
-          # auditing the whole repository reports every ref as unpinned.
+          # The install fixtures hold workflows with placeholder action refs,
+          # so auditing the whole repository reports every ref as unpinned.
           inputs: .github
           config: .eddy/tests/zizmor.yml
         continue-on-error: ${{ vars.CI_ZIZMOR_IGNORE_FAILURE == '1' }}

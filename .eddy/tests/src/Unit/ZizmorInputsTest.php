@@ -11,7 +11,7 @@ use Symfony\Component\Yaml\Yaml;
 /**
  * Tests the paths the Zizmor step of the scaffold workflow audits.
  *
- * Zizmor collects workflows from every directory below an input. The init
+ * Zizmor collects workflows from every directory below an input. The install
  * fixtures hold workflows with placeholder action refs, so an audit that
  * includes them reports every ref as unpinned.
  *
@@ -26,7 +26,7 @@ final class ZizmorInputsTest extends UnitTestCase {
   public function testFixturesAreNotAudited(): void {
     $overlapping = array_filter(self::inputs(), static fn(string $input): bool => self::covers($input, self::FIXTURES) || self::covers(self::FIXTURES, $input));
 
-    $this->assertSame([], $overlapping, sprintf('These Zizmor inputs include the init fixtures in %s: %s', self::FIXTURES, implode(', ', $overlapping)));
+    $this->assertSame([], $overlapping, sprintf('These Zizmor inputs include the install fixtures in %s: %s', self::FIXTURES, implode(', ', $overlapping)));
   }
 
   #[DataProvider('dataProviderWorkflowIsAudited')]

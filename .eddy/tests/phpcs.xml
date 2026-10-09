@@ -24,7 +24,7 @@
     <file>../../.eddy/tooling/src/eddy-qrcode</file>
     <file>../../.eddy/tooling/src/eddy-start</file>
     <file>../../.eddy/tooling/src/eddy-stop</file>
-    <file>../../init.php</file>
+    <file>../../install.php</file>
     <file>../../scripts/eddy-tooling</file>
 
     <!-- Allow long array lines in tests. -->
@@ -43,6 +43,6 @@
 
     <!-- Allow file description in scripts. -->
     <rule ref="Drupal.Commenting.FileComment.NamespaceNoFileDoc">
-        <exclude-pattern>init\.php</exclude-pattern>
+        <exclude-pattern>install\.php</exclude-pattern>
     </rule>
 </ruleset>

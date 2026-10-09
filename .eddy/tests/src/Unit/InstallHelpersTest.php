@@ -25,16 +25,16 @@ use function set_composer_dev_drupal_version;
 use function uncomment_line;
 
 /**
- * Unit tests for helper functions in init.php.
+ * Unit tests for helper functions in install.php.
  */
 #[Group('p0')]
-final class InitHelpersTest extends UnitTestCase {
+final class InstallHelpersTest extends UnitTestCase {
 
   protected string $originalCwd;
 
   public static function setUpBeforeClass(): void {
     putenv('SCRIPT_RUN_SKIP=1');
-    require_once dirname(__DIR__, 4) . '/init.php';
+    require_once dirname(__DIR__, 4) . '/install.php';
     parent::setUpBeforeClass();
   }
 
@@ -113,19 +113,19 @@ final class InitHelpersTest extends UnitTestCase {
     print_help();
     $output = (string) ob_get_clean();
 
-    $this->assertStringContainsString('Eddy - project initialization.', $output);
+    $this->assertStringContainsString('Eddy - project installation.', $output);
     $this->assertStringContainsString('Usage:', $output);
-    $this->assertStringContainsString('init.php', $output);
+    $this->assertStringContainsString('install.php', $output);
     $this->assertStringContainsString('--help', $output);
-    $this->assertStringContainsString('INIT_NAME', $output);
-    $this->assertStringContainsString('INIT_MACHINE_NAME', $output);
-    $this->assertStringContainsString('INIT_TYPE', $output);
-    $this->assertStringContainsString('INIT_DRUPAL_VERSION', $output);
-    $this->assertStringContainsString('INIT_COMMAND_WRAPPER', $output);
-    $this->assertStringContainsString('INIT_TOOLS', $output);
-    $this->assertStringContainsString('INIT_EXAMPLES', $output);
-    $this->assertStringContainsString('INIT_REMOVE_SELF', $output);
-    $this->assertStringContainsString('INIT_PROCEED', $output);
+    $this->assertStringContainsString('INSTALL_NAME', $output);
+    $this->assertStringContainsString('INSTALL_MACHINE_NAME', $output);
+    $this->assertStringContainsString('INSTALL_TYPE', $output);
+    $this->assertStringContainsString('INSTALL_DRUPAL_VERSION', $output);
+    $this->assertStringContainsString('INSTALL_COMMAND_WRAPPER', $output);
+    $this->assertStringContainsString('INSTALL_TOOLS', $output);
+    $this->assertStringContainsString('INSTALL_EXAMPLES', $output);
+    $this->assertStringContainsString('INSTALL_REMOVE_SELF', $output);
+    $this->assertStringContainsString('INSTALL_PROCEED', $output);
   }
 
   /**
@@ -149,7 +149,7 @@ final class InitHelpersTest extends UnitTestCase {
   /**
    * The shipped build default is the highest pre-selected major.
    *
-   * The scaffold then builds what a project initialised with the default
+   * The scaffold then builds what a project installed with the default
    * selection builds.
    */
   public function testDrupalVersionShippedBuildDefault(): void {

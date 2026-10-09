@@ -5,7 +5,7 @@
  * @file
  * Generate animated SVG assets from asciinema recordings.
  *
- * Records the init, build, lint and test sessions in a clean workspace and
+ * Records the install, build, lint and test sessions in a clean workspace and
  * renders each recording as an animated SVG for README.md.
  *
  * A recording is rewritten onto a canonical timeline before it is rendered,
@@ -27,9 +27,9 @@
  * php .eddy/assets/update-assets.php lint
  * @endcode
  *
- * Passing 1 or more asset names (init, build, lint, test) renders only those
- * assets. Every recording up to the last named one still runs, because each
- * recording prepares the workspace for the next.
+ * Passing 1 or more asset names (install, build, lint, test) renders only
+ * those assets. Every recording up to the last named one still runs, because
+ * each recording prepares the workspace for the next.
  */
 
 declare(strict_types=1);
@@ -90,9 +90,9 @@ const END_PAUSE = 3.0;
 /**
  * Get all job definitions, in the order they run.
  *
- * Each recording runs in the workspace the previous ones left: init
- * initializes the extension and build assembles the codebase that lint and
- * test run against.
+ * Each recording runs in the workspace the previous ones left: install sets
+ * up the extension and build assembles the codebase that lint and test run
+ * against.
  *
  * - command: The command typed at the shell prompt.
  * - frames: 'redraws' to cut a frame where a widget redraws, or 'lines' to
@@ -108,10 +108,10 @@ const END_PAUSE = 3.0;
  */
 function get_jobs(): array {
   return [
-    'init' => [
-      'command' => 'php init.php',
+    'install' => [
+      'command' => 'php install.php',
       'frames' => 'redraws',
-      'steps' => init_steps(),
+      'steps' => install_steps(),
       'timeout' => 60,
     ],
     'build' => [
@@ -144,12 +144,12 @@ function get_jobs(): array {
 }
 
 /**
- * Get the expect statements that answer the init prompts.
+ * Get the expect statements that answer the installation prompts.
  *
  * @return string
  *   Expect statements, run after the command is typed.
  */
-function init_steps(): string {
+function install_steps(): string {
   return <<<'EXPECT'
 # Text: Extension name - type "Your Extension".
 expect "Extension name"
@@ -157,8 +157,8 @@ settle
 type_text "Your Extension"
 press "\r"
 
-# Text: Machine name - keep the placeholder, so init.php derives the machine
-# name from the extension name.
+# Text: Machine name - keep the placeholder, so install.php derives the
+# machine name from the extension name.
 expect "Machine name"
 press "\r"
 
@@ -188,7 +188,7 @@ expect "Remove this script"
 press "y"
 press "\r"
 
-# Confirm: Proceed with project init - type "y".
+# Confirm: Proceed with installation - type "y".
 expect "Proceed"
 press "y"
 press "\r"
@@ -199,7 +199,7 @@ EXPECT;
  * Main functionality.
  *
  * @param array<string> $only
- *   Asset names to render (e.g. ['init']). When empty, every asset is
+ *   Asset names to render (e.g. ['install']). When empty, every asset is
  *   rendered.
  */
 function main(array $only = []): void {
@@ -450,7 +450,7 @@ function create_workspace(string $project_dir): string {
 
   $output = shell_exec($cmd);
 
-  if (!file_exists($workspace_dir . '/init.php')) {
+  if (!file_exists($workspace_dir . '/install.php')) {
     throw new \RuntimeException('Failed to export git archive: ' . (is_string($output) ? $output : 'unknown error'));
   }
 

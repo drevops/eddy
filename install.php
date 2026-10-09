@@ -3,18 +3,21 @@
 
 /**
  * @file
- * Adjust project repository based on user input.
+ * Install the template as a new Drupal extension, based on user input.
+ *
+ * It runs once per fresh copy of the template and deletes itself unless the
+ * 'Remove this script' prompt is answered 'no'.
  *
  * Environment variables:
  * - SCRIPT_RUN_SKIP: Set to '1' to skip running of the script. Useful when
  *   unit-testing or requiring this file from other files.
- * - INIT_*: Set environment variables to pre-fill prompts
- *   (e.g. INIT_NAME, INIT_TYPE, INIT_DRUPAL_VERSION).
+ * - INSTALL_*: Set environment variables to pre-fill prompts
+ *   (e.g. INSTALL_NAME, INSTALL_TYPE, INSTALL_DRUPAL_VERSION).
  *
  * Usage:
  * @code
- * php init.php
- * php init.php --help
+ * php install.php
+ * php install.php --help
  * @endcode
  */
 
@@ -75,7 +78,7 @@ function main(array $argv): void {
 
   // The interactive flow uses Prompty, which manipulates terminal state
   // (stty, ANSI escapes, shutdown handlers) when attached to a TTY and is
-  // not suited to in-process unit testing. The functional 'InitTest'
+  // not suited to in-process unit testing. The functional 'InstallTest'
   // exercises this path end-to-end via a subprocess.
   // @codeCoverageIgnoreStart
   // The selectable development tools, all enabled by default.
@@ -123,7 +126,7 @@ function main(array $argv): void {
         description: 'Sample hooks that only print a marker line when each build phase runs. Keep them as a starting point for your own scripts.',
       ),
       'remove_self' => Prompty::confirm('Remove this script'),
-      'proceed' => Prompty::confirm('Proceed with project init'),
+      'proceed' => Prompty::confirm('Proceed with installation'),
     ],
     intro: 'Eddy - Drupal extension scaffold',
     outro: fn(array $r): string => sprintf(
@@ -137,7 +140,7 @@ function main(array $argv): void {
     ),
     cancelled: 'Cancelled.',
     numbering: TRUE,
-    env_prefix: 'INIT_',
+    env_prefix: 'INSTALL_',
   );
 
   if ($results === NULL || !($results['proceed'] ?? FALSE)) {
@@ -172,8 +175,8 @@ function main(array $argv): void {
 /**
  * Define the selectable Drupal major versions.
  *
- * The canonical list of supported majors, used both to build the 'init'
- * prompt and to prune deselected majors in 'process()'.
+ * The canonical list of supported majors, used both to build the
+ * installation prompt and to prune deselected majors in 'process()'.
  *
  * Extending support takes a new entry here and '#;< DRUPAL_<major>' blocks
  * wherever the existing majors have them. '.eddy/CLAUDE.md' lists every step.
@@ -191,7 +194,7 @@ function drupal_version_options(): array {
 }
 
 /**
- * Define the Drupal majors pre-selected in the 'init' prompt.
+ * Define the Drupal majors pre-selected in the installation prompt.
  *
  * A new extension targets current Drupal, so only the newest stable major
  * starts checked; older majors and a pre-release major are opted into. The
@@ -211,8 +214,8 @@ function drupal_version_default(): array {
 function print_help(): void {
   $script_name = basename(__FILE__);
   $out = <<<EOF
-Eddy - project initialization.
-------------------------------
+Eddy - project installation.
+----------------------------
 
 Usage:
   php {$script_name}
@@ -221,29 +224,30 @@ Options:
   --help                This help.
 
 Environment variables (to pre-fill prompts):
-  INIT_NAME            Extension name.
-  INIT_MACHINE_NAME    Extension machine name.
-  INIT_TYPE            Extension type: module or theme.
-  INIT_DRUPAL_VERSION  Target Drupal majors: comma-separated (e.g. 11).
-                       Drupal 11 is targeted by default; CI runs against
-                       every selected major. One or more of: 10, 11, 12.
-  INIT_COMMAND_WRAPPER Command wrapper: ahoy, makefile, or both (comma-separated).
-  INIT_TOOLS           Tools to keep: comma-separated. All are kept by
-                       default; list only the ones to keep to drop the rest.
-                       One or more of: phpcs, phpstan, rector, twigcs, eslint,
-                       stylelint, cspell, jest, phpunit, functional_javascript,
-                       renovate.
-  INIT_EXAMPLES        Keep example lifecycle scripts: true or false. They
-                       are removed by default.
-  INIT_REMOVE_SELF     Remove this script: true or false.
-  INIT_PROCEED         Proceed with init: true or false.
+  INSTALL_NAME            Extension name.
+  INSTALL_MACHINE_NAME    Extension machine name.
+  INSTALL_TYPE            Extension type: module or theme.
+  INSTALL_DRUPAL_VERSION  Target Drupal majors: comma-separated (e.g. 11).
+                          Drupal 11 is targeted by default; CI runs against
+                          every selected major. One or more of: 10, 11, 12.
+  INSTALL_COMMAND_WRAPPER Command wrapper: ahoy, makefile, or both
+                          (comma-separated).
+  INSTALL_TOOLS           Tools to keep: comma-separated. All are kept by
+                          default; list only the ones to keep to drop the rest.
+                          One or more of: phpcs, phpstan, rector, twigcs,
+                          eslint, stylelint, cspell, jest, phpunit,
+                          functional_javascript, renovate.
+  INSTALL_EXAMPLES        Keep example lifecycle scripts: true or false. They
+                          are removed by default.
+  INSTALL_REMOVE_SELF     Remove this script: true or false.
+  INSTALL_PROCEED         Proceed with installation: true or false.
 
 EOF;
   print $out;
 }
 
 /**
- * Process the project initialization.
+ * Process the project installation.
  *
  * @param string $extension_name
  *   The human-readable extension name.

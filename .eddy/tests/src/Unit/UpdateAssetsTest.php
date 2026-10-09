@@ -11,7 +11,7 @@ use function DrevOps\Eddy\Assets\arrival_at;
 use function DrevOps\Eddy\Assets\canonicalize_cast;
 use function DrevOps\Eddy\Assets\create_expect_script;
 use function DrevOps\Eddy\Assets\get_jobs;
-use function DrevOps\Eddy\Assets\init_steps;
+use function DrevOps\Eddy\Assets\install_steps;
 use function DrevOps\Eddy\Assets\join_lines;
 use function DrevOps\Eddy\Assets\path_replacements;
 use function DrevOps\Eddy\Assets\read_cast;
@@ -90,11 +90,11 @@ final class UpdateAssetsTest extends UnitTestCase {
     ];
 
     yield 'redraws, chunking and timing differ within the same steps' => [
-      'php init.php',
+      'php install.php',
       'redraws',
       [
         [0.5, 'o', "\e[?2004h$ "],
-        [2.2, 'o', 'php init.php'],
+        [2.2, 'o', 'php install.php'],
         [1.0, 'o', "\r\r\n\e[?2004l\r"],
         [0.1, 'o', "Name\r\r\n> _\r\r\n"],
         [2.4, 'o', "\e[2A\r\e[JName\r\r\n> a\r\r\n\e[2A\r\e[JName\r\r\n> ab\r\r\n"],
@@ -103,7 +103,7 @@ final class UpdateAssetsTest extends UnitTestCase {
       ],
       [
         [0.6, 'o', "\e[?2004h$ php"],
-        [0.001, 'o', ' init.php'],
+        [0.001, 'o', ' install.php'],
         [1.1, 'o', "\r\r\n"],
         [0.001, 'o', "\e[?2004l\rName\r\r\n"],
         [0.3, 'o', "> _\r\r\n"],
@@ -139,7 +139,7 @@ final class UpdateAssetsTest extends UnitTestCase {
   }
 
   public static function dataProviderCanonicalizeCastIsReproducibleForRecordings(): \Iterator {
-    yield 'init' => ['init'];
+    yield 'install' => ['install'];
     yield 'build' => ['build'];
     yield 'lint' => ['lint'];
     yield 'test' => ['test'];
@@ -499,19 +499,19 @@ final class UpdateAssetsTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderResolveJobs')]
   public function testResolveJobs(array $only, array $run, array $render): void {
-    $this->assertSame(['run' => $run, 'render' => $render], resolve_jobs(['init', 'build', 'lint', 'test'], $only));
+    $this->assertSame(['run' => $run, 'render' => $render], resolve_jobs(['install', 'build', 'lint', 'test'], $only));
   }
 
   public static function dataProviderResolveJobs(): \Iterator {
-    $all = ['init', 'build', 'lint', 'test'];
+    $all = ['install', 'build', 'lint', 'test'];
 
     yield 'all' => [[], $all, $all];
-    yield 'first' => [['init'], ['init'], ['init']];
-    yield 'second' => [['build'], ['init', 'build'], ['build']];
-    yield 'third' => [['lint'], ['init', 'build', 'lint'], ['lint']];
+    yield 'first' => [['install'], ['install'], ['install']];
+    yield 'second' => [['build'], ['install', 'build'], ['build']];
+    yield 'third' => [['lint'], ['install', 'build', 'lint'], ['lint']];
     yield 'last' => [['test'], $all, ['test']];
-    yield 'several, out of order' => [['test', 'init'], $all, ['init', 'test']];
-    yield 'repeated' => [['lint', 'lint'], ['init', 'build', 'lint'], ['lint']];
+    yield 'several, out of order' => [['test', 'install'], $all, ['install', 'test']];
+    yield 'repeated' => [['lint', 'lint'], ['install', 'build', 'lint'], ['lint']];
   }
 
   /**
@@ -523,17 +523,17 @@ final class UpdateAssetsTest extends UnitTestCase {
     $this->expectException(\RuntimeException::class);
     $this->expectExceptionMessage($message);
 
-    resolve_jobs(['init', 'build', 'lint', 'test'], $only);
+    resolve_jobs(['install', 'build', 'lint', 'test'], $only);
   }
 
   public static function dataProviderResolveJobsRejectsUnknownName(): \Iterator {
     yield 'unknown' => [['docs'], 'Unknown asset(s): docs'];
-    yield 'option' => [['--record', 'init'], 'Unknown asset(s): --record'];
-    yield 'several unknown' => [['init', 'docs', 'logo'], 'Unknown asset(s): docs, logo'];
+    yield 'option' => [['--record', 'install'], 'Unknown asset(s): --record'];
+    yield 'several unknown' => [['install', 'docs', 'logo'], 'Unknown asset(s): docs, logo'];
   }
 
   public function testJobsRunInWorkspaceOrder(): void {
-    $this->assertSame(['init', 'build', 'lint', 'test'], array_keys(get_jobs()));
+    $this->assertSame(['install', 'build', 'lint', 'test'], array_keys(get_jobs()));
   }
 
   /**
@@ -581,9 +581,9 @@ final class UpdateAssetsTest extends UnitTestCase {
   }
 
   public static function dataProviderCreateExpectScript(): \Iterator {
-    yield 'init' => [
-      'init',
-      ['set timeout 60', 'type_text {php init.php}', 'expect "Extension name"', 'type_text "Your Extension"', 'expect "Proceed"', 'press "y"'],
+    yield 'install' => [
+      'install',
+      ['set timeout 60', 'type_text {php install.php}', 'expect "Extension name"', 'type_text "Your Extension"', 'expect "Proceed"', 'press "y"'],
       ['set env(CI)', 'set env(WEBSERVER_HOST)'],
     ];
     yield 'build' => [
@@ -603,13 +603,13 @@ final class UpdateAssetsTest extends UnitTestCase {
     ];
   }
 
-  public function testInitStepsAnswerEveryInitPrompt(): void {
-    $init = (string) file_get_contents(dirname(__DIR__, 4) . '/init.php');
-    preg_match_all("/Prompty::(?:text|select|multiselect|confirm)\(\s*'([^']+)'/", $init, $labels);
-    preg_match_all('/^expect "([^"]+)"$/m', init_steps(), $patterns);
+  public function testInstallStepsAnswerEveryInstallPrompt(): void {
+    $install = (string) file_get_contents(dirname(__DIR__, 4) . '/install.php');
+    preg_match_all("/Prompty::(?:text|select|multiselect|confirm)\(\s*'([^']+)'/", $install, $labels);
+    preg_match_all('/^expect "([^"]+)"$/m', install_steps(), $patterns);
 
     $this->assertNotEmpty($labels[1]);
-    $this->assertCount(count($labels[1]), $patterns[1], 'Every init prompt has 1 expect statement, in order.');
+    $this->assertCount(count($labels[1]), $patterns[1], 'Every install prompt has 1 expect statement, in order.');
 
     foreach ($labels[1] as $index => $label) {
       $this->assertStringStartsWith($patterns[1][$index], $label);

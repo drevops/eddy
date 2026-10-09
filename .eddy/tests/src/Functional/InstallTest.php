@@ -10,10 +10,10 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
 /**
- * Functional tests for init.php script.
+ * Functional tests for install.php script.
  */
 #[Group('p1')]
-final class InitTest extends FunctionalTestCase {
+final class InstallTest extends FunctionalTestCase {
 
   use SnapshotTrait;
 
@@ -25,15 +25,15 @@ final class InitTest extends FunctionalTestCase {
       throw new \RuntimeException('Fixtures directory is not set.');
     }
 
-    if (str_contains(self::$fixtures, DIRECTORY_SEPARATOR . 'init' . DIRECTORY_SEPARATOR)) {
+    if (str_contains(self::$fixtures, DIRECTORY_SEPARATOR . 'install' . DIRECTORY_SEPARATOR)) {
       $this->snapshotUpdateOnFailure(self::$fixtures, self::$sut, self::$tmp);
     }
 
     parent::tearDown();
   }
 
-  #[DataProvider('dataProviderInit')]
-  public function testInit(array $answers = []): void {
+  #[DataProvider('dataProviderInstall')]
+  public function testInstall(array $answers = []): void {
     self::$fixtures = static::locationsFixtureDir();
 
     $answers = array_replace(self::defaultAnswers(), $answers);
@@ -41,10 +41,10 @@ final class InitTest extends FunctionalTestCase {
     // Build env vars to pre-fill all prompts.
     $env = [];
     foreach ($answers as $key => $value) {
-      $env['INIT_' . strtoupper((string) $key)] = $value;
+      $env['INSTALL_' . strtoupper((string) $key)] = $value;
     }
 
-    $this->processRun(self::$sut . DIRECTORY_SEPARATOR . 'init.php', [], [], $env);
+    $this->processRun(self::$sut . DIRECTORY_SEPARATOR . 'install.php', [], [], $env);
 
     $this->assertProcessSuccessful();
 
@@ -61,7 +61,7 @@ final class InitTest extends FunctionalTestCase {
     $this->assertSnapshotMatchesBaseline(self::$sut, $baseline, self::$fixtures);
   }
 
-  public static function dataProviderInit(): \Iterator {
+  public static function dataProviderInstall(): \Iterator {
     yield self::BASELINE_DATASET => [
       [],
     ];
