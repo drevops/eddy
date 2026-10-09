@@ -45,4 +45,14 @@
     <rule ref="Drupal.Commenting.FileComment.NamespaceNoFileDoc">
         <exclude-pattern>install\.php</exclude-pattern>
     </rule>
+
+    <!-- Allow a blank line after the section dividers in tooling scripts. -->
+    <rule ref="Drupal.Commenting.InlineComment.SpacingAfter">
+        <exclude-pattern>*/tooling/src/eddy-*</exclude-pattern>
+    </rule>
+
+    <!-- 'eddy-info' is a PHP script, not a Drupal '.info' file. -->
+    <rule ref="Drupal.InfoFiles">
+        <exclude-pattern>*/tooling/src/eddy-info</exclude-pattern>
+    </rule>
 </ruleset>

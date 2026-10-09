@@ -22,6 +22,8 @@ use function DrevOps\Eddy\Assets\session_tail;
 use function DrevOps\Eddy\Assets\split_lines;
 use function DrevOps\Eddy\Assets\split_redraws;
 
+// The sniff reads the 'const' keyword as a global class name.
+// phpcs:disable Drupal.Classes.UseGlobalClass.RedundantUseStatement
 use const DrevOps\Eddy\Assets\END_PAUSE;
 use const DrevOps\Eddy\Assets\FRAME_DELAY;
 use const DrevOps\Eddy\Assets\STEP_DELAY;
