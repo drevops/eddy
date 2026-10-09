@@ -11,6 +11,7 @@ The repository is a working Drupal extension - the demo extension in the project
 - `init.php` - the interactive script that renames, rewrites and prunes the template files for a new project.
 - `scripts/eddy-tooling` - installs the `drevops/eddy-tooling` package, whose commands build, provision and deploy the extension, into `vendor/`. Generated projects get the package from Packagist; this repository installs `.eddy/tooling` as a symlink, so an edit there applies to the next command without a release.
 - `.eddy/` - everything used to develop and test the scaffold itself, including the source of the tooling package. It is removed from generated projects.
+- `.claude/skills/` - the Claude Code skills used to maintain the scaffold, such as `create-eddy-tooling-release-notes`. It is removed from generated projects.
 
 ## Building and testing the demo extension
 
@@ -60,10 +61,12 @@ Changes to the commands go into `.eddy/tooling/`, where the scaffold's own tests
 
 A branch whose name contains `eddy-tooling`, such as `feature/123-eddy-tooling-fix`, is published too, into the mirror branch of the same name. A generated project can then try the change before it merges by requiring that branch in `composer.dev.json`, for example `"drevops/eddy-tooling": "dev-feature/123-eddy-tooling-fix"`. Other branches leave the mirror untouched, and a published branch stays on the mirror until you delete it there.
 
-Releases are tagged on the mirror by hand:
+Releases are created on the mirror by hand:
 
-1. Tag the mirror commit that corresponds to the `1.x` commit you're releasing, for example `1.0.1`. Generated projects require `~1.0.0`, so they pick up a patch release on their next fresh install.
-2. For a new minor version, also raise the constraint in `composer.dev.json` (for example to `~1.1.0`). Generated projects receive it with their next scaffold update.
+1. [Create a release](https://github.com/drevops/eddy-tooling/releases/new) on `drevops/eddy-tooling` in the GitHub UI, with a new tag on `1.x`, for example `1.0.1`. Generated projects require `~1.0.0`, so they pick up a patch release on their next fresh install. Save it as a draft or publish it straight away.
+2. From a clone of this repository, ask Claude Code for the tooling release notes, or run `/create-eddy-tooling-release-notes`. The skill lists the commits that changed `.eddy/tooling/` since the previous release, describes each one from its pull request, and writes the notes to `.artifacts/release-notes-tooling-<version>.md`.
+3. Paste the notes into the release description, and publish the release if it's still a draft.
+4. For a new minor version, also raise the constraint in `composer.dev.json` (for example to `~1.1.0`). Generated projects receive it with their next scaffold update.
 
 ## Continuous integration
 

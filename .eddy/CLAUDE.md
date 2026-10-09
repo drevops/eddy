@@ -8,8 +8,9 @@ This file documents how `init.php` prunes the template, how to regenerate the sc
 
 - `.eddy/assets/` - Source files for animated SVG demos used in the root `README.md` (`init.svg`, `build.svg`, `lint.svg`, `test.svg`) plus the `update-assets.php` generator and a small `svg-term` Node wrapper. It also holds the repository's social preview card, `social-preview.png`, and the `social-preview.html` page it's rendered from.
 - `.eddy/tests/` - PHPUnit suite that validates the scaffold itself: the `init.php` interactive flow, the tooling commands in `.eddy/tooling/src/` with their installer `scripts/eddy-tooling`, and the resulting project structure. Snapshots live under `.eddy/tests/fixtures/init/`.
-- `.eddy/tooling/` - Source of the `drevops/eddy-tooling` Composer package (the `eddy-*` commands). `scripts/eddy-tooling` installs it into `vendor/` as a symlink in this repository, and `scaffold-publish-tooling.yml` mirrors it to the read-only `drevops/eddy-tooling` repository on every push to `1.x` and to a branch whose name contains `eddy-tooling`. Release tags are created on the mirror by hand - see `CONTRIBUTING.md`.
+- `.eddy/tooling/` - Source of the `drevops/eddy-tooling` Composer package (the `eddy-*` commands). `scripts/eddy-tooling` installs it into `vendor/` as a symlink in this repository, and `scaffold-publish-tooling.yml` mirrors it to the read-only `drevops/eddy-tooling` repository on every push to `1.x` and to a branch whose name contains `eddy-tooling`. Releases are created on the mirror by hand, with notes from the `create-eddy-tooling-release-notes` skill - see `CONTRIBUTING.md`.
 - `.eddy/skills/update-consumer-eddy/` - the update skill that consumer projects fetch through the "Updating the scaffold" section of their `AGENTS.md`.
+- `.claude/skills/` - Claude Code skills for maintaining the scaffold, such as `create-eddy-tooling-release-notes`. `init.php` removes the directory, so generated projects never get them.
 
 ## Template markers
 

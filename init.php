@@ -538,7 +538,7 @@ function process_internal(string $extension_name, string $extension_machine_name
 
   remove_dir('.eddy');
 
-  // Remove scaffold-only Claude skills placeholder and its gitignore entry.
+  // Remove the scaffold-only Claude skills and their gitignore entry.
   remove_dir('.claude/skills');
   remove_string_content('!.claude/skills/');
 
