@@ -153,10 +153,10 @@ If `gh` is unavailable or auth fails, fall back to writing conservative paragrap
 
 ### Step 4: Determine the version
 
-`PREVIOUS_VERSION` is the lower-bound tag, or the highest published release below the upper bound when a bare commit was given. A first release has no `PREVIOUS_VERSION`.
+`PREVIOUS_VERSION` is the lower-bound tag. When the lower bound is a bare commit, it's that commit's short SHA instead, so the heading names the range the notes actually cover. A first release has no `PREVIOUS_VERSION`.
 
 - **The release exists**, as a draft or published: `NEW_VERSION` is its tag, which the maintainer chose in the GitHub UI. Check it against the rules below and warn the user before writing if it looks wrong. Don't change the release.
-- **The release isn't created yet**: suggest `NEW_VERSION` from the nature of the changes, then **confirm it with the user** before writing. For a first release, suggest the lowest version the constraint in `composer.dev.json` accepts, such as `1.0.0` for `~1.0.0`. The version only labels the notes; no tag is created.
+- **The release isn't created yet**: suggest `NEW_VERSION` by bumping the highest published release according to the nature of the changes, then **confirm it with the user** before writing. For a first release, suggest the lowest version the constraint in `composer.dev.json` accepts, such as `1.0.0` for `~1.0.0`. The version only labels the notes; no tag is created.
 
 Projects require `~1.<minor>.0` in `composer.dev.json`, so they install a new patch release on their next fresh install, without a scaffold update. A minor or major release reaches them only when the scaffold raises that constraint. A patch release must therefore hold nothing that needs the matching scaffold update: never suggest a patch for such a change, and warn when the maintainer chose one.
 
@@ -190,7 +190,7 @@ Write the file to `.artifacts/release-notes-tooling-<NEW_VERSION>.md` (for examp
 **Full Changelog**: https://github.com/drevops/eddy-tooling/compare/PREVIOUS_VERSION...NEW_VERSION
 ```
 
-A first release starts with `## Initial release` instead and ends without the `**Full Changelog**` line, since the mirror has no earlier tag to compare with. It has no `### Breaking changes` section either, since there's no earlier release to break.
+A first release starts with `## Initial release` instead and ends without the `**Full Changelog**` line, since the mirror has no earlier tag to compare with. It has no `### Breaking changes` section either, since there's no earlier release to break. A range that starts at a bare commit also ends without the `**Full Changelog**` line: its `PREVIOUS_VERSION` is a `drevops/eddy` SHA, which isn't a ref on the mirror.
 
 ## Formatting rules
 
@@ -211,7 +211,7 @@ A first release starts with `## Initial release` instead and ends without the `*
 
 ### Footer
 
-The `**Full Changelog**` line points at the **mirror** repository, `drevops/eddy-tooling`, using `PREVIOUS_VERSION...NEW_VERSION`. The link resolves once the `NEW_VERSION` tag exists on that repository, which happens when the release is published. A first release has no `**Full Changelog**` line.
+The `**Full Changelog**` line points at the **mirror** repository, `drevops/eddy-tooling`, using `PREVIOUS_VERSION...NEW_VERSION`. The link resolves once the `NEW_VERSION` tag exists on that repository, which happens when the release is published. Only a range that starts at a release tag has the line: a first release and a range that starts at a bare commit have none.
 
 ## Validation checklist
 
@@ -224,7 +224,7 @@ Before displaying the output, verify:
 - Every non-bot entry is `**subject**<br>paragraph` on a single line, no blank line, no indentation.
 - Every reference is a full `https://github.com/drevops/eddy/...` URL - the leading issue as `[#NNN](.../issues/NNN)`, the trailing pull request as `(.../pull/MMM)`. No bare `#NNN` remains.
 - Pull request and issue lookups used `--repo drevops/eddy`.
-- The `**Full Changelog**` URL targets `drevops/eddy-tooling`, and a first release has no such line.
+- The `**Full Changelog**` URL targets `drevops/eddy-tooling`, and only a range that starts at a release tag has the line.
 - No invented details beyond the commit subject, linked issue, pull request body, or diff.
 
 ## Command rules - CRITICAL
