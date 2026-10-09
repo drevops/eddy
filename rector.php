@@ -76,10 +76,10 @@ return RectorConfig::configure()
     // Directories to skip.
     '*/node_modules/*',
     // #;< META
-    // The initialisation script carries a minified copy of a third-party
+    // The installation script carries a minified copy of a third-party
     // library that must stay byte-identical to its upstream source, so it is
     // excluded from static analysis the same way as in PHPCS and PHPStan.
-    __DIR__ . '/../init.php',
+    __DIR__ . '/../install.php',
     // #;> META
   ])
   // PHP version upgrade sets - modernizes syntax to PHP 8.3.

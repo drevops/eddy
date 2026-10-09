@@ -37,7 +37,7 @@
             <file>../../.eddy/tooling/src/eddy-qrcode</file>
             <file>../../.eddy/tooling/src/eddy-start</file>
             <file>../../.eddy/tooling/src/eddy-stop</file>
-            <file>../../init.php</file>
+            <file>../../install.php</file>
             <file>../../scripts/eddy-tooling</file>
         </include>
     </source>

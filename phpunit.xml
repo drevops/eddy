@@ -133,7 +133,7 @@
             <!-- #;> DEV_RECTOR -->
             <directory>**/node_modules/**</directory>
             <!-- #;< META -->
-            <file>../init.php</file>
+            <file>../install.php</file>
             <!-- #;> META -->
         </exclude>
     </source>

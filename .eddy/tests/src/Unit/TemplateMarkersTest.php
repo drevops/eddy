@@ -11,7 +11,7 @@ use function drupal_version_options;
 use function tool_specs;
 
 /**
- * Tests the marker blocks that 'init.php' strips from the template.
+ * Tests the marker blocks that 'install.php' strips from the template.
  *
  * A malformed block leaves every file valid, so no linter reports it. The
  * snapshot fixtures are regenerated from the same output, so they miss it too.
@@ -25,7 +25,7 @@ use function tool_specs;
 final class TemplateMarkersTest extends UnitTestCase {
 
   /**
-   * The tokens 'init.php' strips by name.
+   * The tokens 'install.php' strips by name.
    *
    * The 'DRUPAL_<major>' tokens follow 'drupal_version_options()' and the tool
    * tokens follow 'tool_specs()'.
@@ -34,7 +34,7 @@ final class TemplateMarkersTest extends UnitTestCase {
 
   public static function setUpBeforeClass(): void {
     putenv('SCRIPT_RUN_SKIP=1');
-    require_once self::rootDir() . '/init.php';
+    require_once self::rootDir() . '/install.php';
     parent::setUpBeforeClass();
   }
 
@@ -43,7 +43,7 @@ final class TemplateMarkersTest extends UnitTestCase {
     $markers = self::markers(self::read($path));
     $shared = array_keys(array_filter($markers, static fn(?array $marker): bool => $marker === NULL));
 
-    $this->assertSame([], $shared, sprintf('%s holds "#;" beside other text on these lines, which init.php deletes: %s.', basename($path), implode(', ', $shared)));
+    $this->assertSame([], $shared, sprintf('%s holds "#;" beside other text on these lines, which install.php deletes: %s.', basename($path), implode(', ', $shared)));
   }
 
   public static function dataProviderMarkersHaveTheirOwnLine(): \Iterator {
@@ -72,7 +72,7 @@ final class TemplateMarkersTest extends UnitTestCase {
       }
     }
 
-    $this->assertSame([], $unknown, sprintf('%s uses tokens init.php never strips: %s.', basename($path), implode(', ', $unknown)));
+    $this->assertSame([], $unknown, sprintf('%s uses tokens install.php never strips: %s.', basename($path), implode(', ', $unknown)));
   }
 
   public static function dataProviderTokensAreStripped(): \Iterator {
@@ -185,9 +185,9 @@ final class TemplateMarkersTest extends UnitTestCase {
   /**
    * List the template files that hold '#;'.
    *
-   * Walks the tree that 'get_files()' in 'init.php' walks, minus '.eddy',
-   * which 'init.php' deletes, and local build output. 'init.php' is skipped
-   * because its code spells out marker syntax.
+   * Walks the tree that 'get_files()' in 'install.php' walks, minus '.eddy',
+   * which 'install.php' deletes, and local build output. 'install.php' is
+   * skipped because its code spells out marker syntax.
    *
    * @return \Iterator<string, array{path: string}>
    *   The absolute paths, keyed by path relative to the project root.
@@ -210,7 +210,7 @@ final class TemplateMarkersTest extends UnitTestCase {
         continue;
       }
 
-      if ($file->getPathname() === $root . '/init.php') {
+      if ($file->getPathname() === $root . '/install.php') {
         continue;
       }
 
@@ -330,7 +330,7 @@ final class TemplateMarkersTest extends UnitTestCase {
   }
 
   /**
-   * List the tokens 'init.php' strips.
+   * List the tokens 'install.php' strips.
    *
    * @return array<int, string>
    *   The tokens.

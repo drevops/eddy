@@ -11,24 +11,24 @@ use function main;
 use function process;
 
 /**
- * In-process tests for the high-level orchestration functions in init.php.
+ * In-process tests for the high-level orchestration functions in install.php.
  *
- * The functional 'InitTest' exercises these paths end-to-end via a
+ * The functional 'InstallTest' exercises these paths end-to-end via a
  * subprocess and PCOV cannot capture coverage from there. The tests in
  * this class run the same logic in-process so PCOV records it.
  *
- * 'remove_self' is always passed as FALSE: '__FILE__' inside 'init.php'
+ * 'remove_self' is always passed as FALSE: '__FILE__' inside 'install.php'
  * resolves to the path of the loaded project root copy, not the copy inside
- * SUT. Passing TRUE would delete the source 'init.php'.
+ * SUT. Passing TRUE would delete the source 'install.php'.
  */
 #[Group('p0')]
-final class InitProcessTest extends UnitTestCase {
+final class InstallProcessTest extends UnitTestCase {
 
   protected string $originalCwd;
 
   public static function setUpBeforeClass(): void {
     putenv('SCRIPT_RUN_SKIP=1');
-    require_once dirname(__DIR__, 4) . '/init.php';
+    require_once dirname(__DIR__, 4) . '/install.php';
     parent::setUpBeforeClass();
   }
 
@@ -113,7 +113,7 @@ final class InitProcessTest extends UnitTestCase {
       'js/my_extension.test.js',
       'README.md',
       'CONTRIBUTING.md',
-      'init.php',
+      'install.php',
     ];
 
     $module_not_exists = [
@@ -578,7 +578,7 @@ final class InitProcessTest extends UnitTestCase {
     main($argv);
     $output = (string) ob_get_clean();
 
-    $this->assertStringContainsString('Eddy - project initialization.', $output);
+    $this->assertStringContainsString('Eddy - project installation.', $output);
     $this->assertStringContainsString('Usage:', $output);
     $this->assertStringContainsString('--help', $output);
     // The interactive flow must not run when help is requested.
@@ -587,10 +587,10 @@ final class InitProcessTest extends UnitTestCase {
   }
 
   public static function dataProviderMainHelp(): \Iterator {
-    yield 'help' => [['init.php', 'help']];
-    yield 'long flag' => [['init.php', '--help']];
-    yield 'short flag h' => [['init.php', '-h']];
-    yield 'short flag question' => [['init.php', '-?']];
+    yield 'help' => [['install.php', 'help']];
+    yield 'long flag' => [['install.php', '--help']];
+    yield 'short flag h' => [['install.php', '-h']];
+    yield 'short flag question' => [['install.php', '-?']];
   }
 
 }

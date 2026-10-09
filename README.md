@@ -83,7 +83,7 @@ Eddy isn't for building websites. To stand up a Drupal site, use [Vortex](https:
 
 1. Download this template's code with **Code** -> **Download ZIP** in the GitHub UI.
 2. Expand into a new directory.
-3. Run the initial [codebase setup](#codebase-setup) script: `php init.php`.
+3. Run the initial [codebase setup](#codebase-setup) script: `php install.php`.
 4. If you already have existing extension code, copy it into the directory created in step 2.
 5. [Build website](#building-website) with `make build` or `ahoy build` to check that everything is set up correctly.
 6. [Check coding standards](#coding-standards) with `make lint` or `ahoy lint`.
@@ -97,9 +97,9 @@ See the sections below for more details.
 
 ## Codebase setup
 
-The initial codebase setup script `php init.php` will ask you for some information and update the codebase to reflect your extension's name and other details. It asks for the extension name, machine name and type, the Drupal versions to target, the command wrapper, the tools to keep, and whether to keep the example lifecycle scripts. Each answer can be pre-filled with an `INIT_*` environment variable for an unattended run - `php init.php --help` lists them.
+The codebase setup script `php install.php` is a once-off installer. It asks you for some information, updates the codebase to reflect your extension's name and other details, and then deletes itself unless you answer no to "Remove this script". The questions cover the extension name, machine name and type, the Drupal versions to target, the command wrapper, the tools to keep, and whether to keep the example lifecycle scripts. Each answer can be pre-filled with an `INSTALL_*` environment variable for an unattended run - `php install.php --help` lists them.
 
-![Init process](.eddy/assets/init.svg)
+![Installation process](.eddy/assets/install.svg)
 
 ## Building website
 
@@ -141,7 +141,7 @@ To add a project-specific step, use a [custom lifecycle script](#custom-lifecycl
 
 ### Drupal versions
 
-The Drupal version used for the codebase assembly is determined by the `DRUPAL_VERSION` variable and defaults to `11`, the newest stable Drupal 11 release. The default is the `extra.eddy.drupal-version` value in `composer.dev.json`, which `init.php` sets to the highest Drupal major you select.
+The Drupal version used for the codebase assembly is determined by the `DRUPAL_VERSION` variable and defaults to `11`, the newest stable Drupal 11 release. The default is the `extra.eddy.drupal-version` value in `composer.dev.json`, which `install.php` sets to the highest Drupal major you select.
 
 You can specify a different version by setting the `DRUPAL_VERSION` environment variable before running the `make build` or `ahoy build` command:
 
@@ -210,7 +210,7 @@ Some of the Drupal 12 toolchain is still catching up - Drush, for one, supports 
 
 Drupal 12 core packages also leave out every `tests` directory, and with it the test base classes and the PHPUnit bootstrap your tests need. So Drupal 12 builds install `drupal/core` from source (a git checkout) rather than from its package archive. The checkout is bigger than the archive, so Drupal 12 builds take a little longer to assemble.
 
-Drupal 12 is opt-in when you run `init.php`: only Drupal 11 starts checked.
+Drupal 12 is opt-in when you run `install.php`: only Drupal 11 starts checked.
 
 ### Distributing tools across CI runners
 
@@ -355,7 +355,7 @@ Matching files are executed in lexicographic order. The current working director
 
 The directory is `export-ignore`d via `.gitattributes`, so anything under `scripts/` is excluded from distribution archives published to Drupal.org. It also holds `scripts/eddy-tooling`, the [tooling installer](#the-tooling-package), which is not a hook: its name matches none of the phase prefixes.
 
-Example scripts ship with the scaffold (`scripts/assemble-example.sh`, `scripts/provision-example.sh`, `scripts/start-example.sh`, `scripts/stop-example.sh`). Each one prints a marker line so you can see its phase fire. `init.php` asks whether to keep them and removes them unless you say yes, so answer yes if you want them as a starting point for your own hooks.
+Example scripts ship with the scaffold (`scripts/assemble-example.sh`, `scripts/provision-example.sh`, `scripts/start-example.sh`, `scripts/stop-example.sh`). Each one prints a marker line so you can see its phase fire. `install.php` asks whether to keep them and removes them unless you say yes, so answer yes if you want them as a starting point for your own hooks.
 
 ### Public HTTPS tunnel (Cloudflare)
 
@@ -504,7 +504,7 @@ Note that the CI test jobs that run PHP 8.4 or newer set the `SYMFONY_DEPRECATIO
 
 You should configure [branch protection rules](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/managing-a-branch-protection-rule) in GitHub to ensure that the code tests pass before merging.
 
-Add the jobs for every Drupal major you selected in `init.php` as required status checks for your default branch:
+Add the jobs for every Drupal major you selected in `install.php` as required status checks for your default branch:
 
 | Drupal | Required jobs |
 |--------|---------------|
@@ -564,13 +564,13 @@ variables:
 
 When this template is updated, you can merge the changes into your extension codebase.
 
-If you use Claude Code, the bundled [`update-consumer-eddy`](.eddy/skills/update-consumer-eddy/SKILL.md) skill automates this process: in your initialised project, ask Claude to "update scaffold" and it will fetch the skill, download the latest scaffold, re-run `init.php` with your original answers, restore project-specific files from git, and reconcile differences.
+If you use Claude Code, the bundled [`update-consumer-eddy`](.eddy/skills/update-consumer-eddy/SKILL.md) skill automates this process: in your project, ask Claude to "update scaffold" and it will fetch the skill, download the latest scaffold, re-run `install.php` with your original answers, restore project-specific files from git, and reconcile differences.
 
 For a manual update, follow these steps:
 
 1. Download the latest version of this template's code with **Code** -> **Download ZIP** in the GitHub UI.
 2. Expand into a new directory.
-3. Run the initial [codebase setup](#codebase-setup) script: `php init.php` and repeat the answers you provided during the initial setup.
+3. Run the initial [codebase setup](#codebase-setup) script: `php install.php` and repeat the answers you provided during the initial setup.
 4. Create a new branch in your extension's repository.
 5. Copy all files into your extension's directory and override the existing files.
 6. Resolve any conflicts between the new files and your extension's files. Refer to the release notes for any breaking changes and accept/reject them as needed.

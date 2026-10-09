@@ -175,10 +175,12 @@ Run each tool through its `ahoy` wrapper, never the binary directly:
 - `scripts/eddy-tooling` - Installs the tooling package into `vendor/` from the constraint in `composer.dev.json`. The command wrappers and CI run it before the tooling commands
 - `scripts/` - Custom lifecycle hooks: post-assemble (`assemble-*.sh`), post-provision (`provision-*.sh`), post-start (`start-*.sh`), and pre-stop (`stop-*.sh`). Run automatically during each phase in lexicographic order; non-zero exit aborts the parent. Excluded from distribution archives via `.gitattributes`
 
-**Template Files (before init):**
+<!-- #;< META -->
+**Template Files (before installation):**
 - `your_extension.*` - Template extension files
 - `YourExtensionService.php` - Main service class template
 
+<!-- #;> META -->
 ## Architecture
 
 - **Service-based architecture**: Main functionality in services registered via `*.services.yml`
@@ -201,12 +203,15 @@ Run each tool through its `ahoy` wrapper, never the binary directly:
 
 ## Development Workflow
 
-1. Run `php init.php` to customize template for your extension
-2. Build environment: `make build` or `ahoy build`
-3. Develop your extension code in `src/`
-4. Check standards: `make lint` or `ahoy lint`
-5. Run tests: `make test` or `ahoy test`
-6. Access site at http://localhost:8000
+<!-- #;< META -->
+Run `php install.php` once, in a fresh copy of the template, to turn it into your extension. The script deletes itself when it finishes. Then:
+
+<!-- #;> META -->
+1. Build environment: `make build` or `ahoy build`
+2. Develop your extension code in `src/`
+3. Check standards: `make lint` or `ahoy lint`
+4. Run tests: `make test` or `ahoy test`
+5. Access site at http://localhost:8000
 
 ## Code Quality Tools
 

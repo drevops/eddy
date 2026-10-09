@@ -15,11 +15,11 @@ parameters:
     - ../../.eddy/tooling/src/eddy-qrcode
     - ../../.eddy/tooling/src/eddy-start
     - ../../.eddy/tooling/src/eddy-stop
-    - ../../init.php
+    - ../../install.php
     - ../../scripts/eddy-tooling
 
   scanFiles:
-    - ../../init.php
+    - ../../install.php
 
   excludePaths:
     - vendor/*
@@ -29,7 +29,7 @@ parameters:
     -
       # Tests and data providers do not require parameter docblocks, so the
       # parameter type cannot be specified. The ignore has no 'paths', so it
-      # also covers the tooling scripts, their installer and 'init.php'.
+      # also covers the tooling scripts, their installer and 'install.php'.
       message: '#.*no value type specified in iterable type array.#'
       reportUnmatched: false
     -

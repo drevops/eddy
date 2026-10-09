@@ -27,7 +27,7 @@ parameters:
     - node_modules/*
     - ../*/node_modules/*
     #;< META
-    - web/modules/custom/your_extension/init.php
+    - web/modules/custom/your_extension/install.php
     #;> META
 
   ignoreErrors:

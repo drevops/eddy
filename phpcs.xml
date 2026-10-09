@@ -22,9 +22,9 @@
     <exclude-pattern>.*\/node_modules\/.*</exclude-pattern>
     <exclude-pattern>*\.min\.*</exclude-pattern>
     <!-- #;< META -->
-    <exclude-pattern>init\.php</exclude-pattern>
-    <exclude-pattern>modules\/custom\/your_extension\/init\.php</exclude-pattern>
-    <exclude-pattern>web\/modules\/custom\/your_extension\/init\.php</exclude-pattern>
+    <exclude-pattern>install\.php</exclude-pattern>
+    <exclude-pattern>modules\/custom\/your_extension\/install\.php</exclude-pattern>
+    <exclude-pattern>web\/modules\/custom\/your_extension\/install\.php</exclude-pattern>
     <!-- #;> META -->
 
     <!-- Force no empty lines after function opening brace. -->

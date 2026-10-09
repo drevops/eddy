@@ -70,10 +70,6 @@ Run each tool through its `ahoy` wrapper, never the binary directly:
 - `scripts/eddy-tooling` - Installs the tooling package into `vendor/` from the constraint in `composer.dev.json`. The command wrappers and CI run it before the tooling commands
 - `scripts/` - Custom lifecycle hooks: post-assemble (`assemble-*.sh`), post-provision (`provision-*.sh`), post-start (`start-*.sh`), and pre-stop (`stop-*.sh`). Run automatically during each phase in lexicographic order; non-zero exit aborts the parent. Excluded from distribution archives via `.gitattributes`
 
-**Template Files (before init):**
-- `force_crystal.*` - Template extension files
-- `ForceCrystalService.php` - Main service class template
-
 ## Architecture
 
 - **Service-based architecture**: Main functionality in services registered via `*.services.yml`
@@ -94,12 +90,11 @@ Run each tool through its `ahoy` wrapper, never the binary directly:
 
 ## Development Workflow
 
-1. Run `php init.php` to customize template for Force Crystal
-2. Build environment: `make build` or `ahoy build`
-3. Develop Force Crystal code in `src/`
-4. Check standards: `make lint` or `ahoy lint`
-5. Run tests: `make test` or `ahoy test`
-6. Access site at http://localhost:8000
+1. Build environment: `make build` or `ahoy build`
+2. Develop Force Crystal code in `src/`
+3. Check standards: `make lint` or `ahoy lint`
+4. Run tests: `make test` or `ahoy test`
+5. Access site at http://localhost:8000
 
 ## Code Quality Tools
 

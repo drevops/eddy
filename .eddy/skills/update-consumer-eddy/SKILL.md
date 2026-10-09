@@ -39,7 +39,7 @@ If all entries are already present, proceed to Step 1.
 
 ## Step 1: Detect current project settings
 
-Read the project to determine the init.php answers:
+Read the project to determine the answers for the installation script:
 
 1. **Name**: Read from `*.info.yml` - the `name` field.
 2. **Machine name**: The `*.info.yml` filename without extension.
@@ -130,30 +130,30 @@ tar -xzf eddy.tar.gz --strip-components=1
 rm eddy.tar.gz
 ```
 
-## Step 6: Run init.php
+## Step 6: Run install.php
 
-Run init.php from the project root. Set `INIT_REMOVE_SELF=true` and `INIT_PROCEED=true` to auto-accept the confirmations:
+Run install.php from the project root. Set `INSTALL_REMOVE_SELF=true` and `INSTALL_PROCEED=true` to auto-accept the confirmations:
 
 ```bash
-INIT_NAME='<Name>' \
-INIT_MACHINE_NAME='<machine_name>' \
-INIT_TYPE='<type>' \
-INIT_DRUPAL_VERSION='<drupal_version>' \
-INIT_COMMAND_WRAPPER='<command_wrapper>' \
-INIT_TOOLS='<tools>' \
-INIT_EXAMPLES=false \
-INIT_REMOVE_SELF=true \
-INIT_PROCEED=true \
-php init.php
+INSTALL_NAME='<Name>' \
+INSTALL_MACHINE_NAME='<machine_name>' \
+INSTALL_TYPE='<type>' \
+INSTALL_DRUPAL_VERSION='<drupal_version>' \
+INSTALL_COMMAND_WRAPPER='<command_wrapper>' \
+INSTALL_TOOLS='<tools>' \
+INSTALL_EXAMPLES=false \
+INSTALL_REMOVE_SELF=true \
+INSTALL_PROCEED=true \
+php install.php
 ```
 
 Wrap every value in single quotes, never double quotes. The values come from the project's own files, and double quotes still expand `$(...)`, backticks and `$VAR`. Write a single quote inside a value as `'\''`, so `O'Brien` becomes `'O'\''Brien'`.
 
-**Every one of these variables is mandatory.** A prompt with no matching variable is not silently defaulted - it falls through to the interactive input loop and reads `STDIN`, which never returns under automation. Derive each value from the project's detected settings, and run `php init.php --help` for the full list and accepted values if the prompts change in a future release.
+**Every one of these variables is mandatory.** A prompt with no matching variable is not silently defaulted - it falls through to the interactive input loop and reads `STDIN`, which never returns under automation. Derive each value from the project's detected settings, and run `php install.php --help` for the full list and accepted values if the prompts change in a future release.
 
-The `INIT_` prefix applies to releases after 4.x. When the tag from Step 2 is a 4.x release, run `php init.php --help` first and use the prefix it lists instead (`DEX_` in 4.19.0, `PROMPTY_` before it). 4.x releases also ask for the CI provider, and 4.18.0 and 4.19.0 whether to keep the Cloudflare tunnel scripts, so pass those variables too, with the values from Step 1.
+The script is `install.php` with the `INSTALL_` prefix in releases after 4.x. A 4.x release ships it as `init.php` instead: run `php init.php --help` first, then run `php init.php` with the prefix it lists (`DEX_` in 4.19.0, `PROMPTY_` before it). 4.x releases also ask for the CI provider, and 4.18.0 and 4.19.0 whether to keep the Cloudflare tunnel scripts, so pass those variables too, with the values from Step 1.
 
-`INIT_EXAMPLES=false` drops the scaffold's example lifecycle scripts. Step 7 restores `scripts/` from git straight after, so any hook the project actually tracks comes back untouched.
+`INSTALL_EXAMPLES=false` drops the scaffold's example lifecycle scripts. Step 7 restores `scripts/` from git straight after, so any hook the project actually tracks comes back untouched.
 
 `<command_wrapper>` accepts a comma-separated list (`ahoy`, `makefile`, or `ahoy,makefile`), or an empty string for neither.
 
@@ -197,7 +197,7 @@ The scaffold ships a complete example extension - sample service, form, tests, a
 git status --porcelain --untracked-files=all
 ```
 
-2. Delete every file that is **both** untracked (`??` in that listing) **and** one of the example paths below. `init.php` renames the example to the project's machine name, so match by shape rather than by literal name (`<machine_name>` in file names, `<MachineName>` in class names):
+2. Delete every file that is **both** untracked (`??` in that listing) **and** one of the example paths below. The installation script renames the example to the project's machine name, so match by shape rather than by literal name (`<machine_name>` in file names, `<MachineName>` in class names):
 
 - `src/<MachineName>Service.php`
 - `src/Form/<MachineName>Form.php`
@@ -237,7 +237,7 @@ The `README.md` must follow the scaffold template structure exactly. Do NOT simp
    - Logo URL or image.
    - Project title/description (from `*.info.yml` and existing README).
 3. Insert project-specific content sections (e.g., "Use case", "How it works", "Installation") between the header and the "Contributing" section.
-4. Keep the scaffold's development sections verbatim. They live in `CONTRIBUTING.md` (Local development, Building website, Drupal versions, Coding standards, Testing), which `init.php` regenerates from the scaffold: carry over any project-specific notes from the previous version (`git show HEAD:CONTRIBUTING.md`).
+4. Keep the scaffold's development sections verbatim. They live in `CONTRIBUTING.md` (Local development, Building website, Drupal versions, Coding standards, Testing), which the installation script regenerates from the scaffold: carry over any project-specific notes from the previous version (`git show HEAD:CONTRIBUTING.md`).
 5. Remove badges for tools the project does not use.
 6. Fix the Eddy link at the bottom to point to the Eddy repo, not the project repo.
 
@@ -329,5 +329,5 @@ NEVER use compound or composite commands in a single Bash tool call. Every Bash 
 
 **ALWAYS:**
 - Use multiple separate Bash tool calls, one command per call
-- Use non-interactive flags or env vars for scripts that support them (e.g. `composer --no-interaction`, `INIT_*` for `init.php`)
+- Use non-interactive flags or env vars for scripts that support them (e.g. `composer --no-interaction`, `INSTALL_*` for `install.php`)
 - For git commits, use: `git commit -m "Message here."`

@@ -67,8 +67,8 @@ final class UpdateAssetsRecordSessionTest extends UnitTestCase {
   }
 
   public function testRecordSessionFailsWithoutAsciinemaOutput(): void {
-    $expect_script = self::$sut . '/init.exp';
-    $cast_file = self::$sut . '/init.cast';
+    $expect_script = self::$sut . '/install.exp';
+    $cast_file = self::$sut . '/install.cast';
     touch($expect_script);
 
     $this->mockAsciinema($cast_file, '{"version":3,"term":{"cols":80,"rows":24}}' . "\n" . '[0.5,"o","The session ended unexpectedly.\r\n"]' . "\n", 1);

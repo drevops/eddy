@@ -56,7 +56,7 @@ final class VariableNamesTest extends UnitTestCase {
       [
         $root . '/.ahoy.yml',
         $root . '/Makefile',
-        $root . '/init.php',
+        $root . '/install.php',
         $root . '/phpunit.xml',
         $root . '/phpunit.d10.xml',
         $root . '/.eddy/CLAUDE.md',
@@ -98,7 +98,7 @@ final class VariableNamesTest extends UnitTestCase {
     yield 'package name at the end' => ['EDDY_TOOLING=1', []];
     yield 'longer word after the project name' => ['EDDY_TOOLINGS', ['EDDY_TOOLINGS']];
     yield 'package word after another project name' => ['DREVOPS_TOOLING_A', ['DREVOPS_TOOLING_A']];
-    yield 'functional prefixes' => ['CI_PHPCS_IGNORE_FAILURE INIT_NAME', []];
+    yield 'functional prefixes' => ['CI_PHPCS_IGNORE_FAILURE INSTALL_NAME', []];
   }
 
   #[DataProvider('dataProviderIgnoreFailureToggles')]

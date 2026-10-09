@@ -44,7 +44,7 @@ return RectorConfig::configure()
     __DIR__ . '/../../.eddy/tooling/src/eddy-qrcode',
     __DIR__ . '/../../.eddy/tooling/src/eddy-start',
     __DIR__ . '/../../.eddy/tooling/src/eddy-stop',
-    __DIR__ . '/../../init.php',
+    __DIR__ . '/../../install.php',
     __DIR__ . '/../../scripts/eddy-tooling',
   ])
   ->withPhpSets(php83: TRUE)
@@ -85,12 +85,12 @@ return RectorConfig::configure()
     // Each update replaces the verbatim copy of the prompt library between
     // the '@embed-start' and '@embed-end' markers, so any rewrite there is
     // discarded. Rector cannot skip a region, so only the rules that the
-    // minified library triggers are skipped for the whole of 'init.php'.
+    // minified library triggers are skipped for the whole of 'install.php'.
     NullToStrictStringFuncCallArgRector::class => [
-      __DIR__ . '/../../init.php',
+      __DIR__ . '/../../install.php',
     ],
     SimplifyRegexPatternRector::class => [
-      __DIR__ . '/../../init.php',
+      __DIR__ . '/../../install.php',
     ],
     '*/vendor/*',
     '*/node_modules/*',

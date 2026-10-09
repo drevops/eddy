@@ -4,9 +4,9 @@
 ^package-lock.json
 # Tool-removal edits make '.gitattributes' differ per dataset; storing those
 # diffs as fixtures makes git mis-read the hunk headers as attribute rules.
-# Removal is asserted directly in 'InitProcessTest::testProcessRemovesGitattributes'.
+# Removal is asserted directly in 'InstallProcessTest::testProcessRemovesGitattributes'.
 ^.gitattributes
-init.php
+install.php
 
 # User-local Claude files that may be present in local checkouts.
 .claude/settings.local.json

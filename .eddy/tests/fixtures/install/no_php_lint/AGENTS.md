@@ -9,7 +9,7 @@
  - **ESLint / Stylelint**: `ahoy lint` / `ahoy lint-fix` - never `npx eslint` or `npx stylelint`.
  - **CSpell**: `ahoy lint` - never `npx cspell`.
  - **PHPUnit**: `ahoy test` / `ahoy test-unit` / `ahoy test-kernel` / `ahoy test-functional` - never `vendor/bin/phpunit`.
-@@ -104,10 +100,6 @@
+@@ -99,10 +95,6 @@
  ## Code Quality Tools
  
  - **CSpell**: Spell checking across the codebase (config at `.cspell.json`)
