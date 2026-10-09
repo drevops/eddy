@@ -1,4 +1,4 @@
-@@ -25,13 +25,9 @@
+@@ -25,14 +25,6 @@
  
        matrix:
          include:
@@ -7,49 +7,41 @@
 -            drupal-version: 10
 -
 -          - name: lint-d11
-+          - name: lint-d12
-             php-version: 8.5
+-            php-version: 8.5
 -            drupal-version: 11
-+            drupal-version: 12
- 
+-
      name: ${{ matrix.name }}
  
-@@ -127,29 +123,21 @@
+     env:
+@@ -127,31 +119,6 @@
  
        matrix:
          include:
 -          - name: test-php-min-d10-stable
 -            php-version: 8.3
 -            drupal-version: 10
-+          - name: test-php-min-d12-stable
-+            php-version: 8.5
-+            drupal-version: 12
- 
+-
 -          - name: test-php-max-d10-stable
 -            php-version: 8.4
 -            drupal-version: 10
-+          - name: test-php-max-d12-stable
-+            php-version: 8.5
-+            drupal-version: 12
- 
+-
 -          - name: test-php-min-d11-stable
 -            php-version: 8.3
 -            drupal-version: 11
 -
 -          - name: test-php-max-d11-stable
-+          - name: test-php-min-d12-legacy
-             php-version: 8.5
+-            php-version: 8.5
 -            drupal-version: 11
 -
 -          - name: test-php-min-d11-legacy
 -            php-version: 8.3
-             drupal-version: __VERSION__
- 
+-            drupal-version: __VERSION__
+-
 -          - name: test-php-max-d11-canary
-+          - name: test-php-max-d12-canary
-             php-version: 8.5
+-            php-version: 8.5
 -            drupal-version: 11@beta
-+            drupal-version: 12@beta
-             stability: canary
- 
+-            stability: canary
+-
      services:
+       chrome:
+         image: selenium/standalone-chromium:latest@sha256:08fd293648e126275782c616a61f4ee1d90cf413b1972ebc35dbd054d6789f55
