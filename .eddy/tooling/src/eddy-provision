@@ -51,7 +51,10 @@ if ($db_status === 'Connected') {
   drush('sql:drop -y', NULL, $exit_code);
 }
 
-drush('site-install %s -y --db-url=%s --account-name=admin install_configure_form.enable_update_status_module=NULL install_configure_form.enable_update_status_emails=NULL', [$drupal_profile, 'sqlite://localhost/' . $db_file]);
+drush('site-install %s -y --db-url=%s --account-name=admin install_configure_form.enable_update_status_module=NULL install_configure_form.enable_update_status_emails=NULL', [
+  $drupal_profile,
+  'sqlite://localhost/' . $db_file,
+]);
 
 PASS('Drupal installed.');
 
