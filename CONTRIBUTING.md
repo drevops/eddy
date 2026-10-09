@@ -64,7 +64,7 @@ A branch whose name contains `eddy-tooling`, such as `feature/123-eddy-tooling-f
 Releases are created on the mirror by hand:
 
 1. [Create a release](https://github.com/drevops/eddy-tooling/releases/new) on `drevops/eddy-tooling` in the GitHub UI, with a new tag on `1.x`, for example `1.0.1`. Generated projects require `~1.0.0`, so they pick up a patch release on their next fresh install. Save it as a draft or publish it straight away.
-2. From a clone of this repository, ask Claude Code for the tooling release notes, or run `/create-eddy-tooling-release-notes`. The skill lists the commits that changed `.eddy/tooling/` since the previous release, describes each one from its pull request, and writes the notes to `.artifacts/release-notes-tooling-<version>.md`.
+2. From a clone of this repository, ask Claude Code for the tooling release notes, or run `/create-eddy-tooling-release-notes`. The skill lists the commits that changed `.eddy/tooling/` since the previous release (or, for the first release, since the package was created), describes each one from its pull request, and writes the notes to `.artifacts/release-notes-tooling-<version>.md`.
 3. Paste the notes into the release description, and publish the release if it's still a draft.
 4. For a new minor version, also raise the constraint in `composer.dev.json` (for example to `~1.1.0`). Generated projects receive it with their next scaffold update.
 
