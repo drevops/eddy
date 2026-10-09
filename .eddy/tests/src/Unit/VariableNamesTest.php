@@ -62,6 +62,7 @@ final class VariableNamesTest extends UnitTestCase {
         $root . '/.eddy/CLAUDE.md',
         $root . '/.eddy/assets/update-assets.php',
         $root . '/.eddy/skills/update-consumer-eddy/SKILL.md',
+        $root . '/.claude/skills/create-eddy-tooling-release-notes/SKILL.md',
         $root . '/.eddy/tooling/README.md',
       ],
     );
