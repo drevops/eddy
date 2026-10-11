@@ -81,7 +81,6 @@ PASS('Drupal project created.');
 // Disable blocking of packages with security advisories to allow installing
 // older Drupal core versions for backward compatibility testing.
 TASK('Disabling blocking of insecure packages.');
-/** @var array<string, mixed> $build_json */
 $build_json = (array) json_decode((string) file_get_contents($build_composer_json), TRUE);
 $build_json['config']['audit']['block-insecure'] = FALSE;
 file_put_contents($build_composer_json, json_encode($build_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
@@ -122,7 +121,6 @@ foreach (explode("\n", $composer_json_content) as $line) {
 PASS('Stability updated.');
 
 TASK('Configuring test dependencies.');
-/** @var array<string, mixed> $build_json */
 $build_json = (array) json_decode((string) file_get_contents($build_composer_json), TRUE);
 unset($build_json['require-dev']['drupal/core-dev']);
 // Add symfony/phpunit-bridge with a version matching Drupal core's Symfony.

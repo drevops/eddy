@@ -58,7 +58,7 @@ final class InstallTest extends FunctionalTestCase {
     if (!is_string(self::$fixtures)) {
       throw new \RuntimeException('Fixtures directory is not set.');
     }
-    $this->assertSnapshotMatchesBaseline(self::$sut, $baseline, self::$fixtures);
+    $this->assertSnapshotMatchesBaseline($baseline, self::$fixtures, self::$sut);
   }
 
   public static function dataProviderInstall(): \Iterator {

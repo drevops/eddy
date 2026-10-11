@@ -10,11 +10,9 @@ declare(strict_types=1);
 use Rector\CodeQuality\Rector\Class_\CompleteDynamicPropertiesRector;
 use Rector\CodeQuality\Rector\ClassMethod\InlineArrayReturnAssignRector;
 use Rector\CodeQuality\Rector\Empty_\SimplifyEmptyCheckOnEmptyArrayRector;
-use Rector\CodeQuality\Rector\FuncCall\SimplifyRegexPatternRector;
 use Rector\CodingStyle\Rector\Catch_\CatchExceptionNameMatchingTypeRector;
 use Rector\CodingStyle\Rector\ClassLike\NewlineBetweenClassLikeStmtsRector;
 use Rector\CodingStyle\Rector\ClassMethod\NewlineBeforeNewAssignSetRector;
-use Rector\CodingStyle\Rector\FuncCall\CountArrayToEmptyArrayComparisonRector;
 use Rector\CodingStyle\Rector\Stmt\NewlineAfterStatementRector;
 use Rector\Config\RectorConfig;
 use Rector\DeadCode\Rector\If_\RemoveAlwaysTrueIfConditionRector;
@@ -24,10 +22,8 @@ use Rector\Naming\Rector\Foreach_\RenameForeachValueVariableToMatchExprVariableR
 use Rector\Naming\Rector\Foreach_\RenameForeachValueVariableToMatchMethodCallReturnTypeRector;
 use Rector\Php55\Rector\String_\StringClassNameToClassConstantRector;
 use Rector\Php80\Rector\Switch_\ChangeSwitchToMatchRector;
-use Rector\Php81\Rector\FuncCall\NullToStrictStringFuncCallArgRector;
-use Rector\Php83\Rector\ClassMethod\AddOverrideAttributeToOverriddenMethodsRector;
-use Rector\PHPUnit\Set\PHPUnitSetList;
-use Rector\Strict\Rector\Empty_\DisallowedEmptyRuleFixerRector;
+use Rector\PHPUnit\CodeQuality\Rector\MethodCall\RemoveExpectAnyFromMockRector;
+use Rector\PHPUnit\PHPUnit60\Rector\ClassMethod\AddDoesNotPerformAssertionToNonAssertingTestRector;
 use Rector\TypeDeclaration\Rector\StmtsAwareInterface\DeclareStrictTypesRector;
 
 return RectorConfig::configure()
@@ -58,19 +54,14 @@ return RectorConfig::configure()
     earlyReturn: TRUE,
     phpunitCodeQuality: TRUE,
   )
-  ->withSets([
-    PHPUnitSetList::PHPUNIT_110,
-  ])
+  ->withComposerBased(phpunit: TRUE)
   ->withRules([
     DeclareStrictTypesRector::class,
   ])
   ->withSkip([
-    AddOverrideAttributeToOverriddenMethodsRector::class,
     CatchExceptionNameMatchingTypeRector::class,
     ChangeSwitchToMatchRector::class,
     CompleteDynamicPropertiesRector::class,
-    CountArrayToEmptyArrayComparisonRector::class,
-    DisallowedEmptyRuleFixerRector::class,
     InlineArrayReturnAssignRector::class,
     NewlineAfterStatementRector::class,
     NewlineBeforeNewAssignSetRector::class,
@@ -82,16 +73,12 @@ return RectorConfig::configure()
     RenameVariableToMatchNewTypeRector::class,
     SimplifyEmptyCheckOnEmptyArrayRector::class,
     StringClassNameToClassConstantRector::class,
-    // Each update replaces the verbatim copy of the prompt library between
-    // the '@embed-start' and '@embed-end' markers, so any rewrite there is
-    // discarded. Rector cannot skip a region, so only the rules that the
-    // minified library triggers are skipped for the whole of 'install.php'.
-    NullToStrictStringFuncCallArgRector::class => [
-      __DIR__ . '/../../install.php',
-    ],
-    SimplifyRegexPatternRector::class => [
-      __DIR__ . '/../../install.php',
-    ],
+    // php-mock function mocks are stubbed through 'expects()', so removing
+    // 'expects($this->any())' leaves a call the mock proxy does not have.
+    RemoveExpectAnyFromMockRector::class,
+    // The rule cannot see assertions made through php-mock expectations, so
+    // it marks tests that assert through them as performing none.
+    AddDoesNotPerformAssertionToNonAssertingTestRector::class,
     '*/vendor/*',
     '*/node_modules/*',
   ])

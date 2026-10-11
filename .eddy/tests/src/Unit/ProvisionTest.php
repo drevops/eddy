@@ -50,7 +50,7 @@ final class ProvisionTest extends UnitTestCase {
 
     $composer_json = json_encode(['suggest' => $suggested], JSON_THROW_ON_ERROR);
     $file_get_contents_calls = 0;
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\DevTools', function (string $file) use (&$file_get_contents_calls, $info_content, $composer_json) {
+    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\DevTools', function (string $file) use (&$file_get_contents_calls, $info_content, $composer_json): string {
       $file_get_contents_calls++;
       if (str_ends_with($file, '.info.yml')) {
         return $info_content;
