@@ -6,6 +6,7 @@
          requireCoverageMetadata="false"
          beStrictAboutCoverageMetadata="false"
          beStrictAboutOutputDuringTests="true"
+         failOnRisky="true"
          failOnSkipped="true"
          failOnWarning="true"
          stopOnError="true"

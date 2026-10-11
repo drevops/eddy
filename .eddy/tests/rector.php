@@ -22,7 +22,6 @@ use Rector\Naming\Rector\Foreach_\RenameForeachValueVariableToMatchExprVariableR
 use Rector\Naming\Rector\Foreach_\RenameForeachValueVariableToMatchMethodCallReturnTypeRector;
 use Rector\Php55\Rector\String_\StringClassNameToClassConstantRector;
 use Rector\Php80\Rector\Switch_\ChangeSwitchToMatchRector;
-use Rector\PHPUnit\CodeQuality\Rector\MethodCall\RemoveExpectAnyFromMockRector;
 use Rector\PHPUnit\PHPUnit60\Rector\ClassMethod\AddDoesNotPerformAssertionToNonAssertingTestRector;
 use Rector\TypeDeclaration\Rector\StmtsAwareInterface\DeclareStrictTypesRector;
 
@@ -73,11 +72,8 @@ return RectorConfig::configure()
     RenameVariableToMatchNewTypeRector::class,
     SimplifyEmptyCheckOnEmptyArrayRector::class,
     StringClassNameToClassConstantRector::class,
-    // php-mock function mocks are stubbed through 'expects()', so removing
-    // 'expects($this->any())' leaves a call the mock proxy does not have.
-    RemoveExpectAnyFromMockRector::class,
-    // The rule cannot see assertions made through php-mock expectations, so
-    // it marks tests that assert through them as performing none.
+    // The rule cannot see the teardown assertion in 'MockTrait', so it marks
+    // tests that assert only through function stubs as performing none.
     AddDoesNotPerformAssertionToNonAssertingTestRector::class,
     '*/vendor/*',
     '*/node_modules/*',
