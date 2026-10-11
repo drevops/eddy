@@ -6,6 +6,7 @@ namespace DrevOps\Eddy\Tests\Traits;
 
 use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use DrevOps\Eddy\Tests\Exceptions\QuitSuccessException;
+use phpmock\MockBuilder;
 use phpmock\phpunit\PHPMock;
 
 trait MockTrait {
@@ -13,9 +14,9 @@ trait MockTrait {
   use PHPMock;
 
   /**
-   * Unified registry of all mock objects indexed by function name.
+   * Unified registry of all function mocks indexed by function name.
    *
-   * @var array<string, \PHPUnit\Framework\MockObject\MockObject|array<string, \PHPUnit\Framework\MockObject\MockObject>>
+   * @var array<string, \phpmock\Mock>
    */
   protected array $mocks = [];
 
@@ -66,8 +67,11 @@ trait MockTrait {
    *   The callback to execute when the mocked function is called.
    */
   protected function registerMock(string $function_name, string $namespace, callable $callback): void {
-    $mock = $this->getFunctionMock($namespace, $function_name);
-    $mock->expects($this->any())->willReturnCallback($callback);
+    // A PHPUnit function mock takes a callback only through expects(), so
+    // the function is stubbed through php-mock directly.
+    $mock = (new MockBuilder())->setNamespace($namespace)->setName($function_name)->setFunction($callback)->build();
+    $mock->enable();
+    $this->registerForTearDown($mock);
 
     $this->mocks[$function_name] = $mock;
   }
@@ -149,14 +153,12 @@ trait MockTrait {
     $total_responses = count($this->mockResponses[$function_name] ?? []);
     $consumed_responses = $this->mockIndices[$function_name] ?? 0;
 
-    if ($consumed_responses < $total_responses) {
-      $this->fail(sprintf(
-        'Not all mocked %s responses were consumed. Expected %d call(s), but only %d call(s) were made.',
-        $function_name,
-        $total_responses,
-        $consumed_responses
-      ));
-    }
+    $this->assertSame($total_responses, $consumed_responses, sprintf(
+      'Not all mocked %s responses were consumed. Expected %d call(s), but only %d call(s) were made.',
+      $function_name,
+      $total_responses,
+      $consumed_responses
+    ));
   }
 
   /**
@@ -281,21 +283,16 @@ trait MockTrait {
    *   Namespace to mock the function in.
    */
   protected function mockQuit(int $code = 0, string $namespace = 'DrevOps\\Eddy\\DevTools'): void {
-    $quit = $this->getFunctionMock($namespace, 'quit');
-    $quit
-      ->expects($this->any())
-      ->willReturnCallback(function (int $exit_code = 0) use ($code): void {
-        if ($code !== $exit_code) {
-          throw new \RuntimeException(sprintf('quit() called with unexpected exit code. Expected %d, got %d.', $code, $exit_code));
-        }
-        if ($code !== 0) {
-          throw new QuitErrorException($code);
-        }
+    $this->registerMock('quit', $namespace, function (int $exit_code = 0) use ($code): void {
+      if ($code !== $exit_code) {
+        throw new \RuntimeException(sprintf('quit() called with unexpected exit code. Expected %d, got %d.', $code, $exit_code));
+      }
+      if ($code !== 0) {
+        throw new QuitErrorException($code);
+      }
 
-        throw new QuitSuccessException($code);
-      });
-
-    $this->mocks['quit'] = $quit;
+      throw new QuitSuccessException($code);
+    });
   }
 
   /**
@@ -368,9 +365,8 @@ trait MockTrait {
     if (isset($this->mocks['sleep'])) {
       return;
     }
-    $mock = $this->getFunctionMock($namespace, 'sleep');
-    $mock->expects($this->any())->willReturn(0);
-    $this->mocks['sleep'] = $mock;
+
+    $this->registerMock('sleep', $namespace, fn(): int => 0);
   }
 
 }
