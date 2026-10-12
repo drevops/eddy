@@ -10,7 +10,7 @@ This file documents how `install.php` prunes the template, how to regenerate the
 - `.eddy/tests/` - PHPUnit suite that validates the scaffold itself: the `install.php` interactive flow, the tooling commands in `.eddy/tooling/src/` with their installer `scripts/eddy-tooling`, and the resulting project structure. Snapshots live under `.eddy/tests/fixtures/install/`.
 - `.eddy/tooling/` - Source of the `drevops/eddy-tooling` Composer package (the `eddy-*` commands). `scripts/eddy-tooling` installs it into `vendor/` as a symlink in this repository, and `eddy-publish-tooling.yml` mirrors it to the read-only `drevops/eddy-tooling` repository on every push to `main` and to a branch whose name contains `eddy-tooling`. Releases are created on the mirror by hand, with notes from the `create-eddy-tooling-release-notes` skill - see `CONTRIBUTING.md`.
 - `.eddy/skills/update-consumer-eddy/` - the update skill that consumer projects fetch through the "Updating the scaffold" section of their `AGENTS.md`.
-- `.claude/skills/` - Claude Code skills for maintaining the scaffold, such as `create-eddy-tooling-release-notes`. `install.php` removes each one by name, as listed in `eddy_skills()`, so generated projects never get them, and keeps any other skill, since a project updating its scaffold keeps its own skills there. A new skill goes into `eddy_skills()` as well: `InstallHelpersTest` fails until every tracked skill is listed.
+- `.claude/skills/` - Claude Code skills for maintaining the scaffold, such as `create-eddy-tooling-release-notes`. `install.php` removes each one by name, as listed in `eddy_skills()`, so generated projects never get them, and keeps any other skill, such as a project's own when `install.php` runs again in the root of an existing project. A new skill goes into `eddy_skills()` as well: `InstallHelpersTest` fails until every tracked skill is listed.
 
 ## Template markers
 
@@ -87,7 +87,7 @@ Keep `main` the only branch in those filters: a second branch there ships to eve
 
 ## Template version
 
-`install.php` records the Eddy release a project came from as `extra.eddy.version` in its `composer.dev.json`, so a later update can tell which release the project started from.
+`install.php` records the Eddy release a project came from as `extra.eddy.version` in its `composer.dev.json`, so the update skill can render that release as the base of its 3-way merge.
 
 The value comes from the `TEMPLATE_VERSION` constant. `.gitattributes` marks `install.php` as `export-subst`, so `git archive` expands the constant's `$Format:%(describe:tags=true)$` placeholder to `git describe` output for the archived commit. GitHub builds every download that way: a release archive, as the update skill fetches it, gets the tag, such as `5.0.0`, and **Download ZIP** of a branch gets the commit after the last tag, such as `5.0.0-3-g1a2b3c4`. A clone, or a repository created with **Use this template**, keeps the placeholder, and `install.php` records nothing.
 
