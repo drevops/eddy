@@ -8,13 +8,13 @@ use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\Group;
 
 /**
- * Tests for the make-based devtools workflow.
+ * Tests for the make-based tooling workflow.
  *
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p4')]
-final class MakeTest extends DevtoolsTestCase {
+final class MakeTest extends ToolingTestCase {
 
   public function testAssembleSkipNpmBuild(): void {
     touch(self::$sut . '/.skip_npm_build');

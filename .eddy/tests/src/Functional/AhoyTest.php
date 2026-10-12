@@ -8,13 +8,13 @@ use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\Group;
 
 /**
- * Tests for the ahoy-based devtools workflow.
+ * Tests for the ahoy-based tooling workflow.
  *
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p3')]
-final class AhoyTest extends DevtoolsTestCase {
+final class AhoyTest extends ToolingTestCase {
 
   public function testAssembleSkipNpmBuild(): void {
     touch(self::$sut . '/.skip_npm_build');

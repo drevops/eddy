@@ -470,9 +470,9 @@ final class InstallHelpersTest extends UnitTestCase {
     ];
 
     yield 'only uncomments matching line' => [
-      "# .ahoy.yml export-ignore\n# .circleci export-ignore\n# .devtools export-ignore",
+      "# .ahoy.yml export-ignore\n# .circleci export-ignore\n# .eddy export-ignore",
       '.circleci',
-      "# .ahoy.yml export-ignore\n.circleci export-ignore\n# .devtools export-ignore",
+      "# .ahoy.yml export-ignore\n.circleci export-ignore\n# .eddy export-ignore",
     ];
 
     yield 'no match leaves content unchanged' => [

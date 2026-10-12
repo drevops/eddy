@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use function DrevOps\Eddy\DevTools\copy_dir;
+use function DrevOps\Eddy\Tooling\copy_dir;
 use DrevOps\Eddy\Tests\Traits\DirectoryFixtureTrait;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -15,7 +15,7 @@ use PHPUnit\Framework\Attributes\Group;
  *
  * phpcs:disable Drupal.Classes.FullyQualifiedNamespace.UseStatementMissing
  */
-#[CoversFunction('DrevOps\Eddy\DevTools\copy_dir')]
+#[CoversFunction('DrevOps\Eddy\Tooling\copy_dir')]
 #[Group('p0')]
 final class HelpersCopyDirTest extends UnitTestCase {
 

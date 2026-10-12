@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use function DrevOps\Eddy\DevTools\FAIL;
-use function DrevOps\Eddy\DevTools\term_supports_color;
+use function DrevOps\Eddy\Tooling\FAIL;
+use function DrevOps\Eddy\Tooling\term_supports_color;
 use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -13,13 +13,13 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 #[RunTestsInSeparateProcesses]
-#[CoversFunction('DrevOps\Eddy\DevTools\NOTE')]
-#[CoversFunction('DrevOps\Eddy\DevTools\TASK')]
-#[CoversFunction('DrevOps\Eddy\DevTools\INFO')]
-#[CoversFunction('DrevOps\Eddy\DevTools\PASS')]
-#[CoversFunction('DrevOps\Eddy\DevTools\FAIL_NO_EXIT')]
-#[CoversFunction('DrevOps\Eddy\DevTools\FAIL')]
-#[CoversFunction('DrevOps\Eddy\DevTools\term_supports_color')]
+#[CoversFunction('DrevOps\Eddy\Tooling\NOTE')]
+#[CoversFunction('DrevOps\Eddy\Tooling\TASK')]
+#[CoversFunction('DrevOps\Eddy\Tooling\INFO')]
+#[CoversFunction('DrevOps\Eddy\Tooling\PASS')]
+#[CoversFunction('DrevOps\Eddy\Tooling\FAIL_NO_EXIT')]
+#[CoversFunction('DrevOps\Eddy\Tooling\FAIL')]
+#[CoversFunction('DrevOps\Eddy\Tooling\term_supports_color')]
 #[Group('p0')]
 final class HelpersFormatterTest extends UnitTestCase {
 
@@ -31,7 +31,7 @@ final class HelpersFormatterTest extends UnitTestCase {
     }
     require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
     ob_start();
-    $callable = 'DrevOps\\Eddy\\DevTools\\' . $function;
+    $callable = 'DrevOps\\Eddy\\Tooling\\' . $function;
     if (!is_callable($callable)) {
       $this->fail(sprintf('Function %s is not callable.', $callable));
     }

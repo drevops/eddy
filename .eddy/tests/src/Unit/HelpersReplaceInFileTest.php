@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use function DrevOps\Eddy\DevTools\replace_in_file;
+use function DrevOps\Eddy\Tooling\replace_in_file;
 use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
-#[CoversFunction('DrevOps\Eddy\DevTools\replace_in_file')]
+#[CoversFunction('DrevOps\Eddy\Tooling\replace_in_file')]
 #[Group('p0')]
 final class HelpersReplaceInFileTest extends UnitTestCase {
 

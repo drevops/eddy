@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use function DrevOps\Eddy\DevTools\validate_port_or_fail;
+use function DrevOps\Eddy\Tooling\validate_port_or_fail;
 use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -18,7 +18,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
-#[CoversFunction('DrevOps\Eddy\DevTools\validate_port_or_fail')]
+#[CoversFunction('DrevOps\Eddy\Tooling\validate_port_or_fail')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersValidatePortTest extends UnitTestCase {

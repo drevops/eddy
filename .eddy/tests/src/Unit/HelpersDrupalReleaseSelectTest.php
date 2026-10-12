@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use function DrevOps\Eddy\DevTools\drupal_release_select;
+use function DrevOps\Eddy\Tooling\drupal_release_select;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -15,7 +15,7 @@ use PHPUnit\Framework\Attributes\Group;
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
-#[CoversFunction('DrevOps\Eddy\DevTools\drupal_release_select')]
+#[CoversFunction('DrevOps\Eddy\Tooling\drupal_release_select')]
 #[Group('p0')]
 final class HelpersDrupalReleaseSelectTest extends UnitTestCase {
 

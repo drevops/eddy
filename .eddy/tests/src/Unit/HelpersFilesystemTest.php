@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use function DrevOps\Eddy\DevTools\chmod_recursive;
-use function DrevOps\Eddy\DevTools\remove_dir;
+use function DrevOps\Eddy\Tooling\chmod_recursive;
+use function DrevOps\Eddy\Tooling\remove_dir;
 use DrevOps\Eddy\Tests\Traits\DirectoryFixtureTrait;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
-#[CoversFunction('DrevOps\Eddy\DevTools\remove_dir')]
-#[CoversFunction('DrevOps\Eddy\DevTools\chmod_recursive')]
+#[CoversFunction('DrevOps\Eddy\Tooling\remove_dir')]
+#[CoversFunction('DrevOps\Eddy\Tooling\chmod_recursive')]
 #[Group('p0')]
 final class HelpersFilesystemTest extends UnitTestCase {
 

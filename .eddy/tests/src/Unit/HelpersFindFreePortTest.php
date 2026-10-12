@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use function DrevOps\Eddy\DevTools\find_free_port;
+use function DrevOps\Eddy\Tooling\find_free_port;
 use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\Group;
@@ -17,7 +17,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
-#[CoversFunction('DrevOps\Eddy\DevTools\find_free_port')]
+#[CoversFunction('DrevOps\Eddy\Tooling\find_free_port')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersFindFreePortTest extends UnitTestCase {
@@ -150,7 +150,7 @@ final class HelpersFindFreePortTest extends UnitTestCase {
       return;
     }
 
-    $this->registerMock('stream_socket_client', 'DrevOps\\Eddy\\DevTools', function (string $address, &$errno = NULL, &$errstr = NULL, ?float $timeout = NULL) {
+    $this->registerMock('stream_socket_client', 'DrevOps\\Eddy\\Tooling', function (string $address, &$errno = NULL, &$errstr = NULL, ?float $timeout = NULL) {
       $response = $this->getNextMockResponse('stream_socket_client');
       if (!is_int($response['port']) || !is_bool($response['listening'])) {
         throw new \RuntimeException('Mocked stream_socket_client response must have int "port" and bool "listening".');

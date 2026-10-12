@@ -32,18 +32,18 @@ final class BrowserStopTest extends UnitTestCase {
       $this->envSet($name, $value);
     }
 
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\DevTools', fn(string $file): bool => $dotenv !== NULL && $file === '.env');
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\DevTools', fn(string $file): string|false => $file === '.env' && $dotenv !== NULL ? $dotenv : FALSE);
+    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $dotenv !== NULL && $file === '.env');
+    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(string $file): string|false => $file === '.env' && $dotenv !== NULL ? $dotenv : FALSE);
 
     $written = FALSE;
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\DevTools', function (string $file, string $contents) use (&$written): int {
+    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', function (string $file, string $contents) use (&$written): int {
       $written = TRUE;
 
       return strlen($contents);
     });
 
     $probed = FALSE;
-    $this->registerMock('stream_socket_client', 'DrevOps\\Eddy\\DevTools', function () use (&$probed): false {
+    $this->registerMock('stream_socket_client', 'DrevOps\\Eddy\\Tooling', function () use (&$probed): false {
       $probed = TRUE;
 
       return FALSE;
@@ -118,7 +118,7 @@ final class BrowserStopTest extends UnitTestCase {
 
   public function testBrowserStopFailsOnInvalidPort(): void {
     $this->envSet('WEBDRIVER_PORT', '99999');
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\DevTools', fn(): false => FALSE);
+    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
     $this->mockCommandAvailable('docker', TRUE);
     $this->mockPassthruNever();
     $this->mockQuit(1);

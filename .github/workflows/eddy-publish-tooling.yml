@@ -1,4 +1,4 @@
-name: Publish Scaffold Tooling
+name: Publish Eddy Tooling
 
 # Mirrors '.eddy/tooling/' to the branch of the same name in the read-only
 # 'drevops/eddy-tooling' repository.
@@ -23,14 +23,14 @@ on:
       - '**eddy-tooling**'
 
 concurrency:
-  group: scaffold-publish-tooling-${{ github.ref }}
+  group: eddy-publish-tooling-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
   contents: read
 
 jobs:
-  scaffold-publish-tooling:
+  eddy-publish-tooling:
     if: github.repository == 'drevops/eddy'
 
     runs-on: ubuntu-26.04

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use function DrevOps\Eddy\DevTools\resolve_env_value;
+use function DrevOps\Eddy\Tooling\resolve_env_value;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -16,7 +16,7 @@ use PHPUnit\Framework\Attributes\Group;
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
-#[CoversFunction('DrevOps\Eddy\DevTools\resolve_env_value')]
+#[CoversFunction('DrevOps\Eddy\Tooling\resolve_env_value')]
 #[Group('p0')]
 final class HelpersResolveEnvTest extends UnitTestCase {
 

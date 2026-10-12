@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use function DrevOps\Eddy\DevTools\resolve_site_url;
+use function DrevOps\Eddy\Tooling\resolve_site_url;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -16,7 +16,7 @@ use PHPUnit\Framework\Attributes\Group;
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
-#[CoversFunction('DrevOps\Eddy\DevTools\resolve_site_url')]
+#[CoversFunction('DrevOps\Eddy\Tooling\resolve_site_url')]
 #[Group('p0')]
 final class HelpersResolveSiteUrlTest extends UnitTestCase {
 

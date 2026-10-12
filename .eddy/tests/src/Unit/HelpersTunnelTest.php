@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use function DrevOps\Eddy\DevTools\tunnel_enabled;
-use function DrevOps\Eddy\DevTools\tunnel_kill;
-use function DrevOps\Eddy\DevTools\tunnel_start;
-use function DrevOps\Eddy\DevTools\tunnel_stop;
-use function DrevOps\Eddy\DevTools\tunnel_write_settings;
+use function DrevOps\Eddy\Tooling\tunnel_enabled;
+use function DrevOps\Eddy\Tooling\tunnel_kill;
+use function DrevOps\Eddy\Tooling\tunnel_start;
+use function DrevOps\Eddy\Tooling\tunnel_stop;
+use function DrevOps\Eddy\Tooling\tunnel_write_settings;
 use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -24,17 +24,17 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
-#[CoversFunction('DrevOps\Eddy\DevTools\tunnel_enabled')]
-#[CoversFunction('DrevOps\Eddy\DevTools\tunnel_start')]
-#[CoversFunction('DrevOps\Eddy\DevTools\tunnel_stop')]
-#[CoversFunction('DrevOps\Eddy\DevTools\tunnel_write_settings')]
-#[CoversFunction('DrevOps\Eddy\DevTools\tunnel_pid')]
-#[CoversFunction('DrevOps\Eddy\DevTools\tunnel_forwards_to')]
-#[CoversFunction('DrevOps\Eddy\DevTools\tunnel_command')]
-#[CoversFunction('DrevOps\Eddy\DevTools\tunnel_log_url')]
-#[CoversFunction('DrevOps\Eddy\DevTools\tunnel_responds')]
-#[CoversFunction('DrevOps\Eddy\DevTools\tunnel_kill')]
-#[CoversFunction('DrevOps\Eddy\DevTools\tunnel_forget')]
+#[CoversFunction('DrevOps\Eddy\Tooling\tunnel_enabled')]
+#[CoversFunction('DrevOps\Eddy\Tooling\tunnel_start')]
+#[CoversFunction('DrevOps\Eddy\Tooling\tunnel_stop')]
+#[CoversFunction('DrevOps\Eddy\Tooling\tunnel_write_settings')]
+#[CoversFunction('DrevOps\Eddy\Tooling\tunnel_pid')]
+#[CoversFunction('DrevOps\Eddy\Tooling\tunnel_forwards_to')]
+#[CoversFunction('DrevOps\Eddy\Tooling\tunnel_command')]
+#[CoversFunction('DrevOps\Eddy\Tooling\tunnel_log_url')]
+#[CoversFunction('DrevOps\Eddy\Tooling\tunnel_responds')]
+#[CoversFunction('DrevOps\Eddy\Tooling\tunnel_kill')]
+#[CoversFunction('DrevOps\Eddy\Tooling\tunnel_forget')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersTunnelTest extends UnitTestCase {
@@ -126,7 +126,7 @@ final class HelpersTunnelTest extends UnitTestCase {
     file_put_contents('.env', 'TUNNEL_URL=' . self::URL . "\nOTHER=1\n");
     $this->mockCommandAvailable('cloudflared', FALSE);
     $this->mockShellExec([self::PS => $command]);
-    $this->registerMock('get_headers', 'DrevOps\\Eddy\\DevTools', fn(): false => FALSE);
+    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
     $this->mockPassthruMultiple($kills);
 
     $output = $this->capture(static fn() => tunnel_start('8000'));
@@ -149,7 +149,7 @@ final class HelpersTunnelTest extends UnitTestCase {
     // changed.
     $this->mockCommandAvailable('cloudflared', FALSE);
     $this->mockShellExec([self::PS => "cloudflared tunnel --url http://localhost:8000 --no-autoupdate\n"]);
-    $this->registerMock('get_headers', 'DrevOps\\Eddy\\DevTools', fn(): array => ['HTTP/1.1 200 OK']);
+    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): array => ['HTTP/1.1 200 OK']);
     $this->mockPassthruNever();
 
     $output = $this->capture(static fn() => tunnel_start('8000'));
@@ -257,7 +257,7 @@ final class HelpersTunnelTest extends UnitTestCase {
 
     $requested = NULL;
     $options = NULL;
-    $this->registerMock('get_headers', 'DrevOps\\Eddy\\DevTools', function (string $url, bool $associative, mixed $context) use (&$requested, &$options, $headers): array|false {
+    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', function (string $url, bool $associative, mixed $context) use (&$requested, &$options, $headers): array|false {
       $requested = $url;
       $options = is_resource($context) ? stream_context_get_options($context) : NULL;
 
@@ -309,7 +309,7 @@ final class HelpersTunnelTest extends UnitTestCase {
     $this->mockCommandAvailable('cloudflared', TRUE);
     $this->mockShellExec([self::PS => "cloudflared tunnel --url http://localhost:8000 --no-autoupdate\n", self::LAUNCH => "5151\n"], self::banner(self::NEW_URL));
     $this->mockPassthru(['cmd' => 'kill 4242 >/dev/null 2>&1']);
-    $this->registerMock('get_headers', 'DrevOps\\Eddy\\DevTools', function (): never {
+    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', function (): never {
       throw new \RuntimeException('A tunnel without a URL must not be requested.');
     });
 
@@ -329,7 +329,7 @@ final class HelpersTunnelTest extends UnitTestCase {
     $this->mockShellExec([self::PS => $command, self::LAUNCH => "5151\n"], self::banner(self::NEW_URL));
     $this->mockPassthru(['cmd' => 'kill 4242 >/dev/null 2>&1']);
     // Whatever listens on the other port now can answer requests to the URL.
-    $this->registerMock('get_headers', 'DrevOps\\Eddy\\DevTools', function (): never {
+    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', function (): never {
       throw new \RuntimeException('A tunnel to another port must not be requested.');
     });
 
@@ -499,7 +499,7 @@ PHP;
     $file = 'build/web/sites/default/settings.php';
     mkdir(dirname($file), 0755, TRUE);
     file_put_contents($file, "<?php\n");
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\DevTools', fn(): false => FALSE);
+    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
     $this->mockQuit(1);
 
     ob_start();
@@ -524,7 +524,7 @@ PHP;
   #[DataProvider('dataProviderTunnelKill')]
   public function testTunnelKill(int $pid, array $expected): void {
     $commands = [];
-    $this->registerMock('passthru', 'DrevOps\\Eddy\\DevTools', function (string $command) use (&$commands): void {
+    $this->registerMock('passthru', 'DrevOps\\Eddy\\Tooling', function (string $command) use (&$commands): void {
       $commands[] = $command;
     });
 
@@ -574,7 +574,7 @@ PHP;
    *   prints its banner.
    */
   protected function mockShellExec(array $outputs, ?string $log = NULL): void {
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\DevTools', function (string $command) use ($outputs, $log): ?string {
+    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', function (string $command) use ($outputs, $log): ?string {
       if (!array_key_exists($command, $outputs)) {
         throw new \RuntimeException(sprintf('shell_exec() called with unexpected command "%s".', $command));
       }
@@ -597,7 +597,7 @@ PHP;
    *   banner while the command waits.
    */
   protected function mockSleepCounted(int &$count, array $logs = []): void {
-    $this->registerMock('sleep', 'DrevOps\\Eddy\\DevTools', function () use (&$count, $logs): int {
+    $this->registerMock('sleep', 'DrevOps\\Eddy\\Tooling', function () use (&$count, $logs): int {
       $count++;
 
       if (isset($logs[$count])) {

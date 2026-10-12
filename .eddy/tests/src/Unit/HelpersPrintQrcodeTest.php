@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use function DrevOps\Eddy\DevTools\print_qrcode;
+use function DrevOps\Eddy\Tooling\print_qrcode;
 use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\Group;
@@ -21,7 +21,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[RunTestsInSeparateProcesses]
-#[CoversFunction('DrevOps\Eddy\DevTools\print_qrcode')]
+#[CoversFunction('DrevOps\Eddy\Tooling\print_qrcode')]
 #[Group('p0')]
 final class HelpersPrintQrcodeTest extends UnitTestCase {
 

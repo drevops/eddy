@@ -58,9 +58,9 @@ final class InfoTest extends UnitTestCase {
     array $file_contents = [],
     string|false $command_php_path = '/usr/bin/php',
   ): void {
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\DevTools', fn(): string => $cwd);
+    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
 
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\DevTools', function (string $cmd) use ($shell_exec_map): string {
+    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', function (string $cmd) use ($shell_exec_map): string {
       foreach ($shell_exec_map as $needle => $output) {
         if ($needle !== '*' && str_contains($cmd, $needle)) {
           return $output;
@@ -70,13 +70,13 @@ final class InfoTest extends UnitTestCase {
       return $shell_exec_map['*'] ?? '';
     });
 
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\DevTools', fn(string $path): bool => $files[$path] ?? FALSE);
-    $this->registerMock('is_file', 'DrevOps\\Eddy\\DevTools', fn(string $path): bool => $files[$path] ?? FALSE);
-    $this->registerMock('is_dir', 'DrevOps\\Eddy\\DevTools', fn(string $path): bool => $files[$path] ?? FALSE);
-    $this->registerMock('glob', 'DrevOps\\Eddy\\DevTools', fn(): array => $info_files);
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\DevTools', fn(string $file): string => $file_contents[$file] ?? '');
+    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $path): bool => $files[$path] ?? FALSE);
+    $this->registerMock('is_file', 'DrevOps\\Eddy\\Tooling', fn(string $path): bool => $files[$path] ?? FALSE);
+    $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(string $path): bool => $files[$path] ?? FALSE);
+    $this->registerMock('glob', 'DrevOps\\Eddy\\Tooling', fn(): array => $info_files);
+    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(string $file): string => $file_contents[$file] ?? '');
 
-    $this->registerMock('exec', 'DrevOps\\Eddy\\DevTools', function (string $cmd, ?array &$output = NULL, ?int &$code = NULL) use ($command_php_path): bool {
+    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $cmd, ?array &$output = NULL, ?int &$code = NULL) use ($command_php_path): bool {
       $output ??= [];
       if ($command_php_path !== FALSE && str_contains($cmd, 'command -v php')) {
         $output[] = $command_php_path;

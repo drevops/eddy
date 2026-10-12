@@ -9,7 +9,7 @@ use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Yaml\Yaml;
 
 /**
- * Tests the paths the Zizmor step of the scaffold workflow audits.
+ * Tests the paths the Zizmor step of the 'eddy-test.yml' workflow audits.
  *
  * Zizmor collects workflows from every directory below an input. The install
  * fixtures hold workflows with placeholder action refs, so an audit that
@@ -46,13 +46,13 @@ final class ZizmorInputsTest extends UnitTestCase {
   }
 
   /**
-   * Read the inputs of every Zizmor step in the scaffold workflow.
+   * Read the inputs of every Zizmor step in the 'eddy-test.yml' workflow.
    *
    * @return array<int, string>
    *   The inputs, relative to the repository root.
    */
   protected static function inputs(): array {
-    $path = self::rootDir() . '/.github/workflows/scaffold-test.yml';
+    $path = self::rootDir() . '/.github/workflows/eddy-test.yml';
     $contents = file_get_contents($path);
 
     if ($contents === FALSE) {

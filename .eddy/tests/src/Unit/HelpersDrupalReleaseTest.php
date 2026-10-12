@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use function DrevOps\Eddy\DevTools\drupal_release;
+use function DrevOps\Eddy\Tooling\drupal_release;
 use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -17,7 +17,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
-#[CoversFunction('DrevOps\Eddy\DevTools\drupal_release')]
+#[CoversFunction('DrevOps\Eddy\Tooling\drupal_release')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersDrupalReleaseTest extends UnitTestCase {
@@ -36,7 +36,7 @@ final class HelpersDrupalReleaseTest extends UnitTestCase {
    *   The exit code Composer returns.
    */
   protected function mockReleaseList(array $output, int $exit_code = 0): void {
-    $this->registerMock('exec', 'DrevOps\\Eddy\\DevTools', function (string $cmd, ?array &$exec_output = NULL, ?int &$code = NULL) use ($output, $exit_code): string {
+    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $cmd, ?array &$exec_output = NULL, ?int &$code = NULL) use ($output, $exit_code): string {
       $this->assertSame('composer show --all --format=json drupal/recommended-project', $cmd);
       $exec_output = $output;
       $code = $exit_code;

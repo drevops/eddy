@@ -1,4 +1,4 @@
-name: Test Scaffold
+name: Test Eddy
 
 on:
   push:
@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 jobs:
-  scaffold-test-devtools:
+  eddy-test-tooling:
     runs-on: ${{ matrix.os }}
 
     permissions:
@@ -191,7 +191,7 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-  scaffold-test-actions:
+  eddy-test-actions:
     runs-on: ubuntu-26.04
 
     permissions:

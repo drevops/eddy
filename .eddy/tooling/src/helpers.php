@@ -28,7 +28,7 @@
 
 declare(strict_types=1);
 
-namespace DrevOps\Eddy\DevTools;
+namespace DrevOps\Eddy\Tooling;
 
 /**
  * Get environment variable with fallback and default value.
@@ -1489,7 +1489,7 @@ function tunnel_forget(): void {
 // defined quit() in a namespace because mocking of global functions can only
 // be done if they are defined in a namespace.
 // @codeCoverageIgnoreStart
-if (!function_exists('DrevOps\Eddy\DevTools\quit') && !class_exists('PHPUnit\\Framework\\TestCase')) {
+if (!function_exists('DrevOps\Eddy\Tooling\quit') && !class_exists('PHPUnit\\Framework\\TestCase')) {
 
   /**
    * Exit script with given code.

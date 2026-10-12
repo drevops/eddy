@@ -93,7 +93,7 @@ final class VariableNamesTest extends UnitTestCase {
     yield 'repeated name' => ['EDDY_A and EDDY_A', ['EDDY_A']];
     yield 'project name inside a word' => ['TEDDY_A', []];
     yield 'project name without a separator' => ['EDDY', []];
-    yield 'package and namespace' => ['drevops/eddy-tooling DrevOps\Eddy\DevTools', []];
+    yield 'package and namespace' => ['drevops/eddy-tooling DrevOps\Eddy\Tooling', []];
     yield 'package name' => ['EDDY_TOOLING_DEPLOY_KEY and AHOY_EDDY_TOOLING_READY', []];
     yield 'package name at the end' => ['EDDY_TOOLING=1', []];
     yield 'longer word after the project name' => ['EDDY_TOOLINGS', ['EDDY_TOOLINGS']];
