@@ -33,7 +33,7 @@ The range runs from a **lower bound**, the previous release, to an **upper bound
 | Lower (`FROM`) | The highest published release below the upper bound.      |
 | Upper (`TO`)   | The newest release on the mirror, if it has no notes yet. |
 
-When the mirror has no releases, or the newest one already has notes, the upper bound is the mirror's `main` branch instead, for a release not created yet. When no published release sits below the upper bound, the release is the package's **first release**. It has no default lower bound: the range starts where the package was created.
+When the newest release already has notes, the upper bound is the mirror's `main` branch instead, for a release not created yet.
 
 3 common shapes:
 
@@ -57,9 +57,9 @@ gh release list -R drevops/eddy-tooling --json tagName,isDraft,isPrerelease,publ
 gh release view <TAG> -R drevops/eddy-tooling --json tagName,isDraft,targetCommitish,body,url
 ```
 
-When its body is empty, it's the release being prepared. When it already has notes, or the mirror has no releases at all, the release being prepared doesn't exist yet: the upper bound is the mirror's `main` branch.
+When its body is empty, it's the release being prepared. When it already has notes, the release being prepared doesn't exist yet: the upper bound is the mirror's `main` branch.
 
-**Lower bound.** Use the bound the user named. Otherwise take the highest published release below the upper bound from the list. Drafts don't count, since a draft has no tag until it's published. When there's no such release, this is the package's **first release**: without a named bound, leave the lower bound empty, so Step 2 covers the whole history of `.eddy/tooling/`.
+**Lower bound.** Use the bound the user named. Otherwise take the highest published release below the upper bound from the list. Drafts don't count, since a draft has no tag until it's published.
 
 Resolve each bound to an Eddy commit SHA:
 
@@ -83,7 +83,7 @@ git cat-file -t <SHA>
 
 If `git cat-file` fails, the local clone is behind; run `git fetch origin` and retry, and stop with a clear message if it still can't be found. If it prints anything other than `commit`, the bound isn't a commit: stop and tell the user.
 
-Then confirm the range runs forward, unless this is a first release without a lower bound:
+Then confirm the range runs forward:
 
 ```bash
 git merge-base --is-ancestor <FROM_SHA> <TO_SHA>
@@ -102,12 +102,6 @@ git log <FROM_SHA>..<TO_SHA> --no-merges --pretty=format:'%H%x09%s' -- .eddy/too
 ```
 
 The path filter is the heart of the skill: it keeps only commits that touched files consumers actually receive, discarding the empty mirror commits and every Eddy commit that didn't change the package.
-
-For a first release without a lower bound, drop it from the range. The log then starts at the commit that created the package:
-
-```bash
-git log <TO_SHA> --no-merges --pretty=format:'%H%x09%s' -- .eddy/tooling/
-```
 
 If the command returns nothing, there's nothing to release. Tell the user "No tooling changes shipped since `<lower bound>`; no release needed" and stop. Don't write an empty notes file.
 
@@ -153,10 +147,10 @@ If `gh` is unavailable or auth fails, fall back to writing conservative paragrap
 
 ### Step 4: Determine the version
 
-`PREVIOUS_VERSION` is the lower-bound tag. When the lower bound is a bare commit, it's that commit's short SHA instead, so the heading names the range the notes actually cover. A first release has no `PREVIOUS_VERSION`.
+`PREVIOUS_VERSION` is the lower-bound tag. When the lower bound is a bare commit, it's that commit's short SHA instead, so the heading names the range the notes actually cover.
 
 - **The release exists**, as a draft or published: `NEW_VERSION` is its tag, which the maintainer chose in the GitHub UI. Check it against the rules below and warn the user before writing if it looks wrong. Don't change the release.
-- **The release isn't created yet**: suggest `NEW_VERSION` by bumping the highest published release according to the nature of the changes, then **confirm it with the user** before writing. For a first release, suggest the lowest version the constraint in `composer.dev.json` accepts, such as `1.0.0` for `~1.0.0`. The version only labels the notes; no tag is created.
+- **The release isn't created yet**: suggest `NEW_VERSION` by bumping the highest published release according to the nature of the changes, then **confirm it with the user** before writing. The version only labels the notes; no tag is created.
 
 Projects require `~1.<minor>.0` in `composer.dev.json`, so they install a new patch release on their next fresh install, without a scaffold update. A minor or major release reaches them only when the scaffold raises that constraint. A patch release must therefore hold nothing that needs the matching scaffold update: never suggest a patch for such a change, and warn when the maintainer chose one.
 
@@ -190,7 +184,7 @@ Write the file to `.artifacts/release-notes-tooling-<NEW_VERSION>.md` (for examp
 **Full Changelog**: https://github.com/drevops/eddy-tooling/compare/PREVIOUS_VERSION...NEW_VERSION
 ```
 
-A first release starts with `## Initial release` instead and ends without the `**Full Changelog**` line, since the mirror has no earlier tag to compare with. It has no `### Breaking changes` section either, since there's no earlier release to break. A range that starts at a bare commit also ends without the `**Full Changelog**` line: its `PREVIOUS_VERSION` is a `drevops/eddy` SHA, which isn't a ref on the mirror.
+A range that starts at a bare commit ends without the `**Full Changelog**` line: its `PREVIOUS_VERSION` is a `drevops/eddy` SHA, which isn't a ref on the mirror.
 
 ## Formatting rules
 
@@ -211,14 +205,14 @@ A first release starts with `## Initial release` instead and ends without the `*
 
 ### Footer
 
-The `**Full Changelog**` line points at the **mirror** repository, `drevops/eddy-tooling`, using `PREVIOUS_VERSION...NEW_VERSION`. The link resolves once the `NEW_VERSION` tag exists on that repository, which happens when the release is published. Only a range that starts at a release tag has the line: a first release and a range that starts at a bare commit have none.
+The `**Full Changelog**` line points at the **mirror** repository, `drevops/eddy-tooling`, using `PREVIOUS_VERSION...NEW_VERSION`. The link resolves once the `NEW_VERSION` tag exists on that repository, which happens when the release is published. Only a range that starts at a release tag has the line: a range that starts at a bare commit has none.
 
 ## Validation checklist
 
 Before displaying the output, verify:
 
 - File saved to `.artifacts/release-notes-tooling-<NEW_VERSION>.md`.
-- First line is `## What's new since <PREVIOUS_VERSION>`, or `## Initial release` for a first release.
+- First line is `## What's new since <PREVIOUS_VERSION>`.
 - `### Breaking changes` appears only if there is at least 1 breaking entry.
 - `### All changes` lists every commit from Step 2, verbatim, newest first.
 - Every non-bot entry is `**subject**<br>paragraph` on a single line, no blank line, no indentation.
