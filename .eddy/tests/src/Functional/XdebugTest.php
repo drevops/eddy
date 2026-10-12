@@ -17,7 +17,7 @@ use PHPUnit\Framework\Attributes\Group;
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p5')]
-final class XdebugTest extends DevtoolsTestCase {
+final class XdebugTest extends ToolingTestCase {
 
   public function testAhoy(): void {
     $this->assertToggle('ahoy');

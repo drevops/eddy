@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Functional;
 
 /**
- * Base class for devtools functional tests.
+ * Base class for tooling functional tests.
  *
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
-abstract class DevtoolsTestCase extends FunctionalTestCase {
+abstract class ToolingTestCase extends FunctionalTestCase {
 
   protected int $longTimeout = 600;
 

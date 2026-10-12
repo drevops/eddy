@@ -14,7 +14,7 @@ use PHPUnit\Framework\Attributes\Group;
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p2')]
-final class AssembleTest extends DevtoolsTestCase {
+final class AssembleTest extends ToolingTestCase {
 
   #[DataProvider('dataProviderAssemble')]
   public function testAssemble(string $drupal_version, string $init_message): void {
