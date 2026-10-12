@@ -254,7 +254,8 @@ final class DocumentationTest extends UnitTestCase {
   protected static function updateSkillInstallVariables(): array {
     $skill = (string) file_get_contents(self::updateSkillPath());
 
-    preg_match_all('/^(INSTALL_\w+)=/m', $skill, $matches);
+    // A list item can indent the command block that holds the assignments.
+    preg_match_all('/^[ \t]*(INSTALL_\w+)=/m', $skill, $matches);
 
     self::assertNotSame([], $matches[1], 'The update skill sets no INSTALL_ variables.');
 
