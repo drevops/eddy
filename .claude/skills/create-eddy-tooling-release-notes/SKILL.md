@@ -8,7 +8,7 @@ user-invocable: true
 
 Generate consumer-facing release notes for the `drevops/eddy-tooling` Composer package.
 
-`drevops/eddy-tooling` is a **read-only mirror** of the `.eddy/tooling/` directory in the `drevops/eddy` repository. The `eddy-publish-tooling.yml` workflow copies that directory to the mirror's `1.x` on every push to `main`, so the mirror's history is mostly noise: it holds 1 commit per Eddy commit, including empty commits for Eddy commits that didn't touch the tooling. Tooling releases are created by hand in the GitHub UI and rarely align with Eddy releases, so "what changed since the last tooling release" can't be read off an Eddy tag. This skill rebuilds that set from the Eddy history and turns it into release notes.
+`drevops/eddy-tooling` is a **read-only mirror** of the `.eddy/tooling/` directory in the `drevops/eddy` repository. The `eddy-publish-tooling.yml` workflow copies that directory to the mirror on every push to `main`, so the mirror's history is mostly noise: it holds 1 commit per Eddy commit, including empty commits for Eddy commits that didn't touch the tooling. Tooling releases are created by hand in the GitHub UI and rarely align with Eddy releases, so "what changed since the last tooling release" can't be read off an Eddy tag. This skill rebuilds that set from the Eddy history and turns it into release notes.
 
 ## When to use
 
@@ -33,12 +33,12 @@ The range runs from a **lower bound**, the previous release, to an **upper bound
 | Lower (`FROM`) | The highest published release below the upper bound.      |
 | Upper (`TO`)   | The newest release on the mirror, if it has no notes yet. |
 
-When the mirror has no releases, or the newest one already has notes, the upper bound is the mirror's `1.x` branch instead, for a release not created yet. When no published release sits below the upper bound, the release is the package's **first release**. It has no default lower bound: the range starts where the package was created.
+When the mirror has no releases, or the newest one already has notes, the upper bound is the mirror's `main` branch instead, for a release not created yet. When no published release sits below the upper bound, the release is the package's **first release**. It has no default lower bound: the range starts where the package was created.
 
 3 common shapes:
 
 - **A release created in the GitHub UI** (the usual case): give nothing, or the release's version. The maintainer creates the release, as a draft or published, before running this skill, so it's the newest release and its notes are empty.
-- **The next release, not created yet**: the range is "previous release to the mirror's `1.x`", and you choose the new version in Step 4.
+- **The next release, not created yet**: the range is "previous release to the mirror's `main`", and you choose the new version in Step 4.
 - **Notes for an older release**: give both bounds as tags, for example `1.1.0` and `1.2.0`. The new version is the upper tag.
 
 ## Process
@@ -57,7 +57,7 @@ gh release list -R drevops/eddy-tooling --json tagName,isDraft,isPrerelease,publ
 gh release view <TAG> -R drevops/eddy-tooling --json tagName,isDraft,targetCommitish,body,url
 ```
 
-When its body is empty, it's the release being prepared. When it already has notes, or the mirror has no releases at all, the release being prepared doesn't exist yet: the upper bound is the mirror's `1.x` branch.
+When its body is empty, it's the release being prepared. When it already has notes, or the mirror has no releases at all, the release being prepared doesn't exist yet: the upper bound is the mirror's `main` branch.
 
 **Lower bound.** Use the bound the user named. Otherwise take the highest published release below the upper bound from the list. Drafts don't count, since a draft has no tag until it's published. When there's no such release, this is the package's **first release**: without a named bound, leave the lower bound empty, so Step 2 covers the whole history of `.eddy/tooling/`.
 
@@ -70,10 +70,10 @@ Resolve each bound to an Eddy commit SHA:
   ```
 
   Parse the `Source: drevops/eddy@<SHA>` line from the output; that `<SHA>` is the bound.
-- **A draft, or a release not created yet**: there's no tag yet, so resolve the release's target with the same command instead: the target the draft shows, or `1.x` for a release not created yet.
+- **A draft, or a release not created yet**: there's no tag yet, so resolve the release's target with the same command instead: the target the draft shows, or `main` for a release not created yet.
 - **A commit SHA**: use it directly.
 
-Don't use the local `HEAD` as the upper bound. The release is cut from the mirror's `1.x`, and the local checkout may be a feature branch or behind `origin/main`.
+Don't use the local `HEAD` as the upper bound. The release is cut from the mirror's `main`, and the local checkout may be a feature branch or behind `origin/main`.
 
 Confirm each resolved SHA is a commit in the local clone, which makes this command print `commit`:
 

@@ -189,7 +189,7 @@ GitHub has no API for the social preview, so upload the new PNG by hand in the r
 
 `.github/workflows/eddy-test.yml` runs the suite across the `p0`-`p5` groups on Ubuntu and macOS, runs `p3` and `p4` once per WebDriver backend (Selenium on Ubuntu only, chromedriver on both), and validates `composer.json` and the tooling package's `composer.json` (validate + normalize) plus the PHP lint step in `p0`. A second job (`eddy-test-actions`) lints the workflow YAML with `yamllint` and `actionlint` and checks it for security issues with Zizmor.
 
-`.github/workflows/eddy-publish-tooling.yml` publishes `.eddy/tooling/` to `drevops/eddy-tooling` on every push to `main` and to a branch whose name contains `eddy-tooling`. A branch publishes to the mirror branch of the same name, except `main`, which publishes to the branch the `EDDY_TOOLING_BRANCH` repository variable names (`1.x`).
+`.github/workflows/eddy-publish-tooling.yml` publishes `.eddy/tooling/` to the same-named branch of `drevops/eddy-tooling` on every push to `main` and to a branch whose name contains `eddy-tooling`.
 
 `.github/workflows/deploy.yml` deploys `main` and release tags to [`drevops/eddy_destination`](https://github.com/drevops/eddy_destination) the way it deploys a generated project to Drupal.org. The `DEPLOY_BRANCH` repository variable sends `main` to `5.x` there, and the `DEPLOY_PROCEED` secret set to `1` lets the push through.
 
