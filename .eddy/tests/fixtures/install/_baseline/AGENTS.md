@@ -131,7 +131,7 @@ When the user asks to update this project's scaffold (e.g. "update scaffold" or 
 
    ```bash
    curl -fsSL -o .claude/skills/update-consumer-eddy/SKILL.md \
-     https://raw.githubusercontent.com/drevops/eddy/1.x/.eddy/skills/update-consumer-eddy/SKILL.md
+     https://raw.githubusercontent.com/drevops/eddy/main/.eddy/skills/update-consumer-eddy/SKILL.md
    ```
 
 3. Invoke the `update-consumer-eddy` skill and follow its steps.
