@@ -33,6 +33,8 @@ const CHROMEDRIVER_LOG_FILE = '.logs/chromedriver.log';
 
 const SELENIUM_IMAGE = 'selenium/standalone-chromium:latest';
 
+const VERSION_PROBE_TIMEOUT = 10;
+
 // -----------------------------------------------------------------------------
 // Variables.
 // -----------------------------------------------------------------------------
@@ -174,49 +176,58 @@ function webdriver_ready(string $port): bool {
 
 /**
  * Detect the installed Chrome/Chromium version, or '' when none is found.
+ *
+ * Aborts when the browser does not report its version in time.
  */
 function detect_chrome_version(): string {
+  $binary = detect_chrome_binary();
+
+  if ($binary === '') {
+    return '';
+  }
+
+  $raw = command_output([$binary, '--version'], VERSION_PROBE_TIMEOUT);
+
+  if ($raw === NULL) {
+    FAIL('The browser at %s did not report its version within %d seconds. Run it with --version to see why, or set WEBDRIVER_BACKEND=selenium to use Docker.', $binary, VERSION_PROBE_TIMEOUT);
+  }
+
+  return preg_match('/(\d+(?:\.\d+){3})/', (string) $raw, $matches) === 1 ? $matches[1] : '';
+}
+
+/**
+ * Detect the installed Chrome/Chromium binary, or '' when none is found.
+ */
+function detect_chrome_binary(): string {
   $mac_chrome = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 
   if (is_executable($mac_chrome)) {
-    $raw = (string) @shell_exec(escapeshellarg($mac_chrome) . ' --version 2>/dev/null');
+    return $mac_chrome;
   }
-  else {
-    $raw = '';
 
-    foreach (['google-chrome', 'chromium', 'chromium-browser'] as $binary) {
-      if (command_path($binary) !== FALSE) {
-        $raw = (string) @shell_exec($binary . ' --version 2>/dev/null');
-        break;
-      }
+  foreach (['google-chrome', 'chromium', 'chromium-browser'] as $candidate) {
+    $path = command_path($candidate);
+
+    if ($path !== FALSE) {
+      return $path;
     }
   }
 
-  return preg_match('/(\d+(?:\.\d+){3})/', $raw, $matches) === 1 ? $matches[1] : '';
+  return '';
 }
 
 /**
  * Resolve a chromedriver binary matching the given Chrome version.
  *
- * Prefers a chromedriver already on PATH when its major version matches the
- * installed Chrome; otherwise downloads a matching build via npx. Aborts when
- * neither a matching driver nor npx is available.
+ * Prefers a chromedriver already on PATH that reports the major version of
+ * the installed Chrome; otherwise downloads a matching build via npx. Aborts
+ * when neither a matching driver nor npx is available.
  */
 function resolve_chromedriver_binary(string $chrome_version): string {
-  $chrome_major = explode('.', $chrome_version)[0];
+  $installed = detect_matching_chromedriver($chrome_version);
 
-  $path = command_path('chromedriver');
-
-  if ($path !== FALSE) {
-    $raw = (string) @shell_exec(escapeshellarg($path) . ' --version 2>/dev/null');
-
-    if (preg_match('/(\d+)\./', $raw, $matches) === 1 && $matches[1] === $chrome_major) {
-      NOTE('Using installed chromedriver at %s.', $path);
-
-      return $path;
-    }
-
-    NOTE('Installed chromedriver does not match Chrome %s; fetching a matching build.', $chrome_version);
+  if ($installed !== '') {
+    return $installed;
   }
 
   if (command_path('npx') === FALSE) {
@@ -236,6 +247,43 @@ function resolve_chromedriver_binary(string $chrome_version): string {
   }
 
   return $binary;
+}
+
+/**
+ * Detect a chromedriver on PATH matching the given Chrome version.
+ *
+ * Notes why an installed chromedriver is passed over: it did not report its
+ * version in time, or the major version it reports differs from Chrome's.
+ *
+ * @return string
+ *   The chromedriver path, or '' when no chromedriver on PATH can be used.
+ */
+function detect_matching_chromedriver(string $chrome_version): string {
+  $path = command_path('chromedriver');
+
+  if ($path === FALSE) {
+    return '';
+  }
+
+  $raw = command_output([$path, '--version'], VERSION_PROBE_TIMEOUT);
+
+  if ($raw === NULL) {
+    NOTE('Installed chromedriver at %s did not report its version within %d seconds; fetching a matching build.', $path, VERSION_PROBE_TIMEOUT);
+    // cspell:ignore xattr
+    NOTE('If macOS has quarantined it, clear the flag with: xattr -d com.apple.quarantine %s', escapeshellarg($path));
+
+    return '';
+  }
+
+  if (preg_match('/(\d+)\./', $raw, $matches) !== 1 || $matches[1] !== explode('.', $chrome_version)[0]) {
+    NOTE('Installed chromedriver does not match Chrome %s; fetching a matching build.', $chrome_version);
+
+    return '';
+  }
+
+  NOTE('Using installed chromedriver at %s.', $path);
+
+  return $path;
 }
 
 /**

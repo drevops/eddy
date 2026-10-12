@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Unit;
 
 use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
@@ -33,6 +34,13 @@ final class BrowserStartTest extends UnitTestCase {
    * @var array<int, string>
    */
   protected array $createdDirs = [];
+
+  /**
+   * @var array<int, array<int, string>>
+   */
+  protected array $probes = [];
+
+  protected bool $probeHangs = FALSE;
 
   protected function setUp(): void {
     parent::setUp();
@@ -112,6 +120,7 @@ final class BrowserStartTest extends UnitTestCase {
 
     $this->assertStringContainsString('Using installed chromedriver at /usr/local/bin/chromedriver', $output);
     $this->assertStringContainsString('chromedriver is ready on port 4444', $output);
+    $this->assertSame([['/usr/bin/google-chrome', '--version'], ['/usr/local/bin/chromedriver', '--version']], $this->probes, 'Each binary must be probed by its resolved path, without a shell.');
     $this->assertNotEmpty($commands);
     $this->assertStringContainsString('nohup', $commands[0]);
     $this->assertStringContainsString('--port=', $commands[0]);
@@ -138,6 +147,40 @@ final class BrowserStartTest extends UnitTestCase {
     $this->assertTrue((bool) array_filter($commands, fn(string $c): bool => str_contains($c, 'nohup') && str_contains($c, '/cache/chromedriver')), 'The freshly fetched binary must be launched.');
   }
 
+  public function testBrowserStartFallsBackToNpxWhenDriverProbeTimesOut(): void {
+    $this->mockChrome(FALSE);
+    $this->mockCommands(['google-chrome' => '/usr/bin/google-chrome', 'chromedriver' => '/usr/local/bin/chromedriver', 'npx' => '/usr/bin/npx']);
+    $this->mockVersions('Google Chrome 150.0.7871.129', 'ChromeDriver 150.0.7871.129 (abc)', hanging: ['/usr/local/bin/chromedriver']);
+    $this->mockReady([FALSE, TRUE]);
+    $commands = [];
+    $this->recordPassthru($commands);
+
+    $output = $this->runBrowserStart();
+
+    $this->assertStringContainsString('Installed chromedriver at /usr/local/bin/chromedriver did not report its version within 10 seconds; fetching a matching build.', $output);
+    // cspell:ignore xattr
+    $this->assertStringContainsString("If macOS has quarantined it, clear the flag with: xattr -d com.apple.quarantine '/usr/local/bin/chromedriver'", $output);
+    $this->assertStringNotContainsString('Using installed chromedriver', $output);
+    $this->assertStringContainsString('chromedriver is ready on port 4444', $output);
+    $this->assertTrue((bool) array_filter($commands, fn(string $c): bool => str_contains($c, 'npx')), 'A chromedriver that does not answer must trigger an npx download.');
+    $this->assertTrue((bool) array_filter($commands, fn(string $c): bool => str_contains($c, 'nohup') && str_contains($c, '/cache/chromedriver')), 'The freshly fetched binary must be launched, not the one that did not answer.');
+  }
+
+  public function testBrowserStartFailsWhenChromeProbeTimesOut(): void {
+    $this->mockChrome(FALSE);
+    $this->mockCommands(['google-chrome' => '/usr/bin/google-chrome', 'chromedriver' => '/usr/local/bin/chromedriver', 'npx' => '/usr/bin/npx']);
+    $this->mockVersions('Google Chrome 150.0.7871.129', 'ChromeDriver 150.0.7871.129 (abc)', hanging: ['/usr/bin/google-chrome']);
+    $this->mockReady([FALSE]);
+    $commands = [];
+    $this->recordPassthru($commands);
+
+    $output = $this->runBrowserStart(1);
+
+    $this->assertStringContainsString('The browser at /usr/bin/google-chrome did not report its version within 10 seconds. Run it with --version to see why, or set WEBDRIVER_BACKEND=selenium to use Docker.', $output);
+    $this->assertSame([['/usr/bin/google-chrome', '--version']], $this->probes, 'chromedriver must not be probed without the Chrome version.');
+    $this->assertSame([], $commands, 'Nothing may be fetched or started without the Chrome version.');
+  }
+
   public function testBrowserStartUsesMacChromeWhenPresent(): void {
     $this->mockChrome(TRUE);
     $this->mockCommands(['chromedriver' => '/usr/local/bin/chromedriver']);
@@ -149,6 +192,37 @@ final class BrowserStartTest extends UnitTestCase {
     $output = $this->runBrowserStart();
 
     $this->assertStringContainsString('chromedriver is ready on port 4444', $output);
+    $this->assertSame([['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', '--version'], ['/usr/local/bin/chromedriver', '--version']], $this->probes);
+  }
+
+  #[DataProvider('dataProviderBrowserStartProbesFirstAvailableChrome')]
+  public function testBrowserStartProbesFirstAvailableChrome(array $available, string $expected_binary): void {
+    $this->mockChrome(FALSE);
+    $this->mockCommands($available + ['chromedriver' => '/usr/local/bin/chromedriver']);
+    $this->mockVersions('Chromium 150.0.7871.129', 'ChromeDriver 150.0.7871.129 (abc)');
+    $this->mockReady([FALSE, TRUE]);
+    $commands = [];
+    $this->recordPassthru($commands);
+
+    $output = $this->runBrowserStart();
+
+    $this->assertStringContainsString('Using installed chromedriver at /usr/local/bin/chromedriver', $output);
+    $this->assertSame([[$expected_binary, '--version'], ['/usr/local/bin/chromedriver', '--version']], $this->probes);
+  }
+
+  public static function dataProviderBrowserStartProbesFirstAvailableChrome(): \Iterator {
+    yield 'google-chrome' => [
+      'available' => ['google-chrome' => '/usr/bin/google-chrome', 'chromium' => '/usr/bin/chromium', 'chromium-browser' => '/usr/bin/chromium-browser'],
+      'expected_binary' => '/usr/bin/google-chrome',
+    ];
+    yield 'chromium' => [
+      'available' => ['chromium' => '/usr/bin/chromium', 'chromium-browser' => '/usr/bin/chromium-browser'],
+      'expected_binary' => '/usr/bin/chromium',
+    ];
+    yield 'chromium-browser' => [
+      'available' => ['chromium-browser' => '/snap/bin/chromium-browser'],
+      'expected_binary' => '/snap/bin/chromium-browser',
+    ];
   }
 
   public function testBrowserStartFailsWhenChromeMissing(): void {
@@ -418,16 +492,29 @@ final class BrowserStartTest extends UnitTestCase {
     });
   }
 
-  protected function mockVersions(string $chrome, string $driver): void {
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', function (string $cmd) use ($chrome, $driver): string {
-      if (str_contains($cmd, 'chromedriver')) {
-        return $driver;
-      }
-      if (str_contains($cmd, 'hrome') || str_contains($cmd, 'hromium')) {
-        return $chrome;
-      }
+  /**
+   * Answer the '--version' probes with a real process standing in for each.
+   *
+   * The probed command lines are recorded in $probes.
+   *
+   * @param array<int, string> $hanging
+   *   Paths of binaries whose probe never answers.
+   */
+  protected function mockVersions(string $chrome, string $driver, array $hanging = []): void {
+    $this->registerMock('proc_open', 'DrevOps\\Eddy\\Tooling', function (array $command, array $descriptors, &$pipes) use ($chrome, $driver, $hanging) {
+      $this->probes[] = $command;
+      $this->probeHangs = in_array($command[0], $hanging, TRUE);
+      $version = str_contains($command[0], 'chromedriver') ? $driver : $chrome;
 
-      return '';
+      return \proc_open($this->probeHangs ? ['sleep', '30'] : ['printf', '%s', $version], $descriptors, $pipes);
+    });
+
+    // Skip the poll interval for a hanging probe, so its time limit expires at
+    // once. An answering probe sleeps for real, so its process can exit.
+    $this->registerMock('usleep', 'DrevOps\\Eddy\\Tooling', function (int $microseconds): void {
+      if (!$this->probeHangs) {
+        \usleep($microseconds);
+      }
     });
   }
 

@@ -69,8 +69,11 @@ else {
   drush('pm:enable %s', [$extension_name]);
 }
 
+PASS('Extension enabled.');
+
 TASK('Clearing caches.');
 drush('cr');
+PASS('Caches cleared.');
 
 TASK('Enabling suggested modules, if any.');
 $ext_json = (array) json_decode((string) file_get_contents('composer.json'), TRUE);

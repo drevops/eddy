@@ -631,6 +631,55 @@ function command_must_exist(string $command): void {
 }
 
 /**
+ * Run a command and capture its output, killing it after a time limit.
+ *
+ * The command runs without a shell. Its standard input reads from '/dev/null'
+ * and its standard error is discarded.
+ *
+ * @param list<string> $command
+ *   The executable followed by its arguments.
+ * @param int $timeout
+ *   Seconds to wait for the command to exit.
+ *
+ * @return string|null
+ *   The standard output, or NULL when the command was still running at the
+ *   time limit. A command that cannot be started returns an empty string.
+ */
+function command_output(array $command, int $timeout): ?string {
+  $pipes = [];
+  $process = @proc_open($command, [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['file', '/dev/null', 'w']], $pipes);
+
+  if (!is_resource($process)) {
+    return '';
+  }
+
+  // A blocking read waits until the command closes its output, so a hung
+  // command would block the loop past the time limit.
+  stream_set_blocking($pipes[1], FALSE);
+  $output = '';
+
+  for ($i = 0; $i < $timeout * 10 && proc_get_status($process)['running']; $i++) {
+    $output .= (string) stream_get_contents($pipes[1]);
+    usleep(100000);
+  }
+
+  $timed_out = proc_get_status($process)['running'];
+
+  if ($timed_out) {
+    // A command can ignore SIGTERM, and proc_close() waits for it to exit, so
+    // send SIGKILL. The SIGKILL constant needs the pcntl extension.
+    proc_terminate($process, 9);
+  }
+
+  // Output written after the last read in the loop is still in the pipe.
+  $output .= (string) stream_get_contents($pipes[1]);
+  fclose($pipes[1]);
+  proc_close($process);
+
+  return $timed_out ? NULL : $output;
+}
+
+/**
  * Run a command and capture its combined stdout and stderr.
  *
  * The command is wrapped in a brace group so both streams are captured
