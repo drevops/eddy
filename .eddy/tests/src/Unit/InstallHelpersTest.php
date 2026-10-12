@@ -293,6 +293,12 @@ final class InstallHelpersTest extends UnitTestCase {
       ['1.x'],
       "on:\n  push:\n    branches:\n      - 1.x\n      - mainline\n    tags:\n      - main-*\n",
     ];
+
+    yield 'windows line endings' => [
+      "on:\r\n  push:\r\n    branches:\r\n      - main\r\n",
+      ['1.x', '2.x'],
+      "on:\r\n  push:\r\n    branches:\r\n      - 1.x\r\n      - 2.x\r\n",
+    ];
   }
 
   /**

@@ -694,7 +694,13 @@ function set_workflow_branches(string $file, array $branches): void {
     // @codeCoverageIgnoreEnd
   }
 
-  $content = preg_replace_callback('/^( +)- main$/m', static fn(array $matches): string => implode("\n", array_map(static fn(string $branch): string => $matches[1] . '- ' . $branch, $branches)), $content) ?? $content;
+  // Each replacement line keeps the indentation and the line ending of the
+  // line it replaces.
+  $content = preg_replace_callback('/^( +)- main(\r?)$/m', static function (array $matches) use ($branches): string {
+    $lines = array_map(static fn(string $branch): string => $matches[1] . '- ' . $branch . $matches[2], $branches);
+
+    return implode("\n", $lines);
+  }, $content) ?? $content;
 
   file_put_contents($file, $content);
 }
