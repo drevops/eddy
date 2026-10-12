@@ -13,7 +13,8 @@ use PHPUnit\Framework\Attributes\Group;
  * A script can be added to the tooling package without a 'bin' entry, which
  * leaves it uninstalled, or without a row in the package README table.
  * A path can be copied into a PHPUnit config without being rebased onto the
- * build root.
+ * build root. The migration guide repeats the update skill commands from
+ * 'AGENTS.md', so either copy can change alone.
  *
  * No such drift is reported by a linter, because each file stays individually
  * valid while the files disagree.
@@ -115,6 +116,41 @@ final class DocumentationTest extends UnitTestCase {
 
     foreach ($paths as $path) {
       yield basename($path) => ['path' => $path];
+    }
+  }
+
+  #[DataProvider('dataProviderMigrationGuideFetchesUpdateSkill')]
+  public function testMigrationGuideFetchesUpdateSkill(string $line): void {
+    $guide = file_get_contents(self::rootDir() . '/MIGRATION.md');
+    $this->assertIsString($guide);
+
+    // Compared line by line, so the list item that holds a command block can
+    // indent it differently.
+    $lines = array_map(trim(...), explode("\n", $guide));
+
+    $this->assertContains($line, $lines, sprintf('MIGRATION.md does not fetch the update skill the way AGENTS.md does: `%s` is missing.', $line));
+  }
+
+  public static function dataProviderMigrationGuideFetchesUpdateSkill(): \Iterator {
+    $agents = (string) file_get_contents(self::rootDir() . '/AGENTS.md');
+
+    preg_match('/^## Updating the scaffold\n(.*?)(?=^## |\z)/ms', $agents, $matches);
+    $section = $matches[1] ?? '';
+
+    self::assertNotSame('', $section, 'AGENTS.md has no "Updating the scaffold" section.');
+
+    preg_match_all('/```bash\n(.*?)```/s', $section, $blocks);
+
+    self::assertNotSame([], $blocks[1], 'The "Updating the scaffold" section of AGENTS.md has no bash blocks.');
+
+    foreach ($blocks[1] as $block) {
+      foreach (explode("\n", $block) as $line) {
+        $line = trim($line);
+
+        if ($line !== '') {
+          yield $line => ['line' => $line];
+        }
+      }
     }
   }
 
