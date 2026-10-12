@@ -20,6 +20,8 @@
  * this script carries its own output functions.
  *
  * Set DEBUG=1 to stream the Composer output.
+ *
+ * @see https://github.com/drevops/eddy-tooling
  */
 
 declare(strict_types=1);
