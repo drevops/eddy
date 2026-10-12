@@ -222,7 +222,7 @@ git status --porcelain --untracked-files=all
 
 Use `git diff` and `git status` to review all changes. Pay attention to:
 
-- **Branch references**: Replace scaffold default branch (`1.x`) with the project's main branch in workflow files and README.
+- **Branch references**: `install.php` writes the `push` branches of the project's committed `test.yml` into the branch filters of `test.yml` and `draft-release-notes.yml`, and an older release writes `1.x` there instead. Confirm both files list the project's branches, and fix them by hand if they don't.
 - **README.md**: Rebuild from the scaffold template (see README section below).
 - **Removed files**: If `git status` shows deleted files that were old scaffold infrastructure (e.g., `phpmd.xml`), confirm they are intentionally removed in the new scaffold version.
 - **New files**: Review any new files from the scaffold to ensure they are infrastructure, not placeholder stubs. Anything the example extension missed in Step 8 - a generic service class, form class or test stub - is removed here, under the same guard: untracked only, and only when the file is demonstrably scaffold boilerplate rather than project code.

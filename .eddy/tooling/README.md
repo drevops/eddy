@@ -3,7 +3,7 @@
 The commands that build, run, test and deploy a Drupal module or theme created from [Eddy](https://github.com/drevops/eddy), the Drupal extension scaffold. Eddy's command wrappers (`ahoy` and `make`) and its CI workflows call them, and you can run them directly as `vendor/bin/eddy-<command>` from the extension's root directory.
 
 > [!IMPORTANT]
-> This repository is a **read-only mirror** of the [`.eddy/tooling/`](https://github.com/drevops/eddy/tree/1.x/.eddy/tooling) directory of [`drevops/eddy`](https://github.com/drevops/eddy). Report bugs and propose changes [there](https://github.com/drevops/eddy/issues), not here. Each commit here corresponds to a commit in `drevops/eddy`, and its message body records the source commit.
+> This repository is a **read-only mirror** of the [`.eddy/tooling/`](https://github.com/drevops/eddy/tree/main/.eddy/tooling) directory of [`drevops/eddy`](https://github.com/drevops/eddy). Report bugs and propose changes [there](https://github.com/drevops/eddy/issues), not here. Each commit here corresponds to a commit in `drevops/eddy`, and its message body records the source commit.
 
 ## Installation
 
@@ -80,7 +80,7 @@ The installer applies the patches with [`cweagans/composer-patches`](https://git
 
 ## Testing
 
-The commands are tested in [`drevops/eddy`](https://github.com/drevops/eddy): unit tests in [`.eddy/tests`](https://github.com/drevops/eddy/tree/1.x/.eddy/tests) cover every command with its external calls mocked, and functional tests build, run and lint a real extension through the same commands.
+The commands are tested in [`drevops/eddy`](https://github.com/drevops/eddy): unit tests in [`.eddy/tests`](https://github.com/drevops/eddy/tree/main/.eddy/tests) cover every command with its external calls mocked, and functional tests build, run and lint a real extension through the same commands.
 
 ## License
 

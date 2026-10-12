@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use DrevOps\Eddy\Tests\Traits\GitTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use Symfony\Component\Filesystem\Filesystem;
 
+use function committed_workflow_branches;
 use function convert_string;
 use function drupal_version_default;
 use function drupal_version_options;
@@ -22,13 +25,17 @@ use function remove_string_content;
 use function remove_tokens_with_content;
 use function replace_string_content;
 use function set_composer_dev_drupal_version;
+use function set_workflow_branches;
 use function uncomment_line;
+use function workflow_push_branches;
 
 /**
  * Unit tests for helper functions in install.php.
  */
 #[Group('p0')]
 final class InstallHelpersTest extends UnitTestCase {
+
+  use GitTrait;
 
   protected string $originalCwd;
 
@@ -215,6 +222,121 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'existing version and an empty patches map' => [
       '{"extra": {"eddy": {"drupal-version": "11"}, "patches": {}}}',
       "{\n    \"extra\": {\n        \"eddy\": {\n            \"drupal-version\": \"12\"\n        },\n        \"patches\": {}\n    }\n}\n",
+    ];
+  }
+
+  /**
+   * @param array<int, string> $expected
+   */
+  #[DataProvider('dataProviderWorkflowPushBranches')]
+  public function testWorkflowPushBranches(string $content, array $expected): void {
+    $this->assertSame($expected, workflow_push_branches($content));
+  }
+
+  public static function dataProviderWorkflowPushBranches(): \Iterator {
+    yield 'block sequence' => ["on:\n  push:\n    branches:\n      - 1.x\n      - '2.x'\n", ['1.x', "'2.x'"]];
+    yield 'block sequence at the indentation of its key' => ["on:\n  push:\n    branches:\n    - 1.x\n    tags:\n    - '*'\n", ['1.x']];
+    yield 'flow sequence' => ["on:\n  push:\n    branches: [1.x, \"2.x\"]\n", ['1.x', '"2.x"']];
+    yield 'empty flow sequence' => ["on:\n  push:\n    branches: []\n", []];
+    yield 'tags and paths around the branches' => ["on:\n  push:\n    tags:\n      - '**'\n    branches:\n      - 1.x\n    paths:\n      - src/**\n", ['1.x']];
+    yield 'comments' => ["# Build.\non: # Triggers.\n  push:\n    branches:\n      # The release branch.\n      - 1.x # Current.\n", ['1.x']];
+    yield 'quoted on key' => ["\"on\":\n  push:\n    branches:\n      - 1.x\n", ['1.x']];
+    yield 'windows line endings' => ["on:\r\n  push:\r\n    branches:\r\n      - 1.x\r\n", ['1.x']];
+    yield 'pull request branches only' => ["on:\n  pull_request:\n    branches:\n      - 1.x\n", []];
+    yield 'push after pull request' => ["on:\n  pull_request:\n    branches:\n      - 2.x\n  push:\n    branches:\n      - 1.x\n", ['1.x']];
+    yield 'push without branches' => ["on:\n  push:\n    tags:\n      - '*'\n", []];
+    yield 'branches-ignore' => ["on:\n  push:\n    branches-ignore:\n      - 1.x\n", []];
+    yield 'push as a list item' => ["on: [push, pull_request]\n", []];
+    yield 'branches outside the triggers' => ["on:\n  workflow_dispatch:\njobs:\n  push:\n    branches:\n      - 1.x\n", []];
+    yield 'empty' => ['', []];
+  }
+
+  /**
+   * @param array<int, string> $branches
+   */
+  #[DataProvider('dataProviderSetWorkflowBranches')]
+  public function testSetWorkflowBranches(?string $content, array $branches, ?string $expected): void {
+    chdir(self::$sut);
+
+    if ($content !== NULL) {
+      file_put_contents('workflow.yml', $content);
+    }
+
+    set_workflow_branches('workflow.yml', $branches);
+
+    if ($expected === NULL) {
+      $this->assertFileDoesNotExist('workflow.yml');
+
+      return;
+    }
+
+    $this->assertSame($expected, file_get_contents('workflow.yml'));
+  }
+
+  public static function dataProviderSetWorkflowBranches(): \Iterator {
+    yield 'missing file' => [NULL, ['1.x'], NULL];
+
+    yield 'every trigger' => [
+      "on:\n  push:\n    branches:\n      - main\n  pull_request:\n    branches:\n      - main\n",
+      ['1.x'],
+      "on:\n  push:\n    branches:\n      - 1.x\n  pull_request:\n    branches:\n      - 1.x\n",
+    ];
+
+    yield 'several branches' => [
+      "on:\n  push:\n    branches:\n      - main\n",
+      ['1.x', "'2.x'"],
+      "on:\n  push:\n    branches:\n      - 1.x\n      - '2.x'\n",
+    ];
+
+    yield 'other items' => [
+      "on:\n  push:\n    branches:\n      - main\n      - mainline\n    tags:\n      - main-*\n",
+      ['1.x'],
+      "on:\n  push:\n    branches:\n      - 1.x\n      - mainline\n    tags:\n      - main-*\n",
+    ];
+  }
+
+  /**
+   * @param array<string, string>|null $committed
+   * @param array<int, string> $expected
+   */
+  #[DataProvider('dataProviderCommittedWorkflowBranches')]
+  public function testCommittedWorkflowBranches(?array $committed, string $directory, array $expected): void {
+    $filesystem = new Filesystem();
+
+    if ($committed !== NULL) {
+      $this->git(self::$sut, ['init']);
+      $this->git(self::$sut, ['config', 'user.name', 'Test User']);
+      $this->git(self::$sut, ['config', 'user.email', 'test@example.com']);
+      $filesystem->dumpFile(self::$sut . '/README.md', 'Project');
+
+      foreach ($committed as $path => $content) {
+        $filesystem->dumpFile(self::$sut . '/' . $path, $content);
+      }
+
+      $this->git(self::$sut, ['add', '--all']);
+      $this->git(self::$sut, ['commit', '--message', 'Initial commit']);
+    }
+
+    // The working tree holds the template's copy, which the function ignores.
+    $filesystem->dumpFile(self::$sut . '/' . $directory . '/.github/workflows/test.yml', "on:\n  push:\n    branches:\n      - main\n");
+    chdir(self::$sut . '/' . $directory);
+
+    $this->assertSame($expected, committed_workflow_branches('.github/workflows/test.yml'));
+  }
+
+  public static function dataProviderCommittedWorkflowBranches(): \Iterator {
+    $project = "on:\n  push:\n    branches:\n      - 2.x\n";
+    $template = "on:\n  push:\n    branches:\n      - main\njobs:\n  test:\n    #;< DRUPAL_11\n    name: test\n    #;> DRUPAL_11\n";
+
+    yield 'no repository' => [NULL, '', []];
+    yield 'no committed workflow' => [[], '', []];
+    yield 'committed template copy' => [['.github/workflows/test.yml' => $template], '', []];
+    yield 'committed project copy' => [['.github/workflows/test.yml' => $project], '', ['2.x']];
+
+    yield 'project in a subdirectory of the repository' => [
+      ['.github/workflows/test.yml' => "on:\n  push:\n    branches:\n      - 3.x\n", 'extension/.github/workflows/test.yml' => $project],
+      'extension',
+      ['2.x'],
     ];
   }
 

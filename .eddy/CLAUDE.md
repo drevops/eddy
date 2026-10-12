@@ -8,7 +8,7 @@ This file documents how `install.php` prunes the template, how to regenerate the
 
 - `.eddy/assets/` - Source files for animated SVG demos used in the root `README.md` (`install.svg`, `build.svg`, `lint.svg`, `test.svg`) plus the `update-assets.php` generator and a small `svg-term` Node wrapper. It also holds the repository's social preview card, `social-preview.png`, and the `social-preview.html` page it's rendered from.
 - `.eddy/tests/` - PHPUnit suite that validates the scaffold itself: the `install.php` interactive flow, the tooling commands in `.eddy/tooling/src/` with their installer `scripts/eddy-tooling`, and the resulting project structure. Snapshots live under `.eddy/tests/fixtures/install/`.
-- `.eddy/tooling/` - Source of the `drevops/eddy-tooling` Composer package (the `eddy-*` commands). `scripts/eddy-tooling` installs it into `vendor/` as a symlink in this repository, and `eddy-publish-tooling.yml` mirrors it to the read-only `drevops/eddy-tooling` repository on every push to `1.x` and to a branch whose name contains `eddy-tooling`. Releases are created on the mirror by hand, with notes from the `create-eddy-tooling-release-notes` skill - see `CONTRIBUTING.md`.
+- `.eddy/tooling/` - Source of the `drevops/eddy-tooling` Composer package (the `eddy-*` commands). `scripts/eddy-tooling` installs it into `vendor/` as a symlink in this repository, and `eddy-publish-tooling.yml` mirrors it to the read-only `drevops/eddy-tooling` repository on every push to `main` and to a branch whose name contains `eddy-tooling`. Releases are created on the mirror by hand, with notes from the `create-eddy-tooling-release-notes` skill - see `CONTRIBUTING.md`.
 - `.eddy/skills/update-consumer-eddy/` - the update skill that consumer projects fetch through the "Updating the scaffold" section of their `AGENTS.md`.
 - `.claude/skills/` - Claude Code skills for maintaining the scaffold, such as `create-eddy-tooling-release-notes`. `install.php` removes the directory, so generated projects never get them.
 
@@ -72,6 +72,15 @@ A broken block fails quietly. Every file stays valid, and `composer update-snaps
 4. If the tool runs through the shared `npm run lint` step, add it to the condition in `remove_tools()` that strips `DEV_NODEJS_LINT`, and add its sub-scripts to the `rebuild_npm_chain()` calls in `remove_npm()`.
 5. Document it in `README.md`: the feature list, and the ignore-failure table when its CI step has a `CI_<TOOL>_IGNORE_FAILURE` variable.
 6. Add the tool to `dataProviderProcessRemovesTools()` and `dataProviderProcessRemovesGitattributes()` in `InstallProcessTest`. In `InstallTest`, add it to every `tools` answer and add a `no_<tool>` dataset, then regenerate the snapshot fixtures.
+
+## Workflow branches
+
+The scaffold builds from `main`, so the branch filters of `.github/workflows/test.yml` and `draft-release-notes.yml` list `main`. A generated project builds from the branch it releases from on Drupal.org instead, so `process_workflow_branches()` in `install.php` replaces every `- main` line in those 2 files:
+
+- When `HEAD` holds a project copy of `test.yml`, as it does while the update skill re-runs `install.php`, the project keeps that copy's `push` branches.
+- Otherwise the project gets `1.x`. A committed copy that still holds `#;` markers is the template's own, such as in a repository created with **Use this template**, so it doesn't count.
+
+Keep `main` the only branch in those filters: a second branch there ships to every generated project.
 
 ## Test groups
 
@@ -180,6 +189,8 @@ GitHub has no API for the social preview, so upload the new PNG by hand in the r
 
 `.github/workflows/eddy-test.yml` runs the suite across the `p0`-`p5` groups on Ubuntu and macOS, runs `p3` and `p4` once per WebDriver backend (Selenium on Ubuntu only, chromedriver on both), and validates `composer.json` and the tooling package's `composer.json` (validate + normalize) plus the PHP lint step in `p0`. A second job (`eddy-test-actions`) lints the workflow YAML with `yamllint` and `actionlint` and checks it for security issues with Zizmor.
 
-`.github/workflows/eddy-publish-tooling.yml` publishes `.eddy/tooling/` to the same-named branch of `drevops/eddy-tooling` on every push to `1.x` and to a branch whose name contains `eddy-tooling`.
+`.github/workflows/eddy-publish-tooling.yml` publishes `.eddy/tooling/` to `drevops/eddy-tooling` on every push to `main` and to a branch whose name contains `eddy-tooling`. A branch publishes to the mirror branch of the same name, except `main`, which publishes to the branch the `EDDY_TOOLING_BRANCH` repository variable names (`1.x`).
+
+`.github/workflows/deploy.yml` deploys `main` and release tags to [`drevops/eddy_destination`](https://github.com/drevops/eddy_destination) the way it deploys a generated project to Drupal.org. The `DEPLOY_BRANCH` repository variable sends `main` to `5.x` there, and the `DEPLOY_PROCEED` secret set to `1` lets the push through.
 
 `install.php` deletes every `.github/workflows/eddy-*.yml` from a generated project, so a maintenance-only workflow takes the `eddy-` prefix and a workflow that ships to projects never does.

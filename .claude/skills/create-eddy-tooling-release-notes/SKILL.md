@@ -8,7 +8,7 @@ user-invocable: true
 
 Generate consumer-facing release notes for the `drevops/eddy-tooling` Composer package.
 
-`drevops/eddy-tooling` is a **read-only mirror** of the `.eddy/tooling/` directory in the `drevops/eddy` repository. The `eddy-publish-tooling.yml` workflow copies that directory to the mirror on every push to `1.x`, so the mirror's history is mostly noise: it holds 1 commit per Eddy commit, including empty commits for Eddy commits that didn't touch the tooling. Tooling releases are created by hand in the GitHub UI and rarely align with Eddy releases, so "what changed since the last tooling release" can't be read off an Eddy tag. This skill rebuilds that set from the Eddy history and turns it into release notes.
+`drevops/eddy-tooling` is a **read-only mirror** of the `.eddy/tooling/` directory in the `drevops/eddy` repository. The `eddy-publish-tooling.yml` workflow copies that directory to the mirror's `1.x` on every push to `main`, so the mirror's history is mostly noise: it holds 1 commit per Eddy commit, including empty commits for Eddy commits that didn't touch the tooling. Tooling releases are created by hand in the GitHub UI and rarely align with Eddy releases, so "what changed since the last tooling release" can't be read off an Eddy tag. This skill rebuilds that set from the Eddy history and turns it into release notes.
 
 ## When to use
 
@@ -73,7 +73,7 @@ Resolve each bound to an Eddy commit SHA:
 - **A draft, or a release not created yet**: there's no tag yet, so resolve the release's target with the same command instead: the target the draft shows, or `1.x` for a release not created yet.
 - **A commit SHA**: use it directly.
 
-Don't use the local `HEAD` as the upper bound. The release is cut from the mirror's `1.x`, and the local checkout may be a feature branch or behind `origin/1.x`.
+Don't use the local `HEAD` as the upper bound. The release is cut from the mirror's `1.x`, and the local checkout may be a feature branch or behind `origin/main`.
 
 Confirm each resolved SHA is a commit in the local clone, which makes this command print `commit`:
 

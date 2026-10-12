@@ -1,10 +1,14 @@
 name: Publish Eddy Tooling
 
-# Mirrors '.eddy/tooling/' to the branch of the same name in the read-only
-# 'drevops/eddy-tooling' repository.
+# Mirrors '.eddy/tooling/' to the read-only 'drevops/eddy-tooling' repository.
 #
-# Besides '1.x', a branch whose name contains 'eddy-tooling' is published, so a
-# tooling change can be installed from the mirror before it merges.
+# Besides 'main', a branch whose name contains 'eddy-tooling' is published, so
+# a tooling change can be installed from the mirror before it merges.
+#
+# A branch publishes to the mirror branch of the same name. The mirror's
+# default branch follows the tooling's version, such as '1.x', so the
+# 'EDDY_TOOLING_BRANCH' repository variable names the mirror branch for the
+# default branch.
 #
 # Each run adds 1 commit with the pushed commit's subject, even when the
 # directory is unchanged.
@@ -19,7 +23,7 @@ name: Publish Eddy Tooling
 on:
   push:
     branches:
-      - 1.x
+      - main
       - '**eddy-tooling**'
 
 concurrency:
@@ -50,10 +54,25 @@ jobs:
           key: ${{ secrets.EDDY_TOOLING_DEPLOY_KEY }}
           known_hosts: unnecessary
 
+      - name: Resolve the mirror branch
+        id: mirror-branch
+        env:
+          SOURCE_BRANCH: ${{ github.ref_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          EDDY_TOOLING_BRANCH: ${{ vars.EDDY_TOOLING_BRANCH }}
+        run: |
+          branch="${SOURCE_BRANCH}"
+
+          if [ "${SOURCE_BRANCH}" = "${DEFAULT_BRANCH}" ] && [ -n "${EDDY_TOOLING_BRANCH}" ]; then
+            branch="${EDDY_TOOLING_BRANCH}"
+          fi
+
+          echo "branch=${branch}" >> "${GITHUB_OUTPUT}"
+
       - name: Publish '.eddy/tooling/' to 'drevops/eddy-tooling'
         env:
           SOURCE_DIR: ${{ github.workspace }}/.eddy/tooling
-          BRANCH: ${{ github.ref_name }}
+          BRANCH: ${{ steps.mirror-branch.outputs.branch }}
           SHA: ${{ github.sha }}
           REPO_SRC: ${{ github.repository }}
           REPO_DST: git@github.com:drevops/eddy-tooling.git

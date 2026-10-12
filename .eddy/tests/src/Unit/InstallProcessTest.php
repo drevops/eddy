@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use DrevOps\Eddy\Tests\Traits\GitTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use Symfony\Component\Yaml\Yaml;
 
 use function main;
 use function process;
@@ -23,6 +25,8 @@ use function process;
  */
 #[Group('p0')]
 final class InstallProcessTest extends UnitTestCase {
+
+  use GitTrait;
 
   protected string $originalCwd;
 
@@ -545,6 +549,42 @@ final class InstallProcessTest extends UnitTestCase {
     yield 'unordered selection uses the highest major' => [['12', '10'], '12'];
   }
 
+  /**
+   * The shipped workflows keep a project's committed branches, or use '1.x'.
+   *
+   * @param array<int, string> $expected
+   */
+  #[DataProvider('dataProviderProcessSetsWorkflowBranches')]
+  public function testProcessSetsWorkflowBranches(?string $committed, array $expected): void {
+    $workflow = self::$sut . '/.github/workflows/test.yml';
+
+    if ($committed !== NULL) {
+      // A scaffold update leaves the template's copy in the working tree and
+      // the project's copy in 'HEAD'.
+      $template = (string) file_get_contents($workflow);
+      file_put_contents($workflow, $committed);
+      $this->git(self::$sut, ['init']);
+      $this->git(self::$sut, ['config', 'user.name', 'Test User']);
+      $this->git(self::$sut, ['config', 'user.email', 'test@example.com']);
+      $this->git(self::$sut, ['add', '.github/workflows/test.yml']);
+      $this->git(self::$sut, ['commit', '--message', 'Project workflow']);
+      file_put_contents($workflow, $template);
+    }
+
+    process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], [], FALSE, FALSE);
+
+    $this->assertSame($expected, self::triggerBranches($workflow, 'push'), 'test.yml push branches mismatch.');
+    $this->assertSame($expected, self::triggerBranches($workflow, 'pull_request'), 'test.yml pull_request branches mismatch.');
+    $this->assertSame($expected, self::triggerBranches(self::$sut . '/.github/workflows/draft-release-notes.yml', 'push'), 'draft-release-notes.yml push branches mismatch.');
+  }
+
+  public static function dataProviderProcessSetsWorkflowBranches(): \Iterator {
+    yield 'new project' => [NULL, ['1.x']];
+    yield 'project branch' => ["on:\n  push:\n    branches:\n      - 2.x\n", ['2.x']];
+    yield 'project branches' => ["on:\n  push:\n    branches:\n      - 1.x\n      - 2.x\n", ['1.x', '2.x']];
+    yield 'project without a push branch filter' => ["on: [push, pull_request]\n", ['1.x']];
+  }
+
   public function testProcessThrowsOnInvalidClaudeSettingsJson(): void {
     file_put_contents(self::$sut . '/.claude/settings.json', '{invalid json');
 
@@ -591,6 +631,25 @@ final class InstallProcessTest extends UnitTestCase {
     yield 'long flag' => [['install.php', '--help']];
     yield 'short flag h' => [['install.php', '-h']];
     yield 'short flag question' => [['install.php', '-?']];
+  }
+
+  /**
+   * Read the branch filter of a workflow trigger.
+   *
+   * @param string $file
+   *   The workflow path.
+   * @param string $trigger
+   *   The trigger name, such as 'push'.
+   *
+   * @return mixed
+   *   The 'branches' value, or NULL when the trigger has none.
+   */
+  protected static function triggerBranches(string $file, string $trigger): mixed {
+    $workflow = Yaml::parseFile($file);
+    $triggers = is_array($workflow) ? $workflow['on'] ?? NULL : NULL;
+    $filters = is_array($triggers) ? $triggers[$trigger] ?? NULL : NULL;
+
+    return is_array($filters) ? $filters['branches'] ?? NULL : NULL;
   }
 
 }

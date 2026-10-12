@@ -341,6 +341,8 @@ function process(string $extension_name, string $extension_machine_name, string 
 
   process_internal($extension_name, $extension_machine_name, $extension_type);
 
+  process_workflow_branches();
+
   // Remove the sample lifecycle hooks. They demonstrate the naming convention
   // and print a marker line, so they carry no project behaviour. The 'scripts'
   // directory itself stays as the home for project-local hooks.
@@ -448,7 +450,7 @@ function process_internal(string $extension_name, string $extension_machine_name
   replace_string_content($attribution_link, $attribution_link_token);
 
   // Protect the update skill URL from bulk replacements.
-  $update_skill_url = 'https://raw.githubusercontent.com/drevops/eddy/1.x/.eddy/skills/update-consumer-eddy/SKILL.md';
+  $update_skill_url = 'https://raw.githubusercontent.com/drevops/eddy/main/.eddy/skills/update-consumer-eddy/SKILL.md';
   $update_skill_url_token = '__UPDATE_SKILL_URL__';
   replace_string_content($update_skill_url, $update_skill_url_token);
 
@@ -560,6 +562,141 @@ function process_internal(string $extension_name, string $extension_machine_name
     @unlink('src/' . $extension_machine_name_class . 'Service.php');
     file_put_contents($extension_machine_name . '.info.yml', 'base theme: false' . PHP_EOL, FILE_APPEND);
   }
+}
+
+/**
+ * Set the branches that the shipped workflows run on.
+ *
+ * The template's workflows filter on 'main', the template's own branch. They
+ * take the 'push' branches of the committed 'test.yml' instead, or '1.x' when
+ * 'HEAD' holds no project copy of it.
+ */
+function process_workflow_branches(): void {
+  $branches = committed_workflow_branches('.github/workflows/test.yml') ?: ['1.x'];
+
+  set_workflow_branches('.github/workflows/test.yml', $branches);
+  set_workflow_branches('.github/workflows/draft-release-notes.yml', $branches);
+}
+
+/**
+ * Read the 'push' branches of the committed copy of a workflow.
+ *
+ * A copy that still holds '#;' markers is the template's own, not a project's.
+ *
+ * @param string $file
+ *   The workflow path, relative to the current directory.
+ *
+ * @return array<int, string>
+ *   The branches, or an empty array when the current directory has no commit
+ *   that holds a project copy of the workflow.
+ */
+function committed_workflow_branches(string $file): array {
+  $output = [];
+  $exit_code = 0;
+  // './' resolves the path against the current directory rather than the
+  // repository root.
+  exec(sprintf('git show %s 2>/dev/null', escapeshellarg('HEAD:./' . $file)), $output, $exit_code);
+
+  if ($exit_code !== 0) {
+    return [];
+  }
+
+  $content = implode("\n", $output);
+
+  if (str_contains($content, '#;')) {
+    return [];
+  }
+
+  return workflow_push_branches($content);
+}
+
+/**
+ * Read the branches that the 'push' trigger of a workflow filters on.
+ *
+ * Reads a block or a single-line flow sequence under 'on.push.branches' and
+ * keeps each branch as written, quotes included.
+ *
+ * @param string $content
+ *   The workflow YAML.
+ *
+ * @return array<int, string>
+ *   The branches, or an empty array when the 'push' trigger has no
+ *   'branches' filter.
+ */
+function workflow_push_branches(string $content): array {
+  $branches = [];
+  $keys = [];
+  $list_indent = NULL;
+
+  foreach (explode("\n", $content) as $line) {
+    // YAML opens a comment only at a '#' that starts the line or follows
+    // whitespace.
+    $line = rtrim(preg_replace('/(^|\s)#.*$/', '', $line) ?? $line);
+    $text = ltrim($line);
+
+    if ($text === '') {
+      continue;
+    }
+
+    $indent = strlen($line) - strlen($text);
+
+    // YAML allows the items of a sequence at the indentation of its key.
+    if ($list_indent !== NULL && $indent >= $list_indent && str_starts_with($text, '-')) {
+      $branches[] = trim(substr($text, 1));
+
+      continue;
+    }
+
+    $list_indent = NULL;
+
+    // $keys maps the indentation of each enclosing key to its name.
+    $keys = array_filter($keys, static fn(int $key_indent): bool => $key_indent < $indent, ARRAY_FILTER_USE_KEY);
+
+    if (preg_match('/^([\'"]?)([\w-]+)\1:\s*(.*)$/', $text, $matches) !== 1) {
+      continue;
+    }
+
+    [, , $key, $value] = $matches;
+
+    if ($key === 'branches' && array_values($keys) === ['on', 'push']) {
+      if ($value === '') {
+        $list_indent = $indent;
+      }
+      elseif (preg_match('/^\[(.*)\]$/', $value, $flow) === 1) {
+        $branches = array_values(array_filter(array_map(trim(...), explode(',', $flow[1])), static fn(string $branch): bool => $branch !== ''));
+      }
+    }
+
+    $keys[$indent] = $key;
+  }
+
+  return $branches;
+}
+
+/**
+ * Replace the 'main' branch filters of a workflow.
+ *
+ * @param string $file
+ *   The workflow path.
+ * @param array<int, string> $branches
+ *   The branches to filter on instead.
+ */
+function set_workflow_branches(string $file, array $branches): void {
+  if (!file_exists($file)) {
+    return;
+  }
+
+  $content = file_get_contents($file);
+
+  if ($content === FALSE) {
+    // @codeCoverageIgnoreStart
+    return;
+    // @codeCoverageIgnoreEnd
+  }
+
+  $content = preg_replace_callback('/^( +)- main$/m', static fn(array $matches): string => implode("\n", array_map(static fn(string $branch): string => $matches[1] . '- ' . $branch, $branches)), $content) ?? $content;
+
+  file_put_contents($file, $content);
 }
 
 /**
