@@ -3,11 +3,11 @@ name: Test Eddy
 on:
   push:
     branches:
-      - 1.x
+      - main
 
   pull_request:
     branches:
-      - 1.x
+      - main
       - 'feature/**'
 
 permissions:

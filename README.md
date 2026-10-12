@@ -77,7 +77,7 @@ Eddy isn't for building websites. To stand up a Drupal site, use [Vortex](https:
   - Mirroring of the repo to Drupal.org (or any other git repo) after CI passes.
   - Deploy to a destination branch different from the source branch.
   - Tags mirroring.
-- This template is tested in the same way as a project using it. See an example of the deployment destination repository for [GitHub Actions](https://github.com/AlexSkrypnyk/drupal_extension_scaffold_destination_github).
+- This template is tested in the same way as a project using it. See an example of the deployment destination repository for [GitHub Actions](https://github.com/drevops/eddy_destination).
 
 ## Setup overview
 
@@ -514,11 +514,11 @@ Add the jobs for every Drupal major you selected in `install.php` as required st
 
 ## Deployment
 
-The CI mirrors the code to your extension's Drupal.org repository (or any other git remote) once the tests pass. It deploys pushes to the `1.x` branch and release tags, and pull requests never deploy. To deploy another branch, such as `2.x`, add it to the `push` branches in `.github/workflows/test.yml`.
+The CI mirrors the code to your extension's Drupal.org repository (or any other git remote) once the tests pass. It deploys pushes to the `1.x` branch and release tags, and pull requests never deploy. To deploy another branch, such as `2.x`, add it to the `push` branches in `.github/workflows/test.yml`. Updating the scaffold with the [`update-consumer-eddy`](#updating-your-extension) skill keeps the branches you list there.
 
 A branch push deploys the commit that CI tested to the same branch of the destination repository. If the branch has moved on by the time the tests finish, or an older run is re-run, the deployment is skipped, so an older commit never replaces a newer one. A release tag is deployed as that tag alone and leaves the destination branches untouched.
 
-See this example of the deployment destination repository: [GitHub Actions](https://github.com/AlexSkrypnyk/drupal_extension_scaffold_destination_github)
+See this example of the deployment destination repository: [GitHub Actions](https://github.com/drevops/eddy_destination)
 
 CI will use the SSH key to push the code to the destination repository. The public part of the SSH key should be added to your [Drupal.org account](https://git.drupalcode.org/-/user_settings/ssh_keys). The private part of the SSH key should be added to the CI provider.
 

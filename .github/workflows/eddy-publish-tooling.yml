@@ -3,8 +3,8 @@ name: Publish Eddy Tooling
 # Mirrors '.eddy/tooling/' to the branch of the same name in the read-only
 # 'drevops/eddy-tooling' repository.
 #
-# Besides '1.x', a branch whose name contains 'eddy-tooling' is published, so a
-# tooling change can be installed from the mirror before it merges.
+# Besides 'main', a branch whose name contains 'eddy-tooling' is published, so
+# a tooling change can be installed from the mirror before it merges.
 #
 # Each run adds 1 commit with the pushed commit's subject, even when the
 # directory is unchanged.
@@ -19,7 +19,7 @@ name: Publish Eddy Tooling
 on:
   push:
     branches:
-      - 1.x
+      - main
       - '**eddy-tooling**'
 
 concurrency:
