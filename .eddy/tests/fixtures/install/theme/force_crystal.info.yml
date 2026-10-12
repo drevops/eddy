@@ -4,7 +4,7 @@
 +type: theme
  description: Force Crystal example.
  package: Testing
- core_version_requirement: ^10 || ^11 || ^12
+ core_version_requirement: ^10 || ^11
 @@ -7,3 +7,4 @@
  dependencies:
    - drupal:config

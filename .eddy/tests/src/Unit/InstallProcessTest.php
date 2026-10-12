@@ -460,6 +460,10 @@ final class InstallProcessTest extends UnitTestCase {
     $this->assertSame($expect_ahoy, str_contains($agents, $ahoy_rule), 'AGENTS.md ahoy rule block presence mismatch.');
     $this->assertSame($expect_make, str_contains($agents, $make_command), 'AGENTS.md make command list presence mismatch.');
     $this->assertSame($expect_ahoy, str_contains($agents, $ahoy_command), 'AGENTS.md ahoy command list presence mismatch.');
+    $this->assertSame($expect_make, preg_match('/\bmake\b/i', $agents) === 1, 'AGENTS.md mentions make without the Makefile, or omits it with the Makefile.');
+    $this->assertSame($expect_ahoy, preg_match('/\bahoy\b/i', $agents) === 1, 'AGENTS.md mentions Ahoy without it, or omits it with it.');
+    $this->assertStringNotContainsString('(default)', $agents, 'AGENTS.md calls a wrapper the default.');
+    $this->assertStringNotContainsString('(alternative)', $agents, 'AGENTS.md calls a wrapper the alternative.');
   }
 
   public static function dataProviderProcessRemovesWrapperDocs(): \Iterator {
@@ -491,6 +495,154 @@ final class InstallProcessTest extends UnitTestCase {
 
   public static function dataProviderProcessPrunesContributingCommands(): \Iterator {
     yield from self::dataProviderProcessRemovesWrapperDocs();
+  }
+
+  /**
+   * The 'AGENTS.md' text that names the command wrappers follows the selection.
+   *
+   * @param array<string> $command_wrapper
+   * @param array<string> $expected_lines
+   * @param array<string> $expected_phrases
+   */
+  #[DataProvider('dataProviderProcessRendersWrapperText')]
+  public function testProcessRendersWrapperText(array $command_wrapper, array $expected_lines, array $expected_phrases): void {
+    process('My Extension', 'my_extension', 'module', ['10', '11'], $command_wrapper, [], FALSE, FALSE);
+
+    $agents = (string) file_get_contents(self::$sut . '/AGENTS.md');
+
+    foreach ($expected_lines as $line) {
+      $this->assertMatchesRegularExpression('/^' . preg_quote($line, '/') . '$/m', $agents, 'AGENTS.md misses the line: ' . $line);
+    }
+
+    foreach ($expected_phrases as $phrase) {
+      $this->assertStringContainsString($phrase, $agents);
+    }
+  }
+
+  public static function dataProviderProcessRendersWrapperText(): \Iterator {
+    $tooling = static fn(string $runners): string => '- `scripts/eddy-tooling` - Installs the tooling package into `vendor/` from the constraint in `composer.dev.json`. ' . $runners . ' before the tooling commands';
+    $wrapper_rule = static fn(string $binaries): array => ['When ' . $binaries . ' exposes a command for a task', 'extend the ' . $binaries . ' target'];
+
+    yield 'both wrappers' => [
+      ['ahoy', 'makefile'],
+      [
+        '**Using Make:**',
+        '**Using Ahoy:**',
+        '1. Build environment: `make build` or `ahoy build`',
+        '3. Check standards: `make lint` or `ahoy lint`',
+        '4. Run tests: `make test` or `ahoy test`',
+        $tooling('The command wrappers and CI run it'),
+      ],
+      $wrapper_rule('`make` or `ahoy`'),
+    ];
+
+    yield 'ahoy only' => [
+      ['ahoy'],
+      [
+        '**Using Ahoy:**',
+        '1. Build environment: `ahoy build`',
+        '3. Check standards: `ahoy lint`',
+        '4. Run tests: `ahoy test`',
+        $tooling('The command wrappers and CI run it'),
+      ],
+      $wrapper_rule('`ahoy`'),
+    ];
+
+    yield 'makefile only' => [
+      ['makefile'],
+      [
+        '**Using Make:**',
+        '1. Build environment: `make build`',
+        '3. Check standards: `make lint`',
+        '4. Run tests: `make test`',
+        $tooling('The command wrappers and CI run it'),
+      ],
+      $wrapper_rule('`make`'),
+    ];
+
+    yield 'no wrappers' => [
+      [],
+      [
+        '- `scripts/eddy-tooling` - Install the tooling commands into `vendor/bin/`. Run it before the commands below',
+        '- `vendor/bin/eddy-assemble` - Assemble codebase with dependencies',
+        '- `build/vendor/bin/drush -l "$(vendor/bin/eddy-info site-url)" <command>` - Run Drush commands',
+        'Run the linters and the tests with the commands that `CONTRIBUTING.md` lists.',
+        '1. Build environment: `scripts/eddy-tooling`, then `vendor/bin/eddy-assemble`, `vendor/bin/eddy-start` and `vendor/bin/eddy-provision`',
+        '3. Check standards: run the linters that `CONTRIBUTING.md` lists',
+        '4. Run tests: run the tests that `CONTRIBUTING.md` lists',
+        $tooling('CI runs it'),
+      ],
+      ['**HARD RULE - run each tool exactly as `CONTRIBUTING.md` shows.** This project has no command wrapper'],
+    ];
+  }
+
+  /**
+   * The '.gitattributes' and '.editorconfig' wrapper entries follow the
+   * command wrapper selection.
+   *
+   * @param array<string> $command_wrapper
+   */
+  #[DataProvider('dataProviderProcessPrunesWrapperConfig')]
+  public function testProcessPrunesWrapperConfig(array $command_wrapper, bool $expect_make, bool $expect_ahoy): void {
+    process('My Extension', 'my_extension', 'module', ['10', '11'], $command_wrapper, [], FALSE, FALSE);
+
+    $gitattributes = (string) file_get_contents(self::$sut . '/.gitattributes');
+    $editorconfig = (string) file_get_contents(self::$sut . '/.editorconfig');
+
+    $this->assertSame($expect_make, preg_match('/^Makefile +export-ignore$/m', $gitattributes) === 1, '.gitattributes Makefile entry presence mismatch.');
+    $this->assertSame($expect_ahoy, preg_match('/^\.ahoy\.yml +export-ignore$/m', $gitattributes) === 1, '.gitattributes .ahoy.yml entry presence mismatch.');
+    $this->assertSame($expect_make, str_contains($editorconfig, '[Makefile*]'), '.editorconfig Makefile section presence mismatch.');
+    $this->assertStringNotContainsString('#;', $gitattributes . $editorconfig, 'A wrapper config file keeps a marker line.');
+    $this->assertStringEndsNotWith("\n\n", $editorconfig, '.editorconfig ends with a blank line.');
+  }
+
+  public static function dataProviderProcessPrunesWrapperConfig(): \Iterator {
+    yield from self::dataProviderProcessRemovesWrapperDocs();
+  }
+
+  /**
+   * The 'AGENTS.md' overview describes the extension rather than the template.
+   */
+  #[DataProvider('dataProviderProcessRendersOverview')]
+  public function testProcessRendersOverview(string $name, string $machine_name, string $type, string $expected): void {
+    process($name, $machine_name, $type, ['10', '11'], ['ahoy'], [], FALSE, FALSE);
+
+    $agents = (string) file_get_contents(self::$sut . '/AGENTS.md');
+    $overview = preg_match('/^## Overview\n(.*?)^## /ms', $agents, $matches) === 1 ? $matches[1] : '';
+
+    $this->assertStringStartsWith("\n" . $expected . ' The project provides', $overview);
+    $this->assertStringNotContainsStringIgnoringCase('template', $overview);
+  }
+
+  public static function dataProviderProcessRendersOverview(): \Iterator {
+    yield 'module' => ['My Extension', 'my_extension', 'module', 'My Extension (`my_extension`) is a Drupal module.'];
+    yield 'theme' => ['My Theme', 'my_theme', 'theme', 'My Theme (`my_theme`) is a Drupal theme.'];
+  }
+
+  /**
+   * Removed blocks leave no double blank line in the Markdown files.
+   *
+   * @param array<string> $drupal_versions
+   * @param array<string> $command_wrapper
+   */
+  #[DataProvider('dataProviderProcessLeavesNoDoubleBlankLines')]
+  public function testProcessLeavesNoDoubleBlankLines(array $drupal_versions, array $command_wrapper): void {
+    process('My Extension', 'my_extension', 'module', $drupal_versions, $command_wrapper, [], FALSE, FALSE);
+
+    foreach (['AGENTS.md', 'CONTRIBUTING.md', 'README.md'] as $file) {
+      $this->assertStringNotContainsString("\n\n\n", (string) file_get_contents(self::$sut . '/' . $file), $file . ' holds a double blank line.');
+    }
+  }
+
+  public static function dataProviderProcessLeavesNoDoubleBlankLines(): \Iterator {
+    yield 'both wrappers' => [['10', '11'], ['ahoy', 'makefile']];
+    yield 'ahoy only' => [['10', '11'], ['ahoy']];
+    yield 'makefile only' => [['10', '11'], ['makefile']];
+    yield 'no wrappers' => [['10', '11'], []];
+    yield 'all majors' => [['10', '11', '12'], ['ahoy']];
+    yield 'd10 only' => [['10'], ['ahoy']];
+    yield 'd11 only' => [['11'], ['ahoy']];
+    yield 'd12 only' => [['12'], ['ahoy']];
   }
 
   /**
@@ -588,6 +740,41 @@ final class InstallProcessTest extends UnitTestCase {
     yield 'd10 and d11' => [['10', '11'], ['Drupal 10', 'Drupal 11'], ['Drupal 12']];
     yield 'd11 only' => [['11'], ['Drupal 11'], ['Drupal 10', 'Drupal 12']];
     yield 'd12 only' => [['12'], ['Drupal 12'], ['Drupal 10', 'Drupal 11']];
+  }
+
+  /**
+   * The text that names the Drupal majors follows the selection.
+   *
+   * @param array<string> $drupal_versions
+   * @param array<string> $expected_matrix
+   */
+  #[DataProvider('dataProviderProcessRendersDrupalVersionText')]
+  public function testProcessRendersDrupalVersionText(array $drupal_versions, string $expected_requirement, string $expected_phpunit_comment, array $expected_matrix): void {
+    process('My Extension', 'my_extension', 'module', $drupal_versions, ['ahoy'], [], FALSE, FALSE);
+
+    $info = (string) file_get_contents(self::$sut . '/my_extension.info.yml');
+    $this->assertSame([$expected_requirement], array_values(preg_grep('/^core_version_requirement:/', explode("\n", $info)) ?: []), 'my_extension.info.yml core_version_requirement mismatch.');
+
+    $phpunit = explode("\n", (string) file_get_contents(self::$sut . '/phpunit.xml'));
+    $this->assertSame($expected_phpunit_comment, $phpunit[1], 'phpunit.xml opening comment mismatch.');
+
+    preg_match_all('/^  - (Drupal \d+ on PHP .+)$/m', (string) file_get_contents(self::$sut . '/AGENTS.md'), $matches);
+    $this->assertSame($expected_matrix, $matches[1], 'AGENTS.md matrix mismatch.');
+  }
+
+  public static function dataProviderProcessRendersDrupalVersionText(): \Iterator {
+    $d10 = 'Drupal 10 on PHP 8.3-8.4';
+    $d11 = 'Drupal 11 on PHP 8.3-8.5';
+    $d12 = 'Drupal 12 on PHP 8.5';
+
+    yield 'all majors' => [['10', '11', '12'], 'core_version_requirement: ^10 || ^11 || ^12', '<!-- Drupal 11 and 12 PHPUnit configuration. -->', [$d10, $d11, $d12]];
+    yield 'd10 and d11' => [['10', '11'], 'core_version_requirement: ^10 || ^11', '<!-- Drupal 11 PHPUnit configuration. -->', [$d10, $d11]];
+    yield 'd10 and d12' => [['10', '12'], 'core_version_requirement: ^10 || ^12', '<!-- Drupal 12 PHPUnit configuration. -->', [$d10, $d12]];
+    yield 'd11 and d12' => [['11', '12'], 'core_version_requirement: ^11 || ^12', '<!-- Drupal 11 and 12 PHPUnit configuration. -->', [$d11, $d12]];
+    yield 'd10 only' => [['10'], 'core_version_requirement: ^10', '<!-- PHPUnit configuration. -->', [$d10]];
+    yield 'd11 only' => [['11'], 'core_version_requirement: ^11', '<!-- Drupal 11 PHPUnit configuration. -->', [$d11]];
+    yield 'd12 only' => [['12'], 'core_version_requirement: ^12', '<!-- Drupal 12 PHPUnit configuration. -->', [$d12]];
+    yield 'unordered selection' => [['12', '10'], 'core_version_requirement: ^10 || ^12', '<!-- Drupal 12 PHPUnit configuration. -->', [$d10, $d12]];
   }
 
   /**

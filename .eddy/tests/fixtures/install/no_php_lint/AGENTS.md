@@ -1,4 +1,4 @@
-@@ -13,10 +13,6 @@
+@@ -12,10 +12,6 @@
  
  Run each tool through its `ahoy` wrapper, never the binary directly:
  
@@ -9,7 +9,7 @@
  - **ESLint / Stylelint**: `ahoy lint` / `ahoy lint-fix` - never `npx eslint` or `npx stylelint`.
  - **CSpell**: `ahoy lint` - never `npx cspell`.
  - **PHPUnit**: `ahoy test` / `ahoy test-unit` / `ahoy test-kernel` / `ahoy test-functional` - never `vendor/bin/phpunit`.
-@@ -99,10 +95,6 @@
+@@ -97,10 +93,6 @@
  ## Code Quality Tools
  
  - **CSpell**: Spell checking across the codebase (config at `.cspell.json`)

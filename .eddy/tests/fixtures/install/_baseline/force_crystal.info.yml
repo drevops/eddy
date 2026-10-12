@@ -2,7 +2,7 @@ name: Force Crystal
 type: module
 description: Force Crystal example.
 package: Testing
-core_version_requirement: ^10 || ^11 || ^12
+core_version_requirement: ^10 || ^11
 
 dependencies:
   - drupal:config

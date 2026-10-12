@@ -1,0 +1,7 @@
+@@ -24,3 +24,6 @@
+ 
+ [*.xml]
+ indent_size = 4
++
++[Makefile*]
++indent_style = tab

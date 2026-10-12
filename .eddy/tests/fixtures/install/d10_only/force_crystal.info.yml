@@ -1,0 +1,9 @@
+@@ -2,7 +2,7 @@
+ type: module
+ description: Force Crystal example.
+ package: Testing
+-core_version_requirement: ^10 || ^11
++core_version_requirement: ^10
+ 
+ dependencies:
+   - drupal:config

@@ -55,14 +55,27 @@ A broken block fails quietly. Every file stays valid, and `composer update-snaps
 
 `TemplateMarkersTest` checks all 5 rules across the template.
 
+In Markdown, open a block with the blank line that separates it from the text before it, the way `CONTRIBUTING.dist.md` does. A removed block then takes its blank line with it, where a blank line on each side of it would leave a double blank line behind. `InstallProcessTest` checks the generated `AGENTS.md`, `CONTRIBUTING.md` and `README.md` for that across the command wrapper and Drupal major selections.
+
+### Text rendered from the answers
+
+A block removes whole lines, so it can't trim a line that names several options. `install.php` renders those lines instead. The template holds the text for every option, and `install.php` replaces it with the same function's text for the selected options:
+
+- `core_version_requirement()` renders `core_version_requirement` in `your_extension.info.yml`, such as `^10 || ^11` for Drupal 10 and 11.
+- `phpunit_config_comment()` renders the comment that opens `phpunit.xml`. It leaves out a major with a `phpunit.d<major>.xml` of its own, which `eddy-assemble` uses for that major instead, so with Drupal 10 and 11 selected it names Drupal 11 only.
+- `command_wrapper_text()` renders "`make` or `ahoy`", and "`make build` or `ahoy build`" for the `build`, `lint` and `test` commands. Ahoy alone turns them into "`ahoy`" and "`ahoy build`". Without a wrapper, these phrases sit in `DEV_COMMAND_WRAPPER` blocks, and "The command wrappers and CI run it" in `AGENTS.md` becomes "CI runs it".
+
+A replacement finds nothing once the template text drifts from the every-option rendering, and the text then ships unrendered. `InstallProcessTest` renders each one for every selection, so it fails when a template edit breaks a replacement. A new phrase that names both wrappers needs its command added to `process_command_wrapper_text()`.
+
 ### Adding a Drupal major
 
 1. In `install.php`, add the major to `drupal_version_options()` and to the `INSTALL_DRUPAL_VERSION` entry of `print_help()`.
-2. Add a `DRUPAL_<major>` block wherever the existing majors have one. `git grep -n '#;< DRUPAL_'` lists them: today that's the `lint` and `test` matrices in `.github/workflows/test.yml` and the badges in `README.dist.md`.
-3. To have the major start checked, add it to `drupal_version_default()` and update the defaults that `print_help()` and `README.md` name. Then set `extra.eddy.drupal-version` in `composer.dev.json` to the highest major `drupal_version_default()` returns: `InstallHelpersTest` fails until they agree.
-4. Review `.eddy/tooling/src/eddy-assemble`. It picks the PHPUnit, `symfony/phpunit-bridge` and Rector constraints by major, and it uses `phpunit.d<major>.xml` in place of `phpunit.xml` when that file exists.
-5. Update `README.md` where it lists the majors (the badges, the CI job table and the branch protection table) and the matrix line in `AGENTS.md`.
-6. Update the expected majors in `InstallHelpersTest` and the Drupal data providers in `InstallProcessTest`, add a `d<major>_only` dataset to `InstallTest`, then regenerate the snapshot fixtures.
+2. Add a `DRUPAL_<major>` block wherever the existing majors have one. `git grep -n '#;< DRUPAL_'` lists them: today that's the `lint` and `test` matrices in `.github/workflows/test.yml`, the badges in `README.dist.md` and the matrix list in `AGENTS.md`.
+3. Add the major to `core_version_requirement` in `your_extension.info.yml`, and to the comment that opens `phpunit.xml` unless the major gets a `phpunit.d<major>.xml` of its own (see [Text rendered from the answers](#text-rendered-from-the-answers)).
+4. To have the major start checked, add it to `drupal_version_default()` and update the defaults that `print_help()` and `README.md` name. Then set `extra.eddy.drupal-version` in `composer.dev.json` to the highest major `drupal_version_default()` returns: `InstallHelpersTest` fails until they agree.
+5. Review `.eddy/tooling/src/eddy-assemble`. It picks the PHPUnit, `symfony/phpunit-bridge` and Rector constraints by major, and it uses `phpunit.d<major>.xml` in place of `phpunit.xml` when that file exists.
+6. Update `README.md` where it lists the majors: the badges, the CI job table and the branch protection table.
+7. Update the expected majors in `InstallHelpersTest` and the Drupal data providers in `InstallProcessTest`, add a `d<major>_only` dataset to `InstallTest`, then regenerate the snapshot fixtures.
 
 ### Adding a development tool
 

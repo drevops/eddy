@@ -334,6 +334,8 @@ function process(string $extension_name, string $extension_machine_name, string 
     }
   }
 
+  process_drupal_version_text($selected_majors);
+
   // A local build defaults to the highest selected major.
   set_composer_dev_eddy_value('drupal-version', (string) max(array_map(intval(...), $selected_majors)));
 
@@ -363,6 +365,8 @@ function process(string $extension_name, string $extension_machine_name, string 
     remove_tokens_with_content('DEV_NO_COMMAND_WRAPPER');
   }
 
+  process_command_wrapper_text($command_wrapper);
+
   trim_claude_settings_permissions($command_wrapper);
 
   remove_tools($tools_remove);
@@ -388,6 +392,165 @@ function process(string $extension_name, string $extension_machine_name, string 
     @unlink(__FILE__);
     // @codeCoverageIgnoreEnd
   }
+}
+
+/**
+ * Render the text that names the targeted Drupal majors.
+ *
+ * The template names every supported major in the 'core_version_requirement'
+ * of the extension and in the comment that opens 'phpunit.xml'. Each is
+ * replaced with the same text for the selected majors.
+ *
+ * @param array<string> $majors
+ *   The selected Drupal majors.
+ */
+function process_drupal_version_text(array $majors): void {
+  $supported = array_map(strval(...), array_keys(drupal_version_options()));
+
+  replace_string_content(core_version_requirement($supported), core_version_requirement($majors));
+
+  // A 'phpunit.d<major>.xml' replaces 'phpunit.xml' in the build of its major.
+  $own_config_majors = array_filter($supported, static fn(string $major): bool => file_exists('phpunit.d' . $major . '.xml'));
+  replace_string_content(phpunit_config_comment(array_diff($supported, $own_config_majors)), phpunit_config_comment(array_diff($majors, $own_config_majors)));
+}
+
+/**
+ * Render the text that names the selected command wrappers.
+ *
+ * The template names both wrappers in phrases such as "`make build` or
+ * `ahoy build`". Each is replaced with the same phrase for the selected
+ * wrappers. Without a wrapper, these phrases sit in 'DEV_COMMAND_WRAPPER'
+ * blocks instead, so only the 'AGENTS.md' note on what runs the tooling
+ * installer changes.
+ *
+ * @param array<string> $command_wrapper
+ *   The selected command wrappers.
+ */
+function process_command_wrapper_text(array $command_wrapper): void {
+  if ($command_wrapper === []) {
+    replace_string_content('The command wrappers and CI run it', 'CI runs it');
+
+    return;
+  }
+
+  $wrappers = array_keys(command_wrapper_binaries());
+
+  foreach (['', 'build', 'lint', 'test'] as $command) {
+    replace_string_content(command_wrapper_text($wrappers, $command), command_wrapper_text($command_wrapper, $command));
+  }
+}
+
+/**
+ * Render the 'core_version_requirement' of an extension.
+ *
+ * @param array<int|string> $majors
+ *   The Drupal majors, in any order.
+ *
+ * @return string
+ *   The line, such as 'core_version_requirement: ^10 || ^11'.
+ */
+function core_version_requirement(array $majors): string {
+  $constraints = array_map(static fn(string $major): string => '^' . $major, sort_drupal_majors($majors));
+
+  return 'core_version_requirement: ' . implode(' || ', $constraints);
+}
+
+/**
+ * Render the comment that opens 'phpunit.xml'.
+ *
+ * @param array<int|string> $majors
+ *   The Drupal majors whose builds use 'phpunit.xml', in any order.
+ *
+ * @return string
+ *   The comment, such as '<!-- Drupal 11 and 12 PHPUnit configuration. -->'.
+ *   It names no major when there are none.
+ */
+function phpunit_config_comment(array $majors): string {
+  $majors = sort_drupal_majors($majors);
+
+  if ($majors === []) {
+    return '<!-- PHPUnit configuration. -->';
+  }
+
+  return '<!-- Drupal ' . join_list($majors) . ' PHPUnit configuration. -->';
+}
+
+/**
+ * Sort Drupal majors in numeric order and drop duplicates.
+ *
+ * @param array<int|string> $majors
+ *   The Drupal majors.
+ *
+ * @return list<string>
+ *   The sorted majors.
+ */
+function sort_drupal_majors(array $majors): array {
+  $majors = array_unique(array_map(intval(...), $majors));
+  sort($majors);
+
+  return array_map(strval(...), $majors);
+}
+
+/**
+ * Map each command wrapper to the binary that runs it.
+ *
+ * @return array<string, string>
+ *   The binaries, keyed by wrapper, in the order the template names them.
+ */
+function command_wrapper_binaries(): array {
+  return [
+    'makefile' => 'make',
+    'ahoy' => 'ahoy',
+  ];
+}
+
+/**
+ * Render a command for each of the given command wrappers.
+ *
+ * @param array<string> $command_wrapper
+ *   The command wrappers.
+ * @param string $command
+ *   The command, or an empty string for the binaries alone.
+ *
+ * @return string
+ *   The commands, such as "`make build` or `ahoy build`".
+ */
+function command_wrapper_text(array $command_wrapper, string $command = ''): string {
+  $commands = [];
+
+  foreach (command_wrapper_binaries() as $wrapper => $binary) {
+    if (in_array($wrapper, $command_wrapper, TRUE)) {
+      $commands[] = '`' . ($command === '' ? $binary : $binary . ' ' . $command) . '`';
+    }
+  }
+
+  return join_list($commands, 'or');
+}
+
+/**
+ * Join items into a list for a sentence, such as 'A, B and C'.
+ *
+ * @param array<string> $items
+ *   The items.
+ * @param string $conjunction
+ *   The word before the last item.
+ *
+ * @return string
+ *   The list, or an empty string for no items.
+ */
+function join_list(array $items, string $conjunction = 'and'): string {
+  $items = array_values($items);
+  $last = array_pop($items);
+
+  if ($last === NULL) {
+    return '';
+  }
+
+  if ($items === []) {
+    return $last;
+  }
+
+  return implode(', ', $items) . ' ' . $conjunction . ' ' . $last;
 }
 
 /**
@@ -500,6 +663,7 @@ function process_internal(string $extension_name, string $extension_machine_name
   replace_string_content('Drupal module scaffold FE example used for template testing', 'Provides ' . $extension_machine_name . ' functionality.');
   replace_string_content('Drupal extension scaffold', $extension_name);
   replace_string_content('type: module', 'type: ' . $extension_type);
+  replace_string_content('is a Drupal module.', 'is a Drupal ' . $extension_type . '.');
   replace_string_content('[EXTENSION_NAME]', $extension_machine_name);
 
   // Restore the attribution link.
