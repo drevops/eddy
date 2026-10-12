@@ -129,6 +129,7 @@ final class InstallProcessTest extends UnitTestCase {
       'README.dist.md',
       'CONTRIBUTING.dist.md',
       'LICENSE.txt',
+      'MIGRATION.md',
       'SECURITY.md',
       'logo.svg',
       '.eddy',
