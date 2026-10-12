@@ -24,7 +24,7 @@ The `update-consumer-eddy` skill does most of the work. It downloads the latest 
 
 What it can't do is fetch itself into a 4.x project, so you do that part once, from the project root:
 
-1. Delete the old skill directory. The 4.x `AGENTS.md` downloads the skill with `curl -sSL`, which doesn't fail on an HTTP error, so the directory holds the 404 page. 5.x doesn't git-ignore it anymore, so the upgrade would commit it if you left it there.
+1. Delete the old skill directory. The 4.x `AGENTS.md` downloads the skill with `curl -sSL`, which doesn't fail on an HTTP error, so the directory holds the 404 page instead of a skill.
 
    ```bash
    rm -rf .claude/skills/update-consumer-drupal-extension-scaffold
@@ -73,7 +73,7 @@ What to do:
 
 - Delete `.claude/skills/update-consumer-drupal-extension-scaffold/`.
 - In `AGENTS.md`, replace the "Updating the scaffold" section with [the one Eddy ships](AGENTS.md#updating-the-scaffold). It downloads the skill with `curl -fsSL`, which fails on an HTTP error instead of saving the error page.
-- In `.gitignore`, change `.claude/skills/update-consumer-drupal-extension-scaffold/` to `.claude/skills/update-consumer-eddy/`.
+- In `.gitignore`, delete the `.claude/skills/update-consumer-drupal-extension-scaffold/` line. The `.claude/*` rule above it already ignores everything in `.claude/` except `settings.json`, the new skill's directory included.
 - In `README.md`, credit [Eddy](https://github.com/drevops/eddy) in the closing line instead of the Drupal Extension Scaffold.
 
 The upgrade makes the last 3 changes for you.
