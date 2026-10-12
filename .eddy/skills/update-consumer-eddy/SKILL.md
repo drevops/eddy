@@ -168,6 +168,8 @@ git checkout HEAD -- \
   src/ \
   tests/ \
   config/ \
+  css/ \
+  js/ \
   scripts/ \
   ':!scripts/eddy-tooling' \
   ':!scripts/*-cloudflared.sh' \
