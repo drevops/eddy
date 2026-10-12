@@ -293,8 +293,14 @@ final class InstallHelpersTest extends UnitTestCase {
 
     $source = (string) file_get_contents($root . '/install.php');
     $pattern = "/^const TEMPLATE_VERSION = '(.*)';$/m";
-    $this->assertSame(1, preg_match($pattern, $source, $source_match), 'The source holds the version constant.');
-    $this->assertSame(1, preg_match($pattern, $archived, $archived_match), 'The archive holds the version constant.');
+
+    if (preg_match($pattern, $source, $source_match) !== 1) {
+      $this->fail('The source holds no version constant.');
+    }
+
+    if (preg_match($pattern, $archived, $archived_match) !== 1) {
+      $this->fail('The archive holds no version constant.');
+    }
 
     $this->assertMatchesRegularExpression($expected_pattern, $archived_match[1]);
     $this->assertSame(str_replace($source_match[0], $archived_match[0], $source), $archived, 'The archive changes only the version constant.');
@@ -660,8 +666,26 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'wildcard stays in its segment' => ['/a/*.log', 'a/b/c.log', FALSE, FALSE];
     yield 'wildcard matches a leading dot' => ['*.json', '.eslintrc.json', FALSE, TRUE];
     yield 'question mark' => ['file?.txt', 'file1.txt', FALSE, TRUE];
+    yield 'question mark stays in its segment' => ['/a?b', 'a/b', FALSE, FALSE];
+    yield 'escaped wildcard' => ['\*.txt', '*.txt', FALSE, TRUE];
+    yield 'escaped wildcard is not a wildcard' => ['\*.txt', 'a.txt', FALSE, FALSE];
+    yield 'dot is literal' => ['a.txt', 'abtxt', FALSE, FALSE];
+    yield 'regular expression characters are literal' => ['a+b(c)|$.txt', 'a+b(c)|$.txt', FALSE, TRUE];
+    yield 'hash inside the pattern is literal' => ['a#b', 'a#b', FALSE, TRUE];
     yield 'character class' => ['file[0-9].txt', 'file5.txt', FALSE, TRUE];
+    yield 'character class without a match' => ['file[0-9].txt', 'filex.txt', FALSE, FALSE];
     yield 'negated character class' => ['file[!0-9].txt', 'file5.txt', FALSE, FALSE];
+    yield 'negated character class with a match' => ['file[!0-9].txt', 'filex.txt', FALSE, TRUE];
+    yield 'caret negated character class' => ['file[^0-9].txt', 'filex.txt', FALSE, TRUE];
+    yield 'negated character class stays in its segment' => ['/a[!x]b', 'a/b', FALSE, FALSE];
+    yield 'closing bracket as the first member' => ['file[]a].txt', 'file].txt', FALSE, TRUE];
+    yield 'closing bracket as the first negated member' => ['file[!]a].txt', 'file].txt', FALSE, FALSE];
+    yield 'escaped closing bracket in a class' => ['file[a\]].txt', 'file].txt', FALSE, TRUE];
+    yield 'literal characters in a class' => ['file[.+].txt', 'file+.txt', FALSE, TRUE];
+    yield 'hyphen at the end of a class' => ['file[a-].txt', 'file-.txt', FALSE, TRUE];
+    yield 'posix class' => ['file[[:digit:]].txt', 'file7.txt', FALSE, TRUE];
+    yield 'posix class without a match' => ['file[[:digit:]].txt', 'filex.txt', FALSE, FALSE];
+    yield 'unclosed bracket is literal' => ['file[.txt', 'file[.txt', FALSE, TRUE];
     yield 'leading double asterisk at the root' => ['**/cache', 'cache', TRUE, TRUE];
     yield 'leading double asterisk at any depth' => ['**/cache', 'a/b/cache', TRUE, TRUE];
     yield 'leading double asterisk keeps the rest anchored' => ['**/a/cache', 'x/b/cache', TRUE, FALSE];
@@ -670,6 +694,8 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'trailing double asterisk matches contents' => ['tmp/**', 'tmp/a/file.txt', FALSE, TRUE];
     yield 'trailing double asterisk skips the directory' => ['tmp/**', 'tmp', TRUE, FALSE];
     yield 'other double asterisks match in a segment' => ['foo**bar', 'a/fooxbar', FALSE, TRUE];
+    yield 'other double asterisks stay in their segment' => ['/a**b', 'ax/yb', FALSE, FALSE];
+    yield 'double asterisk alone' => ['**', 'a/b/c', FALSE, TRUE];
     yield 'negation re-includes' => [".claude/*\n!.claude/settings.json", '.claude/settings.json', FALSE, FALSE];
     yield 'negation keeps the rest ignored' => [".claude/*\n!.claude/settings.json", '.claude/settings.local.json', FALSE, TRUE];
     yield 'last match wins' => ["!build\nbuild", 'build', TRUE, TRUE];

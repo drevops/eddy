@@ -1576,7 +1576,7 @@ function get_files(): array {
  *   The path, relative to the project root and separated with '/'.
  * @param bool $is_dir
  *   Whether the path is a directory.
- * @param list<array{segments: list<string>, negate: bool, dir_only: bool}> $rules
+ * @param list<array{regex: string, negate: bool, dir_only: bool}> $rules
  *   The rules of the project root '.gitignore'.
  *
  * @return bool
@@ -1599,15 +1599,15 @@ function is_template_path(string $path, bool $is_dir, array $rules): bool {
  * Parse '.gitignore' content into rules.
  *
  * Handles comments, blank lines, backslash escapes, trailing spaces, '!'
- * negation, anchoring, directory-only patterns and '**'.
+ * negation, anchoring and directory-only patterns. 'gitignore_glob_regex()'
+ * converts the wildcards.
  *
  * @param string $content
  *   The '.gitignore' content.
  *
- * @return list<array{segments: list<string>, negate: bool, dir_only: bool}>
- *   The rules in file order, each with its pattern split at '/'. A pattern
- *   with no '/' before its end gets a leading '**' segment, so it matches at
- *   any depth.
+ * @return list<array{regex: string, negate: bool, dir_only: bool}>
+ *   The rules in file order, each with a regular expression that matches a
+ *   whole path relative to the '.gitignore' directory.
  */
 function gitignore_rules(string $content): array {
   $rules = [];
@@ -1629,16 +1629,98 @@ function gitignore_rules(string $content): array {
       continue;
     }
 
-    $segments = explode('/', ltrim($pattern, '/'));
-
-    if (!str_contains($pattern, '/')) {
-      array_unshift($segments, '**');
-    }
-
-    $rules[] = ['segments' => $segments, 'negate' => $negate, 'dir_only' => $dir_only];
+    // A pattern without a '/' matches a name at any depth.
+    $depth = str_contains($pattern, '/') ? '' : '(?:.*/)?';
+    $regex = '#\A' . $depth . gitignore_glob_regex(ltrim($pattern, '/')) . '\z#s';
+    $rules[] = ['regex' => $regex, 'negate' => $negate, 'dir_only' => $dir_only];
   }
 
   return $rules;
+}
+
+/**
+ * Convert a '.gitignore' glob into the body of a regular expression.
+ *
+ * '*', '?' and a bracket expression, such as '[a-z]' or '[!0-9]', match
+ * within 1 path segment. A '**' segment matches 0 or more directories, or
+ * everything inside a directory when it ends the glob. A backslash makes the
+ * next character literal.
+ *
+ * @param string $glob
+ *   The glob, without a leading or trailing '/'.
+ *
+ * @return string
+ *   The body of a regular expression delimited with '#'.
+ */
+function gitignore_glob_regex(string $glob): string {
+  $regex = '';
+  $length = strlen($glob);
+
+  for ($i = 0; $i < $length; $i++) {
+    $char = $glob[$i];
+    $segment_start = $i === 0 || $glob[$i - 1] === '/';
+
+    if ($char === '\\' && $i + 1 < $length) {
+      $regex .= preg_quote($glob[++$i], '#');
+    }
+    elseif ($segment_start && substr($glob, $i, 3) === '**/') {
+      $regex .= '(?:.*/)?';
+      $i += 2;
+    }
+    elseif ($segment_start && substr($glob, $i) === '**') {
+      $regex .= '.+';
+      $i++;
+    }
+    elseif ($char === '*') {
+      $regex .= '[^/]*';
+    }
+    elseif ($char === '?') {
+      $regex .= '[^/]';
+    }
+    elseif ($char === '[' && preg_match('/\G\[([!^]?)(\]?(?:\[:[a-z]+:\]|\\\\.|[^\]\\\\])*)\]/', $glob, $match, 0, $i) === 1) {
+      $regex .= '[' . ($match[1] === '' ? '' : '^/') . gitignore_class_members($match[2]) . ']';
+      $i += strlen($match[0]) - 1;
+    }
+    else {
+      $regex .= preg_quote($char, '#');
+    }
+  }
+
+  return $regex;
+}
+
+/**
+ * Convert the members of a '.gitignore' bracket expression.
+ *
+ * A POSIX class, such as '[:digit:]', and a '-' range stay as written. Any
+ * other character is literal, with or without a backslash.
+ *
+ * @param string $members
+ *   The members, without the brackets and the '!' or '^' negation.
+ *
+ * @return string
+ *   The members of a regular expression character class.
+ */
+function gitignore_class_members(string $members): string {
+  $class = '';
+  $length = strlen($members);
+
+  for ($i = 0; $i < $length; $i++) {
+    $char = $members[$i];
+
+    if ($char === '[' && preg_match('/\G\[:[a-z]+:\]/', $members, $match, 0, $i) === 1) {
+      $class .= $match[0];
+      $i += strlen($match[0]) - 1;
+    }
+    elseif ($char === '\\' && $i + 1 < $length) {
+      $class .= preg_quote($members[++$i], '#');
+    }
+    else {
+      $class .= $char === '-' ? '-' : preg_quote($char, '#');
+    }
+  }
+
+  return $class;
 }
 
 /**
@@ -1652,14 +1734,13 @@ function gitignore_rules(string $content): array {
  *   The path, relative to the '.gitignore' directory and separated with '/'.
  * @param bool $is_dir
  *   Whether the path is a directory.
- * @param list<array{segments: list<string>, negate: bool, dir_only: bool}> $rules
+ * @param list<array{regex: string, negate: bool, dir_only: bool}> $rules
  *   The rules from 'gitignore_rules()'.
  *
  * @return bool
  *   TRUE when the rules ignore the path, FALSE otherwise.
  */
 function is_gitignored(string $path, bool $is_dir, array $rules): bool {
-  $parts = explode('/', $path);
   $ignored = FALSE;
 
   foreach ($rules as $rule) {
@@ -1667,46 +1748,12 @@ function is_gitignored(string $path, bool $is_dir, array $rules): bool {
       continue;
     }
 
-    if (gitignore_segments_match($rule['segments'], $parts)) {
+    if (preg_match($rule['regex'], $path) === 1) {
       $ignored = !$rule['negate'];
     }
   }
 
   return $ignored;
-}
-
-/**
- * Match the segments of a '.gitignore' pattern against those of a path.
- *
- * A '**' segment matches 0 or more path segments, and 1 or more when it ends
- * the pattern. Any other segment matches 1 path segment with 'fnmatch()'.
- *
- * @param list<string> $segments
- *   The pattern segments.
- * @param list<string> $parts
- *   The path segments.
- *
- * @return bool
- *   TRUE when the pattern matches the whole path, FALSE otherwise.
- */
-function gitignore_segments_match(array $segments, array $parts): bool {
-  if ($segments === []) {
-    return $parts === [];
-  }
-
-  $segment = array_shift($segments);
-
-  if ($segment !== '**') {
-    return $parts !== [] && fnmatch($segment, $parts[0]) && gitignore_segments_match($segments, array_slice($parts, 1));
-  }
-
-  for ($skip = $segments === [] ? 1 : 0; $skip <= count($parts); $skip++) {
-    if (gitignore_segments_match($segments, array_slice($parts, $skip))) {
-      return TRUE;
-    }
-  }
-
-  return FALSE;
 }
 
 /**
