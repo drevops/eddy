@@ -13,6 +13,9 @@
  *   unit-testing or requiring this file from other files.
  * - INSTALL_*: Set environment variables to pre-fill prompts
  *   (e.g. INSTALL_NAME, INSTALL_TYPE, INSTALL_DRUPAL_VERSION).
+ * - INSTALL_BRANCHES: The branches the shipped workflows run on,
+ *   comma-separated. Defaults to the 'push' branches of the committed
+ *   '.github/workflows/test.yml', or '1.x'.
  *
  * Usage:
  * @code
@@ -22,6 +25,17 @@
  */
 
 declare(strict_types=1);
+
+/**
+ * The template version, as 'git describe' output.
+ *
+ * '.gitattributes' marks this file 'export-subst', so 'git archive' expands
+ * the placeholder to the tag of the archived commit, or to a commit after a
+ * tag, such as '5.0.0-3-gabc1234'. A copy that no archive produced keeps the
+ * placeholder. Git expands every placeholder up to the next dollar sign, so
+ * no other text in this file may start one.
+ */
+const TEMPLATE_VERSION = '$Format:%(describe:tags=true)$';
 
 // phpcs:disable
 // @embed-start
@@ -81,6 +95,8 @@ function main(array $argv): void {
   // not suited to in-process unit testing. The functional 'InstallTest'
   // exercises this path end-to-end via a subprocess.
   // @codeCoverageIgnoreStart
+  $branches = parse_branch_list((string) getenv('INSTALL_BRANCHES'));
+
   // The selectable development tools, all enabled by default.
   $tool_options = [
     'phpcs' => 'PHPCS',
@@ -168,7 +184,7 @@ function main(array $argv): void {
     $machine_name = convert_string($name, 'file_name');
   }
 
-  process($name, $machine_name, $type, $drupal_versions, $command_wrapper, $tools_remove, $remove_examples, $remove_self);
+  process($name, $machine_name, $type, $drupal_versions, $command_wrapper, $tools_remove, $remove_examples, $remove_self, $branches, template_version(TEMPLATE_VERSION));
   // @codeCoverageIgnoreEnd
 }
 
@@ -242,6 +258,11 @@ Environment variables (to pre-fill prompts):
   INSTALL_REMOVE_SELF     Remove this script: true or false.
   INSTALL_PROCEED         Proceed with installation: true or false.
 
+Other environment variables:
+  INSTALL_BRANCHES        Branches the workflows run on: comma-separated
+                          (e.g. 1.x,2.x). Defaults to the push branches of the
+                          committed .github/workflows/test.yml, or 1.x.
+
 EOF;
   print $out;
 }
@@ -265,8 +286,13 @@ EOF;
  *   Whether to remove the example lifecycle scripts.
  * @param bool $remove_self
  *   Whether to remove this script.
+ * @param array<int, string> $branches
+ *   The branches the shipped workflows run on, or an empty array to read them
+ *   from the committed workflow.
+ * @param string|null $version
+ *   The template version to record, or NULL to record none.
  */
-function process(string $extension_name, string $extension_machine_name, string $extension_type, array $drupal_versions, array $command_wrapper, array $tools_remove, bool $remove_examples, bool $remove_self): void {
+function process(string $extension_name, string $extension_machine_name, string $extension_type, array $drupal_versions, array $command_wrapper, array $tools_remove, bool $remove_examples, bool $remove_self, array $branches = [], ?string $version = NULL): void {
   // Validate required values.
   if ($extension_name === '') {
     throw new \Exception('Name is required.');
@@ -309,7 +335,11 @@ function process(string $extension_name, string $extension_machine_name, string 
   }
 
   // A local build defaults to the highest selected major.
-  set_composer_dev_drupal_version((string) max(array_map(intval(...), $selected_majors)));
+  set_composer_dev_eddy_value('drupal-version', (string) max(array_map(intval(...), $selected_majors)));
+
+  if ($version !== NULL) {
+    set_composer_dev_eddy_value('version', $version);
+  }
 
   // Remove unwanted command wrappers and their wrapper-specific documentation
   // blocks (marked with '#;< DEV_AHOY' / '#;< DEV_MAKEFILE').
@@ -341,7 +371,7 @@ function process(string $extension_name, string $extension_machine_name, string 
 
   process_internal($extension_name, $extension_machine_name, $extension_type);
 
-  process_workflow_branches();
+  process_workflow_branches($branches);
 
   // Remove the sample lifecycle hooks. They demonstrate the naming convention
   // and print a marker line, so they carry no project behaviour. The 'scripts'
@@ -512,6 +542,7 @@ function process_internal(string $extension_name, string $extension_machine_name
   remove_string_content('# Remove the lines below in your project.');
   remove_string_content('.github/FUNDING.yml export-ignore');
   remove_string_content('LICENSE.txt         export-ignore');
+  remove_string_content('install.php         export-subst');
 
   // Rename extension files.
   @rename('your_extension.info.yml', $extension_machine_name . '.info.yml');
@@ -545,8 +576,15 @@ function process_internal(string $extension_name, string $extension_machine_name
 
   remove_dir('.eddy');
 
-  // Remove the scaffold-only Claude skills.
-  remove_dir('.claude/skills');
+  // A project keeps its own skills in '.claude/skills', so Eddy's skills are
+  // removed by name.
+  foreach (eddy_skills() as $skill) {
+    remove_dir('.claude/skills/' . $skill);
+  }
+
+  if (is_dir('.claude/skills') && scandir('.claude/skills') === ['.', '..']) {
+    rmdir('.claude/skills');
+  }
 
   remove_tokens_with_content('META');
   remove_special_comments();
@@ -565,17 +603,60 @@ function process_internal(string $extension_name, string $extension_machine_name
 }
 
 /**
+ * List the Claude Code skills that maintain Eddy itself.
+ *
+ * '.eddy/CLAUDE.md' lists the steps for adding a skill.
+ *
+ * @return list<string>
+ *   The names of the skill directories in '.claude/skills'.
+ */
+function eddy_skills(): array {
+  return ['create-eddy-tooling-release-notes'];
+}
+
+/**
  * Set the branches that the shipped workflows run on.
  *
  * The template's workflows filter on 'main', the template's own branch. They
- * take the 'push' branches of the committed 'test.yml' instead, or '1.x' when
- * 'HEAD' holds no project copy of it.
+ * take the given branches instead. Without any, they take the 'push' branches
+ * of the committed 'test.yml', or '1.x' when 'HEAD' holds no project copy of
+ * it.
+ *
+ * @param array<int, string> $branches
+ *   The branches, or an empty array to read them from the committed workflow.
  */
-function process_workflow_branches(): void {
-  $branches = committed_workflow_branches('.github/workflows/test.yml') ?: ['1.x'];
+function process_workflow_branches(array $branches): void {
+  $branches = $branches ?: committed_workflow_branches('.github/workflows/test.yml') ?: ['1.x'];
 
   set_workflow_branches('.github/workflows/test.yml', $branches);
   set_workflow_branches('.github/workflows/draft-release-notes.yml', $branches);
+}
+
+/**
+ * Parse a comma-separated list of workflow branches.
+ *
+ * Each branch is kept as written, quotes included.
+ *
+ * @param string $list
+ *   The list, such as '1.x,2.x'.
+ *
+ * @return array<int, string>
+ *   The branches, or an empty array when the list holds none.
+ *
+ * @throws \Exception
+ *   When a branch holds whitespace or a control character.
+ */
+function parse_branch_list(string $list): array {
+  $branches = array_values(array_filter(array_map(trim(...), explode(',', $list)), static fn(string $branch): bool => $branch !== ''));
+
+  foreach ($branches as $branch) {
+    // Each branch is written as 1 line of a YAML sequence.
+    if (preg_match('/[\s[:cntrl:]]/', $branch) === 1) {
+      throw new \Exception(sprintf('Invalid branch: "%s". Separate branches with commas.', $branch));
+    }
+  }
+
+  return $branches;
 }
 
 /**
@@ -1033,12 +1114,14 @@ function remove_composer_scaffold_mapping(string $mapping): void {
 }
 
 /**
- * Set the Drupal version a local build uses when DRUPAL_VERSION is not set.
+ * Set a value under 'extra.eddy' in 'composer.dev.json'.
  *
- * @param string $version
- *   The Drupal version, such as '11'.
+ * @param string $key
+ *   The key, such as 'drupal-version'.
+ * @param string $value
+ *   The value.
  */
-function set_composer_dev_drupal_version(string $version): void {
+function set_composer_dev_eddy_value(string $key, string $value): void {
   $config = read_composer_dev_json();
 
   if ($config === NULL) {
@@ -1047,11 +1130,25 @@ function set_composer_dev_drupal_version(string $version): void {
 
   $extra = is_array($config['extra'] ?? NULL) ? $config['extra'] : [];
   $eddy = is_array($extra['eddy'] ?? NULL) ? $extra['eddy'] : [];
-  $eddy['drupal-version'] = $version;
+  $eddy[$key] = $value;
   $extra['eddy'] = $eddy;
   $config['extra'] = $extra;
 
   write_composer_dev_json($config);
+}
+
+/**
+ * Read the template version from 'git describe' output.
+ *
+ * @param string $describe
+ *   The output, such as '5.0.0' or '5.0.0-3-gabc1234'.
+ *
+ * @return string|null
+ *   The version, or NULL when the value is not 'git describe' output, such as
+ *   an unexpanded placeholder or an empty string.
+ */
+function template_version(string $describe): ?string {
+  return preg_match('/^[\w.+-]+$/', $describe) === 1 ? $describe : NULL;
 }
 
 /**
@@ -1435,15 +1532,25 @@ function normalize_cspell_words(): void {
 }
 
 /**
- * Get all non-binary files in the project, excluding specific directories.
+ * Get all non-binary template files in the project.
+ *
+ * A path that 'is_template_path()' rejects is skipped, and so is everything
+ * inside a rejected directory.
  *
  * @return array<string>
  *   Array of file paths.
  */
 function get_files(): array {
-  $excluded = ['.git', '.idea', 'vendor', 'node_modules'];
-  $directory = new \RecursiveDirectoryIterator((string) getcwd(), \FilesystemIterator::SKIP_DOTS);
-  $filter = new \RecursiveCallbackFilterIterator($directory, static fn(\SplFileInfo $current): bool => !$current->isDir() || !in_array($current->getFilename(), $excluded, TRUE));
+  $root = (string) getcwd();
+  $gitignore = $root . '/.gitignore';
+  $rules = is_file($gitignore) ? gitignore_rules((string) file_get_contents($gitignore)) : [];
+
+  $directory = new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS);
+  $filter = new \RecursiveCallbackFilterIterator($directory, static function (\SplFileInfo $current) use ($root, $rules): bool {
+    $path = str_replace(DIRECTORY_SEPARATOR, '/', substr($current->getPathname(), strlen($root) + 1));
+
+    return is_template_path($path, $current->isDir(), $rules);
+  });
   $iterator = new \RecursiveIteratorIterator($filter);
 
   $files = [];
@@ -1456,6 +1563,150 @@ function get_files(): array {
   }
 
   return $files;
+}
+
+/**
+ * Check whether a project path belongs to the template.
+ *
+ * The '.git', '.idea', 'vendor' and 'node_modules' directories do not, at any
+ * depth. Neither does anything in '.claude' except 'settings.json', nor any
+ * path that the '.gitignore' rules ignore.
+ *
+ * @param string $path
+ *   The path, relative to the project root and separated with '/'.
+ * @param bool $is_dir
+ *   Whether the path is a directory.
+ * @param list<array{segments: list<string>, negate: bool, dir_only: bool}> $rules
+ *   The rules of the project root '.gitignore'.
+ *
+ * @return bool
+ *   TRUE when the path belongs to the template, FALSE otherwise.
+ */
+function is_template_path(string $path, bool $is_dir, array $rules): bool {
+  if ($is_dir && in_array(basename($path), ['.git', '.idea', 'vendor', 'node_modules'], TRUE)) {
+    return FALSE;
+  }
+
+  // A project keeps local settings and skills in '.claude' too.
+  if (str_starts_with($path, '.claude/') && $path !== '.claude/settings.json') {
+    return FALSE;
+  }
+
+  return !is_gitignored($path, $is_dir, $rules);
+}
+
+/**
+ * Parse '.gitignore' content into rules.
+ *
+ * Handles comments, blank lines, backslash escapes, trailing spaces, '!'
+ * negation, anchoring, directory-only patterns and '**'.
+ *
+ * @param string $content
+ *   The '.gitignore' content.
+ *
+ * @return list<array{segments: list<string>, negate: bool, dir_only: bool}>
+ *   The rules in file order, each with its pattern split at '/'. A pattern
+ *   with no '/' before its end gets a leading '**' segment, so it matches at
+ *   any depth.
+ */
+function gitignore_rules(string $content): array {
+  $rules = [];
+
+  foreach (preg_split('/\r?\n/', $content) ?: [] as $line) {
+    // A trailing space belongs to the pattern only when it is escaped.
+    $line = preg_replace('/(?<!\\\\) +$/', '', $line) ?? $line;
+
+    if ($line === '' || str_starts_with($line, '#')) {
+      continue;
+    }
+
+    $negate = str_starts_with($line, '!');
+    $pattern = $negate ? substr($line, 1) : $line;
+    $dir_only = str_ends_with($pattern, '/');
+    $pattern = rtrim($pattern, '/');
+
+    if ($pattern === '') {
+      continue;
+    }
+
+    $segments = explode('/', ltrim($pattern, '/'));
+
+    if (!str_contains($pattern, '/')) {
+      array_unshift($segments, '**');
+    }
+
+    $rules[] = ['segments' => $segments, 'negate' => $negate, 'dir_only' => $dir_only];
+  }
+
+  return $rules;
+}
+
+/**
+ * Check whether '.gitignore' rules ignore a path.
+ *
+ * The last rule that matches decides, so a '!' rule re-includes what an
+ * earlier rule ignores. The path is checked alone: a walk skips the contents
+ * of an ignored directory, the way git does.
+ *
+ * @param string $path
+ *   The path, relative to the '.gitignore' directory and separated with '/'.
+ * @param bool $is_dir
+ *   Whether the path is a directory.
+ * @param list<array{segments: list<string>, negate: bool, dir_only: bool}> $rules
+ *   The rules from 'gitignore_rules()'.
+ *
+ * @return bool
+ *   TRUE when the rules ignore the path, FALSE otherwise.
+ */
+function is_gitignored(string $path, bool $is_dir, array $rules): bool {
+  $parts = explode('/', $path);
+  $ignored = FALSE;
+
+  foreach ($rules as $rule) {
+    if ($rule['dir_only'] && !$is_dir) {
+      continue;
+    }
+
+    if (gitignore_segments_match($rule['segments'], $parts)) {
+      $ignored = !$rule['negate'];
+    }
+  }
+
+  return $ignored;
+}
+
+/**
+ * Match the segments of a '.gitignore' pattern against those of a path.
+ *
+ * A '**' segment matches 0 or more path segments, and 1 or more when it ends
+ * the pattern. Any other segment matches 1 path segment with 'fnmatch()'.
+ *
+ * @param list<string> $segments
+ *   The pattern segments.
+ * @param list<string> $parts
+ *   The path segments.
+ *
+ * @return bool
+ *   TRUE when the pattern matches the whole path, FALSE otherwise.
+ */
+function gitignore_segments_match(array $segments, array $parts): bool {
+  if ($segments === []) {
+    return $parts === [];
+  }
+
+  $segment = array_shift($segments);
+
+  if ($segment !== '**') {
+    return $parts !== [] && fnmatch($segment, $parts[0]) && gitignore_segments_match($segments, array_slice($parts, 1));
+  }
+
+  for ($skip = $segments === [] ? 1 : 0; $skip <= count($parts); $skip++) {
+    if (gitignore_segments_match($segments, array_slice($parts, $skip))) {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
 }
 
 /**

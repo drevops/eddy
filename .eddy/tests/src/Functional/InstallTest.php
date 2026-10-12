@@ -120,6 +120,12 @@ final class InstallTest extends FunctionalTestCase {
       ],
     ];
 
+    yield 'branches' => [
+      [
+        'branches' => '2.x,3.x',
+      ],
+    ];
+
     yield 'no_php_lint' => [
       [
         'tools' => 'eslint,stylelint,cspell,jest,phpunit,functional_javascript,renovate',

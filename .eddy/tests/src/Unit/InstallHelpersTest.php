@@ -8,14 +8,20 @@ use DrevOps\Eddy\Tests\Traits\GitTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Process\Process;
 
 use function committed_workflow_branches;
 use function convert_string;
 use function drupal_version_default;
 use function drupal_version_options;
+use function eddy_skills;
 use function get_files;
+use function gitignore_rules;
 use function is_binary_file;
+use function is_gitignored;
+use function is_template_path;
 use function normalize_cspell_words;
+use function parse_branch_list;
 use function print_help;
 use function process;
 use function read_composer_dev_json;
@@ -24,8 +30,9 @@ use function remove_special_comments;
 use function remove_string_content;
 use function remove_tokens_with_content;
 use function replace_string_content;
-use function set_composer_dev_drupal_version;
+use function set_composer_dev_eddy_value;
 use function set_workflow_branches;
+use function template_version;
 use function uncomment_line;
 use function workflow_push_branches;
 
@@ -133,6 +140,7 @@ final class InstallHelpersTest extends UnitTestCase {
     $this->assertStringContainsString('INSTALL_EXAMPLES', $output);
     $this->assertStringContainsString('INSTALL_REMOVE_SELF', $output);
     $this->assertStringContainsString('INSTALL_PROCEED', $output);
+    $this->assertStringContainsString('INSTALL_BRANCHES', $output);
   }
 
   /**
@@ -187,15 +195,15 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'object' => ['{"require-dev": {"drupal/coder": "^8"}}', ['require-dev' => ['drupal/coder' => '^8']]];
   }
 
-  #[DataProvider('dataProviderSetComposerDevDrupalVersion')]
-  public function testSetComposerDevDrupalVersion(?string $contents, ?string $expected): void {
+  #[DataProvider('dataProviderSetComposerDevEddyValue')]
+  public function testSetComposerDevEddyValue(?string $contents, string $key, string $value, ?string $expected): void {
     chdir(self::$sut);
 
     if ($contents !== NULL) {
       file_put_contents('composer.dev.json', $contents);
     }
 
-    set_composer_dev_drupal_version('12');
+    set_composer_dev_eddy_value($key, $value);
 
     if ($expected === NULL) {
       $this->assertFileDoesNotExist('composer.dev.json');
@@ -206,23 +214,97 @@ final class InstallHelpersTest extends UnitTestCase {
     $this->assertSame($expected, file_get_contents('composer.dev.json'));
   }
 
-  public static function dataProviderSetComposerDevDrupalVersion(): \Iterator {
-    yield 'missing file' => [NULL, NULL];
+  public static function dataProviderSetComposerDevEddyValue(): \Iterator {
+    yield 'missing file' => [NULL, 'drupal-version', '12', NULL];
 
     yield 'no extra' => [
       '{"require-dev": {"drupal/coder": "^8"}}',
+      'drupal-version',
+      '12',
       "{\n    \"require-dev\": {\n        \"drupal/coder\": \"^8\"\n    },\n    \"extra\": {\n        \"eddy\": {\n            \"drupal-version\": \"12\"\n        }\n    }\n}\n",
     ];
 
     yield 'extra is not a map' => [
       '{"extra": "none"}',
+      'drupal-version',
+      '12',
       "{\n    \"extra\": {\n        \"eddy\": {\n            \"drupal-version\": \"12\"\n        }\n    }\n}\n",
     ];
 
-    yield 'existing version and an empty patches map' => [
+    yield 'existing value and an empty patches map' => [
       '{"extra": {"eddy": {"drupal-version": "11"}, "patches": {}}}',
+      'drupal-version',
+      '12',
       "{\n    \"extra\": {\n        \"eddy\": {\n            \"drupal-version\": \"12\"\n        },\n        \"patches\": {}\n    }\n}\n",
     ];
+
+    yield 'new key after an existing one' => [
+      '{"extra": {"eddy": {"drupal-version": "11"}}}',
+      'version',
+      '5.0.0',
+      "{\n    \"extra\": {\n        \"eddy\": {\n            \"drupal-version\": \"11\",\n            \"version\": \"5.0.0\"\n        }\n    }\n}\n",
+    ];
+  }
+
+  #[DataProvider('dataProviderTemplateVersion')]
+  public function testTemplateVersion(string $describe, ?string $expected): void {
+    $this->assertSame($expected, template_version($describe));
+  }
+
+  public static function dataProviderTemplateVersion(): \Iterator {
+    yield 'release tag' => ['5.0.0', '5.0.0'];
+    yield 'pre-release tag' => ['5.0.0-alpha1', '5.0.0-alpha1'];
+    yield 'commit after a tag' => ['5.0.0-3-gabc1234', '5.0.0-3-gabc1234'];
+    yield 'build metadata' => ['5.0.0+build.1', '5.0.0+build.1'];
+    yield 'unexpanded placeholder' => ['$Format:%(describe:tags=true)$', NULL];
+    yield 'no tag to describe' => ['', NULL];
+    yield 'whitespace' => ['5.0.0 ', NULL];
+    yield 'slash' => ['release/5.0.0', NULL];
+  }
+
+  /**
+   * 'git archive' expands the version placeholder and nothing else.
+   */
+  #[DataProvider('dataProviderTemplateVersionArchive')]
+  public function testTemplateVersionArchive(?string $tag, int $commits_after_tag, string $expected_pattern): void {
+    $root = dirname(__DIR__, 4);
+    $filesystem = new Filesystem();
+    $filesystem->copy($root . '/install.php', self::$sut . '/install.php');
+    $filesystem->copy($root . '/.gitattributes', self::$sut . '/.gitattributes');
+
+    $this->git(self::$sut, ['init']);
+    $this->git(self::$sut, ['config', 'user.name', 'Test User']);
+    $this->git(self::$sut, ['config', 'user.email', 'test@example.com']);
+    $this->git(self::$sut, ['add', '--all']);
+    $this->git(self::$sut, ['commit', '--message', 'Release']);
+
+    if ($tag !== NULL) {
+      $this->git(self::$sut, ['tag', $tag]);
+    }
+
+    for ($i = 0; $i < $commits_after_tag; $i++) {
+      $this->git(self::$sut, ['commit', '--allow-empty', '--message', 'Change']);
+    }
+
+    $this->git(self::$sut, ['archive', '--output=archive.tar', 'HEAD', 'install.php']);
+    $process = new Process(['tar', '-xOf', 'archive.tar', 'install.php'], self::$sut);
+    $process->mustRun();
+    $archived = $process->getOutput();
+
+    $source = (string) file_get_contents($root . '/install.php');
+    $pattern = "/^const TEMPLATE_VERSION = '(.*)';$/m";
+    $this->assertSame(1, preg_match($pattern, $source, $source_match), 'The source holds the version constant.');
+    $this->assertSame(1, preg_match($pattern, $archived, $archived_match), 'The archive holds the version constant.');
+
+    $this->assertMatchesRegularExpression($expected_pattern, $archived_match[1]);
+    $this->assertSame(str_replace($source_match[0], $archived_match[0], $source), $archived, 'The archive changes only the version constant.');
+    $this->assertSame($archived_match[1] === '' ? NULL : $archived_match[1], template_version($archived_match[1]));
+  }
+
+  public static function dataProviderTemplateVersionArchive(): \Iterator {
+    yield 'tagged commit' => ['1.2.3', 0, '/^1\.2\.3$/'];
+    yield 'commit after a tag' => ['1.2.3', 2, '/^1\.2\.3-2-g[0-9a-f]+$/'];
+    yield 'untagged commit' => [NULL, 0, '/^$/'];
   }
 
   /**
@@ -346,6 +428,39 @@ final class InstallHelpersTest extends UnitTestCase {
     ];
   }
 
+  /**
+   * @param array<int, string> $expected
+   */
+  #[DataProvider('dataProviderParseBranchList')]
+  public function testParseBranchList(string $list, array $expected): void {
+    $this->assertSame($expected, parse_branch_list($list));
+  }
+
+  public static function dataProviderParseBranchList(): \Iterator {
+    yield 'empty' => ['', []];
+    yield 'single branch' => ['1.x', ['1.x']];
+    yield 'several branches' => ['1.x,2.x', ['1.x', '2.x']];
+    yield 'spaces around branches' => [' 1.x , 2.x ', ['1.x', '2.x']];
+    yield 'empty items' => [',1.x,,2.x,', ['1.x', '2.x']];
+    yield 'only separators' => [' , ', []];
+    yield 'quotes kept' => ["'2.x',\"3.x\"", ["'2.x'", '"3.x"']];
+    yield 'pattern' => ['releases/**', ['releases/**']];
+  }
+
+  #[DataProvider('dataProviderParseBranchListInvalid')]
+  public function testParseBranchListInvalid(string $list, string $expected_message): void {
+    $this->expectException(\Exception::class);
+    $this->expectExceptionMessage($expected_message);
+    parse_branch_list($list);
+  }
+
+  public static function dataProviderParseBranchListInvalid(): \Iterator {
+    yield 'space inside a branch' => ['1.x 2.x', 'Invalid branch: "1.x 2.x". Separate branches with commas.'];
+    yield 'tab inside a branch' => ["1.x,2.x\t3.x", "Invalid branch: \"2.x\t3.x\"."];
+    yield 'new line inside a branch' => ["1.x\n- 2.x", "Invalid branch: \"1.x\n- 2.x\"."];
+    yield 'control character' => ["1.x\x1b", "Invalid branch: \"1.x\x1b\"."];
+  }
+
   #[DataProvider('dataProviderRemoveDir')]
   public function testRemoveDir(callable $setup, string $dir_name): void {
     $dir = self::$sut . '/' . $dir_name;
@@ -445,6 +560,169 @@ final class InstallHelpersTest extends UnitTestCase {
       },
       ['src/file.php', 'src/Sub/deep.php'],
     ];
+
+    yield 'nested excluded directories' => [
+      function (string $dir): void {
+        mkdir($dir . '/tools/vendor', 0755, TRUE);
+        file_put_contents($dir . '/tools/vendor/autoload.php', 'vendor');
+        mkdir($dir . '/tools/node_modules', 0755, TRUE);
+        file_put_contents($dir . '/tools/node_modules/pkg.js', 'pkg');
+        file_put_contents($dir . '/tools/run.php', 'run');
+      },
+      ['tools/run.php'],
+      ['tools/vendor/autoload.php', 'tools/node_modules/pkg.js'],
+    ];
+
+    yield 'git-ignored paths excluded' => [
+      function (string $dir): void {
+        file_put_contents($dir . '/.gitignore', "/build\n/.env\n*.log\n");
+        mkdir($dir . '/build/web/core/modules/system', 0755, TRUE);
+        file_put_contents($dir . '/build/web/core/modules/system/system.info.yml', 'type: module');
+        file_put_contents($dir . '/.env', 'WEBSERVER_PORT=8000');
+        mkdir($dir . '/src', 0755, TRUE);
+        file_put_contents($dir . '/src/debug.log', 'log');
+        file_put_contents($dir . '/src/file.php', 'php');
+      },
+      ['.gitignore', 'src/file.php'],
+      ['build/web/core/modules/system/system.info.yml', '.env', 'src/debug.log'],
+    ];
+
+    yield 'git-ignored paths re-included' => [
+      function (string $dir): void {
+        file_put_contents($dir . '/.gitignore', "/logs/*\n!/logs/keep.txt\n/build\n!/build/keep.txt\n");
+        mkdir($dir . '/logs', 0755, TRUE);
+        file_put_contents($dir . '/logs/keep.txt', 'keep');
+        file_put_contents($dir . '/logs/drop.txt', 'drop');
+        mkdir($dir . '/build', 0755, TRUE);
+        file_put_contents($dir . '/build/keep.txt', 'keep');
+      },
+      ['logs/keep.txt'],
+      ['logs/drop.txt', 'build/keep.txt'],
+    ];
+
+    yield 'claude directory holds only its settings' => [
+      function (string $dir): void {
+        mkdir($dir . '/.claude/skills/project-skill', 0755, TRUE);
+        file_put_contents($dir . '/.claude/settings.json', '{}');
+        file_put_contents($dir . '/.claude/settings.local.json', '{}');
+        file_put_contents($dir . '/.claude/skills/project-skill/SKILL.md', 'skill');
+      },
+      ['.claude/settings.json'],
+      ['.claude/settings.local.json', '.claude/skills/project-skill/SKILL.md'],
+    ];
+  }
+
+  #[DataProvider('dataProviderIsTemplatePath')]
+  public function testIsTemplatePath(string $path, bool $is_dir, bool $expected): void {
+    $rules = gitignore_rules("/build\n/.env\n");
+
+    $this->assertSame($expected, is_template_path($path, $is_dir, $rules));
+  }
+
+  public static function dataProviderIsTemplatePath(): \Iterator {
+    yield 'file' => ['src/Service.php', FALSE, TRUE];
+    yield 'directory' => ['src', TRUE, TRUE];
+    yield 'git directory' => ['.git', TRUE, FALSE];
+    yield 'idea directory' => ['.idea', TRUE, FALSE];
+    yield 'vendor directory' => ['vendor', TRUE, FALSE];
+    yield 'nested vendor directory' => ['.eddy/tests/vendor', TRUE, FALSE];
+    yield 'node_modules directory' => ['node_modules', TRUE, FALSE];
+    yield 'file named like an excluded directory' => ['docs/vendor', FALSE, TRUE];
+    yield 'claude directory' => ['.claude', TRUE, TRUE];
+    yield 'claude settings' => ['.claude/settings.json', FALSE, TRUE];
+    yield 'claude local settings' => ['.claude/settings.local.json', FALSE, FALSE];
+    yield 'claude skills' => ['.claude/skills', TRUE, FALSE];
+    yield 'claude directory below the root' => ['docs/.claude/notes.md', FALSE, TRUE];
+    yield 'git-ignored directory' => ['build', TRUE, FALSE];
+    yield 'git-ignored file' => ['.env', FALSE, FALSE];
+    yield 'name that is git-ignored only at the root' => ['docs/build', TRUE, TRUE];
+  }
+
+  #[DataProvider('dataProviderIsGitignored')]
+  public function testIsGitignored(string $gitignore, string $path, bool $is_dir, bool $expected): void {
+    $this->assertSame($expected, is_gitignored($path, $is_dir, gitignore_rules($gitignore)));
+  }
+
+  public static function dataProviderIsGitignored(): \Iterator {
+    yield 'no rules' => ['', 'build', TRUE, FALSE];
+    yield 'anchored name' => ['/build', 'build', TRUE, TRUE];
+    yield 'anchored name below the root' => ['/build', 'web/build', TRUE, FALSE];
+    yield 'name at the root' => ['vendor', 'vendor', TRUE, TRUE];
+    yield 'name at any depth' => ['vendor', 'a/b/vendor', TRUE, TRUE];
+    yield 'name matches a file' => ['.env', 'a/.env', FALSE, TRUE];
+    yield 'directory pattern matches a directory' => ['logs/', 'logs', TRUE, TRUE];
+    yield 'directory pattern skips a file' => ['logs/', 'logs', FALSE, FALSE];
+    yield 'directory pattern at any depth' => ['logs/', 'a/logs', TRUE, TRUE];
+    yield 'slash inside the pattern anchors it' => ['docs/build', 'docs/build', TRUE, TRUE];
+    yield 'anchored path below the root' => ['docs/build', 'x/docs/build', TRUE, FALSE];
+    yield 'contents of a matched directory are not matched' => ['/build', 'build/file.txt', FALSE, FALSE];
+    yield 'wildcard' => ['*.log', 'a/debug.log', FALSE, TRUE];
+    yield 'wildcard stays in its segment' => ['/a/*.log', 'a/b/c.log', FALSE, FALSE];
+    yield 'wildcard matches a leading dot' => ['*.json', '.eslintrc.json', FALSE, TRUE];
+    yield 'question mark' => ['file?.txt', 'file1.txt', FALSE, TRUE];
+    yield 'character class' => ['file[0-9].txt', 'file5.txt', FALSE, TRUE];
+    yield 'negated character class' => ['file[!0-9].txt', 'file5.txt', FALSE, FALSE];
+    yield 'leading double asterisk at the root' => ['**/cache', 'cache', TRUE, TRUE];
+    yield 'leading double asterisk at any depth' => ['**/cache', 'a/b/cache', TRUE, TRUE];
+    yield 'leading double asterisk keeps the rest anchored' => ['**/a/cache', 'x/b/cache', TRUE, FALSE];
+    yield 'middle double asterisk without directories' => ['a/**/b', 'a/b', TRUE, TRUE];
+    yield 'middle double asterisk with directories' => ['a/**/b', 'a/x/y/b', TRUE, TRUE];
+    yield 'trailing double asterisk matches contents' => ['tmp/**', 'tmp/a/file.txt', FALSE, TRUE];
+    yield 'trailing double asterisk skips the directory' => ['tmp/**', 'tmp', TRUE, FALSE];
+    yield 'other double asterisks match in a segment' => ['foo**bar', 'a/fooxbar', FALSE, TRUE];
+    yield 'negation re-includes' => [".claude/*\n!.claude/settings.json", '.claude/settings.json', FALSE, FALSE];
+    yield 'negation keeps the rest ignored' => [".claude/*\n!.claude/settings.json", '.claude/settings.local.json', FALSE, TRUE];
+    yield 'last match wins' => ["!build\nbuild", 'build', TRUE, TRUE];
+    yield 'comment' => ['#build', '#build', FALSE, FALSE];
+    yield 'escaped hash' => ['\#build', '#build', FALSE, TRUE];
+    yield 'escaped exclamation mark' => ['\!build', '!build', FALSE, TRUE];
+    yield 'trailing spaces' => ['build   ', 'build', TRUE, TRUE];
+    yield 'escaped trailing space' => ['build\ ', 'build ', TRUE, TRUE];
+    yield 'blank lines and windows line endings' => ["\r\n/build\r\n\r\n", 'build', TRUE, TRUE];
+    yield 'lone slash and exclamation mark' => ["/\n!\n", 'build', TRUE, FALSE];
+  }
+
+  /**
+   * The template's '.gitignore' leaves only template files to the walk.
+   */
+  #[DataProvider('dataProviderIsGitignoredTemplate')]
+  public function testIsGitignoredTemplate(string $path, bool $is_dir, bool $expected): void {
+    $rules = gitignore_rules((string) file_get_contents(dirname(__DIR__, 4) . '/.gitignore'));
+
+    $this->assertSame($expected, is_gitignored($path, $is_dir, $rules));
+  }
+
+  public static function dataProviderIsGitignoredTemplate(): \Iterator {
+    yield 'build' => ['build', TRUE, TRUE];
+    yield 'logs' => ['.logs', TRUE, TRUE];
+    yield 'vendor' => ['vendor', TRUE, TRUE];
+    yield 'node_modules' => ['node_modules', TRUE, TRUE];
+    yield 'env' => ['.env', FALSE, TRUE];
+    yield 'chromedriver' => ['.chromedriver', TRUE, TRUE];
+    yield 'composer lock' => ['composer.lock', FALSE, TRUE];
+    yield 'claude local settings' => ['.claude/settings.local.json', FALSE, TRUE];
+    yield 'update skill' => ['.claude/skills/update-consumer-eddy', TRUE, TRUE];
+    yield 'claude directory' => ['.claude', TRUE, FALSE];
+    yield 'claude settings' => ['.claude/settings.json', FALSE, FALSE];
+    yield 'claude skills' => ['.claude/skills', TRUE, FALSE];
+    yield 'composer manifest' => ['composer.json', FALSE, FALSE];
+    yield 'source directory' => ['src', TRUE, FALSE];
+    yield 'nested build directory' => ['tests/build', TRUE, FALSE];
+  }
+
+  /**
+   * Every skill the repository tracks in '.claude/skills' is one of Eddy's.
+   */
+  public function testEddySkillsListTrackedSkills(): void {
+    $tracked = $this->git(dirname(__DIR__, 4), ['ls-files', '--', '.claude/skills']);
+    $paths = $tracked === '' ? [] : explode("\n", $tracked);
+    $skills = array_values(array_unique(array_map(static fn(string $path): string => explode('/', $path)[2], $paths)));
+
+    $expected = eddy_skills();
+    sort($expected);
+    sort($skills);
+
+    $this->assertSame($expected, $skills);
   }
 
   #[DataProvider('dataProviderReplaceStringContent')]
