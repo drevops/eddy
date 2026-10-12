@@ -59,7 +59,7 @@ Check that nothing is pending:
 git status --porcelain
 ```
 
-Every line must be under `.claude/` or `.idea/`. Anything else - a modified tracked file or an untracked one - would block the merge in Step 7 or end up in the update commit, so stop and ask the user to commit or stash it first. Files git ignores, such as `.env` and `build/`, do not show up here, and the update never touches them.
+The only lines allowed are untracked paths (`??`) under `.claude/` or `.idea/`. Anything else - a change to a tracked file anywhere, or an untracked file elsewhere - would block the merge in Step 7 or end up in the update commit, so stop and ask the user to commit or stash it first. Files git ignores, such as `.env` and `build/`, do not show up here, and the update never touches them.
 
 Switch to the default branch and pull the latest changes:
 
@@ -374,7 +374,13 @@ rm -rf .artifacts/tmp/eddy-update
 find .artifacts -type d -empty -delete
 ```
 
-Then stage all changes and commit:
+Then stage the update. The merge already staged the files the release added, so staging the changes to tracked files completes it, and untracked files under `.claude/` and `.idea/` stay out of the commit. Add a file you created yourself by its path:
+
+```bash
+git add -u
+```
+
+Commit with this message:
 
 ```text
 Updated scaffold to <version>.

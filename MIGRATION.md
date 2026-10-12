@@ -14,7 +14,7 @@ There's a more immediate catch, too: a 4.x project can't update itself anymore. 
 
 ## Before you start
 
-- Commit or stash your work in progress. The upgrade changes most of the files in the project root, and the update skill won't start while the working tree has changes outside `.claude/` and `.idea/`.
+- Commit or stash your work in progress. The upgrade changes most of the files in the project root, and the update skill won't start while the working tree has changes, apart from untracked files in `.claude/` and `.idea/`.
 - Find the edits you made to `.devtools/` and, in a project created from 4.18.0 or 4.19.0, to the `scripts/*-cloudflared.sh` hooks. The upgrade deletes both, so each edit needs a new home (see [`.devtools/` is a package now](#devtools-is-a-package-now)). `git log -p -- .devtools 'scripts/*-cloudflared.sh'` shows every change to those files, template updates included, so look for the commits that are yours.
 - If your project runs on CircleCI, keep its project settings at hand. Its deployment settings move to GitHub Actions (see [CircleCI is gone](#circleci-is-gone)).
 
