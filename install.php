@@ -678,7 +678,7 @@ function workflow_push_branches(string $content): array {
  *
  * @param string $file
  *   The workflow path.
- * @param array<int, string> $branches
+ * @param non-empty-array<int, string> $branches
  *   The branches to filter on instead.
  */
 function set_workflow_branches(string $file, array $branches): void {

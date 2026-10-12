@@ -252,7 +252,7 @@ final class InstallHelpersTest extends UnitTestCase {
   }
 
   /**
-   * @param array<int, string> $branches
+   * @param non-empty-array<int, string> $branches
    */
   #[DataProvider('dataProviderSetWorkflowBranches')]
   public function testSetWorkflowBranches(?string $content, array $branches, ?string $expected): void {
