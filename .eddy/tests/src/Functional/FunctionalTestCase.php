@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Functional;
 
+use AlexSkrypnyk\File\File;
 use AlexSkrypnyk\PhpunitHelpers\Traits\ProcessTrait;
 use AlexSkrypnyk\PhpunitHelpers\Traits\TuiTrait;
 use DrevOps\Eddy\Tests\Unit\UnitTestCase;
@@ -34,6 +35,10 @@ abstract class FunctionalTestCase extends UnitTestCase {
       '.chromedriver',
       'build',
     ]);
+
+    // The exclusions match directories only, so git-ignored root files are
+    // removed after the copy.
+    File::remove([static::$sut . '/.env', static::$sut . '/composer.lock']);
 
     chdir(static::$sut);
   }
