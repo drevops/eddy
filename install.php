@@ -442,14 +442,14 @@ function process_readme(string $extension_name): void {
 function process_internal(string $extension_name, string $extension_machine_name, string $extension_type): void {
   $extension_machine_name_class = convert_string($extension_machine_name, 'class_name');
 
-  // Protect the scaffold attribution link from bulk replacements.
-  $scaffold_link = '[Eddy](https://github.com/drevops/eddy)';
-  $scaffold_link_token = '__SCAFFOLD_ATTRIBUTION_LINK__';
-  replace_string_content($scaffold_link, $scaffold_link_token);
+  // Protect the attribution link from bulk replacements.
+  $attribution_link = '[Eddy](https://github.com/drevops/eddy)';
+  $attribution_link_token = '__ATTRIBUTION_LINK__';
+  replace_string_content($attribution_link, $attribution_link_token);
 
   // Protect the update skill URL from bulk replacements.
   $update_skill_url = 'https://raw.githubusercontent.com/drevops/eddy/1.x/.eddy/skills/update-consumer-eddy/SKILL.md';
-  $update_skill_url_token = '__SCAFFOLD_UPDATE_SKILL_URL__';
+  $update_skill_url_token = '__UPDATE_SKILL_URL__';
   replace_string_content($update_skill_url, $update_skill_url_token);
 
   replace_string_content('YourNamespace', $extension_machine_name);
@@ -470,8 +470,8 @@ function process_internal(string $extension_name, string $extension_machine_name
   replace_string_content('type: module', 'type: ' . $extension_type);
   replace_string_content('[EXTENSION_NAME]', $extension_machine_name);
 
-  // Restore the scaffold attribution link.
-  replace_string_content($scaffold_link_token, $scaffold_link);
+  // Restore the attribution link.
+  replace_string_content($attribution_link_token, $attribution_link);
 
   // Restore the update skill URL.
   replace_string_content($update_skill_url_token, $update_skill_url);
