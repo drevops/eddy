@@ -502,7 +502,6 @@ final class BrowserStartTest extends UnitTestCase {
    */
   protected function mockVersions(string $chrome, string $driver, array $hanging = []): void {
     $this->registerMock('proc_open', 'DrevOps\\Eddy\\Tooling', function (array $command, array $descriptors, &$pipes) use ($chrome, $driver, $hanging) {
-      /** @var array<int, string> $command */
       $this->probes[] = $command;
       $this->probeHangs = in_array($command[0], $hanging, TRUE);
       $version = str_contains($command[0], 'chromedriver') ? $driver : $chrome;

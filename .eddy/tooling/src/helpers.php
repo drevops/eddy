@@ -636,7 +636,7 @@ function command_must_exist(string $command): void {
  * The command runs without a shell. Its standard input reads from '/dev/null'
  * and its standard error is discarded.
  *
- * @param array<int, string> $command
+ * @param list<string> $command
  *   The executable followed by its arguments.
  * @param int $timeout
  *   Seconds to wait for the command to exit.

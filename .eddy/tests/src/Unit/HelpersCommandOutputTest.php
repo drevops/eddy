@@ -29,6 +29,10 @@ final class HelpersCommandOutputTest extends UnitTestCase {
     require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
   }
 
+  /**
+   * @param list<string> $command
+   *   The executable followed by its arguments.
+   */
   #[DataProvider('dataProviderCommandOutput')]
   public function testCommandOutput(array $command, string $expected): void {
     $start = microtime(TRUE);
@@ -66,10 +70,14 @@ final class HelpersCommandOutputTest extends UnitTestCase {
     ];
   }
 
+  /**
+   * @param list<string> $command
+   *   The executable followed by its arguments.
+   */
   #[DataProvider('dataProviderCommandOutputTimesOut')]
   public function testCommandOutputTimesOut(array $command): void {
-    // Sleep 10 ms per poll instead of 100 ms, so the command has time to set up,
-    // such as its SIGTERM trap, before it is killed.
+    // Sleep 10 ms per poll instead of 100 ms, so the command has time to set
+    // up, such as its SIGTERM trap, before it is killed.
     $sleeps = [];
     $this->registerMock('usleep', 'DrevOps\\Eddy\\Tooling', function (int $microseconds) use (&$sleeps): void {
       $sleeps[] = $microseconds;
