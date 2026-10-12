@@ -163,6 +163,8 @@ php install.php
 cd ../../../..
 ```
 
+If the installer fails, still `cd` back to the project root, then stop and report the error: there is nothing to merge without the render.
+
 Wrap every value in single quotes, never double quotes. The values come from the project's own files, and double quotes still expand `$(...)`, backticks and `$VAR`. Write a single quote inside a value as `'\''`, so `O'Brien` becomes `'O'\''Brien'`.
 
 **Every one of these variables is mandatory.** A prompt with no matching variable is not silently defaulted - it falls through to the interactive input loop and reads `STDIN`, which never returns under automation. Derive each value from the project's detected settings, and run `php install.php --help` for the full list and accepted values if the prompts change in a future release.
