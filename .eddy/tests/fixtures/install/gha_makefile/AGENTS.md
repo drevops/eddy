@@ -1,19 +1,12 @@
-@@ -10,54 +10,54 @@
+@@ -8,54 +8,54 @@
  
- **HARD RULE - use the provided command wrappers, never the tool binaries directly.** When `make` or `ahoy` exposes a command for a task, use that command; do not call the underlying binary directly. Each wrapper `chdir`s into `build/` and runs the tool with the config, plugins, and environment that CI uses, so a raw invocation from the repository root silently diverges from CI - it can pass locally while CI fails (or vice versa), or crash outright when a relative path resolves against the wrong directory. If no wrapped command covers what you need, extend the `make` / `ahoy` target rather than making a one-off raw call; if that is not feasible, stop and ask.
+ ## Development Commands
  
-+Run each tool through its `make` wrapper, never the binary directly:
+-**HARD RULE - use the provided command wrappers, never the tool binaries directly.** When `ahoy` exposes a command for a task, use that command; do not call the underlying binary directly. Each wrapper `chdir`s into `build/` and runs the tool with the config, plugins, and environment that CI uses, so a raw invocation from the repository root silently diverges from CI - it can pass locally while CI fails (or vice versa), or crash outright when a relative path resolves against the wrong directory. If no wrapped command covers what you need, extend the `ahoy` target rather than making a one-off raw call; if that is not feasible, stop and ask.
++**HARD RULE - use the provided command wrappers, never the tool binaries directly.** When `make` exposes a command for a task, use that command; do not call the underlying binary directly. Each wrapper `chdir`s into `build/` and runs the tool with the config, plugins, and environment that CI uses, so a raw invocation from the repository root silently diverges from CI - it can pass locally while CI fails (or vice versa), or crash outright when a relative path resolves against the wrong directory. If no wrapped command covers what you need, extend the `make` target rather than making a one-off raw call; if that is not feasible, stop and ask.
  
 -Run each tool through its `ahoy` wrapper, never the binary directly:
-+- **PHPCS / PHPCBF**: `make lint` / `make lint-fix` - never `vendor/bin/phpcs` or `vendor/bin/phpcbf`.
-+- **PHPStan**: `make lint` - never `vendor/bin/phpstan`.
-+- **Rector**: `make lint` (dry-run) / `make lint-fix` - never `vendor/bin/rector`.
-+- **Twig CS Fixer**: `make lint` / `make lint-fix` - never `vendor/bin/twig-cs-fixer`.
-+- **ESLint / Stylelint**: `make lint` / `make lint-fix` - never `npx eslint` or `npx stylelint`.
-+- **CSpell**: `make lint` - never `npx cspell`.
-+- **PHPUnit**: `make test` / `make test-unit` / `make test-kernel` / `make test-functional` - never `vendor/bin/phpunit`.
-+- **Jest**: `make test-javascript` - never `npx jest`.
-+- **Drush**: `make drush <command>` - never `build/vendor/bin/drush` directly.
++Run each tool through its `make` wrapper, never the binary directly:
  
 -- **PHPCS / PHPCBF**: `ahoy lint` / `ahoy lint-fix` - never `vendor/bin/phpcs` or `vendor/bin/phpcbf`.
 -- **PHPStan**: `ahoy lint` - never `vendor/bin/phpstan`.
@@ -24,24 +17,32 @@
 -- **PHPUnit**: `ahoy test` / `ahoy test-unit` / `ahoy test-kernel` / `ahoy test-functional` - never `vendor/bin/phpunit`.
 -- **Jest**: `ahoy test-javascript` - never `npx jest`.
 -- **Drush**: `ahoy drush <command>` - never `build/vendor/bin/drush` directly.
++- **PHPCS / PHPCBF**: `make lint` / `make lint-fix` - never `vendor/bin/phpcs` or `vendor/bin/phpcbf`.
++- **PHPStan**: `make lint` - never `vendor/bin/phpstan`.
++- **Rector**: `make lint` (dry-run) / `make lint-fix` - never `vendor/bin/rector`.
++- **Twig CS Fixer**: `make lint` / `make lint-fix` - never `vendor/bin/twig-cs-fixer`.
++- **ESLint / Stylelint**: `make lint` / `make lint-fix` - never `npx eslint` or `npx stylelint`.
++- **CSpell**: `make lint` - never `npx cspell`.
++- **PHPUnit**: `make test` / `make test-unit` / `make test-kernel` / `make test-functional` - never `vendor/bin/phpunit`.
++- **Jest**: `make test-javascript` - never `npx jest`.
++- **Drush**: `make drush <command>` - never `build/vendor/bin/drush` directly.
  
  ### Build and Environment Management
  
-+**Using Make (default):**
-+- `make build` - Complete build (stop → assemble → start → provision)
-+- `make assemble` - Assemble codebase with dependencies
-+- `make start` - Start PHP development server
-+- `make stop` - Stop development server
-+- `make provision` - Install/provision Drupal site
-+- `make reset` - Clean build directory, logs and installed tooling (aliases: `make delete`, `make destroy`)
- 
--**Using Ahoy (alternative):**
+-**Using Ahoy:**
 -- `ahoy build` - Complete build process
 -- `ahoy assemble` - Assemble codebase
 -- `ahoy start` - Start development server
 -- `ahoy stop` - Stop development server
 -- `ahoy provision` - Provision Drupal site
 -- `ahoy reset` - Clean build directory, logs and installed tooling (aliases: `ahoy delete`, `ahoy destroy`)
++**Using Make:**
++- `make build` - Complete build (stop → assemble → start → provision)
++- `make assemble` - Assemble codebase with dependencies
++- `make start` - Start PHP development server
++- `make stop` - Stop development server
++- `make provision` - Install/provision Drupal site
++- `make reset` - Clean build directory, logs and installed tooling (aliases: `make delete`, `make destroy`)
  
  ### Code Quality
  
@@ -83,3 +84,17 @@
  
  ## Project Structure
  
+@@ -88,10 +88,10 @@
+ 
+ ## Development Workflow
+ 
+-1. Build environment: `ahoy build`
++1. Build environment: `make build`
+ 2. Develop Force Crystal code in `src/`
+-3. Check standards: `ahoy lint`
+-4. Run tests: `ahoy test`
++3. Check standards: `make lint`
++4. Run tests: `make test`
+ 5. Access site at http://localhost:8000
+ 
+ ## Code Quality Tools

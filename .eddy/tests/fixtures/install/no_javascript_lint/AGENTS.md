@@ -1,4 +1,4 @@
-@@ -17,7 +17,6 @@
+@@ -16,7 +16,6 @@
  - **PHPStan**: `ahoy lint` - never `vendor/bin/phpstan`.
  - **Rector**: `ahoy lint` (dry-run) / `ahoy lint-fix` - never `vendor/bin/rector`.
  - **Twig CS Fixer**: `ahoy lint` / `ahoy lint-fix` - never `vendor/bin/twig-cs-fixer`.

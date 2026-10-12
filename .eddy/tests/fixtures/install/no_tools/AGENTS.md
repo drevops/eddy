@@ -1,9 +1,12 @@
-@@ -10,21 +10,23 @@
+@@ -8,22 +8,26 @@
  
- **HARD RULE - use the provided command wrappers, never the tool binaries directly.** When `make` or `ahoy` exposes a command for a task, use that command; do not call the underlying binary directly. Each wrapper `chdir`s into `build/` and runs the tool with the config, plugins, and environment that CI uses, so a raw invocation from the repository root silently diverges from CI - it can pass locally while CI fails (or vice versa), or crash outright when a relative path resolves against the wrong directory. If no wrapped command covers what you need, extend the `make` / `ahoy` target rather than making a one-off raw call; if that is not feasible, stop and ask.
+ ## Development Commands
+ 
+-**HARD RULE - use the provided command wrappers, never the tool binaries directly.** When `ahoy` exposes a command for a task, use that command; do not call the underlying binary directly. Each wrapper `chdir`s into `build/` and runs the tool with the config, plugins, and environment that CI uses, so a raw invocation from the repository root silently diverges from CI - it can pass locally while CI fails (or vice versa), or crash outright when a relative path resolves against the wrong directory. If no wrapped command covers what you need, extend the `ahoy` target rather than making a one-off raw call; if that is not feasible, stop and ask.
++**HARD RULE - use the provided command wrappers, never the tool binaries directly.** When `make` or `ahoy` exposes a command for a task, use that command; do not call the underlying binary directly. Each wrapper `chdir`s into `build/` and runs the tool with the config, plugins, and environment that CI uses, so a raw invocation from the repository root silently diverges from CI - it can pass locally while CI fails (or vice versa), or crash outright when a relative path resolves against the wrong directory. If no wrapped command covers what you need, extend the `make` or `ahoy` target rather than making a one-off raw call; if that is not feasible, stop and ask.
  
 +Run each tool through its `make` wrapper, never the binary directly:
- 
++
 +- **Drush**: `make drush <command>` - never `build/vendor/bin/drush` directly.
 +
  Run each tool through its `ahoy` wrapper, never the binary directly:
@@ -20,17 +23,18 @@
  
  ### Build and Environment Management
  
-+**Using Make (default):**
++**Using Make:**
 +- `make build` - Complete build (stop → assemble → start → provision)
 +- `make assemble` - Assemble codebase with dependencies
 +- `make start` - Start PHP development server
 +- `make stop` - Stop development server
 +- `make provision` - Install/provision Drupal site
 +- `make reset` - Clean build directory, logs and installed tooling (aliases: `make delete`, `make destroy`)
- 
- **Using Ahoy (alternative):**
++
+ **Using Ahoy:**
  - `ahoy build` - Complete build process
-@@ -37,26 +39,25 @@
+ - `ahoy assemble` - Assemble codebase
+@@ -35,26 +39,25 @@
  ### Code Quality
  
  **Linting:**
@@ -63,7 +67,7 @@
  - `ahoy info` - Print a read-only summary of PHP/Drupal/Composer/Drush/Node/npm versions, webserver host/port (with source), site URL, XDebug state, WebDriver port, build directory, database path, and active profile. (alias: `ahoy describe`)
  
  ## Project Structure
-@@ -63,7 +64,6 @@
+@@ -61,7 +64,6 @@
  
  **Key Directories:**
  - `src/` - Extension source code (services, forms, etc.)
@@ -71,7 +75,7 @@
  - `config/schema/` - Configuration schema definitions
  - `build/` - Assembled Drupal codebase (symlinked extension)
  - `vendor/` - The installed `drevops/eddy-tooling` package, whose commands (`vendor/bin/eddy-*`) assemble, start, provision and deploy the extension. Not committed and not part of the extension
-@@ -82,9 +82,6 @@
+@@ -80,27 +82,19 @@
  - `DRUPAL_VERSION` - Target Drupal version (e.g., `10`, `11`, `11@alpha`, `12@beta`). Defaults to `extra.eddy.drupal-version` in `composer.dev.json`
  - `WEBSERVER_HOST` - Development server host (default: localhost)
  - `WEBSERVER_PORT` - Development server port. Auto-discovered from range 8000-8099 and written to `.env` if not already set
@@ -81,7 +85,16 @@
  - `GITHUB_TOKEN` - GitHub API token to avoid rate limits
  - `DEBUG` - Set to `1` to stream the full output of the underlying commands (Composer, npm, Drush). By default this output is suppressed and shown only when a command fails
  
-@@ -98,11 +95,6 @@
+ ## Development Workflow
+ 
+-1. Build environment: `ahoy build`
++1. Build environment: `make build` or `ahoy build`
+ 2. Develop Force Crystal code in `src/`
+-3. Check standards: `ahoy lint`
+-4. Run tests: `ahoy test`
++3. Check standards: `make lint` or `ahoy lint`
++4. Run tests: `make test` or `ahoy test`
+ 5. Access site at http://localhost:8000
  
  ## Code Quality Tools
  

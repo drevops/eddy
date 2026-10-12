@@ -1,9 +1,12 @@
-@@ -10,7 +10,18 @@
+@@ -8,8 +8,20 @@
  
- **HARD RULE - use the provided command wrappers, never the tool binaries directly.** When `make` or `ahoy` exposes a command for a task, use that command; do not call the underlying binary directly. Each wrapper `chdir`s into `build/` and runs the tool with the config, plugins, and environment that CI uses, so a raw invocation from the repository root silently diverges from CI - it can pass locally while CI fails (or vice versa), or crash outright when a relative path resolves against the wrong directory. If no wrapped command covers what you need, extend the `make` / `ahoy` target rather than making a one-off raw call; if that is not feasible, stop and ask.
+ ## Development Commands
+ 
+-**HARD RULE - use the provided command wrappers, never the tool binaries directly.** When `ahoy` exposes a command for a task, use that command; do not call the underlying binary directly. Each wrapper `chdir`s into `build/` and runs the tool with the config, plugins, and environment that CI uses, so a raw invocation from the repository root silently diverges from CI - it can pass locally while CI fails (or vice versa), or crash outright when a relative path resolves against the wrong directory. If no wrapped command covers what you need, extend the `ahoy` target rather than making a one-off raw call; if that is not feasible, stop and ask.
++**HARD RULE - use the provided command wrappers, never the tool binaries directly.** When `make` or `ahoy` exposes a command for a task, use that command; do not call the underlying binary directly. Each wrapper `chdir`s into `build/` and runs the tool with the config, plugins, and environment that CI uses, so a raw invocation from the repository root silently diverges from CI - it can pass locally while CI fails (or vice versa), or crash outright when a relative path resolves against the wrong directory. If no wrapped command covers what you need, extend the `make` or `ahoy` target rather than making a one-off raw call; if that is not feasible, stop and ask.
  
 +Run each tool through its `make` wrapper, never the binary directly:
- 
++
 +- **PHPCS / PHPCBF**: `make lint` / `make lint-fix` - never `vendor/bin/phpcs` or `vendor/bin/phpcbf`.
 +- **PHPStan**: `make lint` - never `vendor/bin/phpstan`.
 +- **Rector**: `make lint` (dry-run) / `make lint-fix` - never `vendor/bin/rector`.
@@ -17,21 +20,22 @@
  Run each tool through its `ahoy` wrapper, never the binary directly:
  
  - **PHPCS / PHPCBF**: `ahoy lint` / `ahoy lint-fix` - never `vendor/bin/phpcs` or `vendor/bin/phpcbf`.
-@@ -25,6 +36,13 @@
+@@ -24,6 +36,14 @@
  
  ### Build and Environment Management
  
-+**Using Make (default):**
++**Using Make:**
 +- `make build` - Complete build (stop → assemble → start → provision)
 +- `make assemble` - Assemble codebase with dependencies
 +- `make start` - Start PHP development server
 +- `make stop` - Stop development server
 +- `make provision` - Install/provision Drupal site
 +- `make reset` - Clean build directory, logs and installed tooling (aliases: `make delete`, `make destroy`)
- 
- **Using Ahoy (alternative):**
++
+ **Using Ahoy:**
  - `ahoy build` - Complete build process
-@@ -37,10 +55,20 @@
+ - `ahoy assemble` - Assemble codebase
+@@ -35,10 +55,20 @@
  ### Code Quality
  
  **Linting:**
@@ -52,7 +56,7 @@
  - `ahoy test` - Run all tests
  - `ahoy test-unit` - Run unit tests only
  - `ahoy test-kernel` - Run kernel tests only
-@@ -52,11 +80,14 @@
+@@ -50,11 +80,14 @@
  
  ### Drupal Commands
  
@@ -67,3 +71,17 @@
  - `ahoy info` - Print a read-only summary of PHP/Drupal/Composer/Drush/Node/npm versions, webserver host/port (with source), site URL, XDebug state, WebDriver port, build directory, database path, and active profile. (alias: `ahoy describe`)
  
  ## Project Structure
+@@ -88,10 +121,10 @@
+ 
+ ## Development Workflow
+ 
+-1. Build environment: `ahoy build`
++1. Build environment: `make build` or `ahoy build`
+ 2. Develop Force Crystal code in `src/`
+-3. Check standards: `ahoy lint`
+-4. Run tests: `ahoy test`
++3. Check standards: `make lint` or `ahoy lint`
++4. Run tests: `make test` or `ahoy test`
+ 5. Access site at http://localhost:8000
+ 
+ ## Code Quality Tools

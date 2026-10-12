@@ -4,12 +4,11 @@ This file provides guidance to AI agents when working with code in this reposito
 
 ## Overview
 
-This is a Force Crystal template for creating contributed modules or themes. The project provides a complete development environment with CI configuration, testing setup, and deployment automation for publishing to Drupal.org.
+Force Crystal (`force_crystal`) is a Drupal module. The project provides a complete development environment with CI configuration, testing setup, and deployment automation for publishing to Drupal.org.
 
 ## Development Commands
 
-**HARD RULE - use the provided command wrappers, never the tool binaries directly.** When `make` or `ahoy` exposes a command for a task, use that command; do not call the underlying binary directly. Each wrapper `chdir`s into `build/` and runs the tool with the config, plugins, and environment that CI uses, so a raw invocation from the repository root silently diverges from CI - it can pass locally while CI fails (or vice versa), or crash outright when a relative path resolves against the wrong directory. If no wrapped command covers what you need, extend the `make` / `ahoy` target rather than making a one-off raw call; if that is not feasible, stop and ask.
-
+**HARD RULE - use the provided command wrappers, never the tool binaries directly.** When `ahoy` exposes a command for a task, use that command; do not call the underlying binary directly. Each wrapper `chdir`s into `build/` and runs the tool with the config, plugins, and environment that CI uses, so a raw invocation from the repository root silently diverges from CI - it can pass locally while CI fails (or vice versa), or crash outright when a relative path resolves against the wrong directory. If no wrapped command covers what you need, extend the `ahoy` target rather than making a one-off raw call; if that is not feasible, stop and ask.
 
 Run each tool through its `ahoy` wrapper, never the binary directly:
 
@@ -25,8 +24,7 @@ Run each tool through its `ahoy` wrapper, never the binary directly:
 
 ### Build and Environment Management
 
-
-**Using Ahoy (alternative):**
+**Using Ahoy:**
 - `ahoy build` - Complete build process
 - `ahoy assemble` - Assemble codebase
 - `ahoy start` - Start development server
@@ -90,10 +88,10 @@ Run each tool through its `ahoy` wrapper, never the binary directly:
 
 ## Development Workflow
 
-1. Build environment: `make build` or `ahoy build`
+1. Build environment: `ahoy build`
 2. Develop Force Crystal code in `src/`
-3. Check standards: `make lint` or `ahoy lint`
-4. Run tests: `make test` or `ahoy test`
+3. Check standards: `ahoy lint`
+4. Run tests: `ahoy test`
 5. Access site at http://localhost:8000
 
 ## Code Quality Tools
@@ -107,7 +105,9 @@ Run each tool through its `ahoy` wrapper, never the binary directly:
 ## CI/CD Support
 
 - **GitHub Actions**: `.github/workflows/test.yml` and deployment
-- **Matrix testing**: PHP 8.3-8.5, Drupal 10-12
+- **Matrix testing**:
+  - Drupal 10 on PHP 8.3-8.4
+  - Drupal 11 on PHP 8.3-8.5
 - **Automated deployment**: Mirror to Drupal.org after CI passes
 
 ## Important Notes

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Drupal 11 and 12 PHPUnit configuration. -->
+<!-- Drupal 11 PHPUnit configuration. -->
 <!-- For how to customize PHPUnit configuration, see web/core/tests/README.md. -->
 <!-- TODO set checkForUnintentionallyCoveredCode="true" once https://www.drupal.org/node/2626832 is resolved. -->
 <!-- PHPUnit expects functional tests to be run with either a privileged user
