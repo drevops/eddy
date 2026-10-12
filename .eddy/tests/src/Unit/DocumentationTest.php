@@ -14,7 +14,9 @@ use PHPUnit\Framework\Attributes\Group;
  * leaves it uninstalled, or without a row in the package README table.
  * A path can be copied into a PHPUnit config without being rebased onto the
  * build root. The migration guide repeats the update skill commands from
- * 'AGENTS.md', so either copy can change alone.
+ * 'AGENTS.md', so either copy can change alone. The update skill answers every
+ * prompt of 'install.php' through a variable and detects every tool it
+ * offers, so a prompt or a tool can be added to 'install.php' alone.
  *
  * No such drift is reported by a linter, because each file stays individually
  * valid while the files disagree.
@@ -154,6 +156,52 @@ final class DocumentationTest extends UnitTestCase {
     }
   }
 
+  #[DataProvider('dataProviderUpdateSkillAnswersInstallPrompt')]
+  public function testUpdateSkillAnswersInstallPrompt(string $variable): void {
+    $this->assertContains($variable, self::updateSkillInstallVariables(), sprintf('The update skill runs install.php without %s, so that prompt waits for input that never comes.', $variable));
+  }
+
+  public static function dataProviderUpdateSkillAnswersInstallPrompt(): \Iterator {
+    foreach (self::installPromptVariables() as $variable) {
+      yield $variable => ['variable' => $variable];
+    }
+  }
+
+  #[DataProvider('dataProviderUpdateSkillVariableIsInstallPrompt')]
+  public function testUpdateSkillVariableIsInstallPrompt(string $variable): void {
+    $this->assertContains($variable, self::installPromptVariables(), sprintf('The update skill sets %s, which install.php does not prompt for.', $variable));
+  }
+
+  public static function dataProviderUpdateSkillVariableIsInstallPrompt(): \Iterator {
+    foreach (self::updateSkillInstallVariables() as $variable) {
+      yield $variable => ['variable' => $variable];
+    }
+  }
+
+  #[DataProvider('dataProviderUpdateSkillDetectsTool')]
+  public function testUpdateSkillDetectsTool(string $tool): void {
+    $skill = (string) file_get_contents(self::updateSkillPath());
+
+    // The detection list follows each tool with the file that marks it, such
+    // as '`phpcs` (`phpcs.xml`)'.
+    $detected = str_contains($skill, '`' . $tool . '` (');
+
+    $this->assertTrue($detected, sprintf('The update skill does not detect the %s tool, so it removes the tool from every project it updates.', $tool));
+  }
+
+  public static function dataProviderUpdateSkillDetectsTool(): \Iterator {
+    $install = (string) file_get_contents(self::rootDir() . '/install.php');
+
+    preg_match('/\$tool_options = \[(.*?)\];/s', $install, $options);
+    preg_match_all("/'(\w+)' =>/", $options[1] ?? '', $tools);
+
+    self::assertNotSame([], $tools[1], 'install.php declares no tool options.');
+
+    foreach ($tools[1] as $tool) {
+      yield $tool => ['tool' => $tool];
+    }
+  }
+
   /**
    * List the commands the tooling package installs.
    *
@@ -172,6 +220,49 @@ final class DocumentationTest extends UnitTestCase {
 
       yield $name => ['name' => $name];
     }
+  }
+
+  /**
+   * List the variables that answer the prompts of 'install.php'.
+   *
+   * @return array<int, string>
+   *   The variable names, such as 'INSTALL_NAME'.
+   */
+  protected static function installPromptVariables(): array {
+    $install = (string) file_get_contents(self::rootDir() . '/install.php');
+
+    preg_match("/env_prefix: '(\w+)'/", $install, $matches);
+    $prefix = $matches[1] ?? '';
+
+    self::assertNotSame('', $prefix, 'install.php sets no prefix for its prompt variables.');
+
+    preg_match_all("/^ +'(\w+)' => Prompty::/m", $install, $keys);
+
+    self::assertNotSame([], $keys[1], 'install.php declares no prompts.');
+
+    // Prompty reads the answer to each step from the variable named by the
+    // prefix and the step key in upper case.
+    return array_map(static fn(string $key): string => $prefix . strtoupper($key), $keys[1]);
+  }
+
+  /**
+   * List the variables the update skill sets for 'install.php'.
+   *
+   * @return array<int, string>
+   *   The variable names, in order of appearance.
+   */
+  protected static function updateSkillInstallVariables(): array {
+    $skill = (string) file_get_contents(self::updateSkillPath());
+
+    preg_match_all('/^(INSTALL_\w+)=/m', $skill, $matches);
+
+    self::assertNotSame([], $matches[1], 'The update skill sets no INSTALL_ variables.');
+
+    return array_values(array_unique($matches[1]));
+  }
+
+  protected static function updateSkillPath(): string {
+    return self::rootDir() . '/.eddy/skills/update-consumer-eddy/SKILL.md';
   }
 
   protected static function rootDir(): string {
