@@ -29,6 +29,16 @@ final class ProvisionTest extends UnitTestCase {
     return 'build/vendor/bin/drush -r ' . escapeshellarg($cwd . '/build/web') . ' -y ';
   }
 
+  /**
+   * @return array<int, string>
+   *   The '[TASK]' and '[ OK ]' lines of the output, in order.
+   */
+  protected static function statusLines(string $output): array {
+    preg_match_all('/^\[(?:TASK| OK )\] .*$/m', $output, $matches);
+
+    return $matches[0];
+  }
+
   #[DataProvider('dataProviderProvisionSuccess')]
   public function testProvisionSuccess(array $env, string $extension_type, string $db_status, array $suggested, bool $has_ahoy, bool $has_makefile): void {
     foreach ($env as $name => $value) {
@@ -120,13 +130,20 @@ final class ProvisionTest extends UnitTestCase {
 
     $this->assertIsString($output);
     $this->assertStringContainsString('PROVISION', $output);
-    $this->assertStringContainsString('Installing Drupal into SQLite database', $output);
-    $this->assertStringContainsString('Drupal installed', $output);
-    $this->assertStringContainsString('Enabling extension ' . $extension_name, $output);
-    $this->assertStringContainsString('Clearing caches', $output);
-    $this->assertStringContainsString('Suggested modules enabled', $output);
-    $this->assertStringContainsString('Caches pre-warmed', $output);
-    $this->assertStringContainsString('Browser test output linked', $output);
+    $this->assertSame([
+      '[TASK] Installing Drupal into SQLite database ' . $db_file . '.',
+      '[ OK ] Drupal installed.',
+      '[TASK] Enabling extension ' . $extension_name . '.',
+      '[ OK ] Extension enabled.',
+      '[TASK] Clearing caches.',
+      '[ OK ] Caches cleared.',
+      '[TASK] Enabling suggested modules, if any.',
+      '[ OK ] Suggested modules enabled.',
+      '[TASK] Pre-warming caches.',
+      '[ OK ] Caches pre-warmed.',
+      '[TASK] Linking browser test output into .logs/browser_output.',
+      '[ OK ] Browser test output linked.',
+    ], self::statusLines($output), 'Every step must report its outcome before the next one starts.');
     $this->assertStringContainsString('PROVISION COMPLETE', $output);
     $this->assertStringContainsString('http://' . $expected_host . ':' . $expected_port, $output);
     $this->assertStringNotContainsString('tunnel settings', $output);
