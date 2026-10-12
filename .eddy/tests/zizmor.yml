@@ -1,6 +1,6 @@
 # Zizmor configuration for auditing the scaffold template's own GitHub Actions
-# workflows. Consumed by the 'scaffold-test-actions' job in
-# '.github/workflows/scaffold-test.yml' (a maintenance-only workflow that is not
+# workflows. Consumed by the 'eddy-test-actions' job in
+# '.github/workflows/eddy-test.yml' (a maintenance-only workflow that is not
 # shipped to projects created from this scaffold).
 #
 # Every entry below documents an intentional, accepted finding. Genuine issues

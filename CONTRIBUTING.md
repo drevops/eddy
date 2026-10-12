@@ -57,7 +57,7 @@ It commits the regenerated baseline on its own, then amends it with each dataset
 
 ## Publishing the tooling package
 
-Changes to the commands go into `.eddy/tooling/`, where the scaffold's own tests and builds use them straight away. On every push to `1.x`, `.github/workflows/scaffold-publish-tooling.yml` mirrors the directory to the `1.x` branch of [`drevops/eddy-tooling`](https://github.com/drevops/eddy-tooling), which Packagist serves. The workflow pushes with the `EDDY_TOOLING_DEPLOY_KEY` secret, a deploy key with write access to that repository.
+Changes to the commands go into `.eddy/tooling/`, where the scaffold's own tests and builds use them straight away. On every push to `1.x`, `.github/workflows/eddy-publish-tooling.yml` mirrors the directory to the `1.x` branch of [`drevops/eddy-tooling`](https://github.com/drevops/eddy-tooling), which Packagist serves. The workflow pushes with the `EDDY_TOOLING_DEPLOY_KEY` secret, a deploy key with write access to that repository.
 
 A branch whose name contains `eddy-tooling`, such as `feature/123-eddy-tooling-fix`, is published too, into the mirror branch of the same name. A generated project can then try the change before it merges by requiring that branch in `composer.dev.json`, for example `"drevops/eddy-tooling": "dev-feature/123-eddy-tooling-fix"`. Other branches leave the mirror untouched, and a published branch stays on the mirror until you delete it there.
 
@@ -70,4 +70,4 @@ Releases are created on the mirror by hand:
 
 ## Continuous integration
 
-`.github/workflows/scaffold-test.yml` runs the suite across the `p0` to `p5` groups. See [`.eddy/CLAUDE.md`](.eddy/CLAUDE.md) for the full maintenance reference, including the marker blocks `install.php` prunes the template with, the steps for adding a Drupal major or a tool, and how to regenerate the animated demo assets.
+`.github/workflows/eddy-test.yml` runs the suite across the `p0` to `p5` groups. See [`.eddy/CLAUDE.md`](.eddy/CLAUDE.md) for the full maintenance reference, including the marker blocks `install.php` prunes the template with, the steps for adding a Drupal major or a tool, and how to regenerate the animated demo assets.

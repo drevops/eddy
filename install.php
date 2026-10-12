@@ -536,7 +536,7 @@ function process_internal(string $extension_name, string $extension_machine_name
   @unlink('SECURITY.md');
   @unlink('logo.svg');
 
-  foreach (glob('.github/workflows/scaffold*.yml') ?: [] as $file) {
+  foreach (glob('.github/workflows/eddy-*.yml') ?: [] as $file) {
     @unlink($file);
   }
 
