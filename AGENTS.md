@@ -4,13 +4,23 @@ This file provides guidance to AI agents when working with code in this reposito
 
 ## Overview
 
-This is a Drupal extension scaffold template for creating contributed modules or themes. The project provides a complete development environment with CI configuration, testing setup, and deployment automation for publishing to Drupal.org.
+<!-- #;< META -->
+This is a Drupal extension scaffold template for creating contributed modules or themes. `install.php` turns the example extension below into yours.
+
+<!-- #;> META -->
+Your Extension (`your_extension`) is a Drupal module. The project provides a complete development environment with CI configuration, testing setup, and deployment automation for publishing to Drupal.org.
 
 ## Development Commands
+<!-- #;< DEV_COMMAND_WRAPPER -->
 
-**HARD RULE - use the provided command wrappers, never the tool binaries directly.** When `make` or `ahoy` exposes a command for a task, use that command; do not call the underlying binary directly. Each wrapper `chdir`s into `build/` and runs the tool with the config, plugins, and environment that CI uses, so a raw invocation from the repository root silently diverges from CI - it can pass locally while CI fails (or vice versa), or crash outright when a relative path resolves against the wrong directory. If no wrapped command covers what you need, extend the `make` / `ahoy` target rather than making a one-off raw call; if that is not feasible, stop and ask.
+**HARD RULE - use the provided command wrappers, never the tool binaries directly.** When `make` or `ahoy` exposes a command for a task, use that command; do not call the underlying binary directly. Each wrapper `chdir`s into `build/` and runs the tool with the config, plugins, and environment that CI uses, so a raw invocation from the repository root silently diverges from CI - it can pass locally while CI fails (or vice versa), or crash outright when a relative path resolves against the wrong directory. If no wrapped command covers what you need, extend the `make` or `ahoy` target rather than making a one-off raw call; if that is not feasible, stop and ask.
+<!-- #;> DEV_COMMAND_WRAPPER -->
+<!-- #;< DEV_NO_COMMAND_WRAPPER -->
 
+**HARD RULE - run each tool exactly as `CONTRIBUTING.md` shows.** This project has no command wrapper, so the commands below run directly. Most tools run from `build/`, which holds the config, plugins, and environment that CI uses, so a raw invocation from the repository root silently diverges from CI - it can pass locally while CI fails (or vice versa), or crash outright when a relative path resolves against the wrong directory.
+<!-- #;> DEV_NO_COMMAND_WRAPPER -->
 <!-- #;< DEV_MAKEFILE -->
+
 Run each tool through its `make` wrapper, never the binary directly:
 
 <!-- #;< DEV_PHPCS -->
@@ -39,8 +49,8 @@ Run each tool through its `make` wrapper, never the binary directly:
 <!-- #;> DEV_JEST -->
 - **Drush**: `make drush <command>` - never `build/vendor/bin/drush` directly.
 <!-- #;> DEV_MAKEFILE -->
-
 <!-- #;< DEV_AHOY -->
+
 Run each tool through its `ahoy` wrapper, never the binary directly:
 
 <!-- #;< DEV_PHPCS -->
@@ -71,9 +81,9 @@ Run each tool through its `ahoy` wrapper, never the binary directly:
 <!-- #;> DEV_AHOY -->
 
 ### Build and Environment Management
-
 <!-- #;< DEV_MAKEFILE -->
-**Using Make (default):**
+
+**Using Make:**
 - `make build` - Complete build (stop → assemble → start → provision)
 - `make assemble` - Assemble codebase with dependencies
 - `make start` - Start PHP development server
@@ -81,9 +91,9 @@ Run each tool through its `ahoy` wrapper, never the binary directly:
 - `make provision` - Install/provision Drupal site
 - `make reset` - Clean build directory, logs and installed tooling (aliases: `make delete`, `make destroy`)
 <!-- #;> DEV_MAKEFILE -->
-
 <!-- #;< DEV_AHOY -->
-**Using Ahoy (alternative):**
+
+**Using Ahoy:**
 - `ahoy build` - Complete build process
 - `ahoy assemble` - Assemble codebase
 - `ahoy start` - Start development server
@@ -91,8 +101,17 @@ Run each tool through its `ahoy` wrapper, never the binary directly:
 - `ahoy provision` - Provision Drupal site
 - `ahoy reset` - Clean build directory, logs and installed tooling (aliases: `ahoy delete`, `ahoy destroy`)
 <!-- #;> DEV_AHOY -->
+<!-- #;< DEV_NO_COMMAND_WRAPPER -->
+
+- `scripts/eddy-tooling` - Install the tooling commands into `vendor/bin/`. Run it before the commands below
+- `vendor/bin/eddy-assemble` - Assemble codebase with dependencies
+- `vendor/bin/eddy-start` - Start PHP development server
+- `vendor/bin/eddy-stop` - Stop development server
+- `vendor/bin/eddy-provision` - Install/provision Drupal site
+<!-- #;> DEV_NO_COMMAND_WRAPPER -->
 
 ### Code Quality
+<!-- #;< DEV_COMMAND_WRAPPER -->
 
 **Linting:**
 <!-- #;< DEV_MAKEFILE -->
@@ -141,6 +160,11 @@ Run each tool through its `ahoy` wrapper, never the binary directly:
 - `ahoy browser-stop` - Stop the browser
 <!-- #;> DEV_FUNCTIONAL_JAVASCRIPT -->
 <!-- #;> DEV_AHOY -->
+<!-- #;> DEV_COMMAND_WRAPPER -->
+<!-- #;< DEV_NO_COMMAND_WRAPPER -->
+
+Run the linters and the tests with the commands that `CONTRIBUTING.md` lists.
+<!-- #;> DEV_NO_COMMAND_WRAPPER -->
 
 ### Drupal Commands
 
@@ -152,6 +176,10 @@ Run each tool through its `ahoy` wrapper, never the binary directly:
 - `ahoy drush <command>` - Run Drush commands
 - `ahoy login` - Get one-time login link
 <!-- #;> DEV_AHOY -->
+<!-- #;< DEV_NO_COMMAND_WRAPPER -->
+- `build/vendor/bin/drush -l "$(vendor/bin/eddy-info site-url)" <command>` - Run Drush commands
+- `build/vendor/bin/drush -l "$(vendor/bin/eddy-info site-url)" uli` - Get one-time login link
+<!-- #;> DEV_NO_COMMAND_WRAPPER -->
 
 ### Diagnostics
 
@@ -161,6 +189,9 @@ Run each tool through its `ahoy` wrapper, never the binary directly:
 <!-- #;< DEV_AHOY -->
 - `ahoy info` - Print a read-only summary of PHP/Drupal/Composer/Drush/Node/npm versions, webserver host/port (with source), site URL, XDebug state, WebDriver port, build directory, database path, and active profile. (alias: `ahoy describe`)
 <!-- #;> DEV_AHOY -->
+<!-- #;< DEV_NO_COMMAND_WRAPPER -->
+- `vendor/bin/eddy-info` - Print a read-only summary of PHP/Drupal/Composer/Drush/Node/npm versions, webserver host/port (with source), site URL, XDebug state, WebDriver port, build directory, database path, and active profile.
+<!-- #;> DEV_NO_COMMAND_WRAPPER -->
 
 ## Project Structure
 
@@ -207,10 +238,21 @@ Run each tool through its `ahoy` wrapper, never the binary directly:
 Run `php install.php` once, in a fresh copy of the template, to turn it into your extension. The script deletes itself when it finishes. Then:
 
 <!-- #;> META -->
+<!-- #;< DEV_COMMAND_WRAPPER -->
 1. Build environment: `make build` or `ahoy build`
+<!-- #;> DEV_COMMAND_WRAPPER -->
+<!-- #;< DEV_NO_COMMAND_WRAPPER -->
+1. Build environment: `scripts/eddy-tooling`, then `vendor/bin/eddy-assemble`, `vendor/bin/eddy-start` and `vendor/bin/eddy-provision`
+<!-- #;> DEV_NO_COMMAND_WRAPPER -->
 2. Develop your extension code in `src/`
+<!-- #;< DEV_COMMAND_WRAPPER -->
 3. Check standards: `make lint` or `ahoy lint`
 4. Run tests: `make test` or `ahoy test`
+<!-- #;> DEV_COMMAND_WRAPPER -->
+<!-- #;< DEV_NO_COMMAND_WRAPPER -->
+3. Check standards: run the linters that `CONTRIBUTING.md` lists
+4. Run tests: run the tests that `CONTRIBUTING.md` lists
+<!-- #;> DEV_NO_COMMAND_WRAPPER -->
 5. Access site at http://localhost:8000
 
 ## Code Quality Tools
@@ -234,7 +276,16 @@ Run `php install.php` once, in a fresh copy of the template, to turn it into you
 ## CI/CD Support
 
 - **GitHub Actions**: `.github/workflows/test.yml` and deployment
-- **Matrix testing**: PHP 8.3-8.5, Drupal 10-12
+- **Matrix testing**:
+<!-- #;< DRUPAL_10 -->
+  - Drupal 10 on PHP 8.3-8.4
+<!-- #;> DRUPAL_10 -->
+<!-- #;< DRUPAL_11 -->
+  - Drupal 11 on PHP 8.3-8.5
+<!-- #;> DRUPAL_11 -->
+<!-- #;< DRUPAL_12 -->
+  - Drupal 12 on PHP 8.5
+<!-- #;> DRUPAL_12 -->
 - **Automated deployment**: Mirror to Drupal.org after CI passes
 
 ## Important Notes

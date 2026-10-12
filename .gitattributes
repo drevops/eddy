@@ -4,7 +4,9 @@
 # AGENTS.md          export-ignore
 # CLAUDE.md          export-ignore
 # .claude            export-ignore
+#;< DEV_AHOY
 # .ahoy.yml          export-ignore
+#;> DEV_AHOY
 #;< DEV_CSPELL
 # .cspell.json       export-ignore
 #;> DEV_CSPELL
@@ -27,7 +29,9 @@
 #;< DEV_TWIGCS
 # .twig-cs-fixer.php export-ignore
 #;> DEV_TWIGCS
+#;< DEV_MAKEFILE
 # Makefile           export-ignore
+#;> DEV_MAKEFILE
 # composer.dev.json  export-ignore
 #;< DEV_JEST
 # jest.config.js     export-ignore

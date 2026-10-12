@@ -10,8 +10,10 @@ use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Process\Process;
 
+use function command_wrapper_text;
 use function committed_workflow_branches;
 use function convert_string;
+use function core_version_requirement;
 use function drupal_version_default;
 use function drupal_version_options;
 use function eddy_skills;
@@ -20,10 +22,14 @@ use function gitignore_rules;
 use function is_binary_file;
 use function is_gitignored;
 use function is_template_path;
+use function join_list;
 use function normalize_cspell_words;
 use function parse_branch_list;
+use function phpunit_config_comment;
 use function print_help;
 use function process;
+use function process_command_wrapper_text;
+use function process_drupal_version_text;
 use function read_composer_dev_json;
 use function remove_dir;
 use function remove_special_comments;
@@ -32,6 +38,7 @@ use function remove_tokens_with_content;
 use function replace_string_content;
 use function set_composer_dev_eddy_value;
 use function set_workflow_branches;
+use function sort_drupal_majors;
 use function template_version;
 use function uncomment_line;
 use function workflow_push_branches;
@@ -175,6 +182,189 @@ final class InstallHelpersTest extends UnitTestCase {
     /** @var array{extra?: array{eddy?: array{'drupal-version'?: string}}} $config */
 
     $this->assertSame($shipped_default, $config['extra']['eddy']['drupal-version'] ?? NULL);
+  }
+
+  /**
+   * @param array<int|string> $majors
+   * @param array<int, string> $expected
+   */
+  #[DataProvider('dataProviderSortDrupalMajors')]
+  public function testSortDrupalMajors(array $majors, array $expected): void {
+    $this->assertSame($expected, sort_drupal_majors($majors));
+  }
+
+  public static function dataProviderSortDrupalMajors(): \Iterator {
+    yield 'none' => [[], []];
+    yield 'sorted' => [['10', '11'], ['10', '11']];
+    yield 'numeric order' => [['12', '9', '10'], ['9', '10', '12']];
+    yield 'duplicates' => [['11', '10', '11'], ['10', '11']];
+    yield 'integers' => [[11, 10], ['10', '11']];
+  }
+
+  /**
+   * @param array<int|string> $majors
+   */
+  #[DataProvider('dataProviderCoreVersionRequirement')]
+  public function testCoreVersionRequirement(array $majors, string $expected): void {
+    $this->assertSame($expected, core_version_requirement($majors));
+  }
+
+  public static function dataProviderCoreVersionRequirement(): \Iterator {
+    yield '1 major' => [['11'], 'core_version_requirement: ^11'];
+    yield '2 majors' => [['10', '11'], 'core_version_requirement: ^10 || ^11'];
+    yield '3 majors' => [['10', '11', '12'], 'core_version_requirement: ^10 || ^11 || ^12'];
+    yield 'unordered' => [['12', '10'], 'core_version_requirement: ^10 || ^12'];
+  }
+
+  /**
+   * @param array<int|string> $majors
+   */
+  #[DataProvider('dataProviderPhpunitConfigComment')]
+  public function testPhpunitConfigComment(array $majors, string $expected): void {
+    $this->assertSame($expected, phpunit_config_comment($majors));
+  }
+
+  public static function dataProviderPhpunitConfigComment(): \Iterator {
+    yield 'no major' => [[], '<!-- PHPUnit configuration. -->'];
+    yield '1 major' => [['11'], '<!-- Drupal 11 PHPUnit configuration. -->'];
+    yield '2 majors' => [['11', '12'], '<!-- Drupal 11 and 12 PHPUnit configuration. -->'];
+    yield '3 majors' => [['10', '11', '12'], '<!-- Drupal 10, 11 and 12 PHPUnit configuration. -->'];
+    yield 'unordered' => [['12', '11'], '<!-- Drupal 11 and 12 PHPUnit configuration. -->'];
+  }
+
+  /**
+   * @param array<string> $majors
+   * @param array<string, string> $files
+   * @param array<string, string> $expected
+   */
+  #[DataProvider('dataProviderProcessDrupalVersionText')]
+  public function testProcessDrupalVersionText(array $majors, array $files, array $expected): void {
+    chdir(self::$sut);
+
+    foreach ($files as $name => $content) {
+      file_put_contents(self::$sut . '/' . $name, $content);
+    }
+
+    process_drupal_version_text($majors);
+
+    foreach ($expected as $name => $content) {
+      $this->assertSame($content, file_get_contents(self::$sut . '/' . $name), $name . ' content mismatch.');
+    }
+  }
+
+  public static function dataProviderProcessDrupalVersionText(): \Iterator {
+    $info = static fn(string $constraint): string => "name: Test\ncore_version_requirement: " . $constraint . "\n";
+    $phpunit = static fn(string $comment): string => "<?xml version=\"1.0\"?>\n" . $comment . "\n<phpunit/>\n";
+    $template = [
+      'test.info.yml' => $info('^10 || ^11 || ^12'),
+      'phpunit.xml' => $phpunit('<!-- Drupal 11 and 12 PHPUnit configuration. -->'),
+      'phpunit.d10.xml' => $phpunit('<!-- Drupal 10 PHPUnit configuration. -->'),
+    ];
+
+    yield 'every major' => [['10', '11', '12'], $template, $template];
+
+    yield 'a major with a configuration of its own' => [
+      ['10', '11'],
+      $template,
+      [
+        'test.info.yml' => $info('^10 || ^11'),
+        'phpunit.xml' => $phpunit('<!-- Drupal 11 PHPUnit configuration. -->'),
+        'phpunit.d10.xml' => $phpunit('<!-- Drupal 10 PHPUnit configuration. -->'),
+      ],
+    ];
+
+    yield 'only a major with a configuration of its own' => [
+      ['10'],
+      $template,
+      [
+        'test.info.yml' => $info('^10'),
+        'phpunit.xml' => $phpunit('<!-- PHPUnit configuration. -->'),
+      ],
+    ];
+
+    yield 'no configuration of their own' => [
+      ['10', '12'],
+      [
+        'test.info.yml' => $info('^10 || ^11 || ^12'),
+        'phpunit.xml' => $phpunit('<!-- Drupal 10, 11 and 12 PHPUnit configuration. -->'),
+      ],
+      [
+        'test.info.yml' => $info('^10 || ^12'),
+        'phpunit.xml' => $phpunit('<!-- Drupal 10 and 12 PHPUnit configuration. -->'),
+      ],
+    ];
+
+    yield 'unordered selection' => [
+      ['12', '11'],
+      $template,
+      [
+        'test.info.yml' => $info('^11 || ^12'),
+        'phpunit.xml' => $phpunit('<!-- Drupal 11 and 12 PHPUnit configuration. -->'),
+      ],
+    ];
+
+    yield 'text for other majors stays' => [
+      ['11'],
+      ['test.info.yml' => $info('^10 || ^11'), 'phpunit.xml' => $phpunit('<!-- Drupal 11 PHPUnit configuration. -->')],
+      ['test.info.yml' => $info('^10 || ^11'), 'phpunit.xml' => $phpunit('<!-- Drupal 11 PHPUnit configuration. -->')],
+    ];
+  }
+
+  /**
+   * @param array<string> $command_wrapper
+   */
+  #[DataProvider('dataProviderCommandWrapperText')]
+  public function testCommandWrapperText(array $command_wrapper, string $command, string $expected): void {
+    $this->assertSame($expected, command_wrapper_text($command_wrapper, $command));
+  }
+
+  public static function dataProviderCommandWrapperText(): \Iterator {
+    yield 'both wrappers' => [['ahoy', 'makefile'], 'build', '`make build` or `ahoy build`'];
+    yield 'both wrappers, selected in the other order' => [['makefile', 'ahoy'], 'build', '`make build` or `ahoy build`'];
+    yield 'ahoy' => [['ahoy'], 'lint', '`ahoy lint`'];
+    yield 'makefile' => [['makefile'], 'test', '`make test`'];
+    yield 'binaries' => [['ahoy', 'makefile'], '', '`make` or `ahoy`'];
+    yield 'no wrapper' => [[], 'build', ''];
+    yield 'unknown wrapper' => [['unknown'], 'build', ''];
+  }
+
+  /**
+   * @param array<string> $command_wrapper
+   */
+  #[DataProvider('dataProviderProcessCommandWrapperText')]
+  public function testProcessCommandWrapperText(array $command_wrapper, string $expected): void {
+    chdir(self::$sut);
+    file_put_contents(self::$sut . '/AGENTS.md', self::wrapperText('`make` or `ahoy`', '`make build` or `ahoy build`', '`make lint` or `ahoy lint`', '`make test` or `ahoy test`', 'The command wrappers and CI run it'));
+
+    process_command_wrapper_text($command_wrapper);
+
+    $this->assertSame($expected, file_get_contents(self::$sut . '/AGENTS.md'));
+  }
+
+  public static function dataProviderProcessCommandWrapperText(): \Iterator {
+    $template = self::wrapperText('`make` or `ahoy`', '`make build` or `ahoy build`', '`make lint` or `ahoy lint`', '`make test` or `ahoy test`', 'The command wrappers and CI run it');
+
+    yield 'both wrappers' => [['ahoy', 'makefile'], $template];
+    yield 'ahoy' => [['ahoy'], self::wrapperText('`ahoy`', '`ahoy build`', '`ahoy lint`', '`ahoy test`', 'The command wrappers and CI run it')];
+    yield 'makefile' => [['makefile'], self::wrapperText('`make`', '`make build`', '`make lint`', '`make test`', 'The command wrappers and CI run it')];
+    yield 'no wrapper' => [[], self::wrapperText('`make` or `ahoy`', '`make build` or `ahoy build`', '`make lint` or `ahoy lint`', '`make test` or `ahoy test`', 'CI runs it')];
+  }
+
+  /**
+   * @param array<string> $items
+   */
+  #[DataProvider('dataProviderJoinList')]
+  public function testJoinList(array $items, string $conjunction, string $expected): void {
+    $this->assertSame($expected, join_list($items, $conjunction));
+  }
+
+  public static function dataProviderJoinList(): \Iterator {
+    yield 'no items' => [[], 'and', ''];
+    yield '1 item' => [['A'], 'and', 'A'];
+    yield '2 items' => [['A', 'B'], 'and', 'A and B'];
+    yield '3 items' => [['A', 'B', 'C'], 'and', 'A, B and C'];
+    yield 'keyed items' => [[3 => 'A', 7 => 'B'], 'and', 'A and B'];
+    yield 'other conjunction' => [['A', 'B', 'C'], 'or', 'A, B or C'];
   }
 
   #[DataProvider('dataProviderReadComposerDevJson')]
@@ -1037,6 +1227,27 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'empty drupal versions' => ['Name', 'machine', 'module', [], ['ahoy'], 'At least one Drupal version is required.'];
     yield 'unsupported drupal version' => ['Name', 'machine', 'module', ['11', '9'], ['ahoy'], 'Unsupported Drupal version: 9.'];
     yield 'unsupported drupal versions' => ['Name', 'machine', 'module', ['9', '13'], ['ahoy'], 'Unsupported Drupal version: 9, 13.'];
+  }
+
+  /**
+   * Build text that names command wrappers the way 'AGENTS.md' does.
+   *
+   * @param string $binaries
+   *   The wrapper binaries.
+   * @param string $build
+   *   The build commands.
+   * @param string $lint
+   *   The lint commands.
+   * @param string $test
+   *   The test commands.
+   * @param string $tooling
+   *   The clause that names what runs the tooling installer.
+   *
+   * @return string
+   *   The text.
+   */
+  protected static function wrapperText(string $binaries, string $build, string $lint, string $test, string $tooling): string {
+    return 'When ' . $binaries . " exposes a command.\n1. Build: " . $build . "\n3. Lint: " . $lint . "\n4. Test: " . $test . "\n" . $tooling . " before the tooling commands.\n";
   }
 
 }
