@@ -35,17 +35,16 @@ abstract class YourExtensionFunctionalJavascriptTestBase extends WebDriverTestBa
     // inside a container that cannot reach the host's 'localhost', so a
     // host-reachable address is used instead (host.docker.internal on
     // macOS, the default docker bridge IP elsewhere). WEBDRIVER_HOST
-    // overrides the resolved host. In CircleCI all containers share the
-    // network namespace, so no override is needed.
-    if (!getenv('CIRCLECI')) {
-      $port = getenv('WEBSERVER_PORT') ?: '8000';
-      $host = getenv('WEBDRIVER_HOST');
-      if ($host === FALSE || $host === '') {
-        $backend = getenv('WEBDRIVER_BACKEND') ?: 'chromedriver';
-        $host = $backend === 'selenium' ? (PHP_OS_FAMILY === 'Darwin' ? 'host.docker.internal' : '172.17.0.1') : 'localhost';
-      }
-      putenv('SIMPLETEST_BASE_URL=http://' . $host . ':' . $port);
+    // overrides the resolved host.
+    $port = getenv('WEBSERVER_PORT') ?: '8000';
+    $host = getenv('WEBDRIVER_HOST');
+
+    if ($host === FALSE || $host === '') {
+      $backend = getenv('WEBDRIVER_BACKEND') ?: 'chromedriver';
+      $host = $backend === 'selenium' ? (PHP_OS_FAMILY === 'Darwin' ? 'host.docker.internal' : '172.17.0.1') : 'localhost';
     }
+
+    putenv('SIMPLETEST_BASE_URL=http://' . $host . ':' . $port);
     parent::setUp();
   }
 

@@ -21,6 +21,16 @@ jobs:
       && github.event.workflow_run.head_repository.full_name == github.repository }}
     runs-on: ubuntu-26.04
 
+    # Runs of a branch deploy 1 at a time, so no other run can push between
+    # the tip check of a run and its push.
+    concurrency:
+      group: deploy-${{ github.event.workflow_run.head_branch }}
+      cancel-in-progress: false
+      # The default queue cancels a waiting run when another one arrives. Runs
+      # arrive as their tests finish, so the cancelled one can hold the newest
+      # commit.
+      queue: max
+
     permissions:
       contents: read
 
@@ -70,6 +80,7 @@ jobs:
           DEPLOY_BRANCH: ${{ vars.DEPLOY_BRANCH }}
           HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # A tag push reports the tag name as the head branch. A branch can
           # share a name with an unrelated tag, so match the tags on the
@@ -81,8 +92,15 @@ jobs:
             exit 0
           fi
 
+          # The checkout keeps no credentials, and a private repository needs
+          # them to fetch.
+          AUTH_HEADER="AUTHORIZATION: basic $(printf 'x-access-token:%s' "${GITHUB_TOKEN}" | base64 | tr -d '\n')"
+
           # Runs finish out of order and can be re-run, so deploying a commit
           # that is no longer the branch tip would rewind the remote branch.
+          # The branch can also move after the checkout, so it is fetched again.
+          GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraheader GIT_CONFIG_VALUE_0="${AUTH_HEADER}" \
+            git fetch --prune --no-tags origin '+refs/heads/*:refs/remotes/origin/*'
           HEAD_BRANCH_TIP="$(git rev-parse --verify --quiet "refs/remotes/origin/${HEAD_BRANCH}" || true)"
           if [ "${HEAD_BRANCH_TIP}" != "${HEAD_SHA}" ]; then
             echo "::notice::Skip deployment because ${HEAD_SHA} is no longer the tip of ${HEAD_BRANCH}."

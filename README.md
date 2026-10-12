@@ -516,7 +516,7 @@ Add the jobs for every Drupal major you selected in `install.php` as required st
 
 The CI mirrors the code to your extension's Drupal.org repository (or any other git remote) once the tests pass. It deploys pushes to the `1.x` branch and release tags, and pull requests never deploy. To deploy another branch, such as `2.x`, add it to the `push` branches in `.github/workflows/test.yml`. Updating the scaffold with the [`update-consumer-eddy`](#updating-your-extension) skill keeps the branches you list there.
 
-A branch push deploys the commit that CI tested to the same branch of the destination repository. If the branch has moved on by the time the tests finish, or an older run is re-run, the deployment is skipped, so an older commit never replaces a newer one. A release tag is deployed as that tag alone and leaves the destination branches untouched.
+A branch push deploys the commit that CI tested to the same branch of the destination repository. Deployments of the same branch never overlap: each one waits for the previous one to finish, then checks the branch on GitHub right before it pushes. If the branch has moved on by then, or an older run is re-run, the deployment is skipped, so an older commit never replaces a newer one. A release tag is deployed as that tag alone and leaves the destination branches untouched.
 
 See this example of the deployment destination repository: [GitHub Actions](https://github.com/drevops/eddy_destination)
 
