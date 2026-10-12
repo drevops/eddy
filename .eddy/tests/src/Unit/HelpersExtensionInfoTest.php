@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use function DrevOps\Eddy\DevTools\extension_info;
-use function DrevOps\Eddy\DevTools\is_debug;
+use function DrevOps\Eddy\Tooling\extension_info;
+use function DrevOps\Eddy\Tooling\is_debug;
 use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
-#[CoversFunction('DrevOps\Eddy\DevTools\extension_info')]
-#[CoversFunction('DrevOps\Eddy\DevTools\is_debug')]
+#[CoversFunction('DrevOps\Eddy\Tooling\extension_info')]
+#[CoversFunction('DrevOps\Eddy\Tooling\is_debug')]
 #[Group('p0')]
 final class HelpersExtensionInfoTest extends UnitTestCase {
 

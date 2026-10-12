@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use function DrevOps\Eddy\DevTools\command_path;
-use function DrevOps\Eddy\DevTools\command_must_exist;
+use function DrevOps\Eddy\Tooling\command_path;
+use function DrevOps\Eddy\Tooling\command_must_exist;
 use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
-#[CoversFunction('DrevOps\Eddy\DevTools\command_path')]
-#[CoversFunction('DrevOps\Eddy\DevTools\command_must_exist')]
+#[CoversFunction('DrevOps\Eddy\Tooling\command_path')]
+#[CoversFunction('DrevOps\Eddy\Tooling\command_must_exist')]
 #[Group('p0')]
 final class HelpersCommandExistsTest extends UnitTestCase {
 

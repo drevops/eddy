@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use function DrevOps\Eddy\DevTools\link_browser_output;
+use function DrevOps\Eddy\Tooling\link_browser_output;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\Group;
 
-#[CoversFunction('DrevOps\Eddy\DevTools\link_browser_output')]
+#[CoversFunction('DrevOps\Eddy\Tooling\link_browser_output')]
 #[Group('p0')]
 final class HelpersLinkBrowserOutputTest extends UnitTestCase {
 

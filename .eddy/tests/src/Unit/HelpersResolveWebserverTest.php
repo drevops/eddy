@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use function DrevOps\Eddy\DevTools\resolve_webserver;
+use function DrevOps\Eddy\Tooling\resolve_webserver;
 use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\Group;
@@ -17,7 +17,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
-#[CoversFunction('DrevOps\Eddy\DevTools\resolve_webserver')]
+#[CoversFunction('DrevOps\Eddy\Tooling\resolve_webserver')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersResolveWebserverTest extends UnitTestCase {
@@ -31,7 +31,7 @@ final class HelpersResolveWebserverTest extends UnitTestCase {
   }
 
   public function testDefaultsWhenNothingProvided(): void {
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\DevTools', fn(): bool => FALSE);
+    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): bool => FALSE);
 
     $resolved = resolve_webserver();
 
@@ -44,8 +44,8 @@ final class HelpersResolveWebserverTest extends UnitTestCase {
   public function testEnvOverridesDotenvAndDefault(): void {
     $this->envSet('WEBSERVER_HOST', '0.0.0.0');
     $this->envSet('WEBSERVER_PORT', '9001');
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\DevTools', fn(): bool => TRUE);
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\DevTools', fn(): string => "WEBSERVER_HOST=ignored\nWEBSERVER_PORT=1234\n");
+    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): bool => TRUE);
+    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(): string => "WEBSERVER_HOST=ignored\nWEBSERVER_PORT=1234\n");
 
     $resolved = resolve_webserver();
 
@@ -56,8 +56,8 @@ final class HelpersResolveWebserverTest extends UnitTestCase {
   }
 
   public function testDotenvUsedWhenEnvUnset(): void {
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\DevTools', fn(string $f): bool => $f === '.env');
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\DevTools', fn(): string => "WEBSERVER_HOST=internal\nWEBSERVER_PORT=8123\n");
+    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $f): bool => $f === '.env');
+    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(): string => "WEBSERVER_HOST=internal\nWEBSERVER_PORT=8123\n");
 
     $resolved = resolve_webserver();
 
@@ -68,11 +68,11 @@ final class HelpersResolveWebserverTest extends UnitTestCase {
   }
 
   public function testAutoDiscoveryWritesPortAndUpdatesSource(): void {
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\DevTools', fn(): bool => FALSE);
-    $this->registerMock('stream_socket_client', 'DrevOps\\Eddy\\DevTools', fn(): false => FALSE);
+    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): bool => FALSE);
+    $this->registerMock('stream_socket_client', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
 
     $persisted = NULL;
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\DevTools', function (string $f, string $body) use (&$persisted): int {
+    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', function (string $f, string $body) use (&$persisted): int {
       if (preg_match('/WEBSERVER_PORT=(\d+)/', $body, $m)) {
         $persisted = $m[1];
       }
@@ -90,17 +90,17 @@ final class HelpersResolveWebserverTest extends UnitTestCase {
   }
 
   public function testAutoDiscoverySkippedWhenDotenvHasPort(): void {
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\DevTools', fn(string $f): bool => $f === '.env');
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\DevTools', fn(): string => "WEBSERVER_PORT=8123\n");
+    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $f): bool => $f === '.env');
+    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(): string => "WEBSERVER_PORT=8123\n");
 
     $write_called = FALSE;
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\DevTools', function () use (&$write_called): int {
+    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', function () use (&$write_called): int {
       $write_called = TRUE;
 
       return 0;
     });
     $probe_called = FALSE;
-    $this->registerMock('stream_socket_client', 'DrevOps\\Eddy\\DevTools', function () use (&$probe_called): false {
+    $this->registerMock('stream_socket_client', 'DrevOps\\Eddy\\Tooling', function () use (&$probe_called): false {
       $probe_called = TRUE;
 
       return FALSE;
@@ -116,7 +116,7 @@ final class HelpersResolveWebserverTest extends UnitTestCase {
 
   public function testValidationFailsOnMalformedPort(): void {
     $this->envSet('WEBSERVER_PORT', 'not-a-port');
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\DevTools', fn(): bool => FALSE);
+    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): bool => FALSE);
 
     $this->mockQuit(1);
 
@@ -137,7 +137,7 @@ final class HelpersResolveWebserverTest extends UnitTestCase {
 
   public function testValidationSkippedWhenDisabled(): void {
     $this->envSet('WEBSERVER_PORT', 'not-a-port');
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\DevTools', fn(): bool => FALSE);
+    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): bool => FALSE);
 
     $resolved = resolve_webserver(validate_port: FALSE);
 

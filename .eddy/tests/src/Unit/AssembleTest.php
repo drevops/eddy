@@ -124,9 +124,9 @@ final class AssembleTest extends UnitTestCase {
     }
     $build_composer_lock = json_encode(['packages' => $installed_packages], JSON_THROW_ON_ERROR);
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\DevTools', fn(): string => $cwd);
+    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
 
-    $this->registerMock('exec', 'DrevOps\\Eddy\\DevTools', function (string $cmd, ?array &$output = NULL, ?int &$code = NULL) use ($config): string {
+    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $cmd, ?array &$output = NULL, ?int &$code = NULL) use ($config): string {
       $output ??= [];
       $code = 0;
       if (str_contains($cmd, 'command -v composer')) {
@@ -139,7 +139,7 @@ final class AssembleTest extends UnitTestCase {
       return '';
     });
 
-    $this->registerMock('glob', 'DrevOps\\Eddy\\DevTools', function (string $pattern) use ($config, $cwd): array {
+    $this->registerMock('glob', 'DrevOps\\Eddy\\Tooling', function (string $pattern) use ($config, $cwd): array {
       if ($pattern === '*.info.yml') {
         return [$config['extension_name'] . '.info.yml'];
       }
@@ -150,7 +150,7 @@ final class AssembleTest extends UnitTestCase {
     });
 
     $all_tool_files = ['.eslintignore', '.eslintrc.json', '.prettierignore', '.prettierrc.json', '.stylelintrc.js', '.twig-cs-fixer.php', 'package-lock.json', 'package.json', 'phpcs.xml', 'phpstan.neon', 'phpmd.xml', 'phpunit.xml', 'rector.php'];
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\DevTools', function (string $file) use ($config, $all_tool_files, $drupal_version_major) {
+    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', function (string $file) use ($config, $all_tool_files, $drupal_version_major) {
       if ($file === 'composer.json') {
         return TRUE;
       }
@@ -183,7 +183,7 @@ final class AssembleTest extends UnitTestCase {
     // value. Later checks come from chmod_recursive and remove_dir and return
     // FALSE to avoid real filesystem iteration.
     $build_dir_checked = FALSE;
-    $this->registerMock('is_dir', 'DrevOps\\Eddy\\DevTools', function (string $path) use ($config, &$build_dir_checked) {
+    $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', function (string $path) use ($config, &$build_dir_checked) {
       if ($path === 'build') {
         if (!$build_dir_checked) {
           $build_dir_checked = TRUE;
@@ -206,10 +206,10 @@ final class AssembleTest extends UnitTestCase {
       return FALSE;
     });
 
-    $this->registerMock('mkdir', 'DrevOps\\Eddy\\DevTools', fn(): true => TRUE);
+    $this->registerMock('mkdir', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
 
     $info_content = $config['extension_type'] === 'theme' ? "name: Test\ntype: theme\n" : "name: Test\ntype: module\n";
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\DevTools', function (string $file) use ($info_content, $composer_json_str, $build_composer_json, $dev_composer_json, $build_composer_lock) {
+    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', function (string $file) use ($info_content, $composer_json_str, $build_composer_json, $dev_composer_json, $build_composer_lock) {
       if (str_ends_with($file, '.info.yml')) {
         return $info_content;
       }
@@ -234,25 +234,25 @@ final class AssembleTest extends UnitTestCase {
     });
 
     $this->capturedBuildComposerJson = [];
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\DevTools', function (string $file, string $content): int {
+    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', function (string $file, string $content): int {
       if ($file === 'build/composer.json') {
         $this->capturedBuildComposerJson[] = $content;
       }
       return 100;
     });
 
-    $this->registerMock('copy', 'DrevOps\\Eddy\\DevTools', fn(): true => TRUE);
+    $this->registerMock('copy', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
 
     $this->symlinkedItems = [];
-    $this->registerMock('symlink', 'DrevOps\\Eddy\\DevTools', function (string $target, string $link): bool {
+    $this->registerMock('symlink', 'DrevOps\\Eddy\\Tooling', function (string $target, string $link): bool {
       $this->symlinkedItems[] = basename($link);
 
       return TRUE;
     });
 
-    $this->registerMock('putenv', 'DrevOps\\Eddy\\DevTools', fn(): true => TRUE);
+    $this->registerMock('putenv', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
 
-    $this->registerMock('unlink', 'DrevOps\\Eddy\\DevTools', fn(): true => TRUE);
+    $this->registerMock('unlink', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
 
     $passthru_responses = [];
 
@@ -891,7 +891,7 @@ final class AssembleTest extends UnitTestCase {
     $this->envUnset('GITHUB_TOKEN');
     $this->envUnset('SYMFONY_DEPRECATIONS_HELPER');
 
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\DevTools', fn(string $file): false => FALSE);
+    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): false => FALSE);
 
     $this->mockQuit(1);
 

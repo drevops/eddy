@@ -42,8 +42,8 @@ final class BrowserStartTest extends UnitTestCase {
 
     // The mocked '.env' supplies port 4444, so the port resolves without the
     // free-port probe.
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\DevTools', fn(string $f): bool => $f === '.env');
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\DevTools', function (string $f): string|false {
+    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $f): bool => $f === '.env');
+    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', function (string $f): string|false {
       if ($f === '.env') {
         return $this->envFileContent;
       }
@@ -61,7 +61,7 @@ final class BrowserStartTest extends UnitTestCase {
 
       return FALSE;
     });
-    $this->registerMock('mkdir', 'DrevOps\\Eddy\\DevTools', function (string $dir): true {
+    $this->registerMock('mkdir', 'DrevOps\\Eddy\\Tooling', function (string $dir): true {
       $this->createdDirs[] = $dir;
 
       return TRUE;
@@ -366,7 +366,7 @@ final class BrowserStartTest extends UnitTestCase {
    *   Ports that answer a connect probe; every other port reads as free.
    */
   protected function mockPortsInUse(array $ports): void {
-    $this->registerMock('stream_socket_client', 'DrevOps\\Eddy\\DevTools', function (string $address, &$errno = NULL, &$errstr = NULL, ?float $timeout = NULL) use ($ports) {
+    $this->registerMock('stream_socket_client', 'DrevOps\\Eddy\\Tooling', function (string $address, &$errno = NULL, &$errstr = NULL, ?float $timeout = NULL) use ($ports) {
       if (preg_match('/:(\d+)$/', $address, $matches) !== 1 || !in_array((int) $matches[1], $ports, TRUE)) {
         $errno = 61;
         $errstr = 'Connection refused';
@@ -388,7 +388,7 @@ final class BrowserStartTest extends UnitTestCase {
    *   Populated by reference with the WEBDRIVER_PORT value written to '.env'.
    */
   protected function recordDotenvWrites(?string &$persisted): void {
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\DevTools', function (string $file, string $body) use (&$persisted): int {
+    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', function (string $file, string $body) use (&$persisted): int {
       if (preg_match('/WEBDRIVER_PORT=(\d+)/', $body, $matches) === 1) {
         $persisted = $matches[1];
       }
@@ -398,7 +398,7 @@ final class BrowserStartTest extends UnitTestCase {
   }
 
   protected function mockChrome(bool $mac_present): void {
-    $this->registerMock('is_executable', 'DrevOps\\Eddy\\DevTools', fn(): bool => $mac_present);
+    $this->registerMock('is_executable', 'DrevOps\\Eddy\\Tooling', fn(): bool => $mac_present);
   }
 
   /**
@@ -406,7 +406,7 @@ final class BrowserStartTest extends UnitTestCase {
    *   Command name => resolved path for commands that are present.
    */
   protected function mockCommands(array $map): void {
-    $this->registerMock('exec', 'DrevOps\\Eddy\\DevTools', function (string $cmd, &$output = NULL, &$result_code = NULL) use ($map): string {
+    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $cmd, &$output = NULL, &$result_code = NULL) use ($map): string {
       $output = [];
       $result_code = 1;
       if (preg_match('/command -v (\S+)/', $cmd, $matches) === 1 && isset($map[$matches[1]])) {
@@ -419,7 +419,7 @@ final class BrowserStartTest extends UnitTestCase {
   }
 
   protected function mockVersions(string $chrome, string $driver): void {
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\DevTools', function (string $cmd) use ($chrome, $driver): string {
+    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', function (string $cmd) use ($chrome, $driver): string {
       if (str_contains($cmd, 'chromedriver')) {
         return $driver;
       }
@@ -436,7 +436,7 @@ final class BrowserStartTest extends UnitTestCase {
    *   Populated by reference with every passthru() command line.
    */
   protected function recordPassthru(array &$commands, int $npx_exit = 0, int $docker_run_exit = 0): void {
-    $this->registerMock('passthru', 'DrevOps\\Eddy\\DevTools', function (string $cmd, &$result_code = NULL) use (&$commands, $npx_exit, $docker_run_exit): void {
+    $this->registerMock('passthru', 'DrevOps\\Eddy\\Tooling', function (string $cmd, &$result_code = NULL) use (&$commands, $npx_exit, $docker_run_exit): void {
       $commands[] = $cmd;
       if (str_contains($cmd, 'npx')) {
         $result_code = $npx_exit;

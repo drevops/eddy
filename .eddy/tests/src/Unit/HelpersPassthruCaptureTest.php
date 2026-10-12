@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use function DrevOps\Eddy\DevTools\passthru_capture;
+use function DrevOps\Eddy\Tooling\passthru_capture;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
-#[CoversFunction('DrevOps\Eddy\DevTools\passthru_capture')]
+#[CoversFunction('DrevOps\Eddy\Tooling\passthru_capture')]
 #[Group('p0')]
 final class HelpersPassthruCaptureTest extends UnitTestCase {
 
@@ -72,7 +72,7 @@ final class HelpersPassthruCaptureTest extends UnitTestCase {
    *   Exit code the mocked command reports.
    */
   protected function mockRawPassthru(?string &$captured_cmd, string $output, int $result_code): void {
-    $this->registerMock('passthru', 'DrevOps\\Eddy\\DevTools', function ($cmd, &...$args) use (&$captured_cmd, $output, $result_code): null {
+    $this->registerMock('passthru', 'DrevOps\\Eddy\\Tooling', function ($cmd, &...$args) use (&$captured_cmd, $output, $result_code): null {
       $captured_cmd = $cmd;
       echo $output;
       if (count($args) > 0) {

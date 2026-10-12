@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use function DrevOps\Eddy\DevTools\drush;
+use function DrevOps\Eddy\Tooling\drush;
 use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
-#[CoversFunction('DrevOps\Eddy\DevTools\drush')]
+#[CoversFunction('DrevOps\Eddy\Tooling\drush')]
 #[Group('p0')]
 final class HelpersDrushTest extends UnitTestCase {
 

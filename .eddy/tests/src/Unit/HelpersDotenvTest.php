@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use function DrevOps\Eddy\DevTools\dotenv_read;
-use function DrevOps\Eddy\DevTools\dotenv_unset_var;
-use function DrevOps\Eddy\DevTools\dotenv_write_var;
+use function DrevOps\Eddy\Tooling\dotenv_read;
+use function DrevOps\Eddy\Tooling\dotenv_unset_var;
+use function DrevOps\Eddy\Tooling\dotenv_write_var;
 use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -19,9 +19,9 @@ use PHPUnit\Framework\Attributes\Group;
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
-#[CoversFunction('DrevOps\Eddy\DevTools\dotenv_read')]
-#[CoversFunction('DrevOps\Eddy\DevTools\dotenv_write_var')]
-#[CoversFunction('DrevOps\Eddy\DevTools\dotenv_unset_var')]
+#[CoversFunction('DrevOps\Eddy\Tooling\dotenv_read')]
+#[CoversFunction('DrevOps\Eddy\Tooling\dotenv_write_var')]
+#[CoversFunction('DrevOps\Eddy\Tooling\dotenv_unset_var')]
 #[Group('p0')]
 final class HelpersDotenvTest extends UnitTestCase {
 

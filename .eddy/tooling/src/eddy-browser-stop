@@ -13,7 +13,7 @@
 
 declare(strict_types=1);
 
-namespace DrevOps\Eddy\DevTools;
+namespace DrevOps\Eddy\Tooling;
 
 require_once __DIR__ . '/helpers.php';
 

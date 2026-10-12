@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use function DrevOps\Eddy\DevTools\site_db_file;
+use function DrevOps\Eddy\Tooling\site_db_file;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -44,13 +44,13 @@ final class ProvisionTest extends UnitTestCase {
     $cwd = self::$tmp . '/provision_' . uniqid();
     mkdir($cwd . '/build/web', 0755, TRUE);
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\DevTools', fn(): string => $cwd);
+    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
 
-    $this->registerMock('glob', 'DrevOps\\Eddy\\DevTools', fn(): array => [$extension_name . '.info.yml']);
+    $this->registerMock('glob', 'DrevOps\\Eddy\\Tooling', fn(): array => [$extension_name . '.info.yml']);
 
     $composer_json = json_encode(['suggest' => $suggested], JSON_THROW_ON_ERROR);
     $file_get_contents_calls = 0;
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\DevTools', function (string $file) use (&$file_get_contents_calls, $info_content, $composer_json): string {
+    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', function (string $file) use (&$file_get_contents_calls, $info_content, $composer_json): string {
       $file_get_contents_calls++;
       if (str_ends_with($file, '.info.yml')) {
         return $info_content;
@@ -65,7 +65,7 @@ final class ProvisionTest extends UnitTestCase {
       return '';
     });
 
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\DevTools', function (string $file) use ($has_ahoy, $has_makefile): bool {
+    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', function (string $file) use ($has_ahoy, $has_makefile): bool {
       if ($file === '.ahoy.yml') {
         return $has_ahoy;
       }
@@ -208,10 +208,10 @@ final class ProvisionTest extends UnitTestCase {
     $expected_host = 'localhost';
     $expected_port = '8123';
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\DevTools', fn(): string => $cwd);
-    $this->registerMock('glob', 'DrevOps\\Eddy\\DevTools', fn(): array => [$extension_name . '.info.yml']);
+    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
+    $this->registerMock('glob', 'DrevOps\\Eddy\\Tooling', fn(): array => [$extension_name . '.info.yml']);
 
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\DevTools', function (string $file) use ($info_content): string {
+    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', function (string $file) use ($info_content): string {
       if (str_ends_with($file, '.info.yml')) {
         return $info_content;
       }
@@ -228,7 +228,7 @@ final class ProvisionTest extends UnitTestCase {
       return '';
     });
 
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\DevTools', fn(string $file): bool => $file === '.env');
+    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $file === '.env');
 
     $prefix = self::drushPrefix($cwd);
     $db_file = site_db_file($extension_name);
@@ -257,10 +257,10 @@ final class ProvisionTest extends UnitTestCase {
     $cwd = '/test/project';
     $site_url = 'http://localhost:8000';
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\DevTools', fn(): string => $cwd);
-    $this->registerMock('glob', 'DrevOps\\Eddy\\DevTools', fn(): array => [$extension_name . '.info.yml']);
+    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
+    $this->registerMock('glob', 'DrevOps\\Eddy\\Tooling', fn(): array => [$extension_name . '.info.yml']);
 
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\DevTools', function (string $file): string {
+    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', function (string $file): string {
       if (str_ends_with($file, '.info.yml')) {
         return "name: Test\ntype: module\n";
       }
@@ -274,7 +274,7 @@ final class ProvisionTest extends UnitTestCase {
       return '';
     });
 
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\DevTools', fn(): bool => FALSE);
+    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): bool => FALSE);
 
     $prefix = self::drushPrefix($cwd);
     $db_file = site_db_file($extension_name);
@@ -309,10 +309,10 @@ final class ProvisionTest extends UnitTestCase {
     $cwd = '/test/project';
     $tunnel_url = 'https://abc.trycloudflare.com';
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\DevTools', fn(): string => $cwd);
-    $this->registerMock('glob', 'DrevOps\\Eddy\\DevTools', fn(): array => [$extension_name . '.info.yml']);
+    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
+    $this->registerMock('glob', 'DrevOps\\Eddy\\Tooling', fn(): array => [$extension_name . '.info.yml']);
 
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\DevTools', function (string $file) use ($info_content, $tunnel_url): string {
+    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', function (string $file) use ($info_content, $tunnel_url): string {
       if (str_ends_with($file, '.info.yml')) {
         return $info_content;
       }
@@ -329,7 +329,7 @@ final class ProvisionTest extends UnitTestCase {
       return '';
     });
 
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\DevTools', fn(string $file): bool => $file === '.env');
+    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $file === '.env');
 
     $prefix = self::drushPrefix($cwd);
     $db_file = site_db_file($extension_name);
@@ -364,10 +364,10 @@ final class ProvisionTest extends UnitTestCase {
     file_put_contents($settings_file, "<?php\n");
     chdir($cwd);
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\DevTools', fn(): string => $cwd);
-    $this->registerMock('glob', 'DrevOps\\Eddy\\DevTools', fn(): array => [$extension_name . '.info.yml']);
+    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
+    $this->registerMock('glob', 'DrevOps\\Eddy\\Tooling', fn(): array => [$extension_name . '.info.yml']);
 
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\DevTools', function (string $file): string {
+    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', function (string $file): string {
       if (str_ends_with($file, '.info.yml')) {
         return "name: Test\ntype: module\n";
       }
@@ -381,7 +381,7 @@ final class ProvisionTest extends UnitTestCase {
       return (string) \file_get_contents($file);
     });
 
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\DevTools', fn(): bool => FALSE);
+    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): bool => FALSE);
 
     $prefix = self::drushPrefix($cwd);
     $db_file = site_db_file($extension_name);

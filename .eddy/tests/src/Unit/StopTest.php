@@ -23,7 +23,7 @@ final class StopTest extends UnitTestCase {
   }
 
   public function testStopDefaultPortWhenNoEnvAndNoDotenv(): void {
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\DevTools', fn(): false => FALSE);
+    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
 
     $this->mockPassthru([
       'cmd' => "lsof -ti:'8000' 2>/dev/null | xargs kill -9 2>/dev/null",
@@ -60,8 +60,8 @@ final class StopTest extends UnitTestCase {
   }
 
   public function testStopReadsPortFromDotenvWhenEnvUnset(): void {
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\DevTools', fn(string $file): bool => $file === '.env');
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\DevTools', fn(): string => "WEBSERVER_PORT=8123\n");
+    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $file === '.env');
+    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(): string => "WEBSERVER_PORT=8123\n");
 
     $this->mockPassthru([
       'cmd' => "lsof -ti:'8123' 2>/dev/null | xargs kill -9 2>/dev/null",
@@ -84,7 +84,7 @@ final class StopTest extends UnitTestCase {
     file_put_contents('.logs/cloudflared.pid', "4242\n");
     file_put_contents('.env', "WEBSERVER_PORT=8000\nTUNNEL_URL=https://seasonal-deck-organisms-sf.trycloudflare.com\n");
 
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\DevTools', fn(string $command): string => $command === 'ps -p 4242 -o command= 2>/dev/null' ? "cloudflared tunnel --url http://localhost:8000 --no-autoupdate\n" : '');
+    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(string $command): string => $command === 'ps -p 4242 -o command= 2>/dev/null' ? "cloudflared tunnel --url http://localhost:8000 --no-autoupdate\n" : '');
 
     // The order of the calls is asserted: the tunnel stops before the port is
     // freed.

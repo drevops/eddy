@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use function DrevOps\Eddy\DevTools\passthru_or_fail;
+use function DrevOps\Eddy\Tooling\passthru_or_fail;
 use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
-#[CoversFunction('DrevOps\Eddy\DevTools\passthru_or_fail')]
+#[CoversFunction('DrevOps\Eddy\Tooling\passthru_or_fail')]
 #[Group('p0')]
 final class HelpersPassthruOrFailTest extends UnitTestCase {
 

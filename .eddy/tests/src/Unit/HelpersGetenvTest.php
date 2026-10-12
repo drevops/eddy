@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use function DrevOps\Eddy\DevTools\getenv_default;
-use function DrevOps\Eddy\DevTools\getenv_required;
+use function DrevOps\Eddy\Tooling\getenv_default;
+use function DrevOps\Eddy\Tooling\getenv_required;
 use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;

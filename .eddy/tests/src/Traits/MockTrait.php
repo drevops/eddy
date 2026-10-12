@@ -185,7 +185,7 @@ trait MockTrait {
    * @throws \RuntimeException
    *   When more passthru calls are made than mocked responses available.
    */
-  protected function mockPassthruMultiple(array $responses, string $namespace = 'DrevOps\\Eddy\\DevTools'): void {
+  protected function mockPassthruMultiple(array $responses, string $namespace = 'DrevOps\\Eddy\\Tooling'): void {
     $this->addMockResponses('passthru', $responses);
 
     if (isset($this->mocks['passthru'])) {
@@ -247,7 +247,7 @@ trait MockTrait {
    * @param string $namespace
    *   Namespace to mock the functions in.
    */
-  protected function mockPassthru(array $response, string $namespace = 'DrevOps\\Eddy\\DevTools'): void {
+  protected function mockPassthru(array $response, string $namespace = 'DrevOps\\Eddy\\Tooling'): void {
     $this->mockPassthruMultiple([$response], $namespace);
   }
 
@@ -257,7 +257,7 @@ trait MockTrait {
    * @param string $namespace
    *   Namespace to mock the functions in.
    */
-  protected function mockPassthruNever(string $namespace = 'DrevOps\\Eddy\\DevTools'): void {
+  protected function mockPassthruNever(string $namespace = 'DrevOps\\Eddy\\Tooling'): void {
     $this->mockPassthruMultiple([], $namespace);
   }
 
@@ -282,7 +282,7 @@ trait MockTrait {
    * @param string $namespace
    *   Namespace to mock the function in.
    */
-  protected function mockQuit(int $code = 0, string $namespace = 'DrevOps\\Eddy\\DevTools'): void {
+  protected function mockQuit(int $code = 0, string $namespace = 'DrevOps\\Eddy\\Tooling'): void {
     $this->registerMock('quit', $namespace, function (int $exit_code = 0) use ($code): void {
       if ($code !== $exit_code) {
         throw new \RuntimeException(sprintf('quit() called with unexpected exit code. Expected %d, got %d.', $code, $exit_code));
@@ -303,7 +303,7 @@ trait MockTrait {
    * @param string $namespace
    *   Namespace to mock the function in.
    */
-  protected function mockPosixIsatty(bool $return_value, string $namespace = 'DrevOps\\Eddy\\DevTools'): void {
+  protected function mockPosixIsatty(bool $return_value, string $namespace = 'DrevOps\\Eddy\\Tooling'): void {
     $this->addMockResponses('posix_isatty', [['value' => $return_value]]);
 
     if (!isset($this->mocks['posix_isatty'])) {
@@ -338,7 +338,7 @@ trait MockTrait {
    * @param string $namespace
    *   Namespace to mock the function in.
    */
-  protected function mockCommandAvailable(string $command, bool $available, string $namespace = 'DrevOps\\Eddy\\DevTools'): void {
+  protected function mockCommandAvailable(string $command, bool $available, string $namespace = 'DrevOps\\Eddy\\Tooling'): void {
     $this->registerMock('exec', $namespace, function (string $cmd, ?array &$output = NULL, ?int &$code = NULL) use ($command, $available): bool {
       $output ??= [];
 
@@ -361,7 +361,7 @@ trait MockTrait {
    * @param string $namespace
    *   Namespace to mock the function in.
    */
-  protected function mockSleep(string $namespace = 'DrevOps\\Eddy\\DevTools'): void {
+  protected function mockSleep(string $namespace = 'DrevOps\\Eddy\\Tooling'): void {
     if (isset($this->mocks['sleep'])) {
       return;
     }

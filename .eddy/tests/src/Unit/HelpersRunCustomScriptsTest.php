@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use function DrevOps\Eddy\DevTools\run_custom_scripts;
+use function DrevOps\Eddy\Tooling\run_custom_scripts;
 use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\Group;
 
-#[CoversFunction('DrevOps\Eddy\DevTools\run_custom_scripts')]
+#[CoversFunction('DrevOps\Eddy\Tooling\run_custom_scripts')]
 #[Group('p0')]
 final class HelpersRunCustomScriptsTest extends UnitTestCase {
 
