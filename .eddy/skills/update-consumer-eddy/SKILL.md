@@ -43,7 +43,35 @@ If all entries are already present, proceed to Step 1.
 
 ## Step 1: Detect current project settings
 
-Read the project to determine the answers for the installation script:
+The update applies to the default branch as it is on the remote, so read every answer from there, not from whatever happens to be checked out. A pull can bring in new settings, or a newer scaffold update that changes the base of the merge.
+
+Detect the **default branch** of the repository (not the current checkout):
+
+```bash
+git symbolic-ref --short refs/remotes/origin/HEAD
+```
+
+Strip the `origin/` prefix from the result. If `origin/HEAD` is not set, fall back to the branch configured in `.github/workflows/test.yml`.
+
+Check that nothing is pending:
+
+```bash
+git status --porcelain
+```
+
+Every line must be under `.claude/` or `.idea/`. Anything else - a modified tracked file or an untracked one - would block the merge in Step 7 or end up in the update commit, so stop and ask the user to commit or stash it first. Files git ignores, such as `.env` and `build/`, do not show up here, and the update never touches them.
+
+Switch to the default branch and pull the latest changes:
+
+```bash
+git checkout <main_branch>
+```
+
+```bash
+git pull
+```
+
+Then read the project to determine the answers for the installation script:
 
 1. **Name**: Read from `*.info.yml` - the `name` field.
 2. **Machine name**: The `*.info.yml` filename without extension.
@@ -53,14 +81,6 @@ Read the project to determine the answers for the installation script:
 6. **Drupal versions**: the Drupal majors in the CI matrix - the `drupal-version` values in `.github/workflows/test.yml`, or the `DRUPAL_VERSION` values in `.circleci/config.yml` for a project that still uses CircleCI - as a comma-separated list (e.g. `10,11`).
 7. **Tools**: every tool whose file still exists - `phpcs` (`phpcs.xml`), `phpstan` (`phpstan.neon`), `rector` (`rector.php`), `twigcs` (`.twig-cs-fixer.php`), `eslint` (`.eslintrc.json`), `stylelint` (`.stylelintrc.js`), `cspell` (`.cspell.json`), `jest` (`jest.config.js`), `phpunit` (`phpunit.xml`), `functional_javascript` (a `functional-javascript` test suite in `phpunit.xml`) and `renovate` (`renovate.json`).
 8. **Cloudflare** (4.18.0 and 4.19.0 only): `true` if `scripts/start-cloudflared.sh` exists, `false` otherwise. Later releases run the tunnel from the tooling package and do not ask.
-
-Also detect the **default branch** of the repository (not the current checkout):
-
-```bash
-git symbolic-ref --short refs/remotes/origin/HEAD
-```
-
-Strip the `origin/` prefix from the result. If `origin/HEAD` is not set, fall back to the branch configured in `.github/workflows/test.yml`.
 
 Also detect the **installed version** - the Eddy release the project was created from or last updated to, which Step 5 renders as the base of the merge. Take `extra.eddy.version` from `composer.dev.json` when it is set. Otherwise list the commits that updated the scaffold, newest first:
 
@@ -84,31 +104,9 @@ Do not ask the user to confirm the version. If the user named a version when inv
 
 Compare the version with the installed version from Step 1. When the project is already on that release or a newer one - such as a pre-release it moved to on purpose - tell the user there is nothing newer to update to and stop: a merge from a newer base would apply the difference backwards.
 
-## Step 3: Prepare the feature branch
+## Step 3: Create the feature branch
 
-Before making any changes, ensure the working tree is on the default branch and up to date, then create a feature branch.
-
-1. Check that nothing is pending:
-
-```bash
-git status --porcelain
-```
-
-Every line must be under `.claude/` or `.idea/`. Anything else - a modified tracked file or an untracked one - would block the merge in Step 7 or end up in the update commit, so stop and ask the user to commit or stash it first. Files git ignores, such as `.env` and `build/`, do not show up here, and the update never touches them.
-
-2. Switch to the default (main) branch detected in Step 1:
-
-```bash
-git checkout <main_branch>
-```
-
-3. Pull the latest changes:
-
-```bash
-git pull
-```
-
-4. Create and switch to a new feature branch. Use the release tag verbatim, as printed in Step 2 (e.g., `5.0.0`):
+Create and switch to a new feature branch off the default branch that Step 1 checked out and pulled. Use the release tag verbatim, as printed in Step 2 (e.g., `5.0.0`):
 
 ```bash
 git checkout -b feature/update-eddy-<version>
@@ -259,7 +257,7 @@ The identity and the flags that skip commit hooks and signing keep the throwaway
 
 A cherry-pick with conflicts exits non-zero and lists them, and Step 8 resolves them. If the second commit finds nothing to commit, the 2 renders are identical, so the release changes nothing for this project: tell the user and stop.
 
-Without a base, the first commit is empty. Every file the project shares with the release then conflicts wherever the 2 differ, and files the older release had but the new one dropped stay in the project until Step 9.
+Without a base, the first commit is empty. Every file the project shares with the release then conflicts wherever the 2 differ, and files the older release had but the new one dropped stay in the project: Step 9 removes the 4.x ones, and Step 11 lists the rest.
 
 ## Step 8: Resolve the conflicts
 
@@ -299,6 +297,8 @@ Resolve each conflict by editing it. Restoring a whole file, as above or with `g
 Stage each file once it is resolved (`git add <file>`), until the listing above prints nothing.
 
 ## Step 9: Remove what 5.x dropped
+
+Run this step only for a project that comes from a 4.x release: the installed version from Step 1 is 4.x, or it is unknown and the project still has a `.devtools/` directory. Skip it for a project on 5.0.0 or later. No 5.x release ships these paths, so on such a project they are the project's own files, and the merge leaves them alone.
 
 These paths belong to 4.x releases. With a base, Step 7 already removed the ones the project kept unchanged. Without a base, nothing has removed them:
 
