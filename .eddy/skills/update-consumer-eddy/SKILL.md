@@ -82,6 +82,8 @@ Take the topmost (newest) release from that list and use its tag **verbatim** - 
 
 Do not ask the user to confirm the version. If the user named a version when invoking the skill, use that version verbatim and skip the lookup, whether or not it is a pre-release.
 
+Compare the version with the installed version from Step 1. When the project is already on that release or a newer one - such as a pre-release it moved to on purpose - tell the user there is nothing newer to update to and stop: a merge from a newer base would apply the difference backwards.
+
 ## Step 3: Prepare the feature branch
 
 Before making any changes, ensure the working tree is on the default branch and up to date, then create a feature branch.
@@ -429,7 +431,7 @@ Push the branch and open a pull request. Use the `/open-pr` skill or create the 
 
 ## Important notes
 
-- When the user names a version, use that tag verbatim. Otherwise take the newest published release that is neither a draft nor a pre-release. Either way, use the tag verbatim and start without asking the user to confirm it.
+- When the user names a version, use that tag verbatim. Otherwise take the newest published release that is neither a draft nor a pre-release. Either way, use the tag verbatim and start without asking the user to confirm it, and stop when the project is already on that release or a newer one.
 - Never run the installer in the project root, and never copy the release's files over the project's: the merge keeps what the project changed.
 - Always remove the scaffold's example extension and example scripts - a real project never ships them. Step 6 keeps them out of the merge.
 - Never overwrite project-specific code (src/, tests/, config/, *.module, etc.).
