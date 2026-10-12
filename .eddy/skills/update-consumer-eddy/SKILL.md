@@ -118,7 +118,11 @@ This step is **mandatory** - never apply scaffold changes directly to the defaul
 
 The installer rewrites every file under the directory it runs in, so it never runs in the project root. It runs on a copy of the release in a scratch directory instead, and Step 7 merges the result into the project.
 
-1. Create the scratch directories:
+1. Remove any scratch directory an earlier run left behind, then create the scratch directories. Renders extracted over old ones would keep files that the releases never shipped:
+
+```bash
+rm -rf .artifacts/tmp/eddy-update
+```
 
 ```bash
 mkdir -p .artifacts/tmp/eddy-update/base .artifacts/tmp/eddy-update/new
