@@ -8,6 +8,8 @@ user-invocable: true
 
 When this skill is triggered, follow the steps below to update the current project's infrastructure to the latest version of [Eddy](https://github.com/drevops/eddy).
 
+The update is a 3-way merge. It renders the release the project is on and the new release with the project's own answers, then applies the difference between the 2 renders to the project. What the project changed on top of the template stays - its own files, the versions Renovate bumped, notes in its docs - and only lines that both sides changed come up as conflicts. Files git ignores, such as `.env` and `build/`, are never touched.
+
 ## Step 0: Ensure required permissions
 
 This skill requires several Bash commands to run without prompts. Before doing anything else, read `.claude/settings.local.json` (create it if it does not exist) and ensure the following entries are present in `permissions.allow`. Add only the missing ones:
@@ -16,6 +18,7 @@ This skill requires several Bash commands to run without prompts. Before doing a
 [
   "Bash(ahoy:*)",
   "Bash(cat:*)",
+  "Bash(cd:*)",
   "Bash(chmod:*)",
   "Bash(composer:*)",
   "Bash(cp:*)",
@@ -27,6 +30,7 @@ This skill requires several Bash commands to run without prompts. Before doing a
   "Bash(make:*)",
   "Bash(mkdir:*)",
   "Bash(mv:*)",
+  "Bash(npm:*)",
   "Bash(php:*)",
   "Bash(rm:*)",
   "Bash(tar:*)"
@@ -39,7 +43,35 @@ If all entries are already present, proceed to Step 1.
 
 ## Step 1: Detect current project settings
 
-Read the project to determine the answers for the installation script:
+The update applies to the default branch as it is on the remote, so read every answer from there, not from whatever happens to be checked out. A pull can bring in new settings, or a newer scaffold update that changes the base of the merge.
+
+Detect the **default branch** of the repository (not the current checkout):
+
+```bash
+git symbolic-ref --short refs/remotes/origin/HEAD
+```
+
+Strip the `origin/` prefix from the result. If `origin/HEAD` is not set, fall back to the branch configured in `.github/workflows/test.yml`.
+
+Check that nothing is pending:
+
+```bash
+git status --porcelain
+```
+
+The only lines allowed are untracked paths (`??`) under `.claude/` or `.idea/`. Anything else - a change to a tracked file anywhere, or an untracked file elsewhere - would block the merge in Step 7 or end up in the update commit, so stop and ask the user to commit or stash it first. Files git ignores, such as `.env` and `build/`, do not show up here, and the update never touches them.
+
+Switch to the default branch and pull the latest changes:
+
+```bash
+git checkout <main_branch>
+```
+
+```bash
+git pull
+```
+
+Then read the project to determine the answers for the installation script:
 
 1. **Name**: Read from `*.info.yml` - the `name` field.
 2. **Machine name**: The `*.info.yml` filename without extension.
@@ -50,51 +82,31 @@ Read the project to determine the answers for the installation script:
 7. **Tools**: every tool whose file still exists - `phpcs` (`phpcs.xml`), `phpstan` (`phpstan.neon`), `rector` (`rector.php`), `twigcs` (`.twig-cs-fixer.php`), `eslint` (`.eslintrc.json`), `stylelint` (`.stylelintrc.js`), `cspell` (`.cspell.json`), `jest` (`jest.config.js`), `phpunit` (`phpunit.xml`), `functional_javascript` (a `functional-javascript` test suite in `phpunit.xml`) and `renovate` (`renovate.json`).
 8. **Cloudflare** (4.18.0 and 4.19.0 only): `true` if `scripts/start-cloudflared.sh` exists, `false` otherwise. Later releases run the tunnel from the tooling package and do not ask.
 
-Also detect the **default branch** of the repository (not the current checkout):
+Also detect the **installed version** - the Eddy release the project was created from or last updated to, which Step 5 renders as the base of the merge. Take `extra.eddy.version` from `composer.dev.json` when it is set. Otherwise list the commits that updated the scaffold, newest first:
 
 ```bash
-git symbolic-ref --short refs/remotes/origin/HEAD
+git log -i --grep=scaffold --format='%h %s'
 ```
 
-Strip the `origin/` prefix from the result. If `origin/HEAD` is not set, fall back to the branch configured in `.github/workflows/test.yml`.
+Take the version from the newest subject that names one, such as `Updated scaffold to 4.18.0.`, with or without a pull request number after it. When neither source names a version, the installed version is unknown.
 
 ## Step 2: Get the latest published scaffold version
 
 ```bash
-gh release list --repo drevops/eddy --exclude-drafts --limit 5
+gh release list --repo drevops/eddy --exclude-drafts --exclude-pre-releases --limit 10
 ```
 
-`--exclude-drafts` is mandatory. Draft releases are unpublished work in progress and must never be selected, even when they carry the highest version number.
+`--exclude-drafts` is mandatory. Draft releases are unpublished work in progress and must never be selected, even when they carry the highest version number. `--exclude-pre-releases` skips the releases GitHub marks as pre-releases, such as an alpha or a release candidate, so a project moves to one only when its maintainer asks for it.
 
-Take the topmost (newest) release from that list and use its tag **verbatim** - exactly as printed, including any prefix - for the branch name, the download and the commit message. Never reformat, shorten or normalise it.
+Take the release with the highest version from that list. It is usually the topmost, but the list is ordered by publication date, and a patch for an older line can be published after a newer release. Use its tag **verbatim** - exactly as printed, including any prefix - for the branch name, the download and the commit message. Never reformat, shorten or normalise it.
 
-Do not ask the user to confirm the version. If the user named a version when invoking the skill, use that version verbatim and skip the lookup.
+Do not ask the user to confirm the version. If the user named a version when invoking the skill, use that version verbatim and skip the lookup, whether or not it is a pre-release.
 
-## Step 3: Prepare the feature branch
+Compare the version with the installed version from Step 1. When the project is already on that release or a newer one - such as a pre-release it moved to on purpose - tell the user there is nothing newer to update to and stop: a merge from a newer base would apply the difference backwards.
 
-Before making any changes, ensure the working tree is on the default branch and up to date, then create a feature branch.
+## Step 3: Create the feature branch
 
-1. Check that the update can't destroy uncommitted work:
-
-```bash
-git status --porcelain
-```
-
-Every line must be under `.claude/` or `.idea/`, the only paths Step 4 keeps. Anything else - a modified tracked file or an untracked one - would be deleted in Step 4, so stop and ask the user to commit or stash it first.
-
-2. Switch to the default (main) branch detected in Step 1:
-
-```bash
-git checkout <main_branch>
-```
-
-3. Pull the latest changes:
-
-```bash
-git pull
-```
-
-4. Create and switch to a new feature branch. Use the release tag verbatim, as printed in Step 2 (e.g., `5.0.0`):
+Create and switch to a new feature branch off the default branch that Step 1 checked out and pulled. Use the release tag verbatim, as printed in Step 2 (e.g., `5.0.0`):
 
 ```bash
 git checkout -b feature/update-eddy-<version>
@@ -102,37 +114,37 @@ git checkout -b feature/update-eddy-<version>
 
 This step is **mandatory** - never apply scaffold changes directly to the default branch.
 
-## Step 4: Clean project root
+## Step 4: Render the release
 
-Delete everything in the project root **except** `.claude/`, `.git/` and `.idea`.
+The installer rewrites every file under the directory it runs in, so it never runs in the project root. It runs on a copy of the release in a scratch directory instead, and Step 7 merges the result into the project.
 
-**IMPORTANT:** This command MUST use a relative path (`.`) and be run from the project root. Using an absolute path causes `-name '.'` to fail to match the root directory, which results in the root directory itself (including `.git/`) being deleted. Ensure the shell working directory is the project root before running this command.
-
-```bash
-find . -maxdepth 1 ! -name '.' ! -name '.git' ! -name '.claude' \
-  ! -name '.idea' -exec rm -rf {} +
-```
-
-## Step 5: Download and extract scaffold
-
-Download the release archive directly into the project root (not a git clone - the release archive has scaffold-only files removed):
+1. Remove any scratch directory an earlier run left behind, then create the scratch directories. Renders extracted over old ones would keep files that the releases never shipped:
 
 ```bash
-gh release download <version> --repo drevops/eddy --archive tar.gz \
-  --output eddy.tar.gz
+rm -rf .artifacts/tmp/eddy-update
 ```
 
 ```bash
-tar -xzf eddy.tar.gz --strip-components=1
+mkdir -p .artifacts/tmp/eddy-update/base .artifacts/tmp/eddy-update/new
+```
+
+2. Write `.artifacts/tmp/eddy-update/.gitignore` with the single line `*`. Git then ignores the scratch directory, so `git status` never lists it and `git add -A` never stages it.
+
+3. Download the release archive and extract it into `new` (not a git clone - the release archive has scaffold-only files removed):
+
+```bash
+gh release download <version> --repo drevops/eddy --archive tar.gz --output .artifacts/tmp/eddy-update/new.tar.gz
 ```
 
 ```bash
-rm eddy.tar.gz
+tar -xzf .artifacts/tmp/eddy-update/new.tar.gz --strip-components=1 -C .artifacts/tmp/eddy-update/new
 ```
 
-## Step 6: Run install.php
+4. Run `install.php` from inside the render, with `INSTALL_REMOVE_SELF=true` and `INSTALL_PROCEED=true` to auto-accept the confirmations, then return to the project root. Run these 3 commands one after another, never in parallel, so the installer starts only once the shell is inside the render:
 
-Run install.php from the project root. Set `INSTALL_REMOVE_SELF=true` and `INSTALL_PROCEED=true` to auto-accept the confirmations:
+```bash
+cd .artifacts/tmp/eddy-update/new
+```
 
 ```bash
 INSTALL_NAME='<Name>' \
@@ -147,111 +159,236 @@ INSTALL_PROCEED=true \
 php install.php
 ```
 
+```bash
+cd ../../../..
+```
+
+If the installer fails, still `cd` back to the project root, then stop and report the error: there is nothing to merge without the render.
+
 Wrap every value in single quotes, never double quotes. The values come from the project's own files, and double quotes still expand `$(...)`, backticks and `$VAR`. Write a single quote inside a value as `'\''`, so `O'Brien` becomes `'O'\''Brien'`.
 
 **Every one of these variables is mandatory.** A prompt with no matching variable is not silently defaulted - it falls through to the interactive input loop and reads `STDIN`, which never returns under automation. Derive each value from the project's detected settings, and run `php install.php --help` for the full list and accepted values if the prompts change in a future release.
 
 The script is `install.php` with the `INSTALL_` prefix in releases after 4.x. A 4.x release ships it as `init.php` instead: run `php init.php --help` first, then run `php init.php` with the prefix it lists (`DEX_` in 4.19.0, `PROMPTY_` before it). 4.x releases also ask for the CI provider, and 4.18.0 and 4.19.0 whether to keep the Cloudflare tunnel scripts, so pass those variables too, with the values from Step 1.
 
-`INSTALL_EXAMPLES=false` drops the scaffold's example lifecycle scripts. Step 7 restores `scripts/` from git straight after, so any hook the project actually tracks comes back untouched.
+`INSTALL_EXAMPLES=false` drops the scaffold's example lifecycle scripts. The project's own hooks in `scripts/` never take part in the merge, so they stay as they are.
 
 `<command_wrapper>` accepts a comma-separated list (`ahoy`, `makefile`, or `ahoy,makefile`), or an empty string for neither.
 
 `<drupal_version>` is a comma-separated list of Drupal majors to target (e.g. `11`, `10,11` or `11,12`). `<tools>` is a comma-separated list of the tools to keep - list every tool the project still uses, since anything omitted is removed.
 
-## Step 7: Restore project-specific files from git
+## Step 5: Render the installed version
 
-The scaffold extraction overwrote project-specific files. Restore them from the previous commit:
+Step 7 merges against a render of the release the project is on, which is how it tells the project's own changes to the template's files apart from the new release's.
 
-```bash
-git checkout HEAD -- \
-  src/ \
-  tests/ \
-  config/ \
-  css/ \
-  js/ \
-  scripts/ \
-  ':!scripts/eddy-tooling' \
-  ':!scripts/*-cloudflared.sh' \
-  composer.json \
-  LICENSE \
-  *.module \
-  *.install \
-  *.info.yml \
-  *.services.yml \
-  *.routing.yml \
-  *.links.menu.yml \
-  *.permissions.yml \
-  *.libraries.yml
-```
+Skip this step and leave `base` empty when Step 1 found no installed version, or found one older than 4.14.0: earlier releases read their answers only from the terminal. Step 7 then merges without a base.
 
-Only restore paths that actually exist in the project - skip any that produce errors.
-
-`scripts/` holds the project's lifecycle hooks, but `scripts/eddy-tooling` is the scaffold's tooling installer, so the exclusion keeps the copy the release just provided. The `scripts/*-cloudflared.sh` hooks belong to the scaffold too: 4.18.0 and 4.19.0 ship them, and later releases run the tunnel from the tooling package instead, so a project's old copies never come back.
-
-## Step 8: Remove the scaffold examples
-
-The scaffold ships a complete example extension - sample service, form, tests, assets, config schema and shell scripts - so that the template runs standalone. None of it belongs in a real project. Remove it on every update, without asking the user.
-
-1. List what the extraction left behind:
+Otherwise render the installed version into `base` the way Step 4 renders the new release:
 
 ```bash
-git status --porcelain --untracked-files=all
+gh release download <installed_version> --repo drevops/eddy --archive tar.gz --output .artifacts/tmp/eddy-update/base.tar.gz
 ```
 
-2. Delete every file that is **both** untracked (`??` in that listing) **and** one of the example paths below. The installation script renames the example to the project's machine name, so match by shape rather than by literal name (`<machine_name>` in file names, `<MachineName>` in class names):
+```bash
+tar -xzf .artifacts/tmp/eddy-update/base.tar.gz --strip-components=1 -C .artifacts/tmp/eddy-update/base
+```
 
-- `src/<MachineName>Service.php`
-- `src/Form/<MachineName>Form.php`
-- `tests/src/Functional/<MachineName>FunctionalTest.php`
-- `tests/src/FunctionalJavascript/<MachineName>FunctionalJavascriptTestBase.php`
-- `tests/src/FunctionalJavascript/<MachineName>SmokeFunctionalJavascriptTest.php`
-- `tests/src/Kernel/<MachineName>ServiceKernelTest.php`
-- `tests/src/Unit/<MachineName>ServiceUnitTest.php`
-- `config/schema/<machine_name>.schema.yml`
-- `css/<machine_name>.css`
-- `js/<machine_name>.js` and `js/<machine_name>.test.js`
-- `<machine_name>.module`, `<machine_name>.install`, `<machine_name>.libraries.yml`, `<machine_name>.links.menu.yml`, `<machine_name>.routing.yml`, `<machine_name>.services.yml`
-- `scripts/assemble-example.sh`, `scripts/provision-example.sh`, `scripts/start-example.sh`, `scripts/stop-example.sh`
+```bash
+cd .artifacts/tmp/eddy-update/base
+```
 
-**Both conditions are required at every deletion, with no exceptions.** A file at one of these paths that git already tracks is the project's own code restored in Step 7 - it may be a service grown out of the example, or a lifecycle hook adapted from one - so leave it alone. A path outside this list is never deleted here, however example-like it looks.
+Run that release's installer here with the same answers, under the script name and prefix the release uses (see Step 4), then return to the project root. As in Step 4, run each command only after the previous one finishes:
 
-3. Remove directories left empty by the deletions (e.g. `css/`, `js/`, `src/Form/`). Never leave an empty directory in the tree.
+```bash
+cd ../../../..
+```
 
-4. Grep `package.json`, `jest.config.js` and the stylelint config for every path deleted above, and remove or repoint each reference you find. Do this unconditionally - a project with JavaScript and CSS of its own can still carry a script or a glob aimed at a deleted example asset, and an empty glob is not an error for most of these tools, so Step 11 will not reliably surface it.
+If the download or the installer fails, return to the project root, empty `base` and carry on without a base:
 
-## Step 9: Review changes
+```bash
+rm -rf .artifacts/tmp/eddy-update/base
+```
 
-Use `git diff` and `git status` to review all changes. Pay attention to:
+```bash
+mkdir .artifacts/tmp/eddy-update/base
+```
 
-- **Branch references**: `install.php` writes the `push` branches of the project's committed `test.yml` into the branch filters of `test.yml` and `draft-release-notes.yml`, and an older release writes `1.x` there instead. Confirm both files list the project's branches, and fix them by hand if they don't.
-- **README.md**: Rebuild from the scaffold template (see README section below).
-- **Removed files**: If `git status` shows deleted files that were old scaffold infrastructure (e.g., `phpmd.xml`), confirm they are intentionally removed in the new scaffold version.
-- **New files**: Review any new files from the scaffold to ensure they are infrastructure, not placeholder stubs. Anything the example extension missed in Step 8 - a generic service class, form class or test stub - is removed here, under the same guard: untracked only, and only when the file is demonstrably scaffold boilerplate rather than project code.
+## Step 6: Strip the extension's own files from the renders
+
+The scaffold ships a complete example extension - sample service, form, tests, assets, config schema and lifecycle scripts - so that the template runs standalone. Those paths hold the project's own code, so remove them from both renders before the merge. The merge then never touches the project's code, and none of the examples reach the project.
+
+```bash
+rm -rf .artifacts/tmp/eddy-update/new/src .artifacts/tmp/eddy-update/new/tests .artifacts/tmp/eddy-update/new/config .artifacts/tmp/eddy-update/new/css .artifacts/tmp/eddy-update/new/js .artifacts/tmp/eddy-update/new/composer.json .artifacts/tmp/eddy-update/new/logo.png .artifacts/tmp/eddy-update/new/<machine_name>.* .artifacts/tmp/eddy-update/new/scripts/*-example.sh
+```
+
+```bash
+rm -rf .artifacts/tmp/eddy-update/base/src .artifacts/tmp/eddy-update/base/tests .artifacts/tmp/eddy-update/base/config .artifacts/tmp/eddy-update/base/css .artifacts/tmp/eddy-update/base/js .artifacts/tmp/eddy-update/base/composer.json .artifacts/tmp/eddy-update/base/logo.png .artifacts/tmp/eddy-update/base/<machine_name>.* .artifacts/tmp/eddy-update/base/scripts/*-example.sh
+```
+
+`<machine_name>.*` covers the renamed `.info.yml`, `.module`, `.install`, `.libraries.yml`, `.links.menu.yml`, `.routing.yml` and `.services.yml` files. `composer.json` holds the project's own dependencies, and `logo.png` is a placeholder the installer downloads.
+
+## Step 7: Merge the release into the project
+
+Commit the 2 renders to a throwaway repository - the installed version first, the new release on top - and cherry-pick the second commit into the project. Git merges every file 3 ways: it takes the lines only the release changed, keeps the lines only the project changed, and marks the lines both changed as conflicts. Files the release added appear, files it removed go, and files only the project has are never touched.
+
+```bash
+git -C .artifacts/tmp/eddy-update init -q
+```
+
+```bash
+git -C .artifacts/tmp/eddy-update --work-tree=base add -A
+```
+
+```bash
+git -C .artifacts/tmp/eddy-update -c user.name=Eddy -c user.email=eddy@example.com commit -q --allow-empty --no-verify --no-gpg-sign -m 'Base'
+```
+
+```bash
+git -C .artifacts/tmp/eddy-update --work-tree=new add -A
+```
+
+```bash
+git -C .artifacts/tmp/eddy-update -c user.name=Eddy -c user.email=eddy@example.com commit -q --no-verify --no-gpg-sign -m 'Eddy <version>'
+```
+
+```bash
+git fetch -q .artifacts/tmp/eddy-update HEAD
+```
+
+```bash
+git -c merge.conflictStyle=zdiff3 cherry-pick --no-commit -X no-renames FETCH_HEAD
+```
+
+The identity and the flags that skip commit hooks and signing keep the throwaway commits independent of the user's git setup, and neither commit reaches the project's history: `--no-commit` stages the merged result instead. `-X no-renames` stops git from pairing a file the release removed with an unrelated file it added. The conflict style shows the base between the 2 sides of every conflict. It needs git 2.35 or newer - with an older git, set `merge.conflictStyle=diff3` instead, which shows the same base around larger regions. Without a base, run the cherry-pick without the `-c` option: there is no base to show, and the default style splits the differences in a file into separate conflicts instead of 1 conflict per file.
+
+A cherry-pick with conflicts exits non-zero and lists them, and Step 8 resolves them. If the second commit finds nothing to commit, the 2 renders are identical, so the release changes nothing for this project: tell the user and stop.
+
+Without a base, the first commit is empty. Every file the project shares with the release then conflicts wherever the 2 differ, and files the older release had but the new one dropped stay in the project: Step 9 removes the 4.x ones, and Step 11 lists the rest.
+
+## Step 8: Resolve the conflicts
+
+List the conflicted files:
+
+```bash
+git diff --name-only --diff-filter=U
+```
+
+In each conflict, the lines after `<<<<<<< HEAD` are the project's and the lines after `=======` are the release's. With a base, the lines after `|||||||` show the base between them. Resolve every conflict in place:
+
+- With a base, compare each side with it to see what each side changed. Keep the project's change and apply the release's change next to it. Where the project's side only holds older template text - wording or formatting from an earlier release that the project never edited - take the release's side.
+- Without a base, judge each difference from the 2 sides alone: keep what is specific to the project and take the release's text for the rest.
+- When both sides moved the same version pin - an npm range, or the digest of a GitHub Action or a Docker image - keep the newer one. Renovate updates the project after the release is cut, so it is usually the project's. This lists the commits that moved the project past the release's pin, if there are any:
+
+```bash
+git log -S'<release_pin>' --oneline -- <file>
+```
+
+- Leave `package-lock.json` to the lock file step below.
+- A file the release removed and the project changed (`UD` in `git status --porcelain`) goes with the release: remove it with `git rm`, and note it for the pull request as a change that needs a new home (see Step 9).
+- A template file the project removed and the release changed (`DU`) stays removed: remove it with `git rm`.
+
+Resolve each conflict by editing it. Restoring a whole file, as the lock file step does or with `git checkout --ours` or `--theirs`, loses the changes that merged cleanly from the other side, so do it for nothing but the lock file. While `.gitattributes` holds conflicts, git warns that its conflict markers are not valid attribute names, so resolve it first.
+
+Then settle `package-lock.json`, whether or not it conflicted. A lock file never merges as text: even a merge that found no conflict in it can leave it out of step with `package.json`. When the project has one, restore the project's copy:
+
+```bash
+git checkout HEAD -- package-lock.json
+```
+
+If the merged `package.json` differs from the project's (`git diff HEAD -- package.json` prints anything), bring the lock file in line with it:
+
+```bash
+npm install --package-lock-only
+```
+
+Stage each file once it is resolved (`git add <file>`), until the listing above prints nothing.
+
+## Step 9: Remove what 5.x dropped
+
+Run this step only for a project that comes from a 4.x release: the installed version from Step 1 is 4.x, or it is unknown and the project still has a `.devtools/` directory. Skip it for a project on 5.0.0 or later. No 5.x release ships these paths, so on such a project they are the project's own files, and the merge leaves them alone.
+
+These paths belong to 4.x releases. With a base, Step 7 already removed the ones the project kept unchanged. Without a base, nothing has removed them:
+
+```bash
+git rm -r -q --ignore-unmatch .devtools .circleci 'scripts/*-cloudflared.sh'
+```
+
+```bash
+rm -rf .claude/skills/update-consumer-drupal-extension-scaffold
+```
+
+The last directory holds the 4.x update skill, or the 404 page the 4.x `AGENTS.md` saved in its place. 5.x no longer ignores it by name, so a project that commits its own skills would commit it too.
+
+A change the project made in these files needs a new home: a `.devtools/` or Cloudflare hook change becomes a lifecycle script in `scripts/` or a patch for the `drevops/eddy-tooling` package in `composer.dev.json`, and CircleCI's deployment settings become GitHub Actions secrets. [MIGRATION.md](https://github.com/drevops/eddy/blob/main/MIGRATION.md) explains each. Do not move them here - list the changed files in the pull request description. With a base, Step 8's modify/delete conflicts name them. Without one, this lists the commits that touched them, template updates included:
+
+```bash
+git log --oneline -- .devtools .circleci 'scripts/*-cloudflared.sh'
+```
+
+## Step 10: Repoint references to the example extension
+
+Step 6 kept the example files out of the project, but the release's docs and configs can still name them. The generated `CONTRIBUTING.md`, for one, tells readers to extend `<MachineName>FunctionalJavascriptTestBase`, which a project whose base class has another name does not have. Grep the docs and the configs for every example name:
+
+```bash
+grep -s -n -F -e '<MachineName>Service' -e '<MachineName>Form' -e '<MachineName>FunctionalTest' -e '<MachineName>FunctionalJavascriptTestBase' -e '<MachineName>SmokeFunctionalJavascriptTest' -e '<machine_name>.schema.yml' -e '<machine_name>.css' -e '<machine_name>.js' -e '<machine_name>.test.js' -e '-example.sh' CONTRIBUTING.md AGENTS.md README.md package.json jest.config.js .stylelintrc.js
+```
+
+For each hit that names a file the project does not have, repoint it to the project's equivalent - such as its own FunctionalJavascript base class - or remove it. Do this on every update: an empty glob is not an error for most of these tools, and no lint or test checks a class name in the docs, so Step 13 will not surface a stale one.
+
+## Step 11: Review changes
+
+Use `git diff HEAD` and `git status` to review all changes. Pay attention to:
+
+- **Conflict markers**: none may be left. This lists any in tracked files:
+
+```bash
+git grep -n -e '^<<<<<<< ' -e '^>>>>>>> '
+```
+
+- **Branch references**: both renders ran in the scratch directory, where `install.php` finds no committed `test.yml`, so they filter the workflows on `1.x`. The merge keeps the branches the project lists wherever the 2 renders agree, and without a base, Step 8 resolved them as conflicts. Confirm that `.github/workflows/test.yml` and `.github/workflows/draft-release-notes.yml` list the branches the project builds from.
+- **README.md and CONTRIBUTING.md**: check them as described below.
+- **Added files**: review the files the release added (`A` in `git status --porcelain`). Without a base, they can include template files the project once removed on purpose - remove those again.
+- **Leftover template files**: without a base, files that older releases shipped and this one does not, such as `phpmd.xml`, stay in the project. Leave them, and list them in the pull request description so the maintainer can decide.
 
 ### README.md and CONTRIBUTING.md handling
 
-The `README.md` must follow the scaffold template structure exactly. Do NOT simply patch path references - instead, rebuild it from the scaffold's `README.md` template:
+The merge keeps the project's own content in both files and applies the release's changes around it. Check that the result still matches the release's structure:
 
-1. Start with the scaffold's `README.md` as the base structure.
-2. Replace scaffold placeholder values with project-specific values:
-   - Badge URLs (GitHub org/repo).
-   - Logo URL or image.
-   - Project title/description (from `*.info.yml` and existing README).
-3. Insert project-specific content sections (e.g., "Use case", "How it works", "Installation") between the header and the "Contributing" section.
-4. Keep the scaffold's development sections verbatim. They live in `CONTRIBUTING.md` (Local development, Building website, Drupal versions, Coding standards, Testing), which the installation script regenerates from the scaffold: carry over any project-specific notes from the previous version (`git show HEAD:CONTRIBUTING.md`).
-5. Remove badges for tools the project does not use.
-6. Fix the Eddy link at the bottom to point to the Eddy repo, not the project repo.
+1. `README.md` follows the release's `README.md`, with the project's values: badge URLs (GitHub org/repo), logo, and the project title and description (from `*.info.yml` and the existing README).
+2. The project's own sections (e.g., "Use case", "How it works", "Installation") sit between the header and the "Contributing" section.
+3. Badges appear only for the tools the project uses.
+4. The Eddy link at the bottom points to the Eddy repo, not the project repo.
+5. `CONTRIBUTING.md` holds the release's development sections (Local development, Building website, Drupal versions, Coding standards, Testing) and keeps the project-specific notes from the previous version (`git show HEAD:CONTRIBUTING.md`).
 
-## Step 10: Commit
+Without a base, the merge cannot tell the project's content from older template text, so rebuild both files from the release's copies in `.artifacts/tmp/eddy-update/new` against the same checklist, carrying the project's content over.
 
-Stage all changes and commit:
+## Step 12: Commit
+
+Remove the scratch directory first. It sits inside the extension's directory, which the build in Step 13 links into the site:
+
+```bash
+rm -rf .artifacts/tmp/eddy-update
+```
+
+```bash
+find .artifacts -type d -empty -delete
+```
+
+Then stage the update. The merge already staged the files the release added, so staging the changes to tracked files completes it, and untracked files under `.claude/` and `.idea/` stay out of the commit. Add a file you created yourself by its path:
+
+```bash
+git add -u
+```
+
+Commit with this message:
 
 ```text
 Updated scaffold to <version>.
 ```
 
-## Step 11: Build, lint, and test
+Keep this message as it is: the next update reads the installed version from it in Step 1.
+
+## Step 13: Build, lint, and test
 
 Run the full build pipeline through the command wrapper detected in Step 1 to verify nothing is broken. With Ahoy, alone or next to a Makefile:
 
@@ -293,7 +430,7 @@ ahoy lint
 ahoy test
 ```
 
-A project with neither wrapper has no local lint or test command, so its lint and tests run only in the pull request's CI (Step 12).
+A project with neither wrapper has no local lint or test command, so its lint and tests run only in the pull request's CI (Step 14).
 
 Both lint **warnings** and **errors** must be fixed - warnings are not accepted. Same applies to tests: all warnings and failures must be resolved before proceeding. Fix the issues and create additional commits.
 
@@ -301,24 +438,26 @@ Both lint **warnings** and **errors** must be fixed - warnings are not accepted.
 
 Drupal 10 runs PHPUnit 9.6, which reads only doc-comment annotations such as `@covers`, `@group` and `@dataProvider`. PHPUnit 11 (used by Drupal 11) reports those annotations as deprecated, and PHPUnit 12 (used by Drupal 12) ignores them entirely. **Keep both forms**, the way the scaffold's example tests do: the doc-comment annotation for Drupal 10 and the matching PHP attribute (`#[Group]`, `#[DataProvider]`, and so on) for Drupal 11 and 12. Do not drop the attributes: a test that relies on a doc-comment `@dataProvider` alone loses its data provider on Drupal 12. The `phpstan.neon` ignore for missing `PHPUnit\Framework\Attributes` classes keeps the Drupal 10 lint passing.
 
-## Step 12: Open PR
+## Step 14: Open PR
 
-Push the branch and open a pull request. Use the `/open-pr` skill or create the PR manually with a summary of all changes.
+Push the branch and open a pull request. Use the `/open-pr` skill or create the PR manually with a summary of all changes. Include the conflicts you resolved by judgment, the changes from Step 9 that need a new home and the leftover template files from Step 11.
 
 ## Important notes
 
-- When the user names a version, use that tag verbatim. Otherwise take the newest published release - never a draft. Either way, use the tag verbatim and start without asking the user to confirm it.
-- Always remove the scaffold's example extension and example scripts - a real project never ships them.
+- When the user names a version, use that tag verbatim. Otherwise take the published release with the highest version that is neither a draft nor a pre-release. Either way, use the tag verbatim and start without asking the user to confirm it, and stop when the project is already on that release or a newer one.
+- Never run the installer in the project root, and never copy the release's files over the project's: the merge keeps what the project changed.
+- Always remove the scaffold's example extension and example scripts - a real project never ships them. Step 6 keeps them out of the merge.
 - Never overwrite project-specific code (src/, tests/, config/, *.module, etc.).
-- After copying workflow files, always verify branch references match the project.
-- A project created before 5.0.0 keeps its build scripts in `.devtools/`. Step 4 removes the directory with the rest of the root and the release ships the scripts as the `drevops/eddy-tooling` package instead, so never restore `.devtools/` or merge changes into it. Customisations a project made there become a lifecycle hook in `scripts/` or a patch for the package in `composer.dev.json`.
-- A project created from 4.18.0 or 4.19.0 can carry the Cloudflare tunnel hooks `scripts/provision-cloudflared.sh`, `scripts/start-cloudflared.sh` and `scripts/stop-cloudflared.sh`. Later releases run the tunnel from the tooling package, so Step 7 never restores the hooks, and a customisation made in them becomes a patch for the package in `composer.dev.json`.
+- After the merge, always verify branch references match the project.
+- A project created before 5.0.0 keeps its build scripts in `.devtools/`. The release ships them as the `drevops/eddy-tooling` package instead, so Step 9 removes the directory - never restore `.devtools/` or merge changes into it. Customisations a project made there become a lifecycle hook in `scripts/` or a patch for the package in `composer.dev.json`.
+- A project created from 4.18.0 or 4.19.0 can carry the Cloudflare tunnel hooks `scripts/provision-cloudflared.sh`, `scripts/start-cloudflared.sh` and `scripts/stop-cloudflared.sh`. Later releases run the tunnel from the tooling package, so Step 9 removes the hooks, and a customisation made in them becomes a patch for the package in `composer.dev.json`.
 - Run the full test suite before opening the PR to catch regressions.
 - Prefer `ahoy` or `Makefile` commands over running tools directly. For example, use `ahoy lint` instead of `composer lint`, `ahoy test` instead of `composer test`, `ahoy build` instead of running `vendor/bin/eddy-*` commands manually. Only fall back to direct commands when no `ahoy` or `Makefile` equivalent exists.
 
 ## Working directory rules
 
 - **Never `cd` into the `build/` directory** to run commands. All commands (`ahoy lint`, `ahoy test`, `ahoy build`, etc.) must be run from the project root directory.
+- The installer is the only command that runs outside the project root: Steps 4 and 5 run it from inside its render, then `cd` back.
 - **Never use absolute paths** to run commands. Use relative paths or let `ahoy`/`make` handle path resolution.
 
 ## Command pattern rules

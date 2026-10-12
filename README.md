@@ -566,7 +566,7 @@ When this template is updated, you can merge the changes into your extension cod
 
 An extension created from a 4.x release needs a one-off upgrade to 5.x first. Its `AGENTS.md` can't fetch the update skill anymore, and the upgrade replaces `.devtools/` with the tooling package and CircleCI with GitHub Actions. [MIGRATION.md](MIGRATION.md) walks you through it.
 
-If you use Claude Code, the bundled [`update-consumer-eddy`](.eddy/skills/update-consumer-eddy/SKILL.md) skill automates this process: in your project, ask Claude to "update scaffold" and it will fetch the skill, download the latest scaffold, re-run `install.php` with your original answers, restore project-specific files from git, and reconcile differences.
+If you use Claude Code, the bundled [`update-consumer-eddy`](.eddy/skills/update-consumer-eddy/SKILL.md) skill automates this process: in your project, ask Claude to "update scaffold" and it will fetch the skill, render the latest release and the one your project is on with your original answers, and merge the difference into your project. Your own files and the changes you made on top of the template stay as they are, and only the lines that both sides changed need a decision.
 
 For a manual update, follow these steps:
 

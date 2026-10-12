@@ -14,13 +14,13 @@ There's a more immediate catch, too: a 4.x project can't update itself anymore. 
 
 ## Before you start
 
-- Commit or stash your work in progress. The upgrade replaces most of the files in the project root, and the update skill won't start while the working tree has changes outside `.claude/` and `.idea/`.
+- Commit or stash your work in progress. The upgrade changes most of the files in the project root, and the update skill won't start while the working tree has changes, apart from untracked files in `.claude/` and `.idea/`.
 - Find the edits you made to `.devtools/` and, in a project created from 4.18.0 or 4.19.0, to the `scripts/*-cloudflared.sh` hooks. The upgrade deletes both, so each edit needs a new home (see [`.devtools/` is a package now](#devtools-is-a-package-now)). `git log -p -- .devtools 'scripts/*-cloudflared.sh'` shows every change to those files, template updates included, so look for the commits that are yours.
 - If your project runs on CircleCI, keep its project settings at hand. Its deployment settings move to GitHub Actions (see [CircleCI is gone](#circleci-is-gone)).
 
 ## Upgrade with Claude Code
 
-The `update-consumer-eddy` skill does most of the work. It downloads the latest release, re-runs the installer with your project's answers, restores your own code, removes the template's example files and opens a pull request. It already knows about 4.x projects: it drops `.devtools/` and the Cloudflare hooks instead of restoring them, and it reads your Drupal versions from `.circleci/config.yml` when your project has no GitHub Actions workflow.
+The `update-consumer-eddy` skill does most of the work. It renders the latest release and the release your project is on with your project's answers, merges the difference into your project and opens a pull request. Your own files stay as they are, and so do the changes you made to the template's files, such as the versions Renovate bumped. The skill reads the release your project is on from your last scaffold update commit. Without one, every difference between your files and the new release's comes up for a decision. It already knows about 4.x projects: it drops `.devtools/` and the Cloudflare hooks, and it reads your Drupal versions from `.circleci/config.yml` when your project has no GitHub Actions workflow.
 
 What it can't do is fetch itself into a 4.x project, so you do that part once, from the project root:
 
@@ -41,7 +41,7 @@ What it can't do is fetch itself into a 4.x project, so you do that part once, f
      https://raw.githubusercontent.com/drevops/eddy/main/.eddy/skills/update-consumer-eddy/SKILL.md
    ```
 
-3. Start Claude Code in the project and run `/update-consumer-eddy`, or ask Claude to run the `update-consumer-eddy` skill. On its first run, the skill may add a few command permissions to `.claude/settings.local.json` and ask you to restart Claude Code. Run it again after the restart.
+3. Start Claude Code in the project and run `/update-consumer-eddy`, or ask Claude to run the `update-consumer-eddy` skill. On its first run, the skill may add a few command permissions to `.claude/settings.local.json` and ask you to restart Claude Code. Run it again after the restart. The skill skips releases marked as pre-releases, so to upgrade to one, name its tag after the command: `/update-consumer-eddy <tag>`.
 
 4. Go through [What changed](#what-changed) while you review the pull request it opens, and make the changes the skill leaves to you: moving your `.devtools/` edits, moving the CircleCI settings and, if you want it, adding Drupal 12.
 
