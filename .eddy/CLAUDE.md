@@ -181,3 +181,5 @@ GitHub has no API for the social preview, so upload the new PNG by hand in the r
 `.github/workflows/eddy-test.yml` runs the suite across the `p0`-`p5` groups on Ubuntu and macOS, runs `p3` and `p4` once per WebDriver backend (Selenium on Ubuntu only, chromedriver on both), and validates `composer.json` and the tooling package's `composer.json` (validate + normalize) plus the PHP lint step in `p0`. A second job (`eddy-test-actions`) lints the workflow YAML with `yamllint` and `actionlint` and checks it for security issues with Zizmor.
 
 `.github/workflows/eddy-publish-tooling.yml` publishes `.eddy/tooling/` to the same-named branch of `drevops/eddy-tooling` on every push to `1.x` and to a branch whose name contains `eddy-tooling`.
+
+`install.php` deletes every `.github/workflows/eddy-*.yml` from a generated project, so a maintenance-only workflow takes the `eddy-` prefix and a workflow that ships to projects never does.
