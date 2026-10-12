@@ -93,12 +93,12 @@ Take the version from the newest subject that names one, such as `Updated scaffo
 ## Step 2: Get the latest published scaffold version
 
 ```bash
-gh release list --repo drevops/eddy --exclude-drafts --exclude-pre-releases --limit 5
+gh release list --repo drevops/eddy --exclude-drafts --exclude-pre-releases --limit 10
 ```
 
 `--exclude-drafts` is mandatory. Draft releases are unpublished work in progress and must never be selected, even when they carry the highest version number. `--exclude-pre-releases` skips the releases GitHub marks as pre-releases, such as an alpha or a release candidate, so a project moves to one only when its maintainer asks for it.
 
-Take the topmost (newest) release from that list and use its tag **verbatim** - exactly as printed, including any prefix - for the branch name, the download and the commit message. Never reformat, shorten or normalise it.
+Take the release with the highest version from that list. It is usually the topmost, but the list is ordered by publication date, and a patch for an older line can be published after a newer release. Use its tag **verbatim** - exactly as printed, including any prefix - for the branch name, the download and the commit message. Never reformat, shorten or normalise it.
 
 Do not ask the user to confirm the version. If the user named a version when invoking the skill, use that version verbatim and skip the lookup, whether or not it is a pre-release.
 
@@ -444,7 +444,7 @@ Push the branch and open a pull request. Use the `/open-pr` skill or create the 
 
 ## Important notes
 
-- When the user names a version, use that tag verbatim. Otherwise take the newest published release that is neither a draft nor a pre-release. Either way, use the tag verbatim and start without asking the user to confirm it, and stop when the project is already on that release or a newer one.
+- When the user names a version, use that tag verbatim. Otherwise take the published release with the highest version that is neither a draft nor a pre-release. Either way, use the tag verbatim and start without asking the user to confirm it, and stop when the project is already on that release or a newer one.
 - Never run the installer in the project root, and never copy the release's files over the project's: the merge keeps what the project changed.
 - Always remove the scaffold's example extension and example scripts - a real project never ships them. Step 6 keeps them out of the merge.
 - Never overwrite project-specific code (src/, tests/, config/, *.module, etc.).
