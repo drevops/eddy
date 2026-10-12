@@ -146,6 +146,7 @@ In 5.x:
 
 - A release tag deploys only the tag and leaves your branches alone. `DEPLOY_BRANCH` applies to branch pushes only.
 - A branch push deploys only while its commit is still the tip of the branch. An older commit is skipped with a notice, so it never replaces a newer one.
+- Deployments of the same branch wait for each other instead of running side by side, so 2 of them can't push out of order.
 - The first deployment of a branch creates it.
 - Until the `DEPLOY_REMOTE` secret is set, the `Deploy` workflow skips its steps and reports a notice instead of failing.
 
