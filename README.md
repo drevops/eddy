@@ -97,7 +97,9 @@ See the sections below for more details.
 
 ## Codebase setup
 
-The codebase setup script `php install.php` is a once-off installer. It asks you for some information, updates the codebase to reflect your extension's name and other details, and then deletes itself unless you answer no to "Remove this script". The questions cover the extension name, machine name and type, the Drupal versions to target, the command wrapper, the tools to keep, and whether to keep the example lifecycle scripts. Each answer can be pre-filled with an `INSTALL_*` environment variable for an unattended run - `php install.php --help` lists them.
+The codebase setup script `php install.php` is a once-off installer. It asks you for some information, updates the codebase to reflect your extension's name and other details, and then deletes itself unless you answer no to "Remove this script". The questions cover the extension name, machine name and type, the Drupal versions to target, the command wrapper, the tools to keep, and whether to keep the example lifecycle scripts. Each answer can be pre-filled with an `INSTALL_*` environment variable for an unattended run - `php install.php --help` lists them. `INSTALL_BRANCHES` sets the branches the CI workflows run on, `1.x` by default, without a question of its own.
+
+When `install.php` comes from a download of this template, such as **Download ZIP** or a release archive, it records the Eddy release it came from as `extra.eddy.version` in `composer.dev.json`. A download from a branch records the commit as well, such as `5.0.0-3-g1a2b3c4`. The [update skill](#updating-your-extension) reads it to find the release your project is on.
 
 ![Installation process](.eddy/assets/install.svg)
 
@@ -514,7 +516,7 @@ Add the jobs for every Drupal major you selected in `install.php` as required st
 
 ## Deployment
 
-The CI mirrors the code to your extension's Drupal.org repository (or any other git remote) once the tests pass. It deploys pushes to the `1.x` branch and release tags, and pull requests never deploy. To deploy another branch, such as `2.x`, add it to the `push` branches in `.github/workflows/test.yml`. Updating the scaffold with the [`update-consumer-eddy`](#updating-your-extension) skill keeps the branches you list there.
+The CI mirrors the code to your extension's Drupal.org repository (or any other git remote) once the tests pass. It deploys pushes to the `1.x` branch and release tags, and pull requests never deploy. To deploy another branch, such as `2.x`, add it to the `push` branches in `.github/workflows/test.yml`, or list your branches in `INSTALL_BRANCHES` when you run `install.php`, such as `INSTALL_BRANCHES=1.x,2.x`. Updating the scaffold with the [`update-consumer-eddy`](#updating-your-extension) skill keeps the branches you list there.
 
 A branch push deploys the commit that CI tested to the same branch of the destination repository. Deployments of the same branch never overlap: each one waits for the previous one to finish, then checks the branch on GitHub right before it pushes. If the branch has moved on by then, or an older run is re-run, the deployment is skipped, so an older commit never replaces a newer one. A release tag is deployed as that tag alone and leaves the destination branches untouched.
 
@@ -572,7 +574,7 @@ For a manual update, follow these steps:
 
 1. Download the latest version of this template's code with **Code** -> **Download ZIP** in the GitHub UI.
 2. Expand into a new directory.
-3. Run the initial [codebase setup](#codebase-setup) script: `php install.php` and repeat the answers you provided during the initial setup.
+3. Run the initial [codebase setup](#codebase-setup) script: `php install.php` and repeat the answers you provided during the initial setup. It runs outside your repository, so it can't read your branches from git: if they aren't just `1.x`, list them in `INSTALL_BRANCHES`, such as `INSTALL_BRANCHES=1.x,2.x php install.php`.
 4. Create a new branch in your extension's repository.
 5. Copy all files into your extension's directory and override the existing files.
 6. Resolve any conflicts between the new files and your extension's files. Refer to the release notes for any breaking changes and accept/reject them as needed.

@@ -1,0 +1,10 @@
+@@ -5,7 +5,8 @@
+     tags:
+       - '*'
+     branches:
+-      - 1.x
++      - 2.x
++      - 3.x
+ 
+ permissions:
+   contents: read

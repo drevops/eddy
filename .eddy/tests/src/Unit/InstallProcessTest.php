@@ -7,8 +7,10 @@ namespace DrevOps\Eddy\Tests\Unit;
 use DrevOps\Eddy\Tests\Traits\GitTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Yaml\Yaml;
 
+use function eddy_skills;
 use function main;
 use function process;
 
@@ -133,7 +135,7 @@ final class InstallProcessTest extends UnitTestCase {
       'SECURITY.md',
       'logo.svg',
       '.eddy',
-      '.claude/skills',
+      '.claude/skills/create-eddy-tooling-release-notes',
     ];
 
     yield 'module, gha, ahoy' => [
@@ -372,6 +374,73 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   /**
+   * Files of an existing project outside the template stay untouched.
+   */
+  public function testProcessKeepsProjectFiles(): void {
+    // 'process()' rewrites each of these tokens in a file it walks.
+    $content = "your_extension YourExtension type: module\n#;< META\nblock\n#;> META\n";
+    $paths = [
+      '.claude/settings.local.json',
+      '.claude/skills/update-consumer-eddy/SKILL.md',
+      '.claude/skills/project-skill/SKILL.md',
+      'build/web/core/modules/system/system.info.yml',
+      '.logs/your_extension.log',
+      '.env',
+    ];
+
+    $filesystem = new Filesystem();
+    foreach ($paths as $path) {
+      $filesystem->dumpFile(self::$sut . '/' . $path, $content);
+    }
+
+    process('My Theme', 'my_theme', 'theme', ['10', '11'], ['ahoy'], [], FALSE, FALSE);
+
+    foreach ($paths as $path) {
+      $this->assertSame($content, file_get_contents(self::$sut . '/' . $path), 'Expected untouched: ' . $path);
+    }
+
+    $this->assertStringContainsString('type: theme', (string) file_get_contents(self::$sut . '/my_theme.info.yml'));
+  }
+
+  /**
+   * Eddy's skills go, and '.claude/skills' stays while it holds any other.
+   *
+   * @param array<int, string> $project_skills
+   */
+  #[DataProvider('dataProviderProcessRemovesEddySkills')]
+  public function testProcessRemovesEddySkills(array $project_skills, bool $expect_skills_dir): void {
+    $skills_dir = self::$sut . '/.claude/skills';
+    $filesystem = new Filesystem();
+    // The copy holds whatever skills the local checkout has.
+    $filesystem->remove($skills_dir);
+
+    foreach (eddy_skills() as $skill) {
+      $filesystem->dumpFile($skills_dir . '/' . $skill . '/SKILL.md', 'Eddy skill');
+    }
+
+    foreach ($project_skills as $skill) {
+      $filesystem->dumpFile($skills_dir . '/' . $skill . '/SKILL.md', 'Project skill');
+    }
+
+    process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], [], FALSE, FALSE);
+
+    foreach (eddy_skills() as $skill) {
+      $this->assertDirectoryDoesNotExist($skills_dir . '/' . $skill);
+    }
+
+    foreach ($project_skills as $skill) {
+      $this->assertSame('Project skill', file_get_contents($skills_dir . '/' . $skill . '/SKILL.md'));
+    }
+
+    $this->assertSame($expect_skills_dir, is_dir($skills_dir));
+  }
+
+  public static function dataProviderProcessRemovesEddySkills(): \Iterator {
+    yield 'only Eddy skills' => [[], FALSE];
+    yield 'project skills' => [['update-consumer-eddy', 'project-skill'], TRUE];
+  }
+
+  /**
    * The 'AGENTS.md' wrapper blocks follow the command wrapper selection.
    *
    * @param array<string> $command_wrapper
@@ -551,12 +620,14 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   /**
-   * The shipped workflows keep a project's committed branches, or use '1.x'.
+   * The shipped workflows take the given branches, or a project's committed
+   * branches, or '1.x'.
    *
+   * @param array<int, string> $branches
    * @param array<int, string> $expected
    */
   #[DataProvider('dataProviderProcessSetsWorkflowBranches')]
-  public function testProcessSetsWorkflowBranches(?string $committed, array $expected): void {
+  public function testProcessSetsWorkflowBranches(array $branches, ?string $committed, array $expected): void {
     $workflow = self::$sut . '/.github/workflows/test.yml';
 
     if ($committed !== NULL) {
@@ -572,7 +643,7 @@ final class InstallProcessTest extends UnitTestCase {
       file_put_contents($workflow, $template);
     }
 
-    process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], [], FALSE, FALSE);
+    process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], [], FALSE, FALSE, $branches);
 
     $this->assertSame($expected, self::triggerBranches($workflow, 'push'), 'test.yml push branches mismatch.');
     $this->assertSame($expected, self::triggerBranches($workflow, 'pull_request'), 'test.yml pull_request branches mismatch.');
@@ -580,10 +651,40 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   public static function dataProviderProcessSetsWorkflowBranches(): \Iterator {
-    yield 'new project' => [NULL, ['1.x']];
-    yield 'project branch' => ["on:\n  push:\n    branches:\n      - 2.x\n", ['2.x']];
-    yield 'project branches' => ["on:\n  push:\n    branches:\n      - 1.x\n      - 2.x\n", ['1.x', '2.x']];
-    yield 'project without a push branch filter' => ["on: [push, pull_request]\n", ['1.x']];
+    $project = "on:\n  push:\n    branches:\n      - 2.x\n";
+
+    yield 'new project' => [[], NULL, ['1.x']];
+    yield 'project branch' => [[], $project, ['2.x']];
+    yield 'project branches' => [[], "on:\n  push:\n    branches:\n      - 1.x\n      - 2.x\n", ['1.x', '2.x']];
+    yield 'project without a push branch filter' => [[], "on: [push, pull_request]\n", ['1.x']];
+    yield 'given branches on a new project' => [['2.x', '3.x'], NULL, ['2.x', '3.x']];
+    yield 'given branches over the committed ones' => [['3.x'], $project, ['3.x']];
+  }
+
+  /**
+   * The template version lands next to the build default when it is known.
+   */
+  #[DataProvider('dataProviderProcessRecordsVersion')]
+  public function testProcessRecordsVersion(?string $version): void {
+    process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], [], FALSE, FALSE, [], $version);
+
+    $config = json_decode((string) file_get_contents(self::$sut . '/composer.dev.json'), TRUE);
+    $this->assertIsArray($config);
+    /** @var array{extra?: array{eddy?: array<string, string>}} $config */
+
+    $expected = ['drupal-version' => '11'];
+
+    if ($version !== NULL) {
+      $expected['version'] = $version;
+    }
+
+    $this->assertSame($expected, $config['extra']['eddy'] ?? NULL);
+  }
+
+  public static function dataProviderProcessRecordsVersion(): \Iterator {
+    yield 'release' => ['5.0.0'];
+    yield 'commit after a release' => ['5.0.0-3-g1a2b3c4'];
+    yield 'unknown' => [NULL];
   }
 
   public function testProcessThrowsOnInvalidClaudeSettingsJson(): void {

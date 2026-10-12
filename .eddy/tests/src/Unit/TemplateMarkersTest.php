@@ -185,9 +185,10 @@ final class TemplateMarkersTest extends UnitTestCase {
   /**
    * List the template files that hold '#;'.
    *
-   * Walks the tree that 'get_files()' in 'install.php' walks, minus '.eddy',
-   * which 'install.php' deletes, and local build output. 'install.php' is
-   * skipped because its code spells out marker syntax.
+   * Walks the project tree without the directories that 'get_files()' in
+   * 'install.php' skips by name, '.eddy', which 'install.php' deletes, and
+   * local build output. 'install.php' is skipped because its code spells out
+   * marker syntax.
    *
    * @return \Iterator<string, array{path: string}>
    *   The absolute paths, keyed by path relative to the project root.

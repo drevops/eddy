@@ -11,7 +11,7 @@ The repository is a working Drupal extension - the demo extension in the project
 - `install.php` - the once-off interactive installer that renames, rewrites and prunes the template files for a new project, then deletes itself.
 - `scripts/eddy-tooling` - installs the `drevops/eddy-tooling` package, whose commands build, provision and deploy the extension, into `vendor/`. Generated projects get the package from Packagist; this repository installs `.eddy/tooling` as a symlink, so an edit there applies to the next command without a release.
 - `.eddy/` - everything used to develop and test the scaffold itself, including the source of the tooling package. It is removed from generated projects.
-- `.claude/skills/` - the Claude Code skills used to maintain the scaffold, such as `create-eddy-tooling-release-notes`. It is removed from generated projects.
+- `.claude/skills/` - the Claude Code skills used to maintain the scaffold, such as `create-eddy-tooling-release-notes`. `install.php` removes them from generated projects by name, as listed in `eddy_skills()`, so add a new skill there too.
 
 ## Building and testing the demo extension
 

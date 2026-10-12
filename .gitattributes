@@ -59,3 +59,4 @@
 # Remove the lines below in your project.
 .github/FUNDING.yml export-ignore
 LICENSE.txt         export-ignore
+install.php         export-subst

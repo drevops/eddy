@@ -10,7 +10,7 @@ This file documents how `install.php` prunes the template, how to regenerate the
 - `.eddy/tests/` - PHPUnit suite that validates the scaffold itself: the `install.php` interactive flow, the tooling commands in `.eddy/tooling/src/` with their installer `scripts/eddy-tooling`, and the resulting project structure. Snapshots live under `.eddy/tests/fixtures/install/`.
 - `.eddy/tooling/` - Source of the `drevops/eddy-tooling` Composer package (the `eddy-*` commands). `scripts/eddy-tooling` installs it into `vendor/` as a symlink in this repository, and `eddy-publish-tooling.yml` mirrors it to the read-only `drevops/eddy-tooling` repository on every push to `main` and to a branch whose name contains `eddy-tooling`. Releases are created on the mirror by hand, with notes from the `create-eddy-tooling-release-notes` skill - see `CONTRIBUTING.md`.
 - `.eddy/skills/update-consumer-eddy/` - the update skill that consumer projects fetch through the "Updating the scaffold" section of their `AGENTS.md`.
-- `.claude/skills/` - Claude Code skills for maintaining the scaffold, such as `create-eddy-tooling-release-notes`. `install.php` removes the directory, so generated projects never get them.
+- `.claude/skills/` - Claude Code skills for maintaining the scaffold, such as `create-eddy-tooling-release-notes`. `install.php` removes each one by name, as listed in `eddy_skills()`, so generated projects never get them, and keeps any other skill, such as a project's own when `install.php` runs again in the root of an existing project. A new skill goes into `eddy_skills()` as well: `InstallHelpersTest` fails until every tracked skill is listed.
 
 ## Template markers
 
@@ -27,7 +27,7 @@ A block opens with a line holding `#;< TOKEN` and closes with a line holding `#;
 
 In a Makefile recipe the `@` stops `make` from echoing the line, and the shell then reads it as a comment.
 
-For each token it strips, `remove_tokens_with_content()` deletes every block of that token, markers included, from every text file in the project. It walks the whole tree apart from `.git`, `.idea`, `vendor` and `node_modules`, so a block works in any file you put it in. Once the pruning is done, `remove_special_comments()` deletes every remaining line that contains `#;`, which clears the markers of the blocks that stayed.
+For each token it strips, `remove_tokens_with_content()` deletes every block of that token, markers included, from every text file in the project. It walks the whole tree apart from `.git`, `.idea`, `vendor` and `node_modules`, the paths the root `.gitignore` ignores, and everything in `.claude` except `settings.json`, so a block works in any other file you put it in. The replacements and the marker-line cleanup walk the same files. Once the pruning is done, `remove_special_comments()` deletes every remaining line that contains `#;`, which clears the markers of the blocks that stayed.
 
 | Token                                               | Stripped when                                |
 |-----------------------------------------------------|----------------------------------------------|
@@ -77,12 +77,23 @@ A broken block fails quietly. Every file stays valid, and `composer update-snaps
 
 The scaffold builds from `main`, so the branch filters of `.github/workflows/test.yml` and `draft-release-notes.yml` list `main`. A generated project builds from the branch it releases from on Drupal.org instead, so `process_workflow_branches()` in `install.php` replaces every `- main` line in those 2 files:
 
-- When `HEAD` holds a project copy of `test.yml`, as it does when `install.php` runs again in the root of an existing project, the project keeps that copy's `push` branches.
+- When `INSTALL_BRANCHES` lists any branches, the project gets those. `install.php` reads the variable directly rather than through a prompt, so an unattended run without it never waits for input.
+- Otherwise, when `HEAD` holds a project copy of `test.yml`, as it does when `install.php` runs again in the root of an existing project, the project keeps that copy's `push` branches.
 - Otherwise the project gets `1.x`. A committed copy that still holds `#;` markers is the template's own, such as in a repository created with **Use this template**, so it doesn't count.
 
 The update skill runs `install.php` in a scratch directory, where the lookup finds no committed `test.yml`, so both of its renders get `1.x`. Its 3-way merge then keeps the project's branches, because the 2 renders agree on those lines.
 
 Keep `main` the only branch in those filters: a second branch there ships to every generated project.
+
+## Template version
+
+`install.php` records the Eddy release a project came from as `extra.eddy.version` in its `composer.dev.json`, so the update skill can render that release as the base of its 3-way merge.
+
+The value comes from the `TEMPLATE_VERSION` constant. `.gitattributes` marks `install.php` as `export-subst`, so `git archive` expands the constant's `$Format:%(describe:tags=true)$` placeholder to `git describe` output for the archived commit. GitHub builds every download that way: a release archive, as the update skill fetches it, gets the tag, such as `5.0.0`, and **Download ZIP** of a branch gets the commit after the last tag, such as `5.0.0-3-g1a2b3c4`. A clone, or a repository created with **Use this template**, keeps the placeholder, and `install.php` records nothing.
+
+`git archive` expands every `$Format:` in the file up to the next `$`, which in PHP is usually the next variable. Keep the constant the only place `install.php` holds that text, in comments too. `InstallHelpersTest` archives the real `install.php` and fails when anything other than the constant changes.
+
+The `export-subst` line sits under "Remove the lines below in your project." in `.gitattributes`, and `install.php` removes it from generated projects.
 
 ## Test groups
 
