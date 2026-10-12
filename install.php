@@ -31,7 +31,7 @@ declare(strict_types=1);
  *
  * '.gitattributes' marks this file 'export-subst', so 'git archive' expands
  * the placeholder to the tag of the archived commit, or to a commit after a
- * tag, such as '5.0.0-3-gabc1234'. A copy that no archive produced keeps the
+ * tag, such as '5.0.0-3-g1a2b3c4'. A copy that no archive produced keeps the
  * placeholder. Git expands every placeholder up to the next dollar sign, so
  * no other text in this file may start one.
  */
@@ -1141,7 +1141,7 @@ function set_composer_dev_eddy_value(string $key, string $value): void {
  * Read the template version from 'git describe' output.
  *
  * @param string $describe
- *   The output, such as '5.0.0' or '5.0.0-3-gabc1234'.
+ *   The output, such as '5.0.0' or '5.0.0-3-g1a2b3c4'.
  *
  * @return string|null
  *   The version, or NULL when the value is not 'git describe' output, such as

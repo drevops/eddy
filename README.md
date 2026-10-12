@@ -99,7 +99,7 @@ See the sections below for more details.
 
 The codebase setup script `php install.php` is a once-off installer. It asks you for some information, updates the codebase to reflect your extension's name and other details, and then deletes itself unless you answer no to "Remove this script". The questions cover the extension name, machine name and type, the Drupal versions to target, the command wrapper, the tools to keep, and whether to keep the example lifecycle scripts. Each answer can be pre-filled with an `INSTALL_*` environment variable for an unattended run - `php install.php --help` lists them. `INSTALL_BRANCHES` sets the branches the CI workflows run on, `1.x` by default, without a question of its own.
 
-When `install.php` comes from a download of this template, such as **Download ZIP** or a release archive, it records the Eddy release it came from as `extra.eddy.version` in `composer.dev.json`. A download from a branch records the commit as well, such as `5.0.0-3-gabc1234`.
+When `install.php` comes from a download of this template, such as **Download ZIP** or a release archive, it records the Eddy release it came from as `extra.eddy.version` in `composer.dev.json`. A download from a branch records the commit as well, such as `5.0.0-3-g1a2b3c4`.
 
 ![Installation process](.eddy/assets/install.svg)
 

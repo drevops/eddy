@@ -89,7 +89,7 @@ Keep `main` the only branch in those filters: a second branch there ships to eve
 
 `install.php` records the Eddy release a project came from as `extra.eddy.version` in its `composer.dev.json`, so a later update can tell which release the project started from.
 
-The value comes from the `TEMPLATE_VERSION` constant. `.gitattributes` marks `install.php` as `export-subst`, so `git archive` expands the constant's `$Format:%(describe:tags=true)$` placeholder to `git describe` output for the archived commit. GitHub builds every download that way: a release archive, as the update skill fetches it, gets the tag, such as `5.0.0`, and **Download ZIP** of a branch gets the commit after the last tag, such as `5.0.0-3-gabc1234`. A clone, or a repository created with **Use this template**, keeps the placeholder, and `install.php` records nothing.
+The value comes from the `TEMPLATE_VERSION` constant. `.gitattributes` marks `install.php` as `export-subst`, so `git archive` expands the constant's `$Format:%(describe:tags=true)$` placeholder to `git describe` output for the archived commit. GitHub builds every download that way: a release archive, as the update skill fetches it, gets the tag, such as `5.0.0`, and **Download ZIP** of a branch gets the commit after the last tag, such as `5.0.0-3-g1a2b3c4`. A clone, or a repository created with **Use this template**, keeps the placeholder, and `install.php` records nothing.
 
 `git archive` expands every `$Format:` in the file up to the next `$`, which in PHP is usually the next variable. Keep the constant the only place `install.php` holds that text, in comments too. `InstallHelpersTest` archives the real `install.php` and fails when anything other than the constant changes.
 

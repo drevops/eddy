@@ -254,7 +254,7 @@ final class InstallHelpersTest extends UnitTestCase {
   public static function dataProviderTemplateVersion(): \Iterator {
     yield 'release tag' => ['5.0.0', '5.0.0'];
     yield 'pre-release tag' => ['5.0.0-alpha1', '5.0.0-alpha1'];
-    yield 'commit after a tag' => ['5.0.0-3-gabc1234', '5.0.0-3-gabc1234'];
+    yield 'commit after a tag' => ['5.0.0-3-g1a2b3c4', '5.0.0-3-g1a2b3c4'];
     yield 'build metadata' => ['5.0.0+build.1', '5.0.0+build.1'];
     yield 'unexpanded placeholder' => ['$Format:%(describe:tags=true)$', NULL];
     yield 'no tag to describe' => ['', NULL];

@@ -683,7 +683,7 @@ final class InstallProcessTest extends UnitTestCase {
 
   public static function dataProviderProcessRecordsVersion(): \Iterator {
     yield 'release' => ['5.0.0'];
-    yield 'commit after a release' => ['5.0.0-3-gabc1234'];
+    yield 'commit after a release' => ['5.0.0-3-g1a2b3c4'];
     yield 'unknown' => [NULL];
   }
 
