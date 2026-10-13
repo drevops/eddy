@@ -7,7 +7,7 @@ The commands that build, run, test and deploy a Drupal module or theme created f
 
 ## Installation
 
-A project created from Eddy doesn't install this package with a plain `composer install`, because its `composer.json` belongs to the extension and the Drupal site is assembled into `build/` by the tooling itself. Instead, `scripts/eddy-tooling` installs the package into the project's `vendor/` directory. The command wrappers run it before their commands, and CI runs it as a step of its own.
+A project created from Eddy doesn't install this package with a plain `composer install`, because its `composer.json` belongs to the extension and the Drupal site is assembled into `build/` by the tooling itself. Instead, `scripts/eddy-tooling` installs the package into the project's `vendor/` directory. The command wrappers run it before the commands that need it, and CI runs it as a step of its own.
 
 The installer reads the version constraint from `composer.dev.json`:
 

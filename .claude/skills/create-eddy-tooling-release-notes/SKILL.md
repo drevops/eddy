@@ -8,7 +8,7 @@ user-invocable: true
 
 Generate consumer-facing release notes for the `drevops/eddy-tooling` Composer package.
 
-`drevops/eddy-tooling` is a **read-only mirror** of the `.eddy/tooling/` directory in the `drevops/eddy` repository. The `eddy-publish-tooling.yml` workflow copies that directory to the mirror on every push to `main`, so the mirror's history is mostly noise: it holds 1 commit per Eddy commit, including empty commits for Eddy commits that didn't touch the tooling. Tooling releases are created by hand in the GitHub UI and rarely align with Eddy releases, so "what changed since the last tooling release" can't be read off an Eddy tag. This skill rebuilds that set from the Eddy history and turns it into release notes.
+`drevops/eddy-tooling` is a **read-only mirror** of the `.eddy/tooling/` directory in the `drevops/eddy` repository. The `eddy-publish-tooling.yml` workflow copies that directory to the mirror on every push to `main`, so the mirror's history is mostly noise: it holds 1 commit per push to `main`, empty when the push didn't touch the tooling, and none for a push that a newer one overtook. Tooling releases are created by hand in the GitHub UI and rarely align with Eddy releases, so "what changed since the last tooling release" can't be read off an Eddy tag. This skill rebuilds that set from the Eddy history and turns it into release notes.
 
 ## When to use
 

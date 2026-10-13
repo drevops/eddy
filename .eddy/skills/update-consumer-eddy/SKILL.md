@@ -85,7 +85,7 @@ Then read the project to determine the answers for the installation script:
 4. **CI provider** (4.x releases only): `gha` if `.github/workflows/` exists, `circleci` if `.circleci/` exists. Later releases support only GitHub Actions and do not ask.
 5. **Command wrapper**: `ahoy` if `.ahoy.yml` exists and `makefile` if `Makefile` exists - `ahoy,makefile` when both exist, and an empty string when neither does.
 6. **Drupal versions**: the Drupal majors in the CI matrix - the `drupal-version` values in `.github/workflows/test.yml`, or the `DRUPAL_VERSION` values in `.circleci/config.yml` for a project that still uses CircleCI - as a comma-separated list (e.g. `10,11`).
-7. **Tools**: every tool whose file still exists - `phpcs` (`phpcs.xml`), `phpstan` (`phpstan.neon`), `rector` (`rector.php`), `twigcs` (`.twig-cs-fixer.php`), `eslint` (`.eslintrc.json`), `stylelint` (`.stylelintrc.js`), `cspell` (`.cspell.json`), `jest` (`jest.config.js`), `phpunit` (`phpunit.xml`), `functional_javascript` (a `tests/src/FunctionalJavascript/` directory) and `renovate` (`renovate.json`). The `functional-javascript` test suite in `phpunit.xml` doesn't tell whether the project has FunctionalJavascript tests: every 4.x release ships it, with or without them.
+7. **Tools**: every tool whose file still exists - `phpcs` (`phpcs.xml`), `phpstan` (`phpstan.neon`), `rector` (`rector.php`), `twigcs` (`.twig-cs-fixer.php`), `eslint` (`.eslintrc.json`), `stylelint` (`.stylelintrc.js`), `cspell` (`.cspell.json`), `jest` (`jest.config.js`), `phpunit` (`phpunit.xml`), `functional_javascript` (a `tests/src/FunctionalJavascript/` directory) and `renovate` (`renovate.json`). The `functional-javascript` test suite in `phpunit.xml` doesn't tell whether the project has FunctionalJavascript tests: releases before 4.16.3 ship it with or without them, and a project can delete its tests and keep the suite.
 8. **Cloudflare** (4.18.0 and 4.19.0 only): `true` if `scripts/start-cloudflared.sh` exists, `false` otherwise. Later releases run the tunnel from the tooling package and do not ask.
 9. **GitHub repository**: the `owner/name` of the project's GitHub repository, such as `AlexSkrypnyk/drupal_helpers`, which the README badges point to:
 
@@ -143,7 +143,7 @@ mkdir -p .artifacts/tmp/eddy-update/base .artifacts/tmp/eddy-update/new
 
 2. Write `.artifacts/tmp/eddy-update/.gitignore` with the single line `*`. Git then ignores the scratch directory, so `git status` never lists it and `git add -A` never stages it.
 
-3. Download the release archive and extract it into `new` (not a git clone - the release archive has scaffold-only files removed):
+3. Download the release archive and extract it into `new` (not a git clone - the archive expands the version that `install.php` records as `extra.eddy.version`):
 
 ```bash
 gh release download <version> --repo drevops/eddy --archive tar.gz --output .artifacts/tmp/eddy-update/new.tar.gz
@@ -197,7 +197,7 @@ The script is `install.php` with the `INSTALL_` prefix in releases after 4.x. A 
 
 Step 7 merges against a render of the release the project is on, which is how it tells the project's own changes to the template's files apart from the new release's.
 
-Skip this step and leave `base` empty when Step 1 found no installed version, or found one older than 4.14.0: earlier releases read their answers only from the terminal. Step 7 then merges without a base.
+Skip this step and leave `base` empty when Step 1 found no installed version, or found one older than 4.14.0: earlier releases don't read their answers from environment variables. Step 7 then merges without a base.
 
 Otherwise render the installed version into `base` the way Step 4 renders the new release:
 
@@ -219,7 +219,7 @@ Run that release's installer here with the answers from Step 1 as they are, `INS
 cd ../../../..
 ```
 
-The Drupal versions stay the ones the project tests now, even when Step 4 adds or drops a major. With the change in both renders, the merge would apply none of it, and a 4.x installer rejects `12` outright, which leaves Step 7 without a base.
+The Drupal versions stay the ones the project tests now, even when Step 4 adds or drops a major. With the change in both renders, the merge would apply none of it. A 4.x installer also mishandles `12`: 4.19.0 rejects it, which leaves Step 7 without a base, 4.17.0 and 4.18.0 write it into the assemble default, and earlier releases ignore it.
 
 If the download or the installer fails, return to the project root, empty `base` and carry on without a base:
 
@@ -379,7 +379,7 @@ Without a base, the merge cannot tell the project's content from older template 
 
 ## Step 12: Commit
 
-Remove the scratch directory first. It sits inside the extension's directory, which the build in Step 13 links into the site:
+Remove the scratch directory first. No later step needs the renders or the throwaway repository:
 
 ```bash
 rm -rf .artifacts/tmp/eddy-update
@@ -401,7 +401,7 @@ Commit with this message:
 Updated scaffold to <version>.
 ```
 
-Keep this message as it is: the next update reads the installed version from it in Step 1.
+Keep this message as it is: when `composer.dev.json` holds no `extra.eddy.version`, the next update reads the installed version from it in Step 1.
 
 ### Code changes for a new Drupal major
 
@@ -510,7 +510,7 @@ When the deployment check above found `DEPLOY_REMOTE`, end the description with 
 - Always keep the scaffold's example extension and example scripts out of the merge - a real project never ships them. Step 7 leaves them out of both commits with the exclude pathspecs from Step 6.
 - Never overwrite project-specific code (src/, tests/, config/, *.module, etc.). Edit it only for the code changes a new Drupal major needs (Step 12) and the fixes Step 13 calls for.
 - After the merge, always verify branch references match the project.
-- A project created before 5.0.0 keeps its build scripts in `.devtools/`. The release ships them as the `drevops/eddy-tooling` package instead, so Step 9 removes the directory - never restore `.devtools/` or merge changes into it. Customisations a project made there become a lifecycle hook in `scripts/` or a patch for the package in `composer.dev.json`.
+- A project created from a 4.x release keeps its build scripts in `.devtools/`. The release ships them as the `drevops/eddy-tooling` package instead, so Step 9 removes the directory - never restore `.devtools/` or merge changes into it. Customisations a project made there become a lifecycle hook in `scripts/` or a patch for the package in `composer.dev.json`.
 - A project created from 4.18.0 or 4.19.0 can carry the Cloudflare tunnel hooks `scripts/provision-cloudflared.sh`, `scripts/start-cloudflared.sh` and `scripts/stop-cloudflared.sh`. Later releases run the tunnel from the tooling package, so Step 9 removes the hooks, and a customisation made in them becomes a patch for the package in `composer.dev.json`.
 - A project on 4.15.0 to 4.18.0 that deploys from GitHub Actions deploys this update's pull request until it merges. Never push its branch until the user confirms `DEPLOY_PROCEED` is `0` or says to push anyway (Step 14).
 - Run the full test suite before opening the PR to catch regressions.

@@ -39,11 +39,11 @@ composer --working-dir=.eddy/tests install
 | A single class   | `composer --working-dir=.eddy/tests test -- --filter=InstallTest` |
 | Coding standards | `composer --working-dir=.eddy/tests lint`                         |
 
-Tests are tagged `p0` to `p5` so CI can run them as parallel jobs. `p0` is the in-process unit suite, `p1` is the `install.php` snapshot test, and `p2` to `p5` exercise the full build pipeline and need a Drupal-friendly PHP setup. `p3` and `p4` also need a WebDriver backend: a Selenium container or a local Chrome driven by chromedriver.
+Tests are tagged `p0` to `p5` so CI can run them as parallel jobs. `p0` is the in-process unit suite, `p1` is the `install.php` snapshot test, and `p2` to `p5` exercise the full build pipeline and need a Drupal-friendly PHP setup. `p3` and `p4` also need a WebDriver backend: a Selenium container or a local Chrome driven by chromedriver. `p3` and `p5` run Ahoy, `p4` and `p5` run `make`, and `p5` needs the xdebug extension loaded with `xdebug.mode=off`.
 
 ## Regenerating snapshot fixtures
 
-Files under `.eddy/tests/fixtures/install/` are generated - never edit them by hand. After any change that affects `install.php` output, regenerate them:
+Files under `.eddy/tests/fixtures/install/` are generated - never edit them by hand, apart from the `.ignorecontent` rule files. After any change that affects `install.php` output, regenerate them:
 
 1. Commit your source changes first, as their own commit.
 2. From `.eddy/tests`, run the update command:
@@ -53,7 +53,7 @@ cd .eddy/tests
 composer update-snapshots
 ```
 
-It commits the regenerated baseline on its own, then amends it with each dataset fixture. Review the result with `git show --stat` and confirm `composer test -- --filter=InstallTest` passes before pushing.
+It commits a changed baseline on its own and adds the dataset fixtures to that commit, or commits them on their own when the baseline didn't change. Review the result with `git show --stat` and confirm `composer test -- --filter=InstallTest` passes before pushing.
 
 ## Publishing the tooling package
 
@@ -71,3 +71,5 @@ Releases are created on the mirror by hand:
 ## Continuous integration
 
 `.github/workflows/eddy-test.yml` runs the suite across the `p0` to `p5` groups. See [`.eddy/CLAUDE.md`](.eddy/CLAUDE.md) for the full maintenance reference, including the marker blocks `install.php` prunes the template with, the steps for adding a Drupal major or a tool, and how to regenerate the animated demo assets.
+
+<!-- cspell:ignore ignorecontent -->

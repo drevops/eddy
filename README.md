@@ -61,7 +61,7 @@ Eddy isn't for building websites. To stand up a Drupal site, use [Vortex](https:
   - Patches can be applied to the dependencies: declare a patch in the `patches` section of `composer.dev.json` or `composer.json` and the build applies it with [composer-patches](https://github.com/cweagans/composer-patches). Local patches are sourced from the `patches` directory.
   - Command wrappers using `make` and [Ahoy](https://github.com/ahoy-cli/ahoy) for common tasks.
 - Coding standards checking:
-  - PHP code standards checking against `Drupal` and `DrupalPractice` standards.
+  - PHP code standards checking against `Drupal`, `DrupalPractice`, `DrevOps` and `PHPCompatibility` standards.
   - PHP code static analysis with PHPStan (including [PHPStan Drupal](https://github.com/mglaman/phpstan-drupal)).
   - PHP deprecated code analysis and auto-fixing with [Drupal Rector](https://github.com/palantirnet/drupal-rector).
   - Twig code analysis with [Twig CS Fixer](https://github.com/VincentLanglet/Twig-CS-Fixer).
@@ -123,13 +123,15 @@ ahoy provision    # Provision the Drupal website
 
 The `provision` command is useful for re-installing the Drupal website without re-assembling the codebase.
 
+`make info` or `ahoy info` (alias `describe`) prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path. `make reset` or `ahoy reset` (aliases `delete` and `destroy`) stops the project's webserver and browser and removes the `build`, `.logs` and `vendor` directories. `make help` lists the `make` commands, since a bare `make` runs `build`, and a bare `ahoy` lists the `ahoy` ones.
+
 Your extension documents the same commands for its own contributors in [CONTRIBUTING.md](CONTRIBUTING.dist.md).
 
 ![Build process](.eddy/assets/build.svg)
 
 ### The tooling package
 
-The commands that assemble, start, provision and deploy your extension ship as the [`drevops/eddy-tooling`](.eddy/tooling) Composer package rather than as files copied into your project, so fixes reach you through a version constraint instead of a manual merge. The package can't come from the site build it assembles, so `scripts/eddy-tooling` installs it into `vendor/`, with each command in `vendor/bin/eddy-*`. `make` and `ahoy` run the installer before their commands and CI runs it as a step of its own; without a wrapper, run `scripts/eddy-tooling` once yourself.
+The commands that assemble, start, provision and deploy your extension ship as the [`drevops/eddy-tooling`](.eddy/tooling) Composer package rather than as files copied into your project, so fixes reach you through a version constraint instead of a manual merge. The package can't come from the site build it assembles, so `scripts/eddy-tooling` installs it into `vendor/`, with each command in `vendor/bin/eddy-*`. `make` and `ahoy` run the installer before the commands that need it, and CI runs it as a step of its own; without a wrapper, run `scripts/eddy-tooling` yourself before them.
 
 The version constraint lives in `composer.dev.json`, next to the other development dependencies:
 
@@ -174,8 +176,8 @@ For example, as of October 2026:
 
 | `DRUPAL_VERSION` | Drupal core | Drush |
 |------------------|-------------|-------|
-| `11` | `11.4.8` | `13.8.0` |
-| `11@beta` | `11.4.8`, then the 11.5 pre-releases once they exist | `13.8.0` |
+| `11` | `11.4.9` | `13.8.0` |
+| `11@beta` | `11.4.9`, then the 11.5 pre-releases once they exist | `13.8.0` |
 | `12` | `12.0.0-beta1`, then `12.0.0` once it ships | `14.x-dev`, then `14.0.0` once it's tagged |
 
 ### CI Drupal version matrix
@@ -200,7 +202,7 @@ Each job name encodes the PHP bound (`min`/`max`), the Drupal major (`d10`/`d11`
 The two axes behave differently:
 
 - **Drupal versions float, except for the pinned `legacy` minors.** `stable` (`10`, `11`, `12`) resolves to the newest stable release, and `canary` (`11@beta`, `12@beta`) to the newest release at beta stability or above - the next minor's beta or release candidate when there is one, otherwise the current stable release. A major or minor with no stable release yet resolves to its newest pre-release instead. The `legacy` minors (`11.1.0` and `12.0.0`, each resolving to the newest patch of its minor) are pinned on purpose so the jobs genuinely exercise an older minor.
-- **PHP versions are pinned bounds.** The GitHub Actions setup action can't float a PHP version - it takes an explicit version - so the `min` and `max` PHP values are fixed. They change rarely: `max` when a newer PHP is added, `min` only when support for an old PHP is dropped.
+- **PHP versions are pinned bounds.** Each job sets an explicit PHP version, so the `min` and `max` PHP values are fixed. They change rarely: `max` when a newer PHP is added, `min` only when support for an old PHP is dropped.
 
 Because `stable` and `canary` float, the matrix follows Drupal core on its own - a new stable minor or pre-release is picked up on the next CI run with no manual changes. The pinned `legacy` minors and the PHP versions are set-and-forget: they keep exercising the same floor indefinitely, so there is nothing you have to maintain by hand. When you want to move that floor forward as core and PHP advance, re-pull from the scaffold (see [Updating your extension](#updating-your-extension)) - this template tracks the versions Drupal core provides, so updating from it refreshes the `legacy` pins and the PHP versions for you.
 
@@ -316,17 +318,17 @@ DEBUG=1 ahoy build   # same, with ahoy
 
 ### Optional dependencies
 
-If your extension requires additional dependencies for integration testing between extensions, add the dependency into the `suggest` section of `composer.json`. The dependency is included in the assembled codebase and enabled in the Drupal website.
+If your extension requires additional dependencies for integration testing between extensions, add the dependency into the `suggest` section of `composer.json`. The dependency is included in the assembled codebase, and a `drupal/*` dependency is enabled as a module in the Drupal website.
 
 ### Frontend dependencies
 
 If your extension requires frontend dependencies for testing, add them to the `package.json` file. The `package-lock.json` file is expected to be committed to the repository. When you keep none of ESLint, Stylelint, CSpell and Jest, `install.php` removes both files and the Node.js steps of the CI lint job, so add a `package.json` of your own if your extension needs frontend dependencies later.
 
-The `assemble` command installs (`npm ci`) and builds (`npm run build`) the frontend dependencies within the `build` directory. You can add and commit a `.skip_npm_build` file to skip all Node.js processing, which will also disable JS/CSS linting (ESLint, Stylelint, Prettier) and the Jest tests.
+The `assemble` command installs (`npm ci`) and builds (`npm run build`) the frontend dependencies within the `build` directory. You can add and commit a `.skip_npm_build` file to skip these Node.js steps, which also disables JS/CSS linting (ESLint, Stylelint, Prettier) and the Jest tests. CSpell runs from the project root, so it still runs.
 
 ### Provisioning the website
 
-The `provision` command installs the Drupal website from the `standard` profile with your extension (and any `suggest`'ed extensions) enabled. The profile can be changed by setting the `DRUPAL_PROFILE` environment variable.
+The `provision` command installs the Drupal website from the `standard` profile with your extension (and any `drupal/*` modules in `suggest`) enabled. The profile can be changed by setting the `DRUPAL_PROFILE` environment variable.
 
 The website is served at `http://localhost:8000`, or at the first free port up to 8099 when another process uses 8000, and `start` prints the URL (see [Webserver port](#webserver-port)). The hostname can be changed by setting the `WEBSERVER_HOST` environment variable.
 
@@ -341,6 +343,8 @@ The `WEBSERVER_PORT` is resolved with the following precedence:
 The `.env` file is loaded automatically by `make` (via `-include .env` and `export`) and `ahoy` (via the native `env:` field), so all wrapper commands see the resolved port without further configuration. The file is gitignored.
 
 To force re-discovery, delete `.env` (or just the `WEBSERVER_PORT` line in it) and re-run `make start` / `ahoy start`.
+
+Once it launches the webserver, `start` waits up to `WEBSERVER_WAIT_TIMEOUT` seconds, 5 by default, for it to accept connections.
 
 `start`, `stop` and `reset` only stop the webserver that serves the project's own `build/web`. When another process holds the port, such as the server of another project that recorded the same port, `stop` and `reset` leave it running, and `start` fails and names it. Stop that process, or set `WEBSERVER_PORT` in `.env` to a free port.
 
@@ -408,7 +412,7 @@ To start and stop debug sessions from the browser, install the Xdebug Helper ext
 The `make lint` or `ahoy lint` command checks the codebase using multiple tools:
 
 - Spell checking with CSpell.
-- PHP code standards checking against `Drupal` and `DrupalPractice` standards.
+- PHP code standards checking against `Drupal`, `DrupalPractice`, `DrevOps` and `PHPCompatibility` standards.
 - PHP code static analysis with PHPStan.
 - PHP deprecated code analysis and auto-fixing with Drupal Rector.
 - Twig code analysis with Twig CS Fixer.
@@ -429,7 +433,7 @@ If automatic fixes are not accurate, you can adjust the configuration files to e
 
 The `make test` or `ahoy test` command runs every PHPUnit test suite and the Jest tests for your extension.
 
-The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests. It uses Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
+The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests, and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both use Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
 
 Each suite also has a command of its own:
 
@@ -471,20 +475,20 @@ ahoy browser-stop
 
 The browser reaches the webserver at `localhost` with the default backend, and at `host.docker.internal` (macOS) or `172.17.0.1` (other systems) from the Selenium container. Set `WEBDRIVER_HOST` to use a different address.
 
-Either backend gets its own WebDriver port: a free one is claimed starting at 4444 and stored in `.env`, so several projects can run FunctionalJavascript tests at the same time. Set `WEBDRIVER_PORT` to pin a specific one. Tests reach the claimed port because the base class applies it to the WebDriver endpoint, so extend `YourExtensionFunctionalJavascriptTestBase` rather than `WebDriverTestBase` directly - a test that bypasses it keeps the default endpoint from `phpunit.xml` unless it exports its own `MINK_DRIVER_ARGS_WEBDRIVER`.
+Each project gets its own WebDriver port, whichever backend it uses: a free one is claimed starting at 4444 and stored in `.env`, so several projects can run FunctionalJavascript tests at the same time. Set `WEBDRIVER_PORT` to pin a specific one. Tests reach the claimed port because the base class applies it to the WebDriver endpoint, so extend `YourExtensionFunctionalJavascriptTestBase` rather than `WebDriverTestBase` directly - a test that bypasses it keeps the default endpoint from `phpunit.xml` unless it exports its own `MINK_DRIVER_ARGS_WEBDRIVER`.
 
 ![Test process](.eddy/assets/test.svg)
 
 ### Running specific tests
 
-You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the `make test` or `ahoy test` command. PHPUnit runs inside `build`, so a test path starts at your extension's symlink in the assembled site (`web/themes/custom/` for a theme):
+You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the `make test` or `ahoy test` command. PHPUnit runs inside `build`, so a test path starts at your extension's symlink in the assembled site (`web/themes/custom/` for a theme). `make` reads an argument that holds `=` as a variable, so separate an option from its value with a space:
 
 ```bash
 make test-unit web/modules/custom/your_extension/tests/src/Unit/MyUnitTest.php
-make test-unit -- --group=wip
+make test-unit -- --group wip
 
 ahoy test-unit web/modules/custom/your_extension/tests/src/Unit/MyUnitTest.php
-ahoy test-unit -- --group=wip
+ahoy test-unit -- --group wip
 ```
 
 You may also run tests using the `phpunit` command directly:
@@ -502,7 +506,7 @@ PHPUnit collects code coverage with [pcov](https://github.com/krakjoe/pcov) and 
 
 ### Deprecated code testing
 
-The tests are configured to check for deprecated code usage and fail if any is found. You can fix the deprecated code or ignore the deprecations by adding a `.deprecation-ignore.txt` file to the root of the codebase and setting the `SYMFONY_DEPRECATIONS_HELPER` environment variable in the `phpunit.xml` to `ignoreFile=../.deprecation-ignore.txt`. PHPUnit runs from the `build` directory, so the path is relative to it. See https://www.drupal.org/node/3285162 for more details.
+The tests are configured to check for deprecated code usage and fail if any is found. You can fix the deprecated code or ignore the deprecations by adding a `.deprecation-ignore.txt` file to the root of the codebase and setting the `SYMFONY_DEPRECATIONS_HELPER` environment variable in `phpunit.xml`, and in `phpunit.d10.xml` for Drupal 10, to `ignoreFile=../.deprecation-ignore.txt`. PHPUnit runs from the `build` directory, so the path is relative to it. See https://www.drupal.org/node/3285162 for more details.
 
 Note that the CI test jobs that run PHP 8.4 or newer set the `SYMFONY_DEPRECATIONS_HELPER` environment variable to `disabled` to ignore deprecation errors, because not every tested Drupal version fully supports the newer PHP versions yet. You may want to adjust this CI configuration for your project depending on your deprecated code policy.
 
@@ -578,7 +582,7 @@ For a manual update, follow these steps:
 
 1. Download the latest version of this template's code with **Code** -> **Download ZIP** in the GitHub UI.
 2. Expand into a new directory.
-3. Run the initial [codebase setup](#codebase-setup) script: `php install.php` and repeat the answers you provided during the initial setup. It runs outside your repository, so it can't read your branches from git: if they aren't just `1.x`, list them in `INSTALL_BRANCHES`, such as `INSTALL_BRANCHES=1.x,2.x php install.php`.
+3. Run the initial [codebase setup](#codebase-setup) script: `php install.php` and repeat the answers you provided during the initial setup. It runs outside your repository, so it can't read your branches or your GitHub repository from git: if your branches aren't just `1.x`, list them in `INSTALL_BRANCHES`, and set `INSTALL_GITHUB_REPOSITORY` so the README badges keep naming your repository, such as `INSTALL_BRANCHES=1.x,2.x INSTALL_GITHUB_REPOSITORY=owner/name php install.php`.
 4. Create a new branch in your extension's repository.
 5. Copy all files into your extension's directory and override the existing files.
 6. Resolve any conflicts between the new files and your extension's files. Refer to the release notes for any breaking changes and accept/reject them as needed.
