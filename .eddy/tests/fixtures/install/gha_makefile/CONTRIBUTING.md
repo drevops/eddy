@@ -108,7 +108,7 @@
 +make browser-stop
  ```
  
- The `test` and `test-functional-javascript` commands both start the browser before they run the suite. It keeps running afterwards, so the next run reuses it - stop it with `browser-stop` when you're done.
+ The `test` and `test-functional-javascript` commands both start the browser before they run the suite. It keeps running afterwards, so the next run reuses it - stop it with `browser-stop` when you're done. The `browser-start` command reuses only the project's own browser: when the browser of another project holds the WebDriver port, it fails and names it, and `browser-stop` leaves that browser running.
 @@ -174,10 +174,10 @@
  To run the browser in a Docker Selenium container instead, set `WEBDRIVER_BACKEND=selenium`. The container cannot reach the host's `localhost`, so start the webserver on all interfaces:
  

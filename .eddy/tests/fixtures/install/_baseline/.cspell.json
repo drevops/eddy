@@ -71,7 +71,6 @@
         "phpstan",
         "phpstorm",
         "phpunit",
-        "pkill",
         "popd",
         "prompty",
         "prophesize",

@@ -39,7 +39,7 @@ commands:
     aliases: [debug-on, xdebug, xdebug-on]
     cmd: |
       [ "$(vendor/bin/eddy-info xdebug)" = "enabled" ] && echo "XDebug is already enabled. Run 'ahoy start' to disable." || \
-      (XDEBUG=1 vendor/bin/eddy-start && sleep 1 && [ "$(vendor/bin/eddy-info xdebug)" = "enabled" ] && echo "Enabled XDebug. Run 'ahoy start' to disable." || (echo "Failed to enable XDebug." && exit 1))
+      (XDEBUG=1 vendor/bin/eddy-start && [ "$(vendor/bin/eddy-info xdebug)" = "enabled" ] && echo "Enabled XDebug. Run 'ahoy start' to disable." || (echo "Failed to enable XDebug." && exit 1))
 
   provision:
     usage: Provision application within assembled codebase.
@@ -149,6 +149,7 @@ commands:
     aliases: [delete, destroy]
     cmd: |
       vendor/bin/eddy-stop > /dev/null 2>&1 || true
+      vendor/bin/eddy-browser-stop > /dev/null 2>&1 || true
       chmod -Rf 777 build .logs > /dev/null 2>&1 || true
       rm -Rf build > /dev/null 2>&1 || true
       rm -Rf .logs > /dev/null 2>&1 || true
