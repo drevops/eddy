@@ -34,7 +34,7 @@
  **Using Ahoy:**
  - `ahoy build` - Complete build process
  - `ahoy assemble` - Assemble codebase
-@@ -35,26 +39,25 @@
+@@ -35,33 +39,31 @@
  ### Code Quality
  
  **Linting:**
@@ -63,11 +63,11 @@
  
  ### Diagnostics
  
-+- `make info` - Print a read-only summary of PHP/Drupal/Composer/Drush/Node/npm versions, webserver host/port (with source), site URL, XDebug state, WebDriver port, build directory, database path, and active profile. (alias: `make describe`)
- - `ahoy info` - Print a read-only summary of PHP/Drupal/Composer/Drush/Node/npm versions, webserver host/port (with source), site URL, XDebug state, WebDriver port, build directory, database path, and active profile. (alias: `ahoy describe`)
+-- `ahoy info` - Print a read-only summary of PHP/Drupal/Composer/Drush/Node/npm versions, webserver host/port (with source), site URL, XDebug state, WebDriver port, build directory, database path, and active profile. (alias: `ahoy describe`)
++- `make info` - Print a read-only summary of PHP/Drupal/Composer/Drush/Node/npm versions, webserver host/port (with source), site URL, XDebug state, build directory, database path, and active profile. (alias: `make describe`)
++- `ahoy info` - Print a read-only summary of PHP/Drupal/Composer/Drush/Node/npm versions, webserver host/port (with source), site URL, XDebug state, build directory, database path, and active profile. (alias: `ahoy describe`)
  
  ## Project Structure
-@@ -61,7 +64,6 @@
  
  **Key Directories:**
  - `src/` - Extension source code (services, forms, etc.)

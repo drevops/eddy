@@ -20,7 +20,14 @@
  
  ### Drupal Commands
  
-@@ -61,7 +54,6 @@
+@@ -55,13 +48,12 @@
+ 
+ ### Diagnostics
+ 
+-- `ahoy info` - Print a read-only summary of PHP/Drupal/Composer/Drush/Node/npm versions, webserver host/port (with source), site URL, XDebug state, WebDriver port, build directory, database path, and active profile. (alias: `ahoy describe`)
++- `ahoy info` - Print a read-only summary of PHP/Drupal/Composer/Drush/Node/npm versions, webserver host/port (with source), site URL, XDebug state, build directory, database path, and active profile. (alias: `ahoy describe`)
+ 
+ ## Project Structure
  
  **Key Directories:**
  - `src/` - Extension source code (services, forms, etc.)
