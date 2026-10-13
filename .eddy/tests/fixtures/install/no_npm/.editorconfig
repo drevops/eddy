@@ -1,0 +1,15 @@
+@@ -13,14 +13,5 @@
+ [*.{json,lock}]
+ indent_size = 4
+ 
+-[package.json]
+-indent_size = 2
+-
+-[.eslintrc.json]
+-indent_size = 2
+-
+-[.prettierrc.json]
+-indent_size = 2
+-
+ [*.xml]
+ indent_size = 4

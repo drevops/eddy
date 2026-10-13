@@ -29,6 +29,9 @@ require_once __DIR__ . '/helpers.php';
 // Drupal core version to use.
 $drupal_version = getenv_default('DRUPAL_VERSION', default_drupal_version());
 
+// The running PHP version, without a distribution suffix such as '-1ubuntu1'.
+$php_version = sprintf('%d.%d.%d', PHP_MAJOR_VERSION, PHP_MINOR_VERSION, PHP_RELEASE_VERSION);
+
 // -----------------------------------------------------------------------------
 
 echo '===============================' . PHP_EOL;
@@ -59,9 +62,45 @@ TASK('Validating Composer configuration.');
 passthru_or_fail('composer validate --ansi --strict');
 PASS('Composer configuration is valid.');
 
+$github_token = getenv_default('GITHUB_TOKEN', '');
+
+// A COMPOSER_AUTH that is already set holds the caller's own credentials.
+if ($github_token !== '' && getenv_default('COMPOSER_AUTH', '') === '') {
+  TASK('Passing the GitHub token to Composer.');
+  putenv('COMPOSER_AUTH=' . json_encode(['github-oauth' => ['github.com' => $github_token]], JSON_THROW_ON_ERROR));
+  PASS('GitHub token passed to Composer.');
+}
+
 TASK('Resolving Drupal %s release.', $drupal_version);
 $drupal_release = drupal_release($drupal_version);
 PASS('Resolved Drupal %s to %s.', $drupal_version, $drupal_release);
+
+TASK('Checking PHP %s against Drupal %s.', $php_version, $drupal_release);
+$php_requirement = drupal_php_requirement($drupal_release);
+// Composer resolves the build for the 'config.platform.php' that the
+// extension sets, so that version has to meet the requirement as well. The
+// order follows the merges below, where 'composer.dev.json' wins.
+$platform_php = config_platform_php('composer.dev.json', 'composer.json');
+$php_supported = $php_requirement === NULL ? NULL : version_satisfies($php_version, $php_requirement);
+$platform_supported = $php_requirement === NULL || $platform_php === NULL ? NULL : version_satisfies($platform_php, $php_requirement);
+
+if ($php_supported === FALSE) {
+  FAIL('Drupal %s requires PHP %s, but the build runs on PHP %s. Run the build on a PHP version that meets the requirement, or set DRUPAL_VERSION to a Drupal version that supports PHP %s.', $drupal_release, (string) $php_requirement, $php_version, $php_version);
+}
+
+if ($platform_supported === FALSE) {
+  FAIL('Drupal %s requires PHP %s, but config.platform.php in composer.dev.json or composer.json resolves the build for PHP %s. Raise or remove that setting, or set DRUPAL_VERSION to a Drupal version that supports PHP %s.', $drupal_release, (string) $php_requirement, (string) $platform_php, (string) $platform_php);
+}
+
+if ($php_supported === NULL) {
+  PASS('Skipped the check: the PHP requirement of Drupal %s is unknown. Composer checks it during the install.', $drupal_release);
+}
+elseif ($platform_php === NULL) {
+  PASS('Drupal %s supports PHP %s.', $drupal_release, $php_version);
+}
+else {
+  PASS('Drupal %s supports PHP %s and the platform PHP %s.', $drupal_release, $php_version, $platform_php);
+}
 
 // Reset the environment.
 if (is_dir($build_dir)) {
@@ -161,6 +200,14 @@ $merged = array_replace_recursive($ext_json, $build_json);
 file_put_contents($build_composer_json, json_encode($merged, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
 PASS("Configuration from extension's composer.json merged.");
 
+TASK('Pinning the PHP platform.');
+$build_json = (array) json_decode((string) file_get_contents($build_composer_json), TRUE);
+// Composer applies a global 'config.platform.php' to a project that sets
+// none, so the build would resolve for another PHP version.
+$build_json['config']['platform']['php'] = $platform_php ?? $php_version;
+file_put_contents($build_composer_json, json_encode($build_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+PASS('PHP platform set to %s.', $platform_php ?? $php_version);
+
 if (is_dir('patches')) {
   TASK('Copying patches.');
 
@@ -170,14 +217,6 @@ if (is_dir('patches')) {
 
   copy_dir('patches', $build_dir . '/patches');
   PASS('Patches copied.');
-}
-
-$github_token = getenv_default('GITHUB_TOKEN', '');
-
-if ($github_token !== '') {
-  TASK('Adding GitHub authentication token if provided.');
-  passthru_or_fail(sprintf('composer config --global github-oauth.github.com %s', escapeshellarg($github_token)));
-  PASS('GitHub token added.');
 }
 
 TASK('Creating custom directories.');

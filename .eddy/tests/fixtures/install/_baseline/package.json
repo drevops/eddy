@@ -1,7 +1,7 @@
 {
   "name": "@drupal/force_crystal",
   "version": "__VERSION__",
-  "description": "Provides force_crystal functionality..",
+  "description": "Provides force_crystal functionality.",
   "license": "GPL-2.0-or-later",
   "contributors": [],
   "scripts": {

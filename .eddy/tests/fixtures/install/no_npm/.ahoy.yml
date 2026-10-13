@@ -1,0 +1,42 @@
+@@ -68,11 +68,7 @@
+       vendor/bin/rector --clear-cache --dry-run
+       ahoy title "Running Twig CS Fixer"
+       vendor/bin/twig-cs-fixer
+-      [ ! -d node_modules ] || (ahoy title "Running ESLint" && npm run lint)
+       popd >/dev/null || exit 1
+-      ahoy title "Running CSpell"
+-      [ -d node_modules ] || npm install --no-audit --no-fund
+-      npm run lint-spell
+ 
+   lint-fix:
+     usage: Fix violations in coding standards.
+@@ -84,7 +80,6 @@
+       vendor/bin/phpcbf
+       ahoy title "Running Twig CS Fixer"
+       vendor/bin/twig-cs-fixer --no-cache --fix
+-      [ ! -d node_modules ] || (ahoy title "Running ESLint" && npm run lint-fix)
+       popd >/dev/null || exit 1
+ 
+   test:
+@@ -95,7 +90,6 @@
+       pushd "build" >/dev/null || exit 1
+       ahoy title "Running PHPUnit"
+       php -d pcov.directory=.. vendor/bin/phpunit "$@"
+-      [ ! -d node_modules ] || (ahoy title "Running Jest" && npm test)
+       popd >/dev/null || exit 1
+ 
+   test-unit:
+@@ -128,13 +122,6 @@
+       php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional-javascript "$@"
+       popd >/dev/null || exit 1
+ 
+-  test-javascript:
+-    usage: Run JavaScript unit tests.
+-    aliases: [test-js]
+-    cmd: |
+-      pushd "build" >/dev/null || exit 1
+-      [ ! -d node_modules ] || npm test
+-      popd >/dev/null || exit 1
+ 
+   browser-start:
+     usage: Start the browser for FunctionalJavascript tests.

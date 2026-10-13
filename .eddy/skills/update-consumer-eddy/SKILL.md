@@ -32,10 +32,14 @@ This skill requires several Bash commands to run without prompts. Before doing a
   "Bash(mv:*)",
   "Bash(npm:*)",
   "Bash(php:*)",
-  "Bash(rm:*)",
+  "Bash(rm -rf .artifacts/tmp/eddy-update)",
+  "Bash(rm -rf .artifacts/tmp/eddy-update/base)",
+  "Bash(rm -rf .claude/skills/update-consumer-drupal-extension-scaffold)",
   "Bash(tar:*)"
 ]
 ```
+
+Each `rm` entry is 1 exact command the skill runs, with no wildcard, so none of them approves removing anything else: the scratch directory in Steps 4 and 12, the base render in Step 5, and the 4.x skill directory in Step 9. When `permissions.allow` also holds `Bash(rm:*)`, tell the user that the skill doesn't need it, so they can remove it if nothing else does.
 
 If any entries were added, tell the user what was added and ask them to restart the session. Permissions are loaded at startup, so changes made mid-session do not take effect. **STOP here and do not continue** - the user must restart Claude Code and re-invoke the skill for the new permissions to apply.
 
@@ -81,8 +85,13 @@ Then read the project to determine the answers for the installation script:
 4. **CI provider** (4.x releases only): `gha` if `.github/workflows/` exists, `circleci` if `.circleci/` exists. Later releases support only GitHub Actions and do not ask.
 5. **Command wrapper**: `ahoy` if `.ahoy.yml` exists and `makefile` if `Makefile` exists - `ahoy,makefile` when both exist, and an empty string when neither does.
 6. **Drupal versions**: the Drupal majors in the CI matrix - the `drupal-version` values in `.github/workflows/test.yml`, or the `DRUPAL_VERSION` values in `.circleci/config.yml` for a project that still uses CircleCI - as a comma-separated list (e.g. `10,11`).
-7. **Tools**: every tool whose file still exists - `phpcs` (`phpcs.xml`), `phpstan` (`phpstan.neon`), `rector` (`rector.php`), `twigcs` (`.twig-cs-fixer.php`), `eslint` (`.eslintrc.json`), `stylelint` (`.stylelintrc.js`), `cspell` (`.cspell.json`), `jest` (`jest.config.js`), `phpunit` (`phpunit.xml`), `functional_javascript` (a `functional-javascript` test suite in `phpunit.xml`) and `renovate` (`renovate.json`).
+7. **Tools**: every tool whose file still exists - `phpcs` (`phpcs.xml`), `phpstan` (`phpstan.neon`), `rector` (`rector.php`), `twigcs` (`.twig-cs-fixer.php`), `eslint` (`.eslintrc.json`), `stylelint` (`.stylelintrc.js`), `cspell` (`.cspell.json`), `jest` (`jest.config.js`), `phpunit` (`phpunit.xml`), `functional_javascript` (a `tests/src/FunctionalJavascript/` directory) and `renovate` (`renovate.json`). The `functional-javascript` test suite in `phpunit.xml` doesn't tell whether the project has FunctionalJavascript tests: every 4.x release ships it, with or without them.
 8. **Cloudflare** (4.18.0 and 4.19.0 only): `true` if `scripts/start-cloudflared.sh` exists, `false` otherwise. Later releases run the tunnel from the tooling package and do not ask.
+9. **GitHub repository**: the `owner/name` of the project's GitHub repository, such as `AlexSkrypnyk/drupal_helpers`, which the README badges point to:
+
+```bash
+gh repo view --json nameWithOwner --jq .nameWithOwner
+```
 
 These answers describe the project as it is now, and Step 5 renders the installed version with them unchanged. When the user asks to add a Drupal major, such as "include Drupal 12", or to drop one, change the Drupal versions for Step 4 only. Step 7 applies the difference between the 2 renders, so the project gains or loses the major's CI jobs, badge and docs only when the 2 renders disagree on it.
 
@@ -160,6 +169,7 @@ INSTALL_TOOLS='<tools>' \
 INSTALL_EXAMPLES=false \
 INSTALL_REMOVE_SELF=true \
 INSTALL_PROCEED=true \
+INSTALL_GITHUB_REPOSITORY='<repository>' \
 php install.php
 ```
 
@@ -181,6 +191,8 @@ The script is `install.php` with the `INSTALL_` prefix in releases after 4.x. A 
 
 `<drupal_version>` is a comma-separated list of Drupal majors to target (e.g. `11`, `10,11` or `11,12`): the list from Step 1, with any major the user asked to add or drop. `<tools>` is a comma-separated list of the tools to keep - list every tool the project still uses, since anything omitted is removed.
 
+`<repository>` is the GitHub repository from Step 1. Without it, the badges in the render name the machine name as both the owner and the repository, and every release that changes a badge conflicts with the project's real values. A release that doesn't read `INSTALL_GITHUB_REPOSITORY` ignores it and renders the machine name.
+
 ## Step 5: Render the installed version
 
 Step 7 merges against a render of the release the project is on, which is how it tells the project's own changes to the template's files apart from the new release's.
@@ -201,7 +213,7 @@ tar -xzf .artifacts/tmp/eddy-update/base.tar.gz --strip-components=1 -C .artifac
 cd .artifacts/tmp/eddy-update/base
 ```
 
-Run that release's installer here with the answers from Step 1 as they are, under the script name and prefix the release uses (see Step 4), then return to the project root. As in Step 4, run each command only after the previous one finishes:
+Run that release's installer here with the answers from Step 1 as they are, `INSTALL_GITHUB_REPOSITORY` included, under the script name and prefix the release uses (see Step 4), then return to the project root. As in Step 4, run each command only after the previous one finishes:
 
 ```bash
 cd ../../../..
@@ -219,19 +231,15 @@ rm -rf .artifacts/tmp/eddy-update/base
 mkdir .artifacts/tmp/eddy-update/base
 ```
 
-## Step 6: Strip the extension's own files from the renders
+## Step 6: Keep the extension's own files out of the merge
 
-The scaffold ships a complete example extension - sample service, form, tests, assets, config schema and lifecycle scripts - so that the template runs standalone. Those paths hold the project's own code, so remove them from both renders before the merge. The merge then never touches the project's code, and none of the examples reach the project.
+The scaffold ships a complete example extension - sample service, form, tests, assets, config schema and lifecycle scripts - so that the template runs standalone. Those paths hold the project's own code, so Step 7 leaves them out of both renders' commits with these exclude pathspecs, `<machine_name>` replaced:
 
-```bash
-rm -rf .artifacts/tmp/eddy-update/new/src .artifacts/tmp/eddy-update/new/tests .artifacts/tmp/eddy-update/new/config .artifacts/tmp/eddy-update/new/css .artifacts/tmp/eddy-update/new/js .artifacts/tmp/eddy-update/new/composer.json .artifacts/tmp/eddy-update/new/logo.png .artifacts/tmp/eddy-update/new/<machine_name>.* .artifacts/tmp/eddy-update/new/scripts/*-example.sh
+```text
+':!src' ':!tests' ':!config' ':!css' ':!js' ':!composer.json' ':!logo.png' ':!<machine_name>.*' ':!scripts/*-example.sh'
 ```
 
-```bash
-rm -rf .artifacts/tmp/eddy-update/base/src .artifacts/tmp/eddy-update/base/tests .artifacts/tmp/eddy-update/base/config .artifacts/tmp/eddy-update/base/css .artifacts/tmp/eddy-update/base/js .artifacts/tmp/eddy-update/base/composer.json .artifacts/tmp/eddy-update/base/logo.png .artifacts/tmp/eddy-update/base/<machine_name>.* .artifacts/tmp/eddy-update/base/scripts/*-example.sh
-```
-
-`<machine_name>.*` covers the renamed `.info.yml`, `.module`, `.install`, `.libraries.yml`, `.links.menu.yml`, `.routing.yml` and `.services.yml` files. `composer.json` holds the project's own dependencies, and `logo.png` is a placeholder the installer downloads.
+The merge then never touches the project's code, none of the examples reach the project, and nothing has to be deleted from the renders. `<machine_name>.*` covers the renamed `.info.yml`, `.module`, `.install`, `.libraries.yml`, `.links.menu.yml`, `.routing.yml` and `.services.yml` files. `composer.json` holds the project's own dependencies, and `logo.png` is a placeholder the installer downloads.
 
 ## Step 7: Merge the release into the project
 
@@ -242,7 +250,7 @@ git -C .artifacts/tmp/eddy-update init -q
 ```
 
 ```bash
-git -C .artifacts/tmp/eddy-update -c core.excludesFile=/dev/null --work-tree=base add -A
+git -C .artifacts/tmp/eddy-update/base --git-dir=../.git --work-tree=. -c core.excludesFile=/dev/null add -A -- . ':!src' ':!tests' ':!config' ':!css' ':!js' ':!composer.json' ':!logo.png' ':!<machine_name>.*' ':!scripts/*-example.sh'
 ```
 
 ```bash
@@ -250,7 +258,7 @@ git -C .artifacts/tmp/eddy-update -c user.name=Eddy -c user.email=eddy@example.c
 ```
 
 ```bash
-git -C .artifacts/tmp/eddy-update -c core.excludesFile=/dev/null --work-tree=new add -A
+git -C .artifacts/tmp/eddy-update/new --git-dir=../.git --work-tree=. -c core.excludesFile=/dev/null add -A -- . ':!src' ':!tests' ':!config' ':!css' ':!js' ':!composer.json' ':!logo.png' ':!<machine_name>.*' ':!scripts/*-example.sh'
 ```
 
 ```bash
@@ -265,7 +273,7 @@ git fetch -q .artifacts/tmp/eddy-update HEAD
 git -c merge.conflictStyle=zdiff3 cherry-pick --no-commit -X no-renames FETCH_HEAD
 ```
 
-The identity, the flags that skip commit hooks and signing, and the empty `core.excludesFile` keep the throwaway commits independent of the user's git setup. Without the last one, a pattern in the user's global excludes file that matches a template file, such as `CLAUDE.md`, keeps that file out of both commits, and the release's changes to it never reach the project. Neither commit reaches the project's history: `--no-commit` stages the merged result instead. `-X no-renames` stops git from pairing a file the release removed with an unrelated file it added. The conflict style shows the base between the 2 sides of every conflict. It needs git 2.35 or newer - with an older git, set `merge.conflictStyle=diff3` instead, which shows the same base around larger regions. Without a base, run the cherry-pick without the `-c` option: there is no base to show, and the default style splits the differences in a file into separate conflicts instead of 1 conflict per file.
+The identity, the flags that skip commit hooks and signing, and the empty `core.excludesFile` keep the throwaway commits independent of the user's git setup. Without the last one, a pattern in the user's global excludes file that matches a template file, such as `CLAUDE.md`, keeps that file out of both commits, and the release's changes to it never reach the project. Each `add` runs inside its render, with the throwaway repository's `.git` 1 level up, so the pathspecs after `--` resolve against the render's root: `.` stages the whole render, and each `:!` entry leaves out a path from Step 6. Neither commit reaches the project's history: `--no-commit` stages the merged result instead. `-X no-renames` stops git from pairing a file the release removed with an unrelated file it added. The conflict style shows the base between the 2 sides of every conflict. It needs git 2.35 or newer - with an older git, set `merge.conflictStyle=diff3` instead, which shows the same base around larger regions. Without a base, run the cherry-pick without the `-c` option: there is no base to show, and the default style splits the differences in a file into separate conflicts instead of 1 conflict per file.
 
 A cherry-pick with conflicts exits non-zero and lists them, and Step 8 resolves them. If the second commit finds nothing to commit, the 2 renders are identical, so the release changes nothing for this project: tell the user and stop.
 
@@ -351,6 +359,7 @@ Use `git diff HEAD` and `git status` to review all changes. Pay attention to:
 git grep -n -e '^<<<<<<< ' -e '^>>>>>>> '
 ```
 
+- **PHP versions**: the `drevops/eddy-tooling` package requires PHP 8.3 or newer, so a job in `.github/workflows/test.yml` with a lower `php-version`, such as Drupal 10 on PHP 8.2, fails at "Install the tooling". The merge keeps the project's matrix, so list those jobs for the pull request and tell the user about them. Leave them as they are: raising them drops a PHP version the extension tests, and that's the user's call.
 - **Branch references**: both renders ran in the scratch directory, where `install.php` finds no committed `test.yml`, so they filter the workflows on `1.x`. The merge keeps the branches the project lists wherever the 2 renders agree, and without a base, Step 8 resolved them as conflicts. Confirm that `.github/workflows/test.yml` and `.github/workflows/draft-release-notes.yml` list the branches the project builds from.
 - **README.md and CONTRIBUTING.md**: check them as described below.
 - **Added files**: review the files the release added (`A` in `git status --porcelain`). Without a base, they can include template files the project once removed on purpose - remove those again.
@@ -396,7 +405,7 @@ Keep this message as it is: the next update reads the installed version from it 
 
 ### Code changes for a new Drupal major
 
-Skip this when Step 4 added no Drupal major. When it did, the merge brought in the major's CI jobs, badge and docs, but none of the changes the extension's own code needs: Step 6 kept `*.info.yml` and `tests/` out of both renders. The build in Step 13 runs on the highest major the project now targets, so make them now, each in a commit of its own:
+Skip this when Step 4 added no Drupal major. When it did, the merge brought in the major's CI jobs, badge and docs, but none of the changes the extension's own code needs: Step 6 kept `*.info.yml` and `tests/` out of the merge. Step 13 builds the new major too, so make them now, each in a commit of its own:
 
 - Add `^<major>` to `core_version_requirement` in every `*.info.yml` the project tracks, submodules and test modules included. A submodule the tests enable fails to install without it. This lists them:
 
@@ -454,24 +463,56 @@ A project with neither wrapper has no local lint or test command, so its lint an
 
 Both lint **warnings** and **errors** must be fixed - warnings are not accepted. Same applies to tests: all warnings and failures must be resolved before proceeding. Fix the issues and create additional commits.
 
+### A new Drupal major
+
+The build above uses the project's default major, `extra.eddy.drupal-version` in `composer.dev.json`, which stays on the newest major the project tests that has a stable release. When Step 4 added a major, build, lint and test that one as well, the same way, with `DRUPAL_VERSION` set to it:
+
+```bash
+DRUPAL_VERSION=<major> ahoy build
+```
+
+Then run `ahoy lint` and `ahoy test` again. Without a wrapper, put `DRUPAL_VERSION=<major>` in front of `php vendor/bin/eddy-assemble`.
+
+Drupal 12 requires PHP 8.5. On an older PHP, the build stops before it changes anything and says which PHP the release needs. Don't work around it: tell the user, and leave that major to the pull request's CI. Failures that only the new major shows usually come from the breaks in the "Drupal 12" section of [MIGRATION.md](https://github.com/drevops/eddy/blob/main/MIGRATION.md#drupal-12), such as an update path test that names a database dump Drupal 12 no longer ships.
+
 ### PHPUnit doc-comment deprecations
 
 Drupal 10 runs PHPUnit 9.6, which reads only doc-comment annotations such as `@covers`, `@group` and `@dataProvider`. PHPUnit 11 (used by Drupal 11) reports those annotations as deprecated, and PHPUnit 12 (used by Drupal 12) ignores them entirely. **Keep both forms** of the 2 annotations that affect which tests run and how, the way the scaffold's example tests do: `@group` with `#[Group]`, and `@dataProvider` with `#[DataProvider]`. Do not drop the attributes: a test that relies on a doc-comment `@dataProvider` alone loses its data provider on Drupal 12. `@covers` and `@coversDefaultClass` only narrow code coverage, so the example tests keep them as annotations without an attribute. Kernel, Functional and FunctionalJavascript test classes also need `#[RunTestsInSeparateProcesses]`, which the example tests carry without an annotation: Drupal 11.3 deprecates a test class without it, and Drupal 12 throws an exception. The `phpstan.neon` ignore for missing `PHPUnit\Framework\Attributes` classes keeps the Drupal 10 lint passing.
 
 ## Step 14: Open PR
 
-Push the branch and open a pull request. Use the `/open-pr` skill or create the PR manually with a summary of all changes. Include the conflicts you resolved by judgment, the changes from Step 9 that need a new home, the leftover template files from Step 11 and the code changes Step 12 made for a new Drupal major.
+### Check what the pull request deploys
+
+Run this when the installed version from Step 1 is 4.15.0 to 4.18.0, or when it's unknown and Step 9 ran. On those releases, `deploy.yml` deploys after every successful test run, a pull request's included: it pushes the default branch to a branch of the deploy remote named after the pull request's branch, or to the branch a 4.18.0 `DEPLOY_BRANCH` repository variable names. GitHub runs that workflow from the copy on the default branch, so this update's own pull request deploys the old way until it merges.
+
+List the repository's Actions secrets:
+
+```bash
+gh secret list
+```
+
+When `DEPLOY_REMOTE` isn't in the list, the project doesn't deploy, so carry on. Otherwise, or when the command fails, stop before pushing. Ask the user to set the `DEPLOY_PROCEED` secret to `0` under **Settings** -> **Secrets and variables** -> **Actions** now, and back to `1` just before merging. The skill can't read a secret's value, so wait until the user confirms it's `0` or tells you to push anyway.
+
+### Open the pull request
+
+Push the branch and open a pull request. Use the `/open-pr` skill or create the PR manually with a summary of all changes. Include the conflicts you resolved by judgment, the changes from Step 9 that need a new home, the leftover template files and the jobs below PHP 8.3 from Step 11, the code changes Step 12 made for a new Drupal major, and a new major that Step 13 left to CI.
+
+When the deployment check above found `DEPLOY_REMOTE`, end the description with what's left around the merge:
+
+- Set `DEPLOY_PROCEED` back to `1` just before merging.
+- After merging, delete the branches that earlier pull requests left on the deploy remote. Each is named after a pull request's branch: `gh pr list --state all --limit 1000 --json headRefName --jq '.[].headRefName'` lists those names, and `git ls-remote --heads <deploy remote>` lists the remote's branches. Delete each match with `git push <deploy remote> --delete <branch>`, but keep the branches the project releases from, such as `1.x`, and the one `DEPLOY_BRANCH` names.
 
 ## Important notes
 
 - When the user names a version, use that tag verbatim. Otherwise take the published release with the highest version that is neither a draft nor marked as a pre-release. Either way, use the tag verbatim and start without asking the user to confirm it, and stop when the project is already on that release or a newer one, unless the user asked to add or drop a Drupal major.
 - Never run the installer in the project root, and never copy the release's files over the project's: the merge keeps what the project changed.
 - A Drupal major the user asks to add or drop changes the render of the new release only. The render of the installed version keeps the majors the project tests now.
-- Always remove the scaffold's example extension and example scripts - a real project never ships them. Step 6 keeps them out of the merge.
+- Always keep the scaffold's example extension and example scripts out of the merge - a real project never ships them. Step 7 leaves them out of both commits with the exclude pathspecs from Step 6.
 - Never overwrite project-specific code (src/, tests/, config/, *.module, etc.). Edit it only for the code changes a new Drupal major needs (Step 12) and the fixes Step 13 calls for.
 - After the merge, always verify branch references match the project.
 - A project created before 5.0.0 keeps its build scripts in `.devtools/`. The release ships them as the `drevops/eddy-tooling` package instead, so Step 9 removes the directory - never restore `.devtools/` or merge changes into it. Customisations a project made there become a lifecycle hook in `scripts/` or a patch for the package in `composer.dev.json`.
 - A project created from 4.18.0 or 4.19.0 can carry the Cloudflare tunnel hooks `scripts/provision-cloudflared.sh`, `scripts/start-cloudflared.sh` and `scripts/stop-cloudflared.sh`. Later releases run the tunnel from the tooling package, so Step 9 removes the hooks, and a customisation made in them becomes a patch for the package in `composer.dev.json`.
+- A project on 4.15.0 to 4.18.0 that deploys from GitHub Actions deploys this update's pull request until it merges. Never push its branch until the user confirms `DEPLOY_PROCEED` is `0` or says to push anyway (Step 14).
 - Run the full test suite before opening the PR to catch regressions.
 - Prefer `ahoy` or `Makefile` commands over running tools directly. For example, use `ahoy lint` instead of `composer lint`, `ahoy test` instead of `composer test`, `ahoy build` instead of running `vendor/bin/eddy-*` commands manually. Only fall back to direct commands when no `ahoy` or `Makefile` equivalent exists.
 
@@ -483,7 +524,7 @@ Push the branch and open a pull request. Use the `/open-pr` skill or create the 
 
 ## Command pattern rules
 
-Commands must start with a simple keyword that matches the allowed permission prefixes (e.g., `git`, `php`, `rm`, `cp`, `ahoy`). Avoid patterns that trigger CLI approval prompts:
+Commands must start with a simple keyword that matches the allowed permission prefixes (e.g., `git`, `php`, `cp`, `ahoy`). The `rm` entries from Step 0 are exact commands, so run each `rm` command exactly as written. Avoid patterns that trigger CLI approval prompts:
 
 NEVER use compound or composite commands in a single Bash tool call. Every Bash call must contain exactly ONE simple command. No exceptions.
 

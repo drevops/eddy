@@ -14,24 +14,30 @@ use function command_wrapper_text;
 use function committed_workflow_branches;
 use function convert_string;
 use function core_version_requirement;
+use function drupal_version_build_default;
 use function drupal_version_default;
 use function drupal_version_options;
 use function eddy_skills;
 use function get_files;
+use function github_repository_from_url;
 use function gitignore_rules;
 use function is_binary_file;
 use function is_gitignored;
 use function is_template_path;
 use function join_list;
 use function normalize_cspell_words;
+use function origin_github_repository;
 use function parse_branch_list;
+use function parse_github_repository;
 use function phpunit_config_comment;
 use function print_help;
 use function process;
 use function process_command_wrapper_text;
 use function process_drupal_version_text;
+use function process_extension_type_text;
 use function read_composer_dev_json;
 use function remove_dir;
+use function remove_npm;
 use function remove_special_comments;
 use function remove_string_content;
 use function remove_tokens_with_content;
@@ -148,6 +154,7 @@ final class InstallHelpersTest extends UnitTestCase {
     $this->assertStringContainsString('INSTALL_REMOVE_SELF', $output);
     $this->assertStringContainsString('INSTALL_PROCEED', $output);
     $this->assertStringContainsString('INSTALL_BRANCHES', $output);
+    $this->assertStringContainsString('INSTALL_GITHUB_REPOSITORY', $output);
   }
 
   /**
@@ -182,6 +189,27 @@ final class InstallHelpersTest extends UnitTestCase {
     /** @var array{extra?: array{eddy?: array{'drupal-version'?: string}}} $config */
 
     $this->assertSame($shipped_default, $config['extra']['eddy']['drupal-version'] ?? NULL);
+  }
+
+  /**
+   * @param non-empty-array<int|string> $majors
+   */
+  #[DataProvider('dataProviderDrupalVersionBuildDefault')]
+  public function testDrupalVersionBuildDefault(array $majors, string $expected): void {
+    $this->assertSame($expected, drupal_version_build_default($majors));
+  }
+
+  public static function dataProviderDrupalVersionBuildDefault(): \Iterator {
+    yield 'newest stable major' => [['11'], '11'];
+    yield 'older major' => [['10'], '10'];
+    yield 'highest stable major' => [['10', '11'], '11'];
+    yield 'pre-release major next to a stable one' => [['11', '12'], '11'];
+    yield 'every major' => [['10', '11', '12'], '11'];
+    yield 'pre-release major next to an older one' => [['10', '12'], '10'];
+    yield 'pre-release major alone' => [['12'], '12'];
+    yield 'lowest of the pre-release majors' => [['13', '12'], '12'];
+    yield 'unordered selection' => [['12', '10', '11'], '11'];
+    yield 'integers' => [[12, 11], '11'];
   }
 
   /**
@@ -655,6 +683,164 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'tab inside a branch' => ["1.x,2.x\t3.x", "Invalid branch: \"2.x\t3.x\"."];
     yield 'new line inside a branch' => ["1.x\n- 2.x", "Invalid branch: \"1.x\n- 2.x\"."];
     yield 'control character' => ["1.x\x1b", "Invalid branch: \"1.x\x1b\"."];
+  }
+
+  /**
+   * @param array<string, mixed> $package
+   * @param array<string> $tools_remove
+   * @param array<string, mixed> $expected
+   */
+  #[DataProvider('dataProviderRemoveNpm')]
+  public function testRemoveNpm(array $package, array $tools_remove, array $expected): void {
+    chdir(self::$sut);
+    file_put_contents(self::$sut . '/package.json', json_encode($package, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+
+    remove_npm($tools_remove);
+
+    $this->assertSame($expected, json_decode((string) file_get_contents(self::$sut . '/package.json'), TRUE));
+  }
+
+  public static function dataProviderRemoveNpm(): \Iterator {
+    $package = ['name' => 'test', 'scripts' => ['lint-js' => 'eslint .', 'lint' => 'npm run lint-js', 'test' => 'jest'], 'devDependencies' => ['eslint' => '^8', 'jest' => '^29']];
+
+    yield 'no npm tool' => [$package, ['phpcs'], $package];
+    yield 'dependencies left' => [$package, ['eslint'], ['name' => 'test', 'scripts' => ['test' => 'jest'], 'devDependencies' => ['jest' => '^29']]];
+    yield 'no dependencies left' => [['name' => 'test', 'scripts' => ['test' => 'jest'], 'devDependencies' => ['eslint' => '^8']], ['eslint'], ['name' => 'test', 'scripts' => ['test' => 'jest']]];
+  }
+
+  #[DataProvider('dataProviderParseGithubRepository')]
+  public function testParseGithubRepository(string $value, ?string $expected): void {
+    $this->assertSame($expected, parse_github_repository($value));
+  }
+
+  public static function dataProviderParseGithubRepository(): \Iterator {
+    yield 'empty' => ['', NULL];
+    yield 'only spaces' => ['  ', NULL];
+    yield 'repository' => ['drevops/eddy', 'drevops/eddy'];
+    yield 'spaces around the repository' => [' drevops/eddy ', 'drevops/eddy'];
+    yield 'mixed case' => ['AlexSkrypnyk/drupal_helpers', 'AlexSkrypnyk/drupal_helpers'];
+    yield 'hyphen in the owner' => ['drevops-org/eddy', 'drevops-org/eddy'];
+    yield 'dots and hyphens in the name' => ['drevops/eddy.tooling-mirror', 'drevops/eddy.tooling-mirror'];
+  }
+
+  #[DataProvider('dataProviderParseGithubRepositoryInvalid')]
+  public function testParseGithubRepositoryInvalid(string $value): void {
+    $this->expectException(\Exception::class);
+    $this->expectExceptionMessage(sprintf('Invalid GitHub repository: "%s". Use the owner/name form, such as drevops/eddy.', trim($value)));
+    parse_github_repository($value);
+  }
+
+  public static function dataProviderParseGithubRepositoryInvalid(): \Iterator {
+    yield 'owner only' => ['drevops'];
+    yield 'URL' => ['https://github.com/drevops/eddy'];
+    yield 'too many parts' => ['drevops/eddy/main'];
+    yield 'owner starting with a hyphen' => ['-drevops/eddy'];
+    yield 'space inside' => ['drevops/my eddy'];
+    yield 'dot as the name' => ['drevops/.'];
+    yield 'double dot as the name' => ['drevops/..'];
+    yield 'no owner' => ['/eddy'];
+  }
+
+  #[DataProvider('dataProviderGithubRepositoryFromUrl')]
+  public function testGithubRepositoryFromUrl(string $url, ?string $expected): void {
+    $this->assertSame($expected, github_repository_from_url($url));
+  }
+
+  public static function dataProviderGithubRepositoryFromUrl(): \Iterator {
+    yield 'SSH' => ['git@github.com:drevops/eddy.git', 'drevops/eddy'];
+    yield 'SSH without .git' => ['git@github.com:drevops/eddy', 'drevops/eddy'];
+    yield 'SSH URL' => ['ssh://git@github.com/drevops/eddy.git', 'drevops/eddy'];
+    yield 'HTTPS' => ['https://github.com/drevops/eddy.git', 'drevops/eddy'];
+    yield 'HTTPS without .git' => ['https://github.com/drevops/eddy', 'drevops/eddy'];
+    yield 'HTTPS with a trailing slash' => ['https://github.com/drevops/eddy/', 'drevops/eddy'];
+    yield 'HTTPS with credentials' => ['https://user:token@github.com/drevops/eddy.git', 'drevops/eddy'];
+    yield 'git protocol' => ['git://github.com/drevops/eddy.git', 'drevops/eddy'];
+    yield 'mixed case' => ['git@github.com:AlexSkrypnyk/drupal_helpers.git', 'AlexSkrypnyk/drupal_helpers'];
+    yield 'surrounding whitespace' => [" git@github.com:drevops/eddy.git\n", 'drevops/eddy'];
+    yield 'Drupal.org' => ['git@git.drupal.org:project/eddy.git', NULL];
+    yield 'GitLab' => ['https://gitlab.com/drevops/eddy.git', NULL];
+    yield 'host that ends with github.com' => ['https://notgithub.com/drevops/eddy.git', NULL];
+    yield 'host that starts with github.com' => ['https://github.com.example.com/drevops/eddy.git', NULL];
+    yield 'owner only' => ['https://github.com/drevops', NULL];
+    yield 'path below the repository' => ['https://github.com/drevops/eddy/tree/main', NULL];
+    yield 'empty' => ['', NULL];
+  }
+
+  /**
+   * @param array<int, array<int, string>> $commands
+   */
+  #[DataProvider('dataProviderOriginGithubRepository')]
+  public function testOriginGithubRepository(array $commands, string $directory, ?string $expected): void {
+    foreach ($commands as $command) {
+      $this->git(self::$sut, $command);
+    }
+
+    (new Filesystem())->mkdir(self::$sut . '/' . $directory);
+    chdir(self::$sut . '/' . $directory);
+
+    $this->assertSame($expected, origin_github_repository());
+  }
+
+  public static function dataProviderOriginGithubRepository(): \Iterator {
+    $init = ['init'];
+    $origin = static fn(string $url): array => ['remote', 'add', 'origin', $url];
+
+    yield 'no repository' => [[], '', NULL];
+    yield 'no origin' => [[$init], '', NULL];
+    yield 'GitHub origin' => [[$init, $origin('git@github.com:drevops/eddy.git')], '', 'drevops/eddy'];
+    yield 'origin elsewhere' => [[$init, $origin('git@git.drupal.org:project/eddy.git')], '', NULL];
+    yield 'other remote only' => [[$init, ['remote', 'add', 'upstream', 'git@github.com:drevops/eddy.git']], '', NULL];
+    yield 'directory inside the repository' => [[$init, $origin('git@github.com:drevops/eddy.git')], 'extension', NULL];
+  }
+
+  /**
+   * @param array<string, string> $files
+   * @param array<string, string> $expected
+   */
+  #[DataProvider('dataProviderProcessExtensionTypeText')]
+  public function testProcessExtensionTypeText(string $type, array $files, array $expected): void {
+    chdir(self::$sut);
+
+    foreach ($files as $name => $content) {
+      file_put_contents(self::$sut . '/' . $name, $content);
+    }
+
+    process_extension_type_text($type);
+
+    foreach ($expected as $name => $content) {
+      $this->assertSame($content, file_get_contents(self::$sut . '/' . $name), $name . ' content mismatch.');
+    }
+  }
+
+  public static function dataProviderProcessExtensionTypeText(): \Iterator {
+    $contributing = static fn(string $note, string $dir): string => "a test path starts at the extension's symlink in the assembled site" . $note . ":\n\nmake test-unit web/" . $dir . "/custom/your_extension/tests/src/Unit/MyUnitTest.php\n";
+    $agents = static fn(string $dirs): string => '- Extension files are symlinked from root into ' . $dirs . "\n";
+    $config = "<file>web/modules/custom/your_extension/rector.php</file>\n<file>web/themes/custom/your_extension/rector.php</file>\n";
+    $template = [
+      'CONTRIBUTING.md' => $contributing(' (`web/themes/custom/` for a theme)', 'modules'),
+      'AGENTS.md' => $agents('`build/web/modules/custom/` (module) or `build/web/themes/custom/` (theme)'),
+      'phpunit.xml' => $config,
+    ];
+
+    yield 'module' => [
+      'module',
+      $template,
+      [
+        'CONTRIBUTING.md' => $contributing('', 'modules'),
+        'AGENTS.md' => $agents('`build/web/modules/custom/`'),
+        'phpunit.xml' => $config,
+      ],
+    ];
+
+    yield 'theme' => [
+      'theme',
+      $template,
+      [
+        'CONTRIBUTING.md' => $contributing('', 'themes'),
+        'AGENTS.md' => $agents('`build/web/themes/custom/`'),
+        'phpunit.xml' => $config,
+      ],
+    ];
   }
 
   #[DataProvider('dataProviderRemoveDir')]

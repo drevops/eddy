@@ -1,10 +1,13 @@
-@@ -16,11 +16,9 @@
- [package.json]
- indent_size = 2
+@@ -13,14 +13,8 @@
+ [*.{json,lock}]
+ indent_size = 4
  
+-[package.json]
+-indent_size = 2
+-
 -[.eslintrc.json]
 -indent_size = 2
- 
+-
 -[.prettierrc.json]
 -indent_size = 2
 -

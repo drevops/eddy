@@ -97,7 +97,7 @@ See the sections below for more details.
 
 ## Codebase setup
 
-The codebase setup script `php install.php` is a once-off installer. It asks you for some information, updates the codebase to reflect your extension's name and other details, and then deletes itself unless you answer no to "Remove this script". The questions cover the extension name, machine name and type, the Drupal versions to target, the command wrapper, the tools to keep, and whether to keep the example lifecycle scripts. Each answer can be pre-filled with an `INSTALL_*` environment variable for an unattended run - `php install.php --help` lists them. `INSTALL_BRANCHES` sets the branches the CI workflows run on, `1.x` by default, without a question of its own.
+The codebase setup script `php install.php` is a once-off installer. It asks you for some information, updates the codebase to reflect your extension's name and other details, and then deletes itself unless you answer no to "Remove this script". The questions cover the extension name, machine name and type, the Drupal versions to target, the command wrapper, the tools to keep, and whether to keep the example lifecycle scripts. Each answer can be pre-filled with an `INSTALL_*` environment variable for an unattended run - `php install.php --help` lists them. `INSTALL_BRANCHES` sets the branches the CI workflows run on, `1.x` by default, without a question of its own. `INSTALL_GITHUB_REPOSITORY` sets the GitHub repository the README badges point to, such as `INSTALL_GITHUB_REPOSITORY=drevops/eddy`. Without it, they point to the repository of the `origin` remote when you run `install.php` in the root of a clone, and to the machine name otherwise.
 
 When `install.php` comes from a download of this template, such as **Download ZIP** or a release archive, it records the Eddy release it came from as `extra.eddy.version` in `composer.dev.json`. A download from a branch records the commit as well, such as `5.0.0-3-g1a2b3c4`. The [update skill](#updating-your-extension) reads it to find the release your project is on.
 
@@ -143,7 +143,7 @@ To add a project-specific step, use a [custom lifecycle script](#custom-lifecycl
 
 ### Drupal versions
 
-The Drupal version used for the codebase assembly is determined by the `DRUPAL_VERSION` variable and defaults to `11`, the newest stable Drupal 11 release. The default is the `extra.eddy.drupal-version` value in `composer.dev.json`, which `install.php` sets to the highest Drupal major you select.
+The Drupal version used for the codebase assembly is determined by the `DRUPAL_VERSION` variable and defaults to `11`, the newest stable Drupal 11 release. The default is the `extra.eddy.drupal-version` value in `composer.dev.json`, which `install.php` sets to the highest Drupal major you select that has a stable release, or to the lowest one you select when none has. So with Drupal 11 and 12 selected, a plain build stays on Drupal 11: Drupal 12 has no stable release yet and needs PHP 8.5, and CI tests it on every push.
 
 You can specify a different version by setting the `DRUPAL_VERSION` environment variable before running the `make build` or `ahoy build` command:
 
@@ -167,6 +167,8 @@ The build resolves versions in 2 steps, so nothing needs editing as Drupal and i
 
 1. **Drupal core is pinned to one exact release.** The build picks the newest release matching `DRUPAL_VERSION`, prints it and pins core to it. A version with no stable release yet resolves to its newest pre-release.
 2. **Every other dependency gets its most stable release that fits.** The build sets `minimum-stability: dev` with `prefer-stable: true`, so `composer.dev.json` and your `composer.json` only say which versions are acceptable. A dependency falls back to a pre-release or a development branch only when no stable release supports the chosen core, and the build output lists every dependency installed from a development branch.
+
+Before it touches the `build` directory, the build checks the PHP that runs it against the PHP requirement of the chosen core release, and stops with a message when the release needs a newer PHP, such as a Drupal 12 build on PHP 8.4. Composer then resolves every dependency for that same PHP: the build sets `config.platform.php` in `build/composer.json` to it, so a `platform` setting in your global Composer configuration doesn't apply. To resolve for another PHP version on purpose, set `config.platform.php` in `composer.dev.json`, and the build checks that version against the core release's PHP requirement as well.
 
 For example, as of October 2026:
 
@@ -206,13 +208,13 @@ Because `stable` and `canary` float, the matrix follows Drupal core on its own -
 
 Drupal 12 has no stable release yet, but its jobs use the same kind of values as the Drupal 11 ones: `12` for `stable`, `12.0.0` for `legacy` and `12@beta` for `canary`. Until 12.0.0 ships, all of them build the newest Drupal 12 pre-release. After that, each moves on its own: all of them to 12.0.0 when it ships, then `canary` to the 12.1 pre-releases while `legacy` stays on the 12.0.x patches. Nothing in the CI configuration needs editing along the way.
 
-Drupal 12 requires PHP 8.5, which is already the matrix ceiling, so every Drupal 12 job runs PHP 8.5 for now. The `min` and `max` jobs split apart as soon as a newer PHP joins the matrix.
+Drupal 12 requires PHP 8.5, which is already the matrix ceiling, so every Drupal 12 job runs PHP 8.5 for now. The `min` and `max` jobs split apart as soon as a newer PHP joins the matrix. A local Drupal 12 build needs PHP 8.5 too: run `DRUPAL_VERSION=12 make build` or `DRUPAL_VERSION=12 ahoy build` on it. On an older PHP, the build stops before it changes anything and says which PHP the release needs.
 
 Some of the Drupal 12 toolchain is still catching up - Drush, for one, supports Drupal 12 only on its `14.x` development branch. Drupal 12 builds install that branch for now and move to Drush 14.0.0 on their own once it's tagged - see [How versions are resolved](#how-versions-are-resolved).
 
 Drupal 12 core packages also leave out every `tests` directory, and with it the test base classes and the PHPUnit bootstrap your tests need. So Drupal 12 builds install `drupal/core` from source (a git checkout) rather than from its package archive. The checkout is bigger than the archive, so Drupal 12 builds take a little longer to assemble.
 
-Drupal 12 is opt-in when you run `install.php`: only Drupal 11 starts checked.
+Drupal 12 is opt-in when you run `install.php`: only Drupal 11 starts checked. Selecting Drupal 12 next to Drupal 11 adds its CI jobs and badge, and leaves the local build on Drupal 11 (see [Drupal versions](#drupal-versions)).
 
 ### Distributing tools across CI runners
 
@@ -301,7 +303,7 @@ Patches declared for `drevops/eddy-tooling` itself are the exception: the build 
 
 ### Providing `GITHUB_TOKEN`
 
-To overcome GitHub API rate limits, you may provide a `GITHUB_TOKEN` environment variable with a personal access token.
+To overcome GitHub API rate limits, you may provide a `GITHUB_TOKEN` environment variable with a personal access token. The build passes it to its own Composer commands through the `COMPOSER_AUTH` variable, so your global Composer configuration stays as it is. When `COMPOSER_AUTH` is already set, the build uses it unchanged.
 
 ### Debugging command output
 
@@ -318,7 +320,7 @@ If your extension requires additional dependencies for integration testing betwe
 
 ### Frontend dependencies
 
-If your extension requires frontend dependencies for testing, add them to the `package.json` file. The `package-lock.json` file is expected to be committed to the repository.
+If your extension requires frontend dependencies for testing, add them to the `package.json` file. The `package-lock.json` file is expected to be committed to the repository. When you keep none of ESLint, Stylelint, CSpell and Jest, `install.php` removes both files and the Node.js steps of the CI lint job, so add a `package.json` of your own if your extension needs frontend dependencies later.
 
 The `assemble` command installs (`npm ci`) and builds (`npm run build`) the frontend dependencies within the `build` directory. You can add and commit a `.skip_npm_build` file to skip all Node.js processing, which will also disable JS/CSS linting (ESLint, Stylelint, Prettier) and the Jest tests.
 

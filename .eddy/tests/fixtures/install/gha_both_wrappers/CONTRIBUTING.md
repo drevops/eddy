@@ -133,7 +133,7 @@
 @@ -185,6 +247,11 @@
  ### Running specific tests
  
- You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the test commands. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site (`web/themes/custom/` for a theme):
+ You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the test commands. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site:
 +
 +```bash
 +make test-unit web/modules/custom/force_crystal/tests/src/Unit/MyUnitTest.php

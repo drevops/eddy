@@ -32,7 +32,7 @@ The `provision` command is useful for re-installing the Drupal website without r
 
 ### Drupal versions
 
-The Drupal version used for the codebase assembly is determined by the `DRUPAL_VERSION` variable and defaults to the highest Drupal major this extension targets, which `composer.dev.json` sets as `extra.eddy.drupal-version`.
+The Drupal version used for the codebase assembly is determined by the `DRUPAL_VERSION` variable and defaults to `extra.eddy.drupal-version` in `composer.dev.json`, the newest Drupal major this extension targets that has a stable release.
 
 You can specify a different version by setting the `DRUPAL_VERSION` environment variable when building the website:
 
@@ -50,9 +50,9 @@ DRUPAL_VERSION=11@beta ahoy build
 DRUPAL_VERSION=12 ahoy build
 ```
 
-The build pins Drupal core to the newest release matching `DRUPAL_VERSION` and prints it. A version with no stable release yet resolves to its newest pre-release.
+The build pins Drupal core to the newest release matching `DRUPAL_VERSION` and prints it. A version with no stable release yet resolves to its newest pre-release. When that release requires a newer PHP than the one running the build, the build stops before it changes anything and says which PHP the release needs.
 
-Every other dependency installs its most stable release that supports that core. A dependency falls back to a pre-release or a development branch only when no stable release fits, and the build output lists every dependency installed from a development branch.
+Every other dependency installs its most stable release that supports that core and the PHP running the build, even when the global Composer configuration sets `config.platform.php`. A dependency falls back to a pre-release or a development branch only when no stable release fits, and the build output lists every dependency installed from a development branch.
 
 ### Patching dependencies
 
@@ -74,7 +74,7 @@ A patch that no longer applies fails the build. Patches declared for `drevops/ed
 
 ### Providing `GITHUB_TOKEN`
 
-To overcome GitHub API rate limits, you may provide a `GITHUB_TOKEN` environment variable with a personal access token.
+To overcome GitHub API rate limits, you may provide a `GITHUB_TOKEN` environment variable with a personal access token. The build passes it to its own Composer commands through `COMPOSER_AUTH`, so the global Composer configuration stays as it is.
 
 ### Provisioning the website
 
@@ -184,7 +184,7 @@ Either backend gets its own WebDriver port: a free one is claimed starting at 44
 
 ### Running specific tests
 
-You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the test commands. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site (`web/themes/custom/` for a theme):
+You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the test commands. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site:
 
 ```bash
 ahoy test-unit web/modules/custom/force_crystal/tests/src/Unit/MyUnitTest.php

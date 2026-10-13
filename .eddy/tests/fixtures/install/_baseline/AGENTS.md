@@ -113,7 +113,7 @@ Run each tool through its `ahoy` wrapper, never the binary directly:
 ## Important Notes
 
 - The `build/` directory contains the assembled Drupal site
-- Extension files are symlinked from root into `build/web/modules/custom/` (module) or `build/web/themes/custom/` (theme)
+- Extension files are symlinked from root into `build/web/modules/custom/`
 - SQLite database created in `/tmp/site_force_crystal.sqlite`
 - All quality tools run from within `build/` directory
 

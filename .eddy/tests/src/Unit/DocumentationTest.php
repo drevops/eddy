@@ -167,15 +167,34 @@ final class DocumentationTest extends UnitTestCase {
     }
   }
 
-  #[DataProvider('dataProviderUpdateSkillVariableIsInstallPrompt')]
-  public function testUpdateSkillVariableIsInstallPrompt(string $variable): void {
-    $this->assertContains($variable, self::installPromptVariables(), sprintf('The update skill sets %s, which install.php does not prompt for.', $variable));
+  #[DataProvider('dataProviderUpdateSkillVariableIsInstallVariable')]
+  public function testUpdateSkillVariableIsInstallVariable(string $variable): void {
+    $this->assertContains($variable, self::installVariables(), sprintf('The update skill sets %s, which install.php does not read.', $variable));
   }
 
-  public static function dataProviderUpdateSkillVariableIsInstallPrompt(): \Iterator {
+  public static function dataProviderUpdateSkillVariableIsInstallVariable(): \Iterator {
     foreach (self::updateSkillInstallVariables() as $variable) {
       yield $variable => ['variable' => $variable];
     }
+  }
+
+  #[DataProvider('dataProviderToolingPhpFloorIsDocumented')]
+  public function testToolingPhpFloorIsDocumented(string $path): void {
+    $manifest = json_decode((string) file_get_contents(self::toolingDir() . '/composer.json'), TRUE);
+    $requirement = is_array($manifest) && is_array($manifest['require'] ?? NULL) ? ($manifest['require']['php'] ?? NULL) : NULL;
+
+    $this->assertIsString($requirement);
+    $this->assertMatchesRegularExpression('/^>=\d+\.\d+$/', $requirement, 'The tooling package states its PHP requirement in a form other than ">=X.Y", so the documented floor cannot be checked.');
+
+    $phrase = 'requires PHP ' . substr($requirement, 2) . ' or newer';
+
+    $this->assertStringContainsString($phrase, (string) file_get_contents($path), sprintf('%s does not state the PHP floor of the tooling package: "%s" is missing.', basename($path), $phrase));
+  }
+
+  public static function dataProviderToolingPhpFloorIsDocumented(): \Iterator {
+    yield 'update skill' => ['path' => self::updateSkillPath()];
+    yield 'migration guide' => ['path' => self::rootDir() . '/MIGRATION.md'];
+    yield 'tooling README' => ['path' => self::toolingDir() . '/README.md'];
   }
 
   #[DataProvider('dataProviderUpdateSkillDetectsTool')]
@@ -243,6 +262,21 @@ final class DocumentationTest extends UnitTestCase {
     // Prompty reads the answer to each step from the variable named by the
     // prefix and the step key in upper case.
     return array_map(static fn(string $key): string => $prefix . strtoupper($key), $keys[1]);
+  }
+
+  /**
+   * List the variables that 'install.php' reads.
+   *
+   * @return array<int, string>
+   *   The variable names: those that answer the prompts, then those that
+   *   'install.php' reads with 'getenv()'.
+   */
+  protected static function installVariables(): array {
+    $install = (string) file_get_contents(self::rootDir() . '/install.php');
+
+    preg_match_all("/getenv\('(INSTALL_\w+)'\)/", $install, $matches);
+
+    return array_values(array_unique([...self::installPromptVariables(), ...$matches[1]]));
   }
 
   /**

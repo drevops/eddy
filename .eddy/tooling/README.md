@@ -19,6 +19,8 @@ The installer reads the version constraint from `composer.dev.json`:
 
 Keep the `~` constraint. It accepts patch releases but holds the minor version, so a new minor release reaches your project with the next scaffold update rather than in the middle of a CI run.
 
+The package requires PHP 8.3 or newer, so every CI job and local build that installs it needs PHP 8.3 or newer too.
+
 The installer runs Composer only when the constraint, the patches for the package or the contents of a local patch file change, or when a command is missing from `vendor/bin`. Otherwise it returns straight away, so running it before every command costs next to nothing. A local install keeps its patch release until `vendor/` is removed, which `ahoy reset` and `make reset` do.
 
 ## Commands
@@ -36,6 +38,8 @@ The installer runs Composer only when the constraint, the patches for the packag
 | `eddy-qrcode`        | Render a URL as a scannable QR code in the terminal.                                                                    |
 
 `eddy-assemble` builds the Drupal version in `DRUPAL_VERSION`. When the variable isn't set, it builds the version in `extra.eddy.drupal-version` of `composer.dev.json`, and Drupal 11 when that isn't set either.
+
+Before it touches `build/`, `eddy-assemble` reads the PHP requirement of the Drupal core release it resolved and stops when the PHP running it doesn't meet it, or when the `config.platform.php` that the extension's `composer.dev.json` or `composer.json` sets doesn't. It then sets `config.platform.php` in `build/composer.json` to that setting, or to the running PHP when the extension sets none, so a `platform` setting in the global Composer configuration doesn't change what gets installed. With `GITHUB_TOKEN` set, it passes the token to the Composer commands it runs through `COMPOSER_AUTH`, unless that variable is already set, and leaves the global Composer configuration alone.
 
 ## Verbose output
 

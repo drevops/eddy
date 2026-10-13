@@ -30,7 +30,7 @@ final class TemplateMarkersTest extends UnitTestCase {
    * The 'DRUPAL_<major>' tokens follow 'drupal_version_options()' and the tool
    * tokens follow 'tool_specs()'.
    */
-  protected const array NAMED_TOKENS = ['DEV_AHOY', 'DEV_MAKEFILE', 'DEV_COMMAND_WRAPPER', 'DEV_NO_COMMAND_WRAPPER', 'DEV_NODEJS_LINT', 'META'];
+  protected const array NAMED_TOKENS = ['DEV_AHOY', 'DEV_MAKEFILE', 'DEV_COMMAND_WRAPPER', 'DEV_NO_COMMAND_WRAPPER', 'DEV_NODEJS_LINT', 'DEV_NPM', 'META'];
 
   public static function setUpBeforeClass(): void {
     putenv('SCRIPT_RUN_SKIP=1');

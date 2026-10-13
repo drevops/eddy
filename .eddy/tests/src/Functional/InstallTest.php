@@ -126,6 +126,12 @@ final class InstallTest extends FunctionalTestCase {
       ],
     ];
 
+    yield 'github_repository' => [
+      [
+        'github_repository' => 'alexskrypnyk/force_crystal',
+      ],
+    ];
+
     yield 'no_php_lint' => [
       [
         'tools' => 'eslint,stylelint,cspell,jest,phpunit,functional_javascript,renovate',
@@ -147,6 +153,12 @@ final class InstallTest extends FunctionalTestCase {
     yield 'no_jest' => [
       [
         'tools' => 'phpcs,phpstan,rector,twigcs,eslint,stylelint,cspell,phpunit,functional_javascript,renovate',
+      ],
+    ];
+
+    yield 'no_npm' => [
+      [
+        'tools' => 'phpcs,phpstan,rector,twigcs,phpunit,functional_javascript,renovate',
       ],
     ];
 

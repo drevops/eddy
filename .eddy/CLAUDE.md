@@ -34,12 +34,13 @@ For each token it strips, `remove_tokens_with_content()` deletes every block of 
 | `DRUPAL_<major>`, such as `DRUPAL_11`               | The major isn't selected                     |
 | `DEV_<TOOL>`, the `token` of a `tool_specs()` entry | The tool isn't selected                      |
 | `DEV_NODEJS_LINT`                                   | Neither ESLint nor Stylelint is selected     |
+| `DEV_NPM`                                           | No tool from `npm_specs()` is selected       |
 | `DEV_AHOY`, `DEV_MAKEFILE`                          | That command wrapper isn't selected          |
 | `DEV_COMMAND_WRAPPER`                               | No command wrapper is selected               |
 | `DEV_NO_COMMAND_WRAPPER`                            | At least 1 command wrapper is selected       |
 | `META`                                              | Always, since it wraps scaffold-only content |
 
-Dropping PHPUnit drops FunctionalJavascript with it, since those tests run on PHPUnit.
+Dropping PHPUnit drops FunctionalJavascript with it, since those tests run on PHPUnit. Dropping every tool in `npm_specs()` (ESLint, Stylelint, CSpell and Jest) also deletes `package.json` and `package-lock.json`, since nothing runs npm any more.
 
 Blocks of different tokens can nest, because `install.php` strips 1 token at a time: a `DEV_FUNCTIONAL_JAVASCRIPT` block inside a `DEV_MAKEFILE` block goes when either token is stripped.
 
@@ -64,6 +65,7 @@ A block removes whole lines, so it can't trim a line that names several options.
 - `core_version_requirement()` renders `core_version_requirement` in `your_extension.info.yml`, such as `^10 || ^11` for Drupal 10 and 11.
 - `phpunit_config_comment()` renders the comment that opens `phpunit.xml`. It leaves out a major with a `phpunit.d<major>.xml` of its own, which `eddy-assemble` uses for that major instead, so with Drupal 10 and 11 selected it names Drupal 11 only.
 - `command_wrapper_text()` renders "`make` or `ahoy`", and "`make build` or `ahoy build`" for the `build`, `lint` and `test` commands. Ahoy alone turns them into "`ahoy`" and "`ahoy build`". Without a wrapper, these phrases sit in `DEV_COMMAND_WRAPPER` blocks, and "The command wrappers and CI run it" in `AGENTS.md` becomes "CI runs it".
+- `process_extension_type_text()` renders where the extension sits in the build. A module's `CONTRIBUTING.md` drops the "(`web/themes/custom/` for a theme)" note, a theme's shows its example test paths under `web/themes/custom/`, and the symlink note in `AGENTS.md` names only the directory of the extension's type.
 
 A replacement finds nothing once the template text drifts from the every-option rendering, and the text then ships unrendered. `InstallProcessTest` renders each one for every selection, so it fails when a template edit breaks a replacement. A new phrase that names both wrappers needs its command added to `process_command_wrapper_text()`.
 
@@ -72,7 +74,7 @@ A replacement finds nothing once the template text drifts from the every-option 
 1. In `install.php`, add the major to `drupal_version_options()` and to the `INSTALL_DRUPAL_VERSION` entry of `print_help()`.
 2. Add a `DRUPAL_<major>` block wherever the existing majors have one. `git grep -n '#;< DRUPAL_'` lists them: today that's the `lint` and `test` matrices in `.github/workflows/test.yml`, the badges in `README.dist.md` and the matrix list in `AGENTS.md`.
 3. Add the major to `core_version_requirement` in `your_extension.info.yml`, and to the comment that opens `phpunit.xml` unless the major gets a `phpunit.d<major>.xml` of its own (see [Text rendered from the answers](#text-rendered-from-the-answers)).
-4. To have the major start checked, add it to `drupal_version_default()` and update the defaults that `print_help()` and `README.md` name. Then set `extra.eddy.drupal-version` in `composer.dev.json` to the highest major `drupal_version_default()` returns: `InstallHelpersTest` fails until they agree.
+4. To have the major start checked, add it to `drupal_version_default()` and update the defaults that `print_help()` and `README.md` name. Then set `extra.eddy.drupal-version` in `composer.dev.json` to the highest major `drupal_version_default()` returns: `InstallHelpersTest` fails until they agree. That major also caps the build default of a generated project, because `drupal_version_build_default()` picks the highest selected major up to it. Add a major to `drupal_version_default()` only once it has a stable release.
 5. Review `.eddy/tooling/src/eddy-assemble`. It picks the PHPUnit, `symfony/phpunit-bridge` and Rector constraints by major, and it uses `phpunit.d<major>.xml` in place of `phpunit.xml` when that file exists.
 6. Update `README.md` where it lists the majors: the badges, the CI job table and the branch protection table.
 7. Update the expected majors in `InstallHelpersTest` and the Drupal data providers in `InstallProcessTest`, add a `d<major>_only` dataset to `InstallTest`, then regenerate the snapshot fixtures.
@@ -97,6 +99,16 @@ The scaffold builds from `main`, so the branch filters of `.github/workflows/tes
 The update skill runs `install.php` in a scratch directory, where the lookup finds no committed `test.yml`, so both of its renders get `1.x`. Its 3-way merge then keeps the project's branches, because the 2 renders agree on those lines.
 
 Keep `main` the only branch in those filters: a second branch there ships to every generated project.
+
+## GitHub repository
+
+The badges in `README.dist.md` name the GitHub repository as `YourNamespace/your_extension`, and `process_internal()` renders it as:
+
+- `INSTALL_GITHUB_REPOSITORY`, when it's set. `install.php` reads it directly rather than through a prompt, like `INSTALL_BRANCHES`, and accepts only the `owner/name` form.
+- Otherwise the repository of the `origin` remote, when the current directory is the root of a clone, as it is when `install.php` runs in a clone of a repository created with **Use this template**.
+- Otherwise the machine name for both parts, as the generic replacements render it.
+
+The repository goes in after the generic replacements, which would rewrite an owner or a name spelled like a placeholder, such as `alexskrypnyk`. The update skill renders in a scratch directory inside the project's repository, which the root check rules out, so it passes `INSTALL_GITHUB_REPOSITORY` to both renders.
 
 ## Template version
 
