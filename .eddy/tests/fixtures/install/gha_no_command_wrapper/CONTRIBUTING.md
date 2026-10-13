@@ -15,7 +15,7 @@
     ```
  
  ## Building website
-@@ -22,14 +24,6 @@
+@@ -22,17 +24,9 @@
  
  The resulting codebase is then placed in the `build` directory. The extension files are symlinked into the Drupal site structure.
  
@@ -29,8 +29,12 @@
 -
  The `provision` command is useful for re-installing the Drupal website without re-assembling the codebase.
  
+-The `info` command prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path. The `reset` command stops the development server and removes the `build`, `.logs` and `vendor` directories.
++`vendor/bin/eddy-info` prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path.
+ 
  ### Drupal versions
-@@ -40,16 +34,16 @@
+ 
+@@ -42,16 +36,16 @@
  
  ```bash
  # Newest stable Drupal 11 release.
@@ -51,7 +55,7 @@
  ```
  
  The build pins Drupal core to the newest release matching `DRUPAL_VERSION` and prints it. A version with no stable release yet resolves to its newest pre-release. When that release requires a newer PHP than the one running the build, the build stops before it changes anything and says which PHP the release needs.
-@@ -103,14 +97,10 @@
+@@ -105,14 +99,10 @@
  PHP step-debugging is supported via [XDebug](https://xdebug.org/docs/install). Install the XDebug PHP extension on your host (`php -v` should mention `with Xdebug`), then toggle it on the development server:
  
  ```bash
@@ -68,7 +72,7 @@
  Code coverage stays on [pcov](https://github.com/krakjoe/pcov) because the XDebug settings apply only to the development server, not to the test commands.
  
  To start and stop debug sessions from the browser, install the Xdebug Helper extension: [Chrome](https://chromewebstore.google.com/detail/xdebug-helper-by-jetbrain/aoelhdemabeimdhedkidlnbkfhnhgnhm) / [Firefox](https://addons.mozilla.org/en-US/firefox/addon/xdebug-helper-by-jetbrains/).
-@@ -130,7 +120,15 @@
+@@ -132,7 +122,15 @@
  Run all checks with:
  
  ```bash
@@ -85,7 +89,7 @@
  ```
  
  ### Fixing coding standards issues
-@@ -138,7 +136,11 @@
+@@ -140,7 +138,11 @@
  To fix coding standards issues automatically, run the same tools with the `--fix` option (for the tools that support it):
  
  ```bash
@@ -98,7 +102,7 @@
  ```
  
  ## Testing
-@@ -146,7 +148,13 @@
+@@ -148,7 +150,13 @@
  Run the tests for this extension with:
  
  ```bash
@@ -112,8 +116,8 @@
 +npm test
  ```
  
- The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests. It uses Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
-@@ -154,10 +162,12 @@
+ The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests, and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both use Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
+@@ -156,10 +164,12 @@
  Each test suite can also be run on its own:
  
  ```bash
@@ -130,7 +134,7 @@
  ```
  
  ### Running FunctionalJavascript tests
-@@ -165,21 +175,32 @@
+@@ -167,21 +177,32 @@
  FunctionalJavascript tests need a real browser driven via WebDriver. By default they use the Google Chrome already installed on your machine - a matching `chromedriver` is downloaded automatically on first run, so no Docker is required:
  
  ```bash
@@ -173,7 +177,7 @@
  ```
  
  The browser reaches the webserver at `localhost` with the default backend, and at `host.docker.internal` (macOS) or `__VERSION__.1` (other systems) from the Selenium container. Set `WEBDRIVER_HOST` to use a different address.
-@@ -189,13 +210,6 @@
+@@ -191,13 +212,6 @@
  ### Running specific tests
  
  You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the test commands. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site:

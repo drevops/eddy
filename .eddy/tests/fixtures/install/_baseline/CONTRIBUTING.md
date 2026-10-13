@@ -32,6 +32,8 @@ ahoy provision    # Provision the Drupal website
 
 The `provision` command is useful for re-installing the Drupal website without re-assembling the codebase.
 
+The `info` command prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path. The `reset` command stops the development server and removes the `build`, `.logs` and `vendor` directories.
+
 ### Drupal versions
 
 The Drupal version used for the codebase assembly is determined by the `DRUPAL_VERSION` variable and defaults to `extra.eddy.drupal-version` in `composer.dev.json`, the newest Drupal major this extension targets that has a stable release.
@@ -149,7 +151,7 @@ Run the tests for this extension with:
 ahoy test
 ```
 
-The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests. It uses Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
+The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests, and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both use Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
 
 Each test suite can also be run on its own:
 

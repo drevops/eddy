@@ -22,7 +22,7 @@
  ahoy assemble     # Assemble the codebase
  ahoy start        # Start the PHP server
  ahoy provision    # Provision the Drupal website
-@@ -40,6 +50,20 @@
+@@ -42,6 +52,20 @@
  
  ```bash
  # Newest stable Drupal 11 release.
@@ -43,7 +43,7 @@
  DRUPAL_VERSION=11 ahoy build
  
  # Newest Drupal 11.1.x patch release.
-@@ -103,6 +127,11 @@
+@@ -105,6 +129,11 @@
  PHP step-debugging is supported via [XDebug](https://xdebug.org/docs/install). Install the XDebug PHP extension on your host (`php -v` should mention `with Xdebug`), then toggle it on the development server:
  
  ```bash
@@ -55,7 +55,7 @@
  ahoy debug      # restart with XDebug enabled
  ahoy start      # restart without XDebug
  ```
-@@ -130,6 +159,10 @@
+@@ -132,6 +161,10 @@
  Run all checks with:
  
  ```bash
@@ -66,7 +66,7 @@
  ahoy lint
  ```
  
-@@ -138,6 +171,10 @@
+@@ -140,6 +173,10 @@
  To fix coding standards issues automatically, run the same tools with the `--fix` option (for the tools that support it):
  
  ```bash
@@ -77,7 +77,7 @@
  ahoy lint-fix
  ```
  
-@@ -146,6 +183,10 @@
+@@ -148,6 +185,10 @@
  Run the tests for this extension with:
  
  ```bash
@@ -88,7 +88,7 @@
  ahoy test
  ```
  
-@@ -154,6 +195,13 @@
+@@ -156,6 +197,13 @@
  Each test suite can also be run on its own:
  
  ```bash
@@ -102,7 +102,7 @@
  ahoy test-unit                    # Run Unit tests
  ahoy test-kernel                  # Run Kernel tests
  ahoy test-functional              # Run Functional tests
-@@ -165,6 +213,13 @@
+@@ -167,6 +215,13 @@
  FunctionalJavascript tests need a real browser driven via WebDriver. By default they use the Google Chrome already installed on your machine - a matching `chromedriver` is downloaded automatically on first run, so no Docker is required:
  
  ```bash
@@ -116,7 +116,7 @@
  ahoy start
  ahoy provision
  ahoy test-functional-javascript
-@@ -176,6 +231,13 @@
+@@ -178,6 +233,13 @@
  To run the browser in a Docker Selenium container instead, set `WEBDRIVER_BACKEND=selenium`. The container cannot reach the host's `localhost`, so start the webserver on all interfaces:
  
  ```bash
@@ -130,7 +130,7 @@
  WEBSERVER_HOST=__VERSION__.0 ahoy start
  ahoy provision
  WEBDRIVER_BACKEND=selenium ahoy test-functional-javascript
-@@ -189,6 +251,13 @@
+@@ -191,6 +253,13 @@
  ### Running specific tests
  
  You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the test commands. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site:

@@ -28,7 +28,7 @@
  ahoy assemble     # Assemble the codebase
  ahoy start        # Start the PHP server
  ahoy provision    # Provision the Drupal website
-@@ -40,6 +49,20 @@
+@@ -42,6 +51,20 @@
  
  ```bash
  # Newest stable Drupal 11 release.
@@ -49,7 +49,7 @@
  DRUPAL_VERSION=11 ahoy build
  
  # Newest Drupal 11.1.x patch release.
-@@ -103,6 +126,11 @@
+@@ -105,6 +128,11 @@
  PHP step-debugging is supported via [XDebug](https://xdebug.org/docs/install). Install the XDebug PHP extension on your host (`php -v` should mention `with Xdebug`), then toggle it on the development server:
  
  ```bash
@@ -61,7 +61,7 @@
  ahoy debug      # restart with XDebug enabled
  ahoy start      # restart without XDebug
  ```
-@@ -118,12 +146,6 @@
+@@ -120,12 +148,6 @@
  ## Coding standards
  
  The codebase is checked using multiple tools:
@@ -74,7 +74,7 @@
  
  The configuration files for these tools are located in the root of the codebase.
  
-@@ -130,6 +152,10 @@
+@@ -132,6 +154,10 @@
  Run all checks with:
  
  ```bash
@@ -85,7 +85,7 @@
  ahoy lint
  ```
  
-@@ -138,6 +164,10 @@
+@@ -140,6 +166,10 @@
  To fix coding standards issues automatically, run the same tools with the `--fix` option (for the tools that support it):
  
  ```bash
@@ -96,7 +96,7 @@
  ahoy lint-fix
  ```
  
-@@ -146,60 +176,9 @@
+@@ -148,60 +178,9 @@
  Run the tests for this extension with:
  
  ```bash
@@ -104,7 +104,7 @@
 +make test
  ```
  
--The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests. It uses Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
+-The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests, and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both use Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
 -
 -Each test suite can also be run on its own:
 -

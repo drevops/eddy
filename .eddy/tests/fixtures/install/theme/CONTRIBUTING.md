@@ -1,4 +1,4 @@
-@@ -191,7 +191,7 @@
+@@ -193,7 +193,7 @@
  You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the test commands. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site:
  
  ```bash
@@ -7,7 +7,7 @@
  ahoy test-unit -- --group wip
  ```
  
-@@ -200,6 +200,6 @@
+@@ -202,6 +202,6 @@
  ```bash
  cd build
  php -d pcov.directory=.. vendor/bin/phpunit \
