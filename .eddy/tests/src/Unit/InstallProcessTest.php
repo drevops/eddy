@@ -898,6 +898,73 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   /**
+   * The README badges name the given GitHub repository, as given.
+   */
+  #[DataProvider('dataProviderProcessRendersGithubRepository')]
+  public function testProcessRendersGithubRepository(?string $repository, string $expected): void {
+    process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], [], FALSE, FALSE, [], NULL, $repository);
+
+    $readme = (string) file_get_contents(self::$sut . '/README.md');
+
+    $this->assertStringContainsString('https://img.shields.io/github/issues/' . $expected . '.svg', $readme);
+    $this->assertStringContainsString('https://github.com/' . $expected . '/actions/workflows/test.yml', $readme);
+    $this->assertStringContainsString('https://codecov.io/gh/' . $expected . '/graph/badge.svg', $readme);
+    $this->assertStringContainsString('https://img.shields.io/github/license/' . $expected . ')', $readme);
+    $this->assertStringNotContainsString('__GITHUB_REPOSITORY__', $readme);
+    $this->assertStringContainsString('[Eddy](https://github.com/drevops/eddy)', $readme);
+  }
+
+  public static function dataProviderProcessRendersGithubRepository(): \Iterator {
+    yield 'no repository' => [NULL, 'my_extension/my_extension'];
+    yield 'repository' => ['AlexSkrypnyk/drupal_helpers', 'AlexSkrypnyk/drupal_helpers'];
+    yield 'owner spelled like a placeholder' => ['alexskrypnyk/drupal_helpers', 'alexskrypnyk/drupal_helpers'];
+    yield 'name spelled like a placeholder' => ['acme/your_extension', 'acme/your_extension'];
+  }
+
+  /**
+   * Without a given repository, the badges name the 'origin' remote.
+   */
+  #[DataProvider('dataProviderProcessReadsGithubRepositoryFromOrigin')]
+  public function testProcessReadsGithubRepositoryFromOrigin(?string $repository, string $expected): void {
+    $this->git(self::$sut, ['init']);
+    $this->git(self::$sut, ['remote', 'add', 'origin', 'git@github.com:acme/widget.git']);
+
+    process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], [], FALSE, FALSE, [], NULL, $repository);
+
+    $this->assertStringContainsString('https://github.com/' . $expected . '/actions/workflows/test.yml', (string) file_get_contents(self::$sut . '/README.md'));
+  }
+
+  public static function dataProviderProcessReadsGithubRepositoryFromOrigin(): \Iterator {
+    yield 'origin' => [NULL, 'acme/widget'];
+    yield 'given repository over the origin' => ['drevops/eddy', 'drevops/eddy'];
+  }
+
+  /**
+   * The paths in the docs follow the extension type.
+   */
+  #[DataProvider('dataProviderProcessRendersExtensionTypeText')]
+  public function testProcessRendersExtensionTypeText(string $type, string $machine_name, string $dir): void {
+    process('My Extension', $machine_name, $type, ['10', '11'], ['ahoy', 'makefile'], [], FALSE, FALSE);
+
+    $contributing = (string) file_get_contents(self::$sut . '/CONTRIBUTING.md');
+    $agents = (string) file_get_contents(self::$sut . '/AGENTS.md');
+    $other_dir = $dir === 'themes' ? 'modules' : 'themes';
+
+    $this->assertStringContainsString("a test path starts at the extension's symlink in the assembled site:", $contributing);
+    $this->assertStringContainsString('make test-unit web/' . $dir . '/custom/' . $machine_name . '/tests/src/Unit/MyUnitTest.php', $contributing);
+    $this->assertStringContainsString('ahoy test-unit web/' . $dir . '/custom/' . $machine_name . '/tests/src/Unit/MyUnitTest.php', $contributing);
+    $this->assertStringContainsString('  web/' . $dir . '/custom/' . $machine_name . '/tests/src/Unit/MyUnitTest.php', $contributing);
+    $this->assertStringNotContainsString('web/' . $other_dir . '/custom/', $contributing);
+    $this->assertStringContainsString('- Extension files are symlinked from root into `build/web/' . $dir . "/custom/`\n", $agents);
+    $this->assertStringNotContainsString('build/web/' . $other_dir . '/custom/', $agents);
+  }
+
+  public static function dataProviderProcessRendersExtensionTypeText(): \Iterator {
+    yield 'module' => ['module', 'my_extension', 'modules'];
+    yield 'theme' => ['theme', 'my_theme', 'themes'];
+  }
+
+  /**
    * The template version lands next to the build default when it is known.
    */
   #[DataProvider('dataProviderProcessRecordsVersion')]

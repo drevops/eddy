@@ -167,12 +167,12 @@ final class DocumentationTest extends UnitTestCase {
     }
   }
 
-  #[DataProvider('dataProviderUpdateSkillVariableIsInstallPrompt')]
-  public function testUpdateSkillVariableIsInstallPrompt(string $variable): void {
-    $this->assertContains($variable, self::installPromptVariables(), sprintf('The update skill sets %s, which install.php does not prompt for.', $variable));
+  #[DataProvider('dataProviderUpdateSkillVariableIsInstallVariable')]
+  public function testUpdateSkillVariableIsInstallVariable(string $variable): void {
+    $this->assertContains($variable, self::installVariables(), sprintf('The update skill sets %s, which install.php does not read.', $variable));
   }
 
-  public static function dataProviderUpdateSkillVariableIsInstallPrompt(): \Iterator {
+  public static function dataProviderUpdateSkillVariableIsInstallVariable(): \Iterator {
     foreach (self::updateSkillInstallVariables() as $variable) {
       yield $variable => ['variable' => $variable];
     }
@@ -243,6 +243,21 @@ final class DocumentationTest extends UnitTestCase {
     // Prompty reads the answer to each step from the variable named by the
     // prefix and the step key in upper case.
     return array_map(static fn(string $key): string => $prefix . strtoupper($key), $keys[1]);
+  }
+
+  /**
+   * List the variables that 'install.php' reads.
+   *
+   * @return array<int, string>
+   *   The variable names: those that answer the prompts, then those that
+   *   'install.php' reads with 'getenv()'.
+   */
+  protected static function installVariables(): array {
+    $install = (string) file_get_contents(self::rootDir() . '/install.php');
+
+    preg_match_all("/getenv\('(INSTALL_\w+)'\)/", $install, $matches);
+
+    return array_values(array_unique([...self::installPromptVariables(), ...$matches[1]]));
   }
 
   /**

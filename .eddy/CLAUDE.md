@@ -65,6 +65,7 @@ A block removes whole lines, so it can't trim a line that names several options.
 - `core_version_requirement()` renders `core_version_requirement` in `your_extension.info.yml`, such as `^10 || ^11` for Drupal 10 and 11.
 - `phpunit_config_comment()` renders the comment that opens `phpunit.xml`. It leaves out a major with a `phpunit.d<major>.xml` of its own, which `eddy-assemble` uses for that major instead, so with Drupal 10 and 11 selected it names Drupal 11 only.
 - `command_wrapper_text()` renders "`make` or `ahoy`", and "`make build` or `ahoy build`" for the `build`, `lint` and `test` commands. Ahoy alone turns them into "`ahoy`" and "`ahoy build`". Without a wrapper, these phrases sit in `DEV_COMMAND_WRAPPER` blocks, and "The command wrappers and CI run it" in `AGENTS.md` becomes "CI runs it".
+- `process_extension_type_text()` renders where the extension sits in the build. A module's `CONTRIBUTING.md` drops the "(`web/themes/custom/` for a theme)" note, a theme's shows its example test paths under `web/themes/custom/`, and the symlink note in `AGENTS.md` names only the directory of the extension's type.
 
 A replacement finds nothing once the template text drifts from the every-option rendering, and the text then ships unrendered. `InstallProcessTest` renders each one for every selection, so it fails when a template edit breaks a replacement. A new phrase that names both wrappers needs its command added to `process_command_wrapper_text()`.
 
@@ -98,6 +99,16 @@ The scaffold builds from `main`, so the branch filters of `.github/workflows/tes
 The update skill runs `install.php` in a scratch directory, where the lookup finds no committed `test.yml`, so both of its renders get `1.x`. Its 3-way merge then keeps the project's branches, because the 2 renders agree on those lines.
 
 Keep `main` the only branch in those filters: a second branch there ships to every generated project.
+
+## GitHub repository
+
+The badges in `README.dist.md` name the GitHub repository as `YourNamespace/your_extension`, and `process_internal()` renders it as:
+
+- `INSTALL_GITHUB_REPOSITORY`, when it's set. `install.php` reads it directly rather than through a prompt, like `INSTALL_BRANCHES`, and accepts only the `owner/name` form.
+- Otherwise the repository of the `origin` remote, when the current directory is the root of a clone, as it is when `install.php` runs in a clone of a repository created with **Use this template**.
+- Otherwise the machine name for both parts, as the generic replacements render it.
+
+The repository goes in after the generic replacements, which would rewrite an owner or a name spelled like a placeholder, such as `alexskrypnyk`. The update skill renders in a scratch directory inside the project's repository, which the root check rules out, so it passes `INSTALL_GITHUB_REPOSITORY` to both renders.
 
 ## Template version
 

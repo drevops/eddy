@@ -16,6 +16,10 @@
  * - INSTALL_BRANCHES: The branches the shipped workflows run on,
  *   comma-separated. Defaults to the 'push' branches of the committed
  *   '.github/workflows/test.yml', or '1.x'.
+ * - INSTALL_GITHUB_REPOSITORY: The GitHub repository the README badges name,
+ *   as 'owner/name'. Defaults to the GitHub 'origin' remote of the git
+ *   repository that the current directory is the root of, or to the machine
+ *   name for both parts.
  *
  * Usage:
  * @code
@@ -96,6 +100,7 @@ function main(array $argv): void {
   // exercises this path end-to-end via a subprocess.
   // @codeCoverageIgnoreStart
   $branches = parse_branch_list((string) getenv('INSTALL_BRANCHES'));
+  $repository = parse_github_repository((string) getenv('INSTALL_GITHUB_REPOSITORY'));
 
   // The selectable development tools, all enabled by default.
   $tool_options = [
@@ -184,7 +189,7 @@ function main(array $argv): void {
     $machine_name = convert_string($name, 'file_name');
   }
 
-  process($name, $machine_name, $type, $drupal_versions, $command_wrapper, $tools_remove, $remove_examples, $remove_self, $branches, template_version(TEMPLATE_VERSION));
+  process($name, $machine_name, $type, $drupal_versions, $command_wrapper, $tools_remove, $remove_examples, $remove_self, $branches, template_version(TEMPLATE_VERSION), $repository);
   // @codeCoverageIgnoreEnd
 }
 
@@ -283,6 +288,11 @@ Other environment variables:
   INSTALL_BRANCHES        Branches the workflows run on: comma-separated
                           (e.g. 1.x,2.x). Defaults to the push branches of the
                           committed .github/workflows/test.yml, or 1.x.
+  INSTALL_GITHUB_REPOSITORY
+                          GitHub repository the README badges name, as
+                          owner/name (e.g. drevops/eddy). Defaults to the
+                          GitHub origin remote of the clone this directory is
+                          the root of, or to the machine name.
 
 EOF;
   print $out;
@@ -312,8 +322,11 @@ EOF;
  *   from the committed workflow.
  * @param string|null $version
  *   The template version to record, or NULL to record none.
+ * @param string|null $repository
+ *   The GitHub repository the README badges name, as 'owner/name', or NULL to
+ *   read it from the 'origin' remote.
  */
-function process(string $extension_name, string $extension_machine_name, string $extension_type, array $drupal_versions, array $command_wrapper, array $tools_remove, bool $remove_examples, bool $remove_self, array $branches = [], ?string $version = NULL): void {
+function process(string $extension_name, string $extension_machine_name, string $extension_type, array $drupal_versions, array $command_wrapper, array $tools_remove, bool $remove_examples, bool $remove_self, array $branches = [], ?string $version = NULL, ?string $repository = NULL): void {
   // Validate required values.
   if ($extension_name === '') {
     throw new \Exception('Name is required.');
@@ -393,7 +406,9 @@ function process(string $extension_name, string $extension_machine_name, string 
 
   process_readme($extension_name);
 
-  process_internal($extension_name, $extension_machine_name, $extension_type);
+  process_extension_type_text($extension_type);
+
+  process_internal($extension_name, $extension_machine_name, $extension_type, $repository ?? origin_github_repository());
 
   process_workflow_branches($branches);
 
@@ -458,6 +473,23 @@ function process_command_wrapper_text(array $command_wrapper): void {
   foreach (['', 'build', 'lint', 'test'] as $command) {
     replace_string_content(command_wrapper_text($wrappers, $command), command_wrapper_text($command_wrapper, $command));
   }
+}
+
+/**
+ * Render the text that names where the extension sits in the site build.
+ *
+ * The template names the directories of both extension types. Each mention
+ * is replaced with the directory of the extension's type.
+ *
+ * @param string $extension_type
+ *   The extension type: 'module' or 'theme'.
+ */
+function process_extension_type_text(string $extension_type): void {
+  $dir = $extension_type === 'theme' ? 'themes' : 'modules';
+
+  replace_string_content(' (`web/themes/custom/` for a theme)', '');
+  replace_string_content('`build/web/modules/custom/` (module) or `build/web/themes/custom/` (theme)', '`build/web/' . $dir . '/custom/`');
+  replace_string_content('web/modules/custom/your_extension/tests/', 'web/' . $dir . '/custom/your_extension/tests/');
 }
 
 /**
@@ -653,14 +685,25 @@ function process_readme(string $extension_name): void {
  *   The machine name of the extension.
  * @param string $extension_type
  *   The extension type (module or theme).
+ * @param string|null $repository
+ *   The GitHub repository the README badges name, as 'owner/name', or NULL
+ *   to name the machine name for both parts.
  */
-function process_internal(string $extension_name, string $extension_machine_name, string $extension_type): void {
+function process_internal(string $extension_name, string $extension_machine_name, string $extension_type, ?string $repository = NULL): void {
   $extension_machine_name_class = convert_string($extension_machine_name, 'class_name');
 
   // Protect the attribution link from bulk replacements.
   $attribution_link = '[Eddy](https://github.com/drevops/eddy)';
   $attribution_link_token = '__ATTRIBUTION_LINK__';
   replace_string_content($attribution_link, $attribution_link_token);
+
+  // A repository can hold a placeholder, such as the owner 'alexskrypnyk',
+  // so it goes in after the bulk replacements.
+  $repository_token = '__GITHUB_REPOSITORY__';
+
+  if ($repository !== NULL) {
+    replace_string_content('YourNamespace/your_extension', $repository_token);
+  }
 
   // Protect the update skill URL from bulk replacements.
   $update_skill_url = 'https://raw.githubusercontent.com/drevops/eddy/main/.eddy/skills/update-consumer-eddy/SKILL.md';
@@ -688,6 +731,10 @@ function process_internal(string $extension_name, string $extension_machine_name
 
   // Restore the attribution link.
   replace_string_content($attribution_link_token, $attribution_link);
+
+  if ($repository !== NULL) {
+    replace_string_content($repository_token, $repository);
+  }
 
   // Restore the update skill URL.
   replace_string_content($update_skill_url_token, $update_skill_url);
@@ -968,6 +1015,78 @@ function set_workflow_branches(string $file, array $branches): void {
   }, $content) ?? $content;
 
   file_put_contents($file, $content);
+}
+
+/**
+ * Parse the GitHub repository of the project.
+ *
+ * @param string $value
+ *   The repository as 'owner/name', such as 'drevops/eddy', or an empty
+ *   string.
+ *
+ * @return string|null
+ *   The repository, or NULL when the value is empty.
+ *
+ * @throws \Exception
+ *   When the value is not an 'owner/name' pair.
+ */
+function parse_github_repository(string $value): ?string {
+  $value = trim($value);
+
+  if ($value === '') {
+    return NULL;
+  }
+
+  if (preg_match('#^[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9._-]+$#', $value) !== 1 || in_array(basename($value), ['.', '..'], TRUE)) {
+    throw new \Exception(sprintf('Invalid GitHub repository: "%s". Use the owner/name form, such as drevops/eddy.', $value));
+  }
+
+  return $value;
+}
+
+/**
+ * Read the GitHub repository from a git remote URL.
+ *
+ * @param string $url
+ *   The URL, such as 'git@github.com:drevops/eddy.git' or
+ *   'https://github.com/drevops/eddy'.
+ *
+ * @return string|null
+ *   The repository as 'owner/name', or NULL when the URL does not point to a
+ *   repository on GitHub.
+ */
+function github_repository_from_url(string $url): ?string {
+  if (preg_match('#^(?:[a-z][a-z0-9+.-]*://)?(?:[^@/]+@)?github\.com[:/]([A-Za-z0-9][A-Za-z0-9-]*)/([A-Za-z0-9._-]+?)(?:\.git)?/?$#', trim($url), $matches) !== 1) {
+    return NULL;
+  }
+
+  return $matches[1] . '/' . $matches[2];
+}
+
+/**
+ * Read the GitHub repository from the 'origin' remote.
+ *
+ * Only a repository whose root is the current directory counts: a copy of
+ * the template inside another repository is not that repository's project.
+ *
+ * @return string|null
+ *   The repository as 'owner/name', or NULL when the current directory is not
+ *   the root of a git repository with an 'origin' remote on GitHub.
+ */
+function origin_github_repository(): ?string {
+  $output = [];
+  $exit_code = 0;
+  exec('git rev-parse --show-toplevel 2>/dev/null', $output, $exit_code);
+  $root = $output[0] ?? '';
+
+  if ($exit_code !== 0 || $root === '' || realpath($root) !== realpath((string) getcwd())) {
+    return NULL;
+  }
+
+  $output = [];
+  exec('git remote get-url origin 2>/dev/null', $output, $exit_code);
+
+  return $exit_code === 0 ? github_repository_from_url($output[0] ?? '') : NULL;
 }
 
 /**
