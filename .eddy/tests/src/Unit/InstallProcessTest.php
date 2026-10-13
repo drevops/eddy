@@ -216,7 +216,7 @@ final class InstallProcessTest extends UnitTestCase {
       $this->assertStringNotContainsString($needle, $composer_dev, 'composer.dev.json should not contain: ' . $needle);
     }
 
-    $package_json = (string) file_get_contents(self::$sut . '/package.json');
+    $package_json = is_file(self::$sut . '/package.json') ? (string) file_get_contents(self::$sut . '/package.json') : '';
     foreach ($expected_package_json_absent as $needle) {
       $this->assertStringNotContainsString($needle, $package_json, 'package.json should not contain: ' . $needle);
     }
@@ -314,10 +314,10 @@ final class InstallProcessTest extends UnitTestCase {
 
     yield 'all npm tools' => [
       ['eslint', 'stylelint', 'cspell', 'jest'],
-      ['.eslintrc.json', '.stylelintrc.js', '.cspell.json', 'jest.config.js', 'js/my_extension.test.js'],
+      ['.eslintrc.json', '.stylelintrc.js', '.cspell.json', 'jest.config.js', 'js/my_extension.test.js', 'package.json', 'package-lock.json'],
       [],
-      ['"eslint"', '"stylelint"', '"cspell"', '"jest"', 'devDependencies'],
-      ['Running ESLint', 'NodeJS linters', 'npm run lint-spell', 'npm test'],
+      [],
+      ['Running ESLint', 'NodeJS linters', 'npm run lint-spell', 'npm test', 'Setup Node.js', 'npm ci'],
     ];
 
     // Removing PHPUnit also removes the FunctionalJavascript layer (Mink and
@@ -670,6 +670,54 @@ final class InstallProcessTest extends UnitTestCase {
     yield 'jest' => [['jest'], ['jest.config.js']];
     yield 'phpunit' => [['phpunit'], ['phpunit.xml', 'phpunit.d10.xml']];
     yield 'renovate' => [['renovate'], ['renovate.json']];
+    yield 'all npm tools' => [['eslint', 'stylelint', 'cspell', 'jest'], ['.skip_npm_build', 'package-lock.json', 'package.json']];
+  }
+
+  /**
+   * The npm manifests and the Node.js lint setup stay while any npm tool does.
+   *
+   * @param array<string> $tools_remove
+   */
+  #[DataProvider('dataProviderProcessRemovesNpm')]
+  public function testProcessRemovesNpm(array $tools_remove, bool $expect_npm): void {
+    process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy', 'makefile'], $tools_remove, FALSE, FALSE);
+
+    $workflow = (string) file_get_contents(self::$sut . '/.github/workflows/test.yml');
+    $gitattributes = (string) file_get_contents(self::$sut . '/.gitattributes');
+    $editorconfig = (string) file_get_contents(self::$sut . '/.editorconfig');
+
+    $this->assertSame($expect_npm, file_exists(self::$sut . '/package.json'), 'package.json presence mismatch.');
+    $this->assertSame($expect_npm, file_exists(self::$sut . '/package-lock.json'), 'package-lock.json presence mismatch.');
+    $this->assertSame($expect_npm, str_contains($workflow, '- name: Setup Node.js'), 'test.yml Node.js setup presence mismatch.');
+    $this->assertSame($expect_npm, str_contains($workflow, 'run: npm ci --ignore-scripts'), 'test.yml npm install presence mismatch.');
+    $this->assertSame($expect_npm, preg_match('/^package\.json +export-ignore$/m', $gitattributes) === 1, '.gitattributes package.json entry presence mismatch.');
+    $this->assertSame($expect_npm, str_contains($editorconfig, '[package.json]'), '.editorconfig package.json section presence mismatch.');
+    $this->assertStringNotContainsString("\n\n\n", $editorconfig, '.editorconfig holds a double blank line.');
+    $this->assertStringNotContainsString('#;', $workflow . $gitattributes . $editorconfig, 'A file keeps a marker line.');
+  }
+
+  public static function dataProviderProcessRemovesNpm(): \Iterator {
+    yield 'every npm tool' => [['eslint', 'stylelint', 'cspell', 'jest'], FALSE];
+    yield 'every tool' => [['phpcs', 'phpstan', 'rector', 'twigcs', 'eslint', 'stylelint', 'cspell', 'jest', 'phpunit', 'functional_javascript', 'renovate'], FALSE];
+    yield 'all npm tools but ESLint' => [['stylelint', 'cspell', 'jest'], TRUE];
+    yield 'all npm tools but Stylelint' => [['eslint', 'cspell', 'jest'], TRUE];
+    yield 'all npm tools but CSpell' => [['eslint', 'stylelint', 'jest'], TRUE];
+    yield 'all npm tools but Jest' => [['eslint', 'stylelint', 'cspell'], TRUE];
+    yield 'ESLint only' => [['eslint'], TRUE];
+    yield 'no npm tool' => [['phpcs', 'phpstan'], TRUE];
+    yield 'no tool' => [[], TRUE];
+  }
+
+  /**
+   * The 'package.json' description names the extension once.
+   */
+  public function testProcessRendersPackageDescription(): void {
+    process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], [], FALSE, FALSE);
+
+    $package = json_decode((string) file_get_contents(self::$sut . '/package.json'), TRUE);
+    $this->assertIsArray($package);
+
+    $this->assertSame('Provides my_extension functionality.', $package['description'] ?? NULL);
   }
 
   /**

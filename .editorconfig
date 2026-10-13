@@ -12,11 +12,13 @@ insert_final_newline = true
 
 [*.{json,lock}]
 indent_size = 4
+#;< DEV_NPM
 
 [package.json]
 indent_size = 2
-
+#;> DEV_NPM
 #;< DEV_ESLINT
+
 [.eslintrc.json]
 indent_size = 2
 

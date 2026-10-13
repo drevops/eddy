@@ -22,7 +22,9 @@
 # .prettierignore    export-ignore
 # .prettierrc.json   export-ignore
 #;> DEV_ESLINT
+#;< DEV_NPM
 # .skip_npm_build    export-ignore
+#;> DEV_NPM
 #;< DEV_STYLELINT
 # .stylelintrc.js    export-ignore
 #;> DEV_STYLELINT
@@ -36,8 +38,10 @@
 #;< DEV_JEST
 # jest.config.js     export-ignore
 #;> DEV_JEST
+#;< DEV_NPM
 # package-lock.json  export-ignore
 # package.json       export-ignore
+#;> DEV_NPM
 # patches            export-ignore
 #;< DEV_PHPCS
 # phpcs.xml          export-ignore

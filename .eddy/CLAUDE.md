@@ -34,12 +34,13 @@ For each token it strips, `remove_tokens_with_content()` deletes every block of 
 | `DRUPAL_<major>`, such as `DRUPAL_11`               | The major isn't selected                     |
 | `DEV_<TOOL>`, the `token` of a `tool_specs()` entry | The tool isn't selected                      |
 | `DEV_NODEJS_LINT`                                   | Neither ESLint nor Stylelint is selected     |
+| `DEV_NPM`                                           | No tool from `npm_specs()` is selected       |
 | `DEV_AHOY`, `DEV_MAKEFILE`                          | That command wrapper isn't selected          |
 | `DEV_COMMAND_WRAPPER`                               | No command wrapper is selected               |
 | `DEV_NO_COMMAND_WRAPPER`                            | At least 1 command wrapper is selected       |
 | `META`                                              | Always, since it wraps scaffold-only content |
 
-Dropping PHPUnit drops FunctionalJavascript with it, since those tests run on PHPUnit.
+Dropping PHPUnit drops FunctionalJavascript with it, since those tests run on PHPUnit. Dropping every tool in `npm_specs()` (ESLint, Stylelint, CSpell and Jest) also deletes `package.json` and `package-lock.json`, since nothing runs npm any more.
 
 Blocks of different tokens can nest, because `install.php` strips 1 token at a time: a `DEV_FUNCTIONAL_JAVASCRIPT` block inside a `DEV_MAKEFILE` block goes when either token is stripped.
 

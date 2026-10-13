@@ -680,7 +680,7 @@ function process_internal(string $extension_name, string $extension_machine_name
   replace_string_content('YourExtension', $extension_machine_name_class);
   replace_string_content('Provides your_extension functionality.', 'Provides ' . $extension_machine_name . ' functionality.');
   replace_string_content('drupal-module', 'drupal-' . $extension_type);
-  replace_string_content('Drupal module scaffold FE example used for template testing', 'Provides ' . $extension_machine_name . ' functionality.');
+  replace_string_content('Drupal module scaffold FE example used for template testing.', 'Provides ' . $extension_machine_name . ' functionality.');
   replace_string_content('Drupal extension scaffold', $extension_name);
   replace_string_content('type: module', 'type: ' . $extension_type);
   replace_string_content('is a Drupal module.', 'is a Drupal ' . $extension_type . '.');
@@ -1336,12 +1336,15 @@ function template_version(string $describe): ?string {
 }
 
 /**
- * Remove npm devDependencies and scripts for deselected JavaScript tools.
+ * Remove the npm footprint of deselected JavaScript tools.
  *
- * The aggregate 'lint' and 'lint-fix' scripts chain per-language sub-scripts;
- * after dropping a tool's sub-scripts they are rebuilt from the survivors (or
- * removed when none remain). 'package.json' itself is kept - it still serves
- * the example module JavaScript.
+ * Each deselected tool loses its 'devDependencies' and scripts in
+ * 'package.json'. The aggregate 'lint' and 'lint-fix' scripts chain
+ * per-language sub-scripts; after dropping a tool's sub-scripts they are
+ * rebuilt from the survivors (or removed when none remain).
+ *
+ * Without any tool from 'npm_specs()' nothing runs npm, so 'package.json',
+ * 'package-lock.json' and the '#;< DEV_NPM' blocks go instead.
  *
  * @param array<string> $tools_remove
  *   The machine names of the tools to remove.
@@ -1351,6 +1354,14 @@ function remove_npm(array $tools_remove): void {
   $remove = array_intersect($tools_remove, array_keys($npm_specs));
 
   if ($remove === []) {
+    return;
+  }
+
+  if (array_diff(array_keys($npm_specs), $remove) === []) {
+    remove_tokens_with_content('DEV_NPM');
+    @unlink('package.json');
+    @unlink('package-lock.json');
+
     return;
   }
 

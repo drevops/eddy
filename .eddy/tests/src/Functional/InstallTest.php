@@ -150,6 +150,12 @@ final class InstallTest extends FunctionalTestCase {
       ],
     ];
 
+    yield 'no_npm' => [
+      [
+        'tools' => 'phpcs,phpstan,rector,twigcs,phpunit,functional_javascript,renovate',
+      ],
+    ];
+
     yield 'no_functional_javascript' => [
       [
         'tools' => 'phpcs,phpstan,rector,twigcs,eslint,stylelint,cspell,jest,phpunit,renovate',

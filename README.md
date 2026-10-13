@@ -320,7 +320,7 @@ If your extension requires additional dependencies for integration testing betwe
 
 ### Frontend dependencies
 
-If your extension requires frontend dependencies for testing, add them to the `package.json` file. The `package-lock.json` file is expected to be committed to the repository.
+If your extension requires frontend dependencies for testing, add them to the `package.json` file. The `package-lock.json` file is expected to be committed to the repository. When you keep none of ESLint, Stylelint, CSpell and Jest, `install.php` removes both files and the Node.js steps of the CI lint job, so add a `package.json` of your own if your extension needs frontend dependencies later.
 
 The `assemble` command installs (`npm ci`) and builds (`npm run build`) the frontend dependencies within the `build` directory. You can add and commit a `.skip_npm_build` file to skip all Node.js processing, which will also disable JS/CSS linting (ESLint, Stylelint, Prettier) and the Jest tests.
 
