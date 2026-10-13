@@ -342,6 +342,8 @@ The `.env` file is loaded automatically by `make` (via `-include .env` and `expo
 
 To force re-discovery, delete `.env` (or just the `WEBSERVER_PORT` line in it) and re-run `make start` / `ahoy start`.
 
+`start`, `stop` and `reset` only stop the webserver that serves the project's own `build/web`. When another process holds the port, such as the server of another project that recorded the same port, `stop` and `reset` leave it running, and `start` fails and names it. Stop that process, or set `WEBSERVER_PORT` in `.env` to a free port.
+
 An SQLite database is created in `/tmp/site_[EXTENSION_NAME].sqlite` file. You can browse the contents of the created SQLite database using [DB Browser for SQLite](https://sqlitebrowser.org/).
 
 A one-time login link will be printed to the console.
