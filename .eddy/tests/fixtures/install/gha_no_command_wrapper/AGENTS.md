@@ -72,7 +72,7 @@
  - `scripts/` - Custom lifecycle hooks: post-assemble (`assemble-*.sh`), post-provision (`provision-*.sh`), post-start (`start-*.sh`), and pre-stop (`stop-*.sh`). Run automatically during each phase in lexicographic order; non-zero exit aborts the parent. Excluded from distribution archives via `.gitattributes`
  
  ## Architecture
-@@ -88,10 +62,10 @@
+@@ -88,11 +62,11 @@
  
  ## Development Workflow
  
@@ -81,8 +81,10 @@
  2. Develop Force Crystal code in `src/`
 -3. Check standards: `ahoy lint`
 -4. Run tests: `ahoy test`
+-5. Access site at the URL that `ahoy info` reports
 +3. Check standards: run the linters that `CONTRIBUTING.md` lists
 +4. Run tests: run the tests that `CONTRIBUTING.md` lists
- 5. Access site at http://localhost:8000
++5. Access site at the URL that `vendor/bin/eddy-info site-url` prints
  
  ## Code Quality Tools
+ 

@@ -25,9 +25,7 @@ final class StopTest extends UnitTestCase {
   public function testStopDefaultPortWhenNoEnvAndNoDotenv(): void {
     $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
 
-    $this->mockPassthru([
-      'cmd' => "lsof -ti:'8000' 2>/dev/null | xargs kill -9 2>/dev/null",
-    ]);
+    $this->mockPassthru(['cmd' => self::killPortCommand('8000')]);
     $this->mockSleep();
 
     ob_start();
@@ -44,9 +42,7 @@ final class StopTest extends UnitTestCase {
   public function testStopCustomPortFromEnv(): void {
     $this->envSet('WEBSERVER_PORT', '9000');
 
-    $this->mockPassthru([
-      'cmd' => "lsof -ti:'9000' 2>/dev/null | xargs kill -9 2>/dev/null",
-    ]);
+    $this->mockPassthru(['cmd' => self::killPortCommand('9000')]);
     $this->mockSleep();
 
     ob_start();
@@ -63,9 +59,7 @@ final class StopTest extends UnitTestCase {
     $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $file === '.env');
     $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(): string => "WEBSERVER_PORT=8123\n");
 
-    $this->mockPassthru([
-      'cmd' => "lsof -ti:'8123' 2>/dev/null | xargs kill -9 2>/dev/null",
-    ]);
+    $this->mockPassthru(['cmd' => self::killPortCommand('8123')]);
     $this->mockSleep();
 
     ob_start();
@@ -91,7 +85,7 @@ final class StopTest extends UnitTestCase {
     $this->mockPassthruMultiple([
       ['cmd' => 'kill 4242 >/dev/null 2>&1'],
       ['cmd' => 'kill -0 4242 >/dev/null 2>&1', 'result_code' => 1],
-      ['cmd' => "lsof -ti:'8000' 2>/dev/null | xargs kill -9 2>/dev/null"],
+      ['cmd' => self::killPortCommand('8000')],
     ]);
     $this->mockSleep();
 

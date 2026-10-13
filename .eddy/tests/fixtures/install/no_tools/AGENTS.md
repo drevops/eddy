@@ -92,9 +92,10 @@
  2. Develop Force Crystal code in `src/`
 -3. Check standards: `ahoy lint`
 -4. Run tests: `ahoy test`
+-5. Access site at the URL that `ahoy info` reports
 +3. Check standards: `make lint` or `ahoy lint`
 +4. Run tests: `make test` or `ahoy test`
- 5. Access site at http://localhost:8000
++5. Access site at the URL that `make info` or `ahoy info` reports
  
  ## Code Quality Tools
  

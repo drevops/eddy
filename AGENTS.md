@@ -248,12 +248,13 @@ Run `php install.php` once, in a fresh copy of the template, to turn it into you
 <!-- #;< DEV_COMMAND_WRAPPER -->
 3. Check standards: `make lint` or `ahoy lint`
 4. Run tests: `make test` or `ahoy test`
+5. Access site at the URL that `make info` or `ahoy info` reports
 <!-- #;> DEV_COMMAND_WRAPPER -->
 <!-- #;< DEV_NO_COMMAND_WRAPPER -->
 3. Check standards: run the linters that `CONTRIBUTING.md` lists
 4. Run tests: run the tests that `CONTRIBUTING.md` lists
+5. Access site at the URL that `vendor/bin/eddy-info site-url` prints
 <!-- #;> DEV_NO_COMMAND_WRAPPER -->
-5. Access site at http://localhost:8000
 
 ## Code Quality Tools
 

@@ -36,15 +36,21 @@ final class StartTest extends UnitTestCase {
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
 
     $this->mockPassthruMultiple([
-      ['cmd' => sprintf('lsof -ti:%s 2>/dev/null | xargs kill -9 2>/dev/null', escapeshellarg($expected_port))],
+      ['cmd' => self::killPortCommand($expected_port)],
       ['cmd' => self::serverCommand($expected_host, $expected_port, $cwd)],
     ]);
 
-    $this->mockSleep();
+    $this->mockUsleep();
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
-    $this->registerMock('fsockopen', 'DrevOps\\Eddy\\Tooling', fn() => $fp);
+
+    $probes = [];
+    $this->registerMock('fsockopen', 'DrevOps\\Eddy\\Tooling', function (string $host, int $port) use (&$probes, $fp) {
+      $probes[] = $host . ':' . $port;
+
+      return $fp;
+    });
 
     $this->registerMock('fclose', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
 
@@ -59,6 +65,8 @@ final class StartTest extends UnitTestCase {
 
     $this->assertIsString($output);
     $this->assertStringContainsString('START ENVIRONMENT', $output);
+    $this->assertStringContainsString('Waiting up to ' . $expected_timeout . ' seconds for the server to be ready.', $output);
+    $this->assertSame([$expected_host . ':' . $expected_port], $probes, 'Only the first probe runs when it connects.');
     $this->assertStringContainsString('Server started successfully', $output);
     $this->assertStringContainsString('Server can serve content', $output);
     $this->assertStringContainsString('ENVIRONMENT READY', $output);
@@ -97,11 +105,11 @@ final class StartTest extends UnitTestCase {
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
 
     $this->mockPassthruMultiple([
-      ['cmd' => "lsof -ti:'8000' 2>/dev/null | xargs kill -9 2>/dev/null"],
+      ['cmd' => self::killPortCommand('8000')],
       ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
-    $this->mockSleep();
+    $this->mockUsleep();
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
@@ -124,6 +132,46 @@ final class StartTest extends UnitTestCase {
     fclose($fp);
   }
 
+  public function testStartWaitsUntilServerAccepts(): void {
+    $this->envSet('WEBSERVER_PORT', '8000');
+    $cwd = '/test/project';
+
+    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
+
+    $this->mockPassthruMultiple([
+      ['cmd' => self::killPortCommand('8000')],
+      ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
+    ]);
+
+    $this->mockUsleep();
+
+    $fp = fopen('php://memory', 'r');
+    $this->assertNotFalse($fp);
+
+    // The server refuses the first 2 probes, as it does while it is binding.
+    $probes = 0;
+    $this->registerMock('fsockopen', 'DrevOps\\Eddy\\Tooling', function () use (&$probes, $fp) {
+      $probes++;
+
+      return $probes < 3 ? FALSE : $fp;
+    });
+    $this->registerMock('fclose', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
+
+    $context = stream_context_create();
+    $this->registerMock('stream_context_create', 'DrevOps\\Eddy\\Tooling', fn() => $context);
+    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): array => ['HTTP/1.1 200 OK']);
+
+    ob_start();
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
+    $output = (string) ob_get_clean();
+
+    $this->assertSame(3, $probes);
+    $this->assertStringContainsString('Server started successfully', $output);
+    $this->assertStringContainsString('ENVIRONMENT READY', $output);
+
+    fclose($fp);
+  }
+
   public function testStartCreatesLogsDirectory(): void {
     $project_dir = self::$tmp . '/start_logs_' . uniqid();
     mkdir($project_dir, 0755, TRUE);
@@ -137,11 +185,11 @@ final class StartTest extends UnitTestCase {
     // The server output is redirected into '.logs', so the directory must
     // exist before the server is launched.
     $this->mockPassthruMultiple([
-      ['cmd' => "lsof -ti:'8000' 2>/dev/null | xargs kill -9 2>/dev/null"],
+      ['cmd' => self::killPortCommand('8000')],
       ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
-    $this->mockSleep();
+    $this->mockUsleep();
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
@@ -172,7 +220,7 @@ final class StartTest extends UnitTestCase {
 
     // Only the port is freed: the server is not launched without its log
     // directory.
-    $this->mockPassthru(['cmd' => "lsof -ti:'8000' 2>/dev/null | xargs kill -9 2>/dev/null"]);
+    $this->mockPassthru(['cmd' => self::killPortCommand('8000')]);
     $this->mockQuit(1);
 
     ob_start();
@@ -198,13 +246,18 @@ final class StartTest extends UnitTestCase {
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
 
     $this->mockPassthruMultiple([
-      ['cmd' => "lsof -ti:'8000' 2>/dev/null | xargs kill -9 2>/dev/null"],
+      ['cmd' => self::killPortCommand('8000')],
       ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
-    $this->mockSleep();
+    $this->mockUsleep();
 
-    $this->registerMock('fsockopen', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
+    $probes = 0;
+    $this->registerMock('fsockopen', 'DrevOps\\Eddy\\Tooling', function () use (&$probes): false {
+      $probes++;
+
+      return FALSE;
+    });
 
     $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(string $file): string|false => $file === '.logs/php.log' ? 'PHP Fatal error: some error' : FALSE);
 
@@ -225,6 +278,9 @@ final class StartTest extends UnitTestCase {
       $this->assertStringContainsString('Unable to start inbuilt PHP server', $output);
       $this->assertStringContainsString('PHP Fatal error: some error', $output);
     }
+
+    // The default 5-second timeout allows 1 probe every 100 milliseconds.
+    $this->assertSame(50, $probes);
   }
 
   public function testStartFsockopenFailureNoLog(): void {
@@ -234,11 +290,11 @@ final class StartTest extends UnitTestCase {
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
 
     $this->mockPassthruMultiple([
-      ['cmd' => "lsof -ti:'8000' 2>/dev/null | xargs kill -9 2>/dev/null"],
+      ['cmd' => self::killPortCommand('8000')],
       ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
-    $this->mockSleep();
+    $this->mockUsleep();
 
     $this->registerMock('fsockopen', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
 
@@ -268,11 +324,11 @@ final class StartTest extends UnitTestCase {
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
 
     $this->mockPassthruMultiple([
-      ['cmd' => "lsof -ti:'8000' 2>/dev/null | xargs kill -9 2>/dev/null"],
+      ['cmd' => self::killPortCommand('8000')],
       ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
-    $this->mockSleep();
+    $this->mockUsleep();
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
@@ -311,11 +367,11 @@ final class StartTest extends UnitTestCase {
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
 
     $this->mockPassthruMultiple([
-      ['cmd' => "lsof -ti:'8000' 2>/dev/null | xargs kill -9 2>/dev/null"],
+      ['cmd' => self::killPortCommand('8000')],
       ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
-    $this->mockSleep();
+    $this->mockUsleep();
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
@@ -369,11 +425,11 @@ final class StartTest extends UnitTestCase {
     });
 
     $this->mockPassthruMultiple([
-      ['cmd' => "lsof -ti:'8123' 2>/dev/null | xargs kill -9 2>/dev/null"],
+      ['cmd' => self::killPortCommand('8123')],
       ['cmd' => self::serverCommand('localhost', '8123', $cwd)],
     ]);
 
-    $this->mockSleep();
+    $this->mockUsleep();
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
@@ -427,11 +483,11 @@ final class StartTest extends UnitTestCase {
     });
 
     $this->mockPassthruMultiple([
-      ['cmd' => "lsof -ti:'8001' 2>/dev/null | xargs kill -9 2>/dev/null"],
+      ['cmd' => self::killPortCommand('8001')],
       ['cmd' => self::serverCommand('localhost', '8001', $cwd)],
     ]);
 
-    $this->mockSleep();
+    $this->mockUsleep();
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
@@ -469,11 +525,11 @@ final class StartTest extends UnitTestCase {
     $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(): string => "WEBSERVER_PORT=8000\nTUNNEL_URL=" . $tunnel_url . "\n");
 
     $this->mockPassthruMultiple([
-      ['cmd' => "lsof -ti:'8000' 2>/dev/null | xargs kill -9 2>/dev/null"],
+      ['cmd' => self::killPortCommand('8000')],
       ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
-    $this->mockSleep();
+    $this->mockUsleep();
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
@@ -507,11 +563,11 @@ final class StartTest extends UnitTestCase {
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
 
     $this->mockPassthruMultiple([
-      ['cmd' => "lsof -ti:'8000' 2>/dev/null | xargs kill -9 2>/dev/null"],
+      ['cmd' => self::killPortCommand('8000')],
       ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
-    $this->mockSleep();
+    $this->mockUsleep();
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
@@ -559,11 +615,11 @@ final class StartTest extends UnitTestCase {
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
 
     $this->mockPassthruMultiple([
-      ['cmd' => "lsof -ti:'8000' 2>/dev/null | xargs kill -9 2>/dev/null"],
+      ['cmd' => self::killPortCommand('8000')],
       ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
-    $this->mockSleep();
+    $this->mockUsleep();
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
@@ -594,11 +650,11 @@ final class StartTest extends UnitTestCase {
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
 
     $this->mockPassthruMultiple([
-      ['cmd' => "lsof -ti:'8000' 2>/dev/null | xargs kill -9 2>/dev/null"],
+      ['cmd' => self::killPortCommand('8000')],
       ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
-    $this->mockSleep();
+    $this->mockUsleep();
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);

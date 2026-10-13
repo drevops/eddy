@@ -470,7 +470,7 @@ function process_command_wrapper_text(array $command_wrapper): void {
 
   $wrappers = array_keys(command_wrapper_binaries());
 
-  foreach (['', 'build', 'lint', 'test'] as $command) {
+  foreach (['', 'build', 'info', 'lint', 'test'] as $command) {
     replace_string_content(command_wrapper_text($wrappers, $command), command_wrapper_text($command_wrapper, $command));
   }
 }

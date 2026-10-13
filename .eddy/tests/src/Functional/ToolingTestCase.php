@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Functional;
 
+use DrevOps\Eddy\Tests\Traits\WebserverTrait;
+
 /**
  * Base class for tooling functional tests.
  *
@@ -11,6 +13,8 @@ namespace DrevOps\Eddy\Tests\Functional;
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 abstract class ToolingTestCase extends FunctionalTestCase {
+
+  use WebserverTrait;
 
   protected int $longTimeout = 600;
 
@@ -32,7 +36,7 @@ abstract class ToolingTestCase extends FunctionalTestCase {
    */
   protected function tearDown(): void {
     // phpcs:ignore
-    @exec('lsof -ti:8000 | xargs kill -9 2>/dev/null');
+    @exec('lsof -ti tcp:8000 -sTCP:LISTEN | xargs kill -9 2>/dev/null');
     sleep(1);
 
     // Give enough permission to clean the build dir.
@@ -49,6 +53,25 @@ abstract class ToolingTestCase extends FunctionalTestCase {
     if ($this->tearDownShouldCleanup()) {
       static::locationsTearDown();
     }
+  }
+
+  /**
+   * Resolve the webserver port of the project under test.
+   *
+   * The environment comes first, then the project '.env', then the default,
+   * in the order the tooling resolves it.
+   */
+  protected function webserverPort(): string {
+    $port = getenv('WEBSERVER_PORT');
+
+    if (is_string($port) && $port !== '') {
+      return $port;
+    }
+
+    $env = is_file(self::$sut . '/.env') ? parse_ini_file(self::$sut . '/.env') : FALSE;
+    $value = is_array($env) ? ($env['WEBSERVER_PORT'] ?? NULL) : NULL;
+
+    return is_scalar($value) ? (string) $value : '8000';
   }
 
   protected function assertTestCoverage(?string $dir = NULL): void {
