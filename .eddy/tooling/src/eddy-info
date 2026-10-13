@@ -7,9 +7,10 @@
  *
  * Resolves PHP, Drupal, Composer, Drush, Node, and npm versions; the
  * webserver host and port along with where each value was sourced from
- * (shell env vs '.env' vs default); the running server's XDebug state;
- * the build directory; the SQLite database path; and the active Drupal
- * install profile.
+ * (shell env vs '.env' vs default); the running server's XDebug state; the
+ * WebDriver port, which the summary shows only in a project with
+ * FunctionalJavascript tests; the build directory; the SQLite database path;
+ * and the active Drupal install profile.
  *
  * Any value that cannot be resolved prints '-' rather than failing.
  *
@@ -42,6 +43,7 @@ $drupal_profile = getenv_default('DRUPAL_PROFILE', 'standard');
 
 $cwd = (string) getcwd();
 $build_dir = is_dir($cwd . '/build') ? $cwd . '/build' : '-';
+$has_functional_javascript = is_dir($cwd . '/tests/src/FunctionalJavascript');
 
 $info_files = glob('*.info.yml');
 $extension_name = (is_array($info_files) && $info_files !== []) ? basename($info_files[0], '.info.yml') : '';
@@ -108,7 +110,11 @@ printf('Webserver host:     %s (%s)%s', $values['webserver-host'], $host_source,
 printf('Webserver port:     %s (%s)%s', $values['webserver-port'], $port_source, PHP_EOL);
 printf('Site URL:           %s%s', $values['site-url'], PHP_EOL);
 printf('XDebug:             %s%s', $values['xdebug'], PHP_EOL);
-printf('WebDriver port:     %s%s', $values['webdriver-port'], PHP_EOL);
+
+if ($has_functional_javascript) {
+  printf('WebDriver port:     %s%s', $values['webdriver-port'], PHP_EOL);
+}
+
 echo PHP_EOL;
 printf('Build dir:          %s%s', $values['build-dir'], PHP_EOL);
 printf('Database:           %s%s', $values['database'], PHP_EOL);
