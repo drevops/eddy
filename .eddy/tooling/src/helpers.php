@@ -469,6 +469,27 @@ function validate_port_or_fail(string $value, string $source): void {
 }
 
 /**
+ * Validate that a value is a whole number of seconds, 1 or more.
+ *
+ * Calls FAIL() with a descriptive message if validation fails.
+ *
+ * @param string $value
+ *   The value to validate.
+ * @param string $source
+ *   Source name used in the error message (e.g. 'WEBSERVER_WAIT_TIMEOUT').
+ *
+ * @return int
+ *   The number of seconds.
+ */
+function validate_timeout_or_fail(string $value, string $source): int {
+  if (!ctype_digit($value) || (int) $value < 1) {
+    FAIL('Invalid %s "%s". Expected a whole number of seconds, 1 or more.', $source, $value);
+  }
+
+  return (int) $value;
+}
+
+/**
  * Find a free TCP port by scanning a range of ports.
  *
  * Each port is probed by attempting a client connect to localhost. A

@@ -25,7 +25,7 @@ $webserver_host = $webserver['host'];
 $webserver_port = $webserver['port'];
 
 // Webserver wait timeout.
-$webserver_wait_timeout = (int) getenv_default('WEBSERVER_WAIT_TIMEOUT', '5');
+$webserver_wait_timeout = validate_timeout_or_fail(getenv_default('WEBSERVER_WAIT_TIMEOUT', '5'), 'WEBSERVER_WAIT_TIMEOUT');
 
 // Webserver log file.
 $webserver_log = '.logs/php.log';
