@@ -252,7 +252,8 @@ final class HelpersPortListenersTest extends UnitTestCase {
     mkdir($project . '/build/web', 0755, TRUE);
     $server = 'php -S localhost:8000 -t build/web';
 
-    // Started by hand from the project root, and from another directory.
+    // Both servers were started by hand: 1234 from the project root and 5678
+    // from another directory.
     $this->mockPortListeners('8000', [1234 => $server, 5678 => $server], [
       'lsof -a -p 1234 -d cwd -Fn 2>/dev/null' => "p1234\nfcwd\nn" . $project . "\n",
       'lsof -a -p 5678 -d cwd -Fn 2>/dev/null' => "p5678\nfcwd\nn/www/other\n",

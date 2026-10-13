@@ -12,9 +12,11 @@ use Symfony\Component\Yaml\Yaml;
  * Tests the runner role variables that determine which tools run where.
  *
  * Each tool reads a `CI_IS_<TOOL>_RUNNER` flag declared once at the top of the
- * job. A flag that no step reads leaves the tool running everywhere, and a flag
- * whose declaration outlives its `#;< DEV_<TOOL>` block leaves a name nothing
- * consumes. Both stay valid YAML, so no linter reports either.
+ * job. A flag that no step reads leaves the tool running everywhere.
+ *
+ * A flag declared outside its `#;< DEV_<TOOL>` block remains after that block
+ * is removed, as a name nothing consumes. Both cases stay valid YAML, so no
+ * linter reports either.
  *
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort

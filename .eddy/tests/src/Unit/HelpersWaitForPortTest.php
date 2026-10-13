@@ -29,7 +29,7 @@ final class HelpersWaitForPortTest extends UnitTestCase {
 
   /**
    * @param array<int, true|float> $probes
-   *   How each probe goes, in order: TRUE when it connects, otherwise the
+   *   Each probe's outcome, in order: TRUE when it connects, otherwise the
    *   seconds its connection attempt lasts before it fails, up to the
    *   attempt's timeout. Its length is the number of probes expected.
    * @param array<int, int> $expected_pauses

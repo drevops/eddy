@@ -10,13 +10,15 @@ use PHPUnit\Framework\Attributes\Group;
 /**
  * Tests that documentation stays consistent with the files it describes.
  *
- * A script can be added to the tooling package without a 'bin' entry, which
- * leaves it uninstalled, or without a row in the package README table.
- * A path can be copied into a PHPUnit config without being rebased onto the
- * build root. The migration guide repeats the update skill commands from
- * 'AGENTS.md', so either copy can change alone. The update skill answers every
- * prompt of 'install.php' through a variable and detects every tool it
- * offers, so a prompt or a tool can be added to 'install.php' alone.
+ * A script added to the tooling package can lack a 'bin' entry, which leaves
+ * it uninstalled, or a row in the package README table. A path can be copied
+ * into a PHPUnit config without being rebased onto the build root.
+ *
+ * The migration guide repeats the update skill commands from 'AGENTS.md', so
+ * either copy can change alone.
+ *
+ * The update skill answers every 'install.php' prompt through a variable and
+ * detects every tool it offers, so either can be added to 'install.php' alone.
  *
  * No such drift is reported by a linter, because each file stays individually
  * valid while the files disagree.

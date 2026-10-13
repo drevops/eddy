@@ -9,9 +9,10 @@
  * renders each recording as an animated SVG for README.md.
  *
  * A recording is rewritten onto a canonical timeline before it is rendered,
- * so recording the same session twice produces the same SVG. Frames are cut
- * where the session's output defines them, every gap becomes 1 of 2 fixed
- * durations, and values that change on every run are masked.
+ * so recording the same session twice produces the same SVG.
+ *
+ * Frames are cut where the session's output defines them, and every gap
+ * becomes 1 of 2 fixed durations. Values that change on every run are masked.
  *
  * Dependencies: asciinema 3, expect, node, npm
  *
@@ -91,8 +92,7 @@ const END_PAUSE = 3.0;
  * Get all job definitions, in the order they run.
  *
  * Each recording runs in the workspace the previous ones left: install sets
- * up the extension and build assembles the codebase that lint and test run
- * against.
+ * up the extension, and build assembles the codebase for lint and test.
  *
  * - command: The command typed at the shell prompt.
  * - frames: 'redraws' to cut a frame where a widget redraws, or 'lines' to
@@ -151,7 +151,6 @@ function get_jobs(): array {
  */
 function install_steps(): string {
   return <<<'EXPECT'
-# Text: Extension name - type "Your Extension".
 expect "Extension name"
 settle
 type_text "Your Extension"
@@ -183,12 +182,10 @@ press "\r"
 expect "Keep example lifecycle scripts"
 press "\r"
 
-# Confirm: Remove this script - type "y".
 expect "Remove this script"
 press "y"
 press "\r"
 
-# Confirm: Proceed with installation - type "y".
 expect "Proceed"
 press "y"
 press "\r"
@@ -651,8 +648,10 @@ function read_cast(string $content): array {
  *
  * A recording's chunks depend on the terminal and their timing on the
  * scheduler, so recording a session twice produces different frames and
- * durations. The output is joined into 1 stream, cut into frames where the
- * session's own output defines them, and every frame gets 1 of 2 fixed delays.
+ * durations.
+ *
+ * The output is joined into 1 stream and cut into frames where the session's
+ * own output defines them. Every frame gets 1 of 2 fixed delays.
  *
  * The stream opens with the shell prompt and the typed command; each typed
  * character becomes a frame. The rest is cut according to $frames:

@@ -9,10 +9,6 @@ use PHPUnit\Framework\Attributes\Group;
 /**
  * Tests for the XDebug step-debugging toggle.
  *
- * The runner PHP for this group has the xdebug extension installed with a
- * baseline `xdebug.mode=off`. The `debug` command overrides it via the
- * `-d xdebug.mode=debug` runtime flag.
- *
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */

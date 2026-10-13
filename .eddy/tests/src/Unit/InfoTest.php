@@ -24,8 +24,6 @@ final class InfoTest extends UnitTestCase {
     parent::setUp();
     require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
 
-    // Unset these so each test starts from a known state and sees only the
-    // values it sets explicitly via envSet().
     $this->envUnset('WEBSERVER_HOST');
     $this->envUnset('WEBSERVER_PORT');
     $this->envUnset('WEBDRIVER_PORT');
@@ -278,9 +276,6 @@ final class InfoTest extends UnitTestCase {
     ];
   }
 
-  /**
-   * The summary shows the WebDriver port only with FunctionalJavascript tests.
-   */
   #[DataProvider('dataProviderInfoWebdriverPort')]
   public function testInfoWebdriverPort(bool $has_functional_javascript): void {
     $cwd = '/test/project';
