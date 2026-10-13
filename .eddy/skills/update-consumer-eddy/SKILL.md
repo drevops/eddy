@@ -39,6 +39,8 @@ This skill requires several Bash commands to run without prompts. Before doing a
 
 If any entries were added, tell the user what was added and ask them to restart the session. Permissions are loaded at startup, so changes made mid-session do not take effect. **STOP here and do not continue** - the user must restart Claude Code and re-invoke the skill for the new permissions to apply.
 
+Claude Code can refuse the write: its auto mode blocks an agent from granting itself permissions. In that case, print the missing entries as a JSON list for the user to add to `permissions.allow` themselves. If the session runs commands without asking for approval anyway, as auto mode does, proceed to Step 1 without them. Otherwise stop, and ask the user to add the entries and restart Claude Code.
+
 If all entries are already present, proceed to Step 1.
 
 ## Step 1: Detect current project settings
@@ -82,6 +84,8 @@ Then read the project to determine the answers for the installation script:
 7. **Tools**: every tool whose file still exists - `phpcs` (`phpcs.xml`), `phpstan` (`phpstan.neon`), `rector` (`rector.php`), `twigcs` (`.twig-cs-fixer.php`), `eslint` (`.eslintrc.json`), `stylelint` (`.stylelintrc.js`), `cspell` (`.cspell.json`), `jest` (`jest.config.js`), `phpunit` (`phpunit.xml`), `functional_javascript` (a `functional-javascript` test suite in `phpunit.xml`) and `renovate` (`renovate.json`).
 8. **Cloudflare** (4.18.0 and 4.19.0 only): `true` if `scripts/start-cloudflared.sh` exists, `false` otherwise. Later releases run the tunnel from the tooling package and do not ask.
 
+These answers describe the project as it is now, and Step 5 renders the installed version with them unchanged. When the user asks to add a Drupal major, such as "include Drupal 12", or to drop one, change the Drupal versions for Step 4 only. Step 7 applies the difference between the 2 renders, so the project gains or loses the major's CI jobs, badge and docs only when the 2 renders disagree on it.
+
 Also detect the **installed version** - the Eddy release the project was created from or last updated to, which Step 5 renders as the base of the merge. Take `extra.eddy.version` from `composer.dev.json` when it is set. Otherwise list the commits that updated the scaffold, newest first:
 
 ```bash
@@ -102,7 +106,7 @@ Take the release with the highest version from that list. It is usually the topm
 
 Do not ask the user to confirm the version. If the user named a version when invoking the skill, use that version verbatim and skip the lookup, whether or not it is a pre-release.
 
-Compare the version with the installed version from Step 1. When the project is already on that release or a newer one - such as a pre-release it moved to on purpose - tell the user there is nothing newer to update to and stop: a merge from a newer base would apply the difference backwards.
+Compare the version with the installed version from Step 1. When the project is already on that release or a newer one - such as a pre-release it moved to on purpose - tell the user there is nothing newer to update to and stop: a merge from a newer base would apply the difference backwards. The exception is a user who asked to add or drop a Drupal major: take the installed version as the release instead, so the update changes the majors and nothing else.
 
 ## Step 3: Create the feature branch
 
@@ -175,7 +179,7 @@ The script is `install.php` with the `INSTALL_` prefix in releases after 4.x. A 
 
 `<command_wrapper>` accepts a comma-separated list (`ahoy`, `makefile`, or `ahoy,makefile`), or an empty string for neither.
 
-`<drupal_version>` is a comma-separated list of Drupal majors to target (e.g. `11`, `10,11` or `11,12`). `<tools>` is a comma-separated list of the tools to keep - list every tool the project still uses, since anything omitted is removed.
+`<drupal_version>` is a comma-separated list of Drupal majors to target (e.g. `11`, `10,11` or `11,12`): the list from Step 1, with any major the user asked to add or drop. `<tools>` is a comma-separated list of the tools to keep - list every tool the project still uses, since anything omitted is removed.
 
 ## Step 5: Render the installed version
 
@@ -197,11 +201,13 @@ tar -xzf .artifacts/tmp/eddy-update/base.tar.gz --strip-components=1 -C .artifac
 cd .artifacts/tmp/eddy-update/base
 ```
 
-Run that release's installer here with the same answers, under the script name and prefix the release uses (see Step 4), then return to the project root. As in Step 4, run each command only after the previous one finishes:
+Run that release's installer here with the answers from Step 1 as they are, under the script name and prefix the release uses (see Step 4), then return to the project root. As in Step 4, run each command only after the previous one finishes:
 
 ```bash
 cd ../../../..
 ```
+
+The Drupal versions stay the ones the project tests now, even when Step 4 adds or drops a major. With the change in both renders, the merge would apply none of it, and a 4.x installer rejects `12` outright, which leaves Step 7 without a base.
 
 If the download or the installer fails, return to the project root, empty `base` and carry on without a base:
 
@@ -236,7 +242,7 @@ git -C .artifacts/tmp/eddy-update init -q
 ```
 
 ```bash
-git -C .artifacts/tmp/eddy-update --work-tree=base add -A
+git -C .artifacts/tmp/eddy-update -c core.excludesFile=/dev/null --work-tree=base add -A
 ```
 
 ```bash
@@ -244,7 +250,7 @@ git -C .artifacts/tmp/eddy-update -c user.name=Eddy -c user.email=eddy@example.c
 ```
 
 ```bash
-git -C .artifacts/tmp/eddy-update --work-tree=new add -A
+git -C .artifacts/tmp/eddy-update -c core.excludesFile=/dev/null --work-tree=new add -A
 ```
 
 ```bash
@@ -259,7 +265,7 @@ git fetch -q .artifacts/tmp/eddy-update HEAD
 git -c merge.conflictStyle=zdiff3 cherry-pick --no-commit -X no-renames FETCH_HEAD
 ```
 
-The identity and the flags that skip commit hooks and signing keep the throwaway commits independent of the user's git setup, and neither commit reaches the project's history: `--no-commit` stages the merged result instead. `-X no-renames` stops git from pairing a file the release removed with an unrelated file it added. The conflict style shows the base between the 2 sides of every conflict. It needs git 2.35 or newer - with an older git, set `merge.conflictStyle=diff3` instead, which shows the same base around larger regions. Without a base, run the cherry-pick without the `-c` option: there is no base to show, and the default style splits the differences in a file into separate conflicts instead of 1 conflict per file.
+The identity, the flags that skip commit hooks and signing, and the empty `core.excludesFile` keep the throwaway commits independent of the user's git setup. Without the last one, a pattern in the user's global excludes file that matches a template file, such as `CLAUDE.md`, keeps that file out of both commits, and the release's changes to it never reach the project. Neither commit reaches the project's history: `--no-commit` stages the merged result instead. `-X no-renames` stops git from pairing a file the release removed with an unrelated file it added. The conflict style shows the base between the 2 sides of every conflict. It needs git 2.35 or newer - with an older git, set `merge.conflictStyle=diff3` instead, which shows the same base around larger regions. Without a base, run the cherry-pick without the `-c` option: there is no base to show, and the default style splits the differences in a file into separate conflicts instead of 1 conflict per file.
 
 A cherry-pick with conflicts exits non-zero and lists them, and Step 8 resolves them. If the second commit finds nothing to commit, the 2 renders are identical, so the release changes nothing for this project: tell the user and stop.
 
@@ -388,6 +394,20 @@ Updated scaffold to <version>.
 
 Keep this message as it is: the next update reads the installed version from it in Step 1.
 
+### Code changes for a new Drupal major
+
+Skip this when Step 4 added no Drupal major. When it did, the merge brought in the major's CI jobs, badge and docs, but none of the changes the extension's own code needs: Step 6 kept `*.info.yml` and `tests/` out of both renders. The build in Step 13 runs on the highest major the project now targets, so make them now, each in a commit of its own:
+
+- Add `^<major>` to `core_version_requirement` in every `*.info.yml` the project tracks, submodules and test modules included. A submodule the tests enable fails to install without it. This lists them:
+
+```bash
+git ls-files '*.info.yml'
+```
+
+- For Drupal 12, also make the other changes in the "Drupal 12" section of [MIGRATION.md](https://github.com/drevops/eddy/blob/main/MIGRATION.md#drupal-12): `string|false` as the return type of every `getMinkDriverArgs()` override, such as the one in the FunctionalJavascript base class the template generated, and the PHPUnit attributes that the note at the end of Step 13 describes.
+
+A dropped major needs no change for the build, so leave `core_version_requirement` as it is and mention the choice in the pull request.
+
 ## Step 13: Build, lint, and test
 
 Run the full build pipeline through the command wrapper detected in Step 1 to verify nothing is broken. With Ahoy, alone or next to a Makefile:
@@ -440,14 +460,15 @@ Drupal 10 runs PHPUnit 9.6, which reads only doc-comment annotations such as `@c
 
 ## Step 14: Open PR
 
-Push the branch and open a pull request. Use the `/open-pr` skill or create the PR manually with a summary of all changes. Include the conflicts you resolved by judgment, the changes from Step 9 that need a new home and the leftover template files from Step 11.
+Push the branch and open a pull request. Use the `/open-pr` skill or create the PR manually with a summary of all changes. Include the conflicts you resolved by judgment, the changes from Step 9 that need a new home, the leftover template files from Step 11 and the code changes Step 12 made for a new Drupal major.
 
 ## Important notes
 
-- When the user names a version, use that tag verbatim. Otherwise take the published release with the highest version that is neither a draft nor a pre-release. Either way, use the tag verbatim and start without asking the user to confirm it, and stop when the project is already on that release or a newer one.
+- When the user names a version, use that tag verbatim. Otherwise take the published release with the highest version that is neither a draft nor a pre-release. Either way, use the tag verbatim and start without asking the user to confirm it, and stop when the project is already on that release or a newer one, unless the user asked to add or drop a Drupal major.
 - Never run the installer in the project root, and never copy the release's files over the project's: the merge keeps what the project changed.
+- A Drupal major the user asks to add or drop changes the render of the new release only. The render of the installed version keeps the majors the project tests now.
 - Always remove the scaffold's example extension and example scripts - a real project never ships them. Step 6 keeps them out of the merge.
-- Never overwrite project-specific code (src/, tests/, config/, *.module, etc.).
+- Never overwrite project-specific code (src/, tests/, config/, *.module, etc.). Edit it only for the code changes a new Drupal major needs (Step 12) and the fixes Step 13 calls for.
 - After the merge, always verify branch references match the project.
 - A project created before 5.0.0 keeps its build scripts in `.devtools/`. The release ships them as the `drevops/eddy-tooling` package instead, so Step 9 removes the directory - never restore `.devtools/` or merge changes into it. Customisations a project made there become a lifecycle hook in `scripts/` or a patch for the package in `composer.dev.json`.
 - A project created from 4.18.0 or 4.19.0 can carry the Cloudflare tunnel hooks `scripts/provision-cloudflared.sh`, `scripts/start-cloudflared.sh` and `scripts/stop-cloudflared.sh`. Later releases run the tunnel from the tooling package, so Step 9 removes the hooks, and a customisation made in them becomes a patch for the package in `composer.dev.json`.
