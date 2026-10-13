@@ -1000,6 +1000,9 @@ final class AssembleTest extends UnitTestCase {
     require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
     $output = (string) ob_get_clean();
 
+    $expected_check = $expected_platform === NULL ? sprintf('Drupal 11.4.8 supports PHP %s.', self::phpVersion()) : sprintf('Drupal 11.4.8 supports PHP %s and the platform PHP %s.', self::phpVersion(), $expected_platform);
+    $this->assertStringContainsString($expected_check, $output);
+
     $expected_platform ??= self::phpVersion();
     $this->assertStringContainsString('PHP platform set to ' . $expected_platform . '.', $output);
 
@@ -1018,7 +1021,34 @@ final class AssembleTest extends UnitTestCase {
     yield 'running PHP' => [[], $dev, NULL];
     yield 'platform from composer.json' => [['platform' => ['php' => '8.3.0']], $dev, '8.3.0'];
     yield 'platform from composer.dev.json' => [[], $dev + ['config' => ['platform' => ['php' => '8.4.0']]], '8.4.0'];
+    yield 'composer.dev.json over composer.json' => [['platform' => ['php' => '8.3.0']], $dev + ['config' => ['platform' => ['php' => '8.4.0']]], '8.4.0'];
     yield 'empty platform' => [['platform' => ['php' => '']], $dev, NULL];
+  }
+
+  public function testAssemblePlatformRequirementFailure(): void {
+    $this->envSet('DRUPAL_VERSION', '11');
+    $this->envSet('GITHUB_TOKEN', '');
+    $this->envSet('SYMFONY_DEPRECATIONS_HELPER', '');
+
+    $this->setupAssembleMocks(['extension_config' => ['platform' => ['php' => '8.1.0']], 'php_requirement' => '>=8.3', 'expect_php_failure' => TRUE, 'has_build_dir' => TRUE]);
+
+    $this->mockQuit(1);
+
+    ob_start();
+    try {
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
+      $this->fail('Expected QuitErrorException to be thrown.');
+    }
+    catch (QuitErrorException $e) {
+      $this->assertSame(1, $e->getCode());
+    }
+    finally {
+      $output = (string) ob_get_clean();
+    }
+
+    $this->assertStringContainsString('Drupal 11.4.8 requires PHP >=8.3, but config.platform.php in composer.dev.json or composer.json resolves the build for PHP 8.1.0. Raise or remove that setting, or set DRUPAL_VERSION to a Drupal version that supports PHP 8.1.0.', $output);
+    $this->assertStringNotContainsString('Removing existing build directory', $output);
+    $this->assertStringNotContainsString('Creating Drupal', $output);
   }
 
   public function testAssembleMissingComposerJson(): void {

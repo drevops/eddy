@@ -77,17 +77,29 @@ PASS('Resolved Drupal %s to %s.', $drupal_version, $drupal_release);
 
 TASK('Checking PHP %s against Drupal %s.', $php_version, $drupal_release);
 $php_requirement = drupal_php_requirement($drupal_release);
+// Composer resolves the build for the 'config.platform.php' that the
+// extension sets, so that version has to meet the requirement as well. The
+// order follows the merges below, where 'composer.dev.json' wins.
+$platform_php = config_platform_php('composer.dev.json', 'composer.json');
 $php_supported = $php_requirement === NULL ? NULL : version_satisfies($php_version, $php_requirement);
+$platform_supported = $php_requirement === NULL || $platform_php === NULL ? NULL : version_satisfies($platform_php, $php_requirement);
 
 if ($php_supported === FALSE) {
   FAIL('Drupal %s requires PHP %s, but the build runs on PHP %s. Run the build on a PHP version that meets the requirement, or set DRUPAL_VERSION to a Drupal version that supports PHP %s.', $drupal_release, (string) $php_requirement, $php_version, $php_version);
 }
 
+if ($platform_supported === FALSE) {
+  FAIL('Drupal %s requires PHP %s, but config.platform.php in composer.dev.json or composer.json resolves the build for PHP %s. Raise or remove that setting, or set DRUPAL_VERSION to a Drupal version that supports PHP %s.', $drupal_release, (string) $php_requirement, (string) $platform_php, (string) $platform_php);
+}
+
 if ($php_supported === NULL) {
   PASS('Skipped the check: the PHP requirement of Drupal %s is unknown. Composer checks it during the install.', $drupal_release);
 }
-else {
+elseif ($platform_php === NULL) {
   PASS('Drupal %s supports PHP %s.', $drupal_release, $php_version);
+}
+else {
+  PASS('Drupal %s supports PHP %s and the platform PHP %s.', $drupal_release, $php_version, $platform_php);
 }
 
 // Reset the environment.
@@ -190,17 +202,11 @@ PASS("Configuration from extension's composer.json merged.");
 
 TASK('Pinning the PHP platform.');
 $build_json = (array) json_decode((string) file_get_contents($build_composer_json), TRUE);
-$platform_php = $build_json['config']['platform']['php'] ?? NULL;
-
 // Composer applies a global 'config.platform.php' to a project that sets
 // none, so the build would resolve for another PHP version.
-if (!is_string($platform_php) || $platform_php === '') {
-  $platform_php = $php_version;
-  $build_json['config']['platform']['php'] = $platform_php;
-  file_put_contents($build_composer_json, json_encode($build_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
-}
-
-PASS('PHP platform set to %s.', $platform_php);
+$build_json['config']['platform']['php'] = $platform_php ?? $php_version;
+file_put_contents($build_composer_json, json_encode($build_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+PASS('PHP platform set to %s.', $platform_php ?? $php_version);
 
 if (is_dir('patches')) {
   TASK('Copying patches.');

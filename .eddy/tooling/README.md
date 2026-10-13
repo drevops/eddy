@@ -39,7 +39,7 @@ The installer runs Composer only when the constraint, the patches for the packag
 
 `eddy-assemble` builds the Drupal version in `DRUPAL_VERSION`. When the variable isn't set, it builds the version in `extra.eddy.drupal-version` of `composer.dev.json`, and Drupal 11 when that isn't set either.
 
-Before it touches `build/`, `eddy-assemble` reads the PHP requirement of the Drupal core release it resolved and stops when the PHP running it doesn't meet it. It then sets `config.platform.php` in `build/composer.json` to the running PHP, unless the extension's `composer.json` or `composer.dev.json` sets one, so a `platform` setting in the global Composer configuration doesn't change what gets installed. With `GITHUB_TOKEN` set, it passes the token to the Composer commands it runs through `COMPOSER_AUTH`, unless that variable is already set, and leaves the global Composer configuration alone.
+Before it touches `build/`, `eddy-assemble` reads the PHP requirement of the Drupal core release it resolved and stops when the PHP running it doesn't meet it, or when the `config.platform.php` that the extension's `composer.dev.json` or `composer.json` sets doesn't. It then sets `config.platform.php` in `build/composer.json` to that setting, or to the running PHP when the extension sets none, so a `platform` setting in the global Composer configuration doesn't change what gets installed. With `GITHUB_TOKEN` set, it passes the token to the Composer commands it runs through `COMPOSER_AUTH`, unless that variable is already set, and leaves the global Composer configuration alone.
 
 ## Verbose output
 

@@ -1051,6 +1051,29 @@ function drupal_release_select(string $constraint, array $versions): ?string {
 }
 
 /**
+ * Get the PHP version that Composer manifests pin with 'config.platform.php'.
+ *
+ * @param string ...$manifests
+ *   The manifest paths, in order of precedence.
+ *
+ * @return string|null
+ *   The version from the first manifest that sets one, or NULL when none
+ *   does.
+ */
+function config_platform_php(string ...$manifests): ?string {
+  foreach ($manifests as $manifest) {
+    $config = json_decode((string) @file_get_contents($manifest), TRUE);
+    $php = is_array($config) ? ($config['config']['platform']['php'] ?? NULL) : NULL;
+
+    if (is_string($php) && $php !== '') {
+      return $php;
+    }
+  }
+
+  return NULL;
+}
+
+/**
  * Get the PHP version constraint that a Drupal core release requires.
  *
  * @param string $release
