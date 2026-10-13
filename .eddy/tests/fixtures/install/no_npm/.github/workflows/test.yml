@@ -1,4 +1,4 @@
-@@ -44,19 +44,7 @@
+@@ -44,19 +44,6 @@
          with:
            persist-credentials: false
  
@@ -7,7 +7,7 @@
 -        with:
 -          node-version: __VERSION__
 -          cache: ${{ github.event_name == 'push' && 'npm' || '' }}
- 
+-
 -      - name: Install Node.js dependencies
 -        run: npm ci --ignore-scripts
 -
@@ -18,7 +18,7 @@
        - name: Setup PHP
          uses: shivammathur/setup-php@__HASH__ # __VERSION__
          with:
-@@ -110,11 +98,6 @@
+@@ -110,12 +97,6 @@
          run: vendor/bin/twig-cs-fixer
          continue-on-error: ${{ vars.CI_TWIGCSFIXER_IGNORE_FAILURE == '1' }}
  
@@ -27,10 +27,11 @@
 -        working-directory: build
 -        run: npm run lint
 -        continue-on-error: ${{ vars.CI_NODEJS_LINT_IGNORE_FAILURE == '1' }}
- 
+-
    test:
      runs-on: ubuntu-26.04
-@@ -167,7 +150,6 @@
+ 
+@@ -167,7 +148,6 @@
        # covering one Drupal and PHP pair, so every tool runs on all of them.
        CI_RUNNER_INDEX: ${{ strategy.job-index }}
        CI_RUNNER_TOTAL: ${{ strategy.job-total }}
@@ -38,10 +39,11 @@
        CI_IS_PHPUNIT_RUNNER: true
  
      steps:
-@@ -236,11 +218,6 @@
+@@ -235,12 +215,6 @@
+ 
        - name: Provision site
          run: vendor/bin/eddy-provision
- 
+-
 -      - name: Run JavaScript tests
 -        if: ${{ env.CI_IS_JEST_RUNNER == 'true' && hashFiles('build/node_modules/.package-lock.json') != '' }}
 -        working-directory: build

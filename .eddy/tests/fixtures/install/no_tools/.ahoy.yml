@@ -1,4 +1,4 @@
-@@ -60,89 +60,23 @@
+@@ -60,89 +60,19 @@
      usage: Check coding standards for violations.
      cmd: |
        pushd "build" >/dev/null || exit 1
@@ -39,28 +39,28 @@
 -      php -d pcov.directory=.. vendor/bin/phpunit "$@"
 -      [ ! -d node_modules ] || (ahoy title "Running Jest" && npm test)
        popd >/dev/null || exit 1
- 
+-
 -  test-unit:
 -    usage: Run unit tests.
 -    cmd: |
 -      pushd "build" >/dev/null || exit 1
 -      php -d pcov.directory=.. vendor/bin/phpunit --testsuite unit "$@"
 -      popd >/dev/null || exit 1
- 
+-
 -  test-kernel:
 -    usage: Run kernel tests.
 -    cmd: |
 -      pushd "build" >/dev/null || exit 1
 -      php -d pcov.directory=.. vendor/bin/phpunit --testsuite kernel "$@"
 -      popd >/dev/null || exit 1
- 
+-
 -  test-functional:
 -    usage: Run functional tests.
 -    cmd: |
 -      pushd "build" >/dev/null || exit 1
 -      php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional "$@"
 -      popd >/dev/null || exit 1
- 
+-
 -  test-functional-javascript:
 -    usage: Run FunctionalJavascript tests.
 -    cmd: |

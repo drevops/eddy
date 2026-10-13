@@ -1,4 +1,4 @@
-@@ -90,44 +90,12 @@
+@@ -90,44 +90,10 @@
    test:
      usage: Run all tests.
      cmd: |
@@ -16,14 +16,14 @@
 -      pushd "build" >/dev/null || exit 1
 -      php -d pcov.directory=.. vendor/bin/phpunit --testsuite unit "$@"
 -      popd >/dev/null || exit 1
- 
+-
 -  test-kernel:
 -    usage: Run kernel tests.
 -    cmd: |
 -      pushd "build" >/dev/null || exit 1
 -      php -d pcov.directory=.. vendor/bin/phpunit --testsuite kernel "$@"
 -      popd >/dev/null || exit 1
- 
+-
 -  test-functional:
 -    usage: Run functional tests.
 -    cmd: |
@@ -43,10 +43,11 @@
    test-javascript:
      usage: Run JavaScript unit tests.
      aliases: [test-js]
-@@ -136,13 +104,6 @@
+@@ -135,14 +101,6 @@
+       pushd "build" >/dev/null || exit 1
        [ ! -d node_modules ] || npm test
        popd >/dev/null || exit 1
- 
+-
 -  browser-start:
 -    usage: Start the browser for FunctionalJavascript tests.
 -    cmd: vendor/bin/eddy-browser-start

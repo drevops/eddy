@@ -7,7 +7,7 @@
        pushd "build" >/dev/null || exit 1
        ahoy title "Running PHPUnit"
        php -d pcov.directory=.. vendor/bin/phpunit "$@"
-@@ -119,14 +117,6 @@
+@@ -119,15 +117,6 @@
        php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional "$@"
        popd >/dev/null || exit 1
  
@@ -19,13 +19,15 @@
 -      pushd "build" >/dev/null || exit 1
 -      php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional-javascript "$@"
 -      popd >/dev/null || exit 1
- 
+-
    test-javascript:
      usage: Run JavaScript unit tests.
-@@ -136,13 +126,6 @@
+     aliases: [test-js]
+@@ -135,14 +124,6 @@
+       pushd "build" >/dev/null || exit 1
        [ ! -d node_modules ] || npm test
        popd >/dev/null || exit 1
- 
+-
 -  browser-start:
 -    usage: Start the browser for FunctionalJavascript tests.
 -    cmd: vendor/bin/eddy-browser-start

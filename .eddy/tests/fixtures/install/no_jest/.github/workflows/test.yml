@@ -6,10 +6,11 @@
        CI_IS_PHPUNIT_RUNNER: true
  
      steps:
-@@ -236,11 +235,6 @@
+@@ -235,12 +234,6 @@
+ 
        - name: Provision site
          run: vendor/bin/eddy-provision
- 
+-
 -      - name: Run JavaScript tests
 -        if: ${{ env.CI_IS_JEST_RUNNER == 'true' && hashFiles('build/node_modules/.package-lock.json') != '' }}
 -        working-directory: build

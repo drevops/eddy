@@ -1,10 +1,11 @@
-@@ -53,9 +53,6 @@
+@@ -53,10 +53,6 @@
        - name: Install Node.js dependencies
          run: npm ci --ignore-scripts
  
 -      - name: Lint code with CSpell
 -        run: npm run lint-spell
 -        continue-on-error: ${{ vars.CI_CSPELL_IGNORE_FAILURE == '1' }}
- 
+-
        - name: Setup PHP
          uses: shivammathur/setup-php@__HASH__ # __VERSION__
+         with:

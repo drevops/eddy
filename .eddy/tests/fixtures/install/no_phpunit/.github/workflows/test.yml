@@ -19,10 +19,11 @@
  
      steps:
        - name: Checkout code
-@@ -242,39 +235,3 @@
+@@ -241,40 +234,3 @@
+         working-directory: build
          run: npm test
          continue-on-error: ${{ vars.CI_NODEJS_TEST_IGNORE_FAILURE == '1' }}
- 
+-
 -      - name: Run tests
 -        if: ${{ env.CI_IS_PHPUNIT_RUNNER == 'true' }}
 -        working-directory: build
