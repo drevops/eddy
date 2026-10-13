@@ -929,9 +929,11 @@ final class InstallHelpersTest extends UnitTestCase {
         file_put_contents($dir . '/node_modules/pkg.js', 'pkg');
         mkdir($dir . '/.idea', 0755, TRUE);
         file_put_contents($dir . '/.idea/workspace.xml', 'idea');
+        mkdir($dir . '/.chromedriver', 0755, TRUE);
+        file_put_contents($dir . '/.chromedriver/chromedriver.log', 'log');
       },
       ['root.txt'],
-      ['.git/config', 'vendor/autoload.php', 'node_modules/pkg.js', '.idea/workspace.xml'],
+      ['.git/config', 'vendor/autoload.php', 'node_modules/pkg.js', '.idea/workspace.xml', '.chromedriver/chromedriver.log'],
     ];
 
     yield 'nested text files included' => [
@@ -1009,6 +1011,7 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'vendor directory' => ['vendor', TRUE, FALSE];
     yield 'nested vendor directory' => ['.eddy/tests/vendor', TRUE, FALSE];
     yield 'node_modules directory' => ['node_modules', TRUE, FALSE];
+    yield 'chromedriver directory' => ['.chromedriver', TRUE, FALSE];
     yield 'file named like an excluded directory' => ['docs/vendor', FALSE, TRUE];
     yield 'claude directory' => ['.claude', TRUE, TRUE];
     yield 'claude settings' => ['.claude/settings.json', FALSE, TRUE];

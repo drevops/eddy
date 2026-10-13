@@ -320,8 +320,8 @@ final class InstallProcessTest extends UnitTestCase {
       ['Running ESLint', 'NodeJS linters', 'npm run lint-spell', 'npm test', 'Setup Node.js', 'npm ci'],
     ];
 
-    // Removing PHPUnit also removes the FunctionalJavascript layer (Mink and
-    // Selenium deps), per the normalisation in 'remove_tools()'.
+    // Removing PHPUnit also removes FunctionalJavascript and its Selenium
+    // driver, per the normalisation in 'remove_tools()'.
     yield 'phpunit' => [
       ['phpunit'],
       ['phpunit.xml', 'phpunit.d10.xml', 'tests'],
@@ -333,7 +333,7 @@ final class InstallProcessTest extends UnitTestCase {
     yield 'functional_javascript' => [
       ['functional_javascript'],
       ['tests/src/FunctionalJavascript'],
-      ['behat/mink', 'lullabot/mink-selenium2-driver', 'symfony/browser-kit'],
+      ['lullabot/mink-selenium2-driver'],
       [],
       ['selenium', 'functional-javascript'],
     ];
@@ -345,6 +345,130 @@ final class InstallProcessTest extends UnitTestCase {
       [],
       [],
     ];
+  }
+
+  /**
+   * Removing a tool removes exactly its 'require-dev' packages.
+   *
+   * @param array<string> $tools_remove
+   * @param array<string> $expected
+   */
+  #[DataProvider('dataProviderProcessRemovesComposerDevPackages')]
+  public function testProcessRemovesComposerDevPackages(array $tools_remove, array $expected): void {
+    $before = self::composerDevPackages();
+
+    process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], $tools_remove, FALSE, FALSE);
+
+    $removed = array_values(array_diff($before, self::composerDevPackages()));
+    sort($removed);
+    sort($expected);
+
+    $this->assertSame($expected, $removed);
+  }
+
+  public static function dataProviderProcessRemovesComposerDevPackages(): \Iterator {
+    $phpunit = [
+      'phpunit/phpunit',
+      'phpspec/prophecy-phpunit',
+      'mikey179/vfsstream',
+      'behat/mink',
+      'behat/mink-browserkit-driver',
+      'symfony/browser-kit',
+      'symfony/css-selector',
+      'symfony/dom-crawler',
+    ];
+
+    yield 'no tool' => [[], []];
+    yield 'functional_javascript' => [['functional_javascript'], ['lullabot/mink-selenium2-driver']];
+    yield 'phpunit' => [['phpunit'], [...$phpunit, 'lullabot/mink-selenium2-driver']];
+    yield 'phpunit and functional_javascript' => [['phpunit', 'functional_javascript'], [...$phpunit, 'lullabot/mink-selenium2-driver']];
+  }
+
+  /**
+   * The WebDriver settings in the PHPUnit files follow FunctionalJavascript.
+   *
+   * @param array<string> $tools_remove
+   */
+  #[DataProvider('dataProviderProcessPrunesWebdriverSettings')]
+  public function testProcessPrunesWebdriverSettings(array $tools_remove, bool $expect): void {
+    process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], $tools_remove, FALSE, FALSE);
+
+    foreach (['phpunit.xml', 'phpunit.d10.xml'] as $file) {
+      $content = (string) file_get_contents(self::$sut . '/' . $file);
+      $document = new \DOMDocument();
+      $this->assertTrue($document->loadXML($content), $file . ' is not valid XML.');
+      $xpath = new \DOMXPath($document);
+
+      $this->assertSame($expect ? 1 : 0, self::countNodes($xpath, '//php/env[@name="MINK_DRIVER_ARGS_WEBDRIVER"]'), $file . ' MINK_DRIVER_ARGS_WEBDRIVER presence mismatch.');
+      $this->assertSame($expect ? 1 : 0, self::countNodes($xpath, '//testsuite[@name="functional-javascript"]'), $file . ' functional-javascript suite presence mismatch.');
+      $this->assertSame($expect, stripos($content, 'webdriver') !== FALSE, $file . ' WebDriver text presence mismatch.');
+      // 'BrowserTestBase' reads these for Functional tests too.
+      $this->assertSame(1, self::countNodes($xpath, '//php/env[@name="MINK_DRIVER_CLASS"]'), $file . ' misses MINK_DRIVER_CLASS.');
+      $this->assertSame(1, self::countNodes($xpath, '//php/env[@name="MINK_DRIVER_ARGS"]'), $file . ' misses MINK_DRIVER_ARGS.');
+      $this->assertStringNotContainsString('#;', $content, $file . ' keeps a marker line.');
+    }
+  }
+
+  public static function dataProviderProcessPrunesWebdriverSettings(): \Iterator {
+    yield 'FunctionalJavascript' => [[], TRUE];
+    yield 'no FunctionalJavascript' => [['functional_javascript'], FALSE];
+  }
+
+  /**
+   * The 'info' lines in 'AGENTS.md' name the WebDriver port only with
+   * FunctionalJavascript.
+   *
+   * @param array<string> $tools_remove
+   * @param array<string> $command_wrapper
+   */
+  #[DataProvider('dataProviderProcessRendersInfoText')]
+  public function testProcessRendersInfoText(array $tools_remove, array $command_wrapper, bool $expect): void {
+    process('My Extension', 'my_extension', 'module', ['10', '11'], $command_wrapper, $tools_remove, FALSE, FALSE);
+
+    $agents = (string) file_get_contents(self::$sut . '/AGENTS.md');
+    $items = $expect ? 'XDebug state, WebDriver port, build directory' : 'XDebug state, build directory';
+
+    preg_match_all('/^- `[^`]+` - Print a read-only summary of .+$/m', $agents, $matches);
+    $this->assertCount(max(1, count($command_wrapper)), $matches[0], 'AGENTS.md info line count mismatch.');
+
+    foreach ($matches[0] as $line) {
+      $this->assertStringContainsString('site URL, ' . $items . ', database path', $line);
+    }
+
+    $this->assertSame($expect, stripos($agents, 'webdriver') !== FALSE, 'AGENTS.md WebDriver text presence mismatch.');
+  }
+
+  public static function dataProviderProcessRendersInfoText(): \Iterator {
+    foreach (self::dataProviderProcessRemovesWrapperDocs() as $name => [$command_wrapper]) {
+      yield $name . ', FunctionalJavascript' => [[], $command_wrapper, TRUE];
+      yield $name . ', no FunctionalJavascript' => [['functional_javascript'], $command_wrapper, FALSE];
+      yield $name . ', no PHPUnit' => [['phpunit'], $command_wrapper, FALSE];
+    }
+  }
+
+  /**
+   * The browser setup in CI and in '.gitignore' follows FunctionalJavascript.
+   *
+   * @param array<string> $tools_remove
+   */
+  #[DataProvider('dataProviderProcessPrunesBrowserSetup')]
+  public function testProcessPrunesBrowserSetup(array $tools_remove, bool $expect): void {
+    process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], $tools_remove, FALSE, FALSE);
+
+    $workflow = (string) file_get_contents(self::$sut . '/.github/workflows/test.yml');
+    $gitignore = (string) file_get_contents(self::$sut . '/.gitignore');
+
+    $this->assertSame($expect, str_contains($workflow, "\n    services:\n"), 'test.yml services presence mismatch.');
+    $this->assertSame($expect, str_contains($workflow, 'selenium'), 'test.yml Selenium presence mismatch.');
+    $this->assertStringNotContainsString("\n\n\n", $workflow, 'test.yml holds a double blank line.');
+    $this->assertSame($expect, preg_match('/^\/\.chromedriver$/m', $gitignore) === 1, '.gitignore chromedriver entry presence mismatch.');
+    $this->assertStringNotContainsString('#;', $workflow . $gitignore, 'A file keeps a marker line.');
+  }
+
+  public static function dataProviderProcessPrunesBrowserSetup(): \Iterator {
+    yield 'FunctionalJavascript' => [[], TRUE];
+    yield 'no FunctionalJavascript' => [['functional_javascript'], FALSE];
+    yield 'no PHPUnit' => [['phpunit'], FALSE];
   }
 
   /**
@@ -375,14 +499,18 @@ final class InstallProcessTest extends UnitTestCase {
 
   /**
    * Files of an existing project outside the template stay untouched.
+   *
+   * @param array<string> $tools_remove
    */
-  public function testProcessKeepsProjectFiles(): void {
+  #[DataProvider('dataProviderProcessKeepsProjectFiles')]
+  public function testProcessKeepsProjectFiles(array $tools_remove): void {
     // 'process()' rewrites each of these tokens in a file it walks.
     $content = "your_extension YourExtension type: module\n#;< META\nblock\n#;> META\n";
     $paths = [
       '.claude/settings.local.json',
       '.claude/skills/update-consumer-eddy/SKILL.md',
       '.claude/skills/project-skill/SKILL.md',
+      '.chromedriver/chromedriver.log',
       'build/web/core/modules/system/system.info.yml',
       '.logs/your_extension.log',
       '.env',
@@ -393,13 +521,20 @@ final class InstallProcessTest extends UnitTestCase {
       $filesystem->dumpFile(self::$sut . '/' . $path, $content);
     }
 
-    process('My Theme', 'my_theme', 'theme', ['10', '11'], ['ahoy'], [], FALSE, FALSE);
+    process('My Theme', 'my_theme', 'theme', ['10', '11'], ['ahoy'], $tools_remove, FALSE, FALSE);
 
     foreach ($paths as $path) {
       $this->assertSame($content, file_get_contents(self::$sut . '/' . $path), 'Expected untouched: ' . $path);
     }
 
     $this->assertStringContainsString('type: theme', (string) file_get_contents(self::$sut . '/my_theme.info.yml'));
+  }
+
+  public static function dataProviderProcessKeepsProjectFiles(): \Iterator {
+    yield 'every tool' => [[]];
+    // Without FunctionalJavascript, '.gitignore' no longer lists
+    // '.chromedriver'.
+    yield 'no FunctionalJavascript' => [['functional_javascript']];
   }
 
   /**
@@ -624,10 +759,11 @@ final class InstallProcessTest extends UnitTestCase {
    *
    * @param array<string> $drupal_versions
    * @param array<string> $command_wrapper
+   * @param array<string> $tools_remove
    */
   #[DataProvider('dataProviderProcessLeavesNoDoubleBlankLines')]
-  public function testProcessLeavesNoDoubleBlankLines(array $drupal_versions, array $command_wrapper): void {
-    process('My Extension', 'my_extension', 'module', $drupal_versions, $command_wrapper, [], FALSE, FALSE);
+  public function testProcessLeavesNoDoubleBlankLines(array $drupal_versions, array $command_wrapper, array $tools_remove): void {
+    process('My Extension', 'my_extension', 'module', $drupal_versions, $command_wrapper, $tools_remove, FALSE, FALSE);
 
     foreach (['AGENTS.md', 'CONTRIBUTING.md', 'README.md'] as $file) {
       $this->assertStringNotContainsString("\n\n\n", (string) file_get_contents(self::$sut . '/' . $file), $file . ' holds a double blank line.');
@@ -635,14 +771,16 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   public static function dataProviderProcessLeavesNoDoubleBlankLines(): \Iterator {
-    yield 'both wrappers' => [['10', '11'], ['ahoy', 'makefile']];
-    yield 'ahoy only' => [['10', '11'], ['ahoy']];
-    yield 'makefile only' => [['10', '11'], ['makefile']];
-    yield 'no wrappers' => [['10', '11'], []];
-    yield 'all majors' => [['10', '11', '12'], ['ahoy']];
-    yield 'd10 only' => [['10'], ['ahoy']];
-    yield 'd11 only' => [['11'], ['ahoy']];
-    yield 'd12 only' => [['12'], ['ahoy']];
+    yield 'both wrappers' => [['10', '11'], ['ahoy', 'makefile'], []];
+    yield 'ahoy only' => [['10', '11'], ['ahoy'], []];
+    yield 'makefile only' => [['10', '11'], ['makefile'], []];
+    yield 'no wrappers' => [['10', '11'], [], []];
+    yield 'all majors' => [['10', '11', '12'], ['ahoy'], []];
+    yield 'd10 only' => [['10'], ['ahoy'], []];
+    yield 'd11 only' => [['11'], ['ahoy'], []];
+    yield 'd12 only' => [['12'], ['ahoy'], []];
+    yield 'no FunctionalJavascript' => [['10', '11'], ['ahoy', 'makefile'], ['functional_javascript']];
+    yield 'no PHPUnit' => [['10', '11'], ['ahoy', 'makefile'], ['phpunit']];
   }
 
   /**
@@ -1055,6 +1193,38 @@ final class InstallProcessTest extends UnitTestCase {
     $filters = is_array($triggers) ? $triggers[$trigger] ?? NULL : NULL;
 
     return is_array($filters) ? $filters['branches'] ?? NULL : NULL;
+  }
+
+  /**
+   * Read the 'require-dev' package names of the SUT 'composer.dev.json'.
+   *
+   * @return array<int, string>
+   *   The package names.
+   */
+  protected static function composerDevPackages(): array {
+    $config = json_decode((string) file_get_contents(self::$sut . '/composer.dev.json'), TRUE);
+    $packages = is_array($config) ? $config['require-dev'] ?? NULL : NULL;
+    self::assertIsArray($packages);
+
+    return array_map(strval(...), array_keys($packages));
+  }
+
+  /**
+   * Count the nodes that an XPath expression selects.
+   *
+   * @param \DOMXPath $xpath
+   *   The XPath object of the document.
+   * @param string $expression
+   *   The expression.
+   *
+   * @return int
+   *   The number of nodes.
+   */
+  protected static function countNodes(\DOMXPath $xpath, string $expression): int {
+    $nodes = $xpath->query($expression);
+    self::assertInstanceOf(\DOMNodeList::class, $nodes);
+
+    return $nodes->length;
   }
 
 }

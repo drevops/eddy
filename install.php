@@ -1098,7 +1098,7 @@ function origin_github_repository(): ?string {
  *
  * It also removes the tool's files, directories and 'composer.dev.json'
  * entries listed in 'tool_specs()', and its 'package.json' entries listed in
- * 'npm_specs()'.
+ * 'npm_specs()'. The text in the tool's 'replacements' is rewritten.
  *
  * '.eddy/CLAUDE.md' lists the steps for adding a tool.
  *
@@ -1135,6 +1135,10 @@ function remove_tools(array $tools_remove): void {
     foreach ($spec['composer_scaffold_mappings'] ?? [] as $mapping) {
       remove_composer_scaffold_mapping($mapping);
     }
+
+    foreach ($spec['replacements'] ?? [] as $search => $replacement) {
+      replace_string_content($search, $replacement);
+    }
   }
 
   // The shared 'npm run lint' pipeline step covers ESLint and Stylelint;
@@ -1149,6 +1153,10 @@ function remove_tools(array $tools_remove): void {
 /**
  * Define the removal footprint for each selectable development tool.
  *
+ * A block removes whole lines, so a line that names the tool among other items
+ * is rewritten instead. 'replacements' maps the template text of such a line
+ * to the text without the tool.
+ *
  * @return array<string, array{
  *   token: string,
  *   files: list<string>,
@@ -1157,6 +1165,7 @@ function remove_tools(array $tools_remove): void {
  *   composer_allow_plugins: list<string>,
  *   composer_extra: list<string>,
  *   composer_scaffold_mappings?: list<string>,
+ *   replacements?: array<string, string>,
  *   }>
  *   Map of tool machine name to its removal specification.
  */
@@ -1241,7 +1250,17 @@ function tool_specs(): array {
       'token' => 'DEV_PHPUNIT',
       'files' => ['phpunit.xml', 'phpunit.d10.xml'],
       'dirs' => ['tests'],
-      'composer_dev' => ['phpunit/phpunit', 'phpspec/prophecy-phpunit', 'mikey179/vfsstream'],
+      'composer_dev' => [
+        'phpunit/phpunit',
+        'phpspec/prophecy-phpunit',
+        'mikey179/vfsstream',
+        // 'BrowserTestBase' runs Functional tests on Mink's BrowserKit driver.
+        'behat/mink',
+        'behat/mink-browserkit-driver',
+        'symfony/browser-kit',
+        'symfony/css-selector',
+        'symfony/dom-crawler',
+      ],
       'composer_allow_plugins' => [],
       'composer_extra' => [],
     ],
@@ -1249,16 +1268,10 @@ function tool_specs(): array {
       'token' => 'DEV_FUNCTIONAL_JAVASCRIPT',
       'files' => [],
       'dirs' => ['tests/src/FunctionalJavascript'],
-      'composer_dev' => [
-        'behat/mink',
-        'behat/mink-browserkit-driver',
-        'lullabot/mink-selenium2-driver',
-        'symfony/browser-kit',
-        'symfony/css-selector',
-        'symfony/dom-crawler',
-      ],
+      'composer_dev' => ['lullabot/mink-selenium2-driver'],
       'composer_allow_plugins' => [],
       'composer_extra' => [],
+      'replacements' => ['XDebug state, WebDriver port, build directory' => 'XDebug state, build directory'],
     ],
     'renovate' => [
       'token' => 'DEV_RENOVATE',
@@ -1882,9 +1895,9 @@ function get_files(): array {
 /**
  * Check whether a project path belongs to the template.
  *
- * The '.git', '.idea', 'vendor' and 'node_modules' directories do not, at any
- * depth. Neither does anything in '.claude' except 'settings.json', nor any
- * path that the '.gitignore' rules ignore.
+ * The '.git', '.idea', '.chromedriver', 'vendor' and 'node_modules'
+ * directories do not, at any depth. Neither does anything in '.claude' except
+ * 'settings.json', nor any path that the '.gitignore' rules ignore.
  *
  * @param string $path
  *   The path, relative to the project root and separated with '/'.
@@ -1897,7 +1910,7 @@ function get_files(): array {
  *   TRUE when the path belongs to the template, FALSE otherwise.
  */
 function is_template_path(string $path, bool $is_dir, array $rules): bool {
-  if ($is_dir && in_array(basename($path), ['.git', '.idea', 'vendor', 'node_modules'], TRUE)) {
+  if ($is_dir && in_array(basename($path), ['.git', '.idea', '.chromedriver', 'vendor', 'node_modules'], TRUE)) {
     return FALSE;
   }
 

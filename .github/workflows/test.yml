@@ -205,8 +205,8 @@ jobs:
         image: selenium/standalone-chromium:latest@sha256:08fd293648e126275782c616a61f4ee1d90cf413b1972ebc35dbd054d6789f55
         ports:
           - 4444:4444
-    #;> DEV_FUNCTIONAL_JAVASCRIPT
 
+    #;> DEV_FUNCTIONAL_JAVASCRIPT
     name: ${{ matrix.name }}
 
     env:
