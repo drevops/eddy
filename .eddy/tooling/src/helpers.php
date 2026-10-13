@@ -508,7 +508,7 @@ function xdebug_state(string $port, string $docroot): string {
     return '-';
   }
 
-  return str_contains((string) reset($own), 'xdebug.mode=debug') ? 'enabled' : 'disabled';
+  return str_contains(reset($own), 'xdebug.mode=debug') ? 'enabled' : 'disabled';
 }
 
 /**

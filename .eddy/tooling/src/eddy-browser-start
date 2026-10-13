@@ -100,7 +100,7 @@ function webdriver_backend(): string {
 function webdriver_fail_when_taken(string $port, string $root): void {
   $container_project = command_path('docker') !== FALSE ? selenium_container_project($port) : NULL;
 
-  if ($container_project !== NULL && $container_project !== '' && $container_project !== $root) {
+  if (!in_array($container_project, [NULL, '', $root], TRUE)) {
     FAIL_NO_EXIT('Port %s is in use by the Selenium container of another project. Stop its browser, or set WEBDRIVER_PORT in .env to a free port.', $port);
     NOTE('%s %s', selenium_container($port), $container_project);
     quit(1);

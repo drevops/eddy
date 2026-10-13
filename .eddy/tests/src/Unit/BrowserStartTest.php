@@ -145,7 +145,7 @@ final class BrowserStartTest extends UnitTestCase {
     $this->assertStringContainsString('nohup', $commands[1] ?? '', 'A new chromedriver must be launched after the old one is stopped.');
   }
 
-  #[DataProvider('dataProviderBrowserStartBackend')]
+  #[DataProvider('dataProviderBrowserStartFailsWhenAnotherProcessHoldsPort')]
   public function testBrowserStartFailsWhenAnotherProcessHoldsPort(string $backend): void {
     $this->envSet('WEBDRIVER_BACKEND', $backend);
     $this->mockCommands(['docker' => '/usr/bin/docker']);
@@ -161,7 +161,12 @@ final class BrowserStartTest extends UnitTestCase {
     $this->assertSame([], $commands, 'Nothing may be stopped, removed or started while another process holds the port.');
   }
 
-  #[DataProvider('dataProviderBrowserStartBackend')]
+  public static function dataProviderBrowserStartFailsWhenAnotherProcessHoldsPort(): \Iterator {
+    yield 'chromedriver' => ['chromedriver'];
+    yield 'selenium' => ['selenium'];
+  }
+
+  #[DataProvider('dataProviderBrowserStartFailsWhenAnotherProjectContainerHoldsPort')]
   public function testBrowserStartFailsWhenAnotherProjectContainerHoldsPort(string $backend): void {
     $this->envSet('WEBDRIVER_BACKEND', $backend);
     $this->mockCommands(['docker' => '/usr/bin/docker']);
@@ -177,7 +182,7 @@ final class BrowserStartTest extends UnitTestCase {
     $this->assertSame([], $commands, "Another project's container must not be reused, removed or replaced.");
   }
 
-  public static function dataProviderBrowserStartBackend(): \Iterator {
+  public static function dataProviderBrowserStartFailsWhenAnotherProjectContainerHoldsPort(): \Iterator {
     yield 'chromedriver' => ['chromedriver'];
     yield 'selenium' => ['selenium'];
   }
@@ -395,7 +400,7 @@ final class BrowserStartTest extends UnitTestCase {
    * The listener that publishes the port of the project's own container does
    * not count as another process.
    */
-  #[DataProvider('dataProviderBrowserStartSeleniumOwnContainer')]
+  #[DataProvider('dataProviderBrowserStartSeleniumReusesOwnContainer')]
   public function testBrowserStartSeleniumReusesOwnContainer(string $project): void {
     $this->envSet('WEBDRIVER_BACKEND', 'selenium');
     $this->mockCommands(['docker' => '/usr/bin/docker']);
@@ -410,7 +415,12 @@ final class BrowserStartTest extends UnitTestCase {
     $this->assertSame([], $commands);
   }
 
-  #[DataProvider('dataProviderBrowserStartSeleniumOwnContainer')]
+  public static function dataProviderBrowserStartSeleniumReusesOwnContainer(): \Iterator {
+    yield 'labelled with the project root' => ['/test/project'];
+    yield 'without the label' => [''];
+  }
+
+  #[DataProvider('dataProviderBrowserStartSeleniumReplacesOwnStaleContainer')]
   public function testBrowserStartSeleniumReplacesOwnStaleContainer(string $project): void {
     $this->envSet('WEBDRIVER_BACKEND', 'selenium');
     $this->mockCommands(['docker' => '/usr/bin/docker']);
@@ -426,7 +436,7 @@ final class BrowserStartTest extends UnitTestCase {
     $this->assertStringContainsString("--label 'eddy.project=/test/project'", $commands[1] ?? '', 'The new container must carry the project label.');
   }
 
-  public static function dataProviderBrowserStartSeleniumOwnContainer(): \Iterator {
+  public static function dataProviderBrowserStartSeleniumReplacesOwnStaleContainer(): \Iterator {
     yield 'labelled with the project root' => ['/test/project'];
     yield 'without the label' => [''];
   }

@@ -27,8 +27,8 @@ final class WaitForPortTest extends UnitTestCase {
     // A backlog of 1 lets the kernel queue a connection or 2 that is never
     // accepted. Once the queue is full, the kernel drops new connection
     // attempts instead of refusing them.
-    $server = stream_socket_server('tcp://127.0.0.1:0', $errno, $errstr, STREAM_SERVER_BIND | STREAM_SERVER_LISTEN, stream_context_create(['socket' => ['backlog' => 1]]));
-    $this->assertNotFalse($server, $errstr);
+    $server = stream_socket_server('tcp://127.0.0.1:0', flags: STREAM_SERVER_BIND | STREAM_SERVER_LISTEN, context: stream_context_create(['socket' => ['backlog' => 1]]));
+    $this->assertNotFalse($server, 'The listener starts on a free port.');
 
     $address = (string) stream_socket_get_name($server, FALSE);
     $port = substr($address, (int) strrpos($address, ':') + 1);

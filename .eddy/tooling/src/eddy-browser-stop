@@ -44,7 +44,7 @@ echo PHP_EOL;
 // Removing the container first frees the port whichever backend is running.
 $container_project = command_path('docker') !== FALSE ? selenium_container_project($webdriver_port) : NULL;
 
-if ($container_project !== NULL && $container_project !== '' && $container_project !== $root) {
+if (!in_array($container_project, [NULL, '', $root], TRUE)) {
   NOTE('The Selenium container %s belongs to %s and was left running.', selenium_container($webdriver_port), $container_project);
 }
 elseif ($container_project !== NULL) {
