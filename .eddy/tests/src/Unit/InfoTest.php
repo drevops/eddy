@@ -28,6 +28,7 @@ final class InfoTest extends UnitTestCase {
     // values it sets explicitly via envSet().
     $this->envUnset('WEBSERVER_HOST');
     $this->envUnset('WEBSERVER_PORT');
+    $this->envUnset('WEBDRIVER_PORT');
     $this->envUnset('DRUPAL_PROFILE');
   }
 
@@ -271,6 +272,34 @@ final class InfoTest extends UnitTestCase {
     ];
   }
 
+  /**
+   * The summary shows the WebDriver port only with FunctionalJavascript tests.
+   */
+  #[DataProvider('dataProviderInfoWebdriverPort')]
+  public function testInfoWebdriverPort(bool $has_functional_javascript): void {
+    $cwd = '/test/project';
+    $this->envSet('WEBDRIVER_PORT', '4455');
+
+    $this->setupInfoMocks(
+      shell_exec_map: ['*' => ''],
+      files: [$cwd . '/tests/src/FunctionalJavascript' => $has_functional_javascript],
+      info_files: [],
+      cwd: $cwd,
+    );
+
+    $output = $this->runInfo();
+
+    $this->assertSame($has_functional_javascript, str_contains($output, "\nWebDriver port:     4455\n"), 'WebDriver port line presence mismatch.');
+    $this->assertSame($has_functional_javascript, str_contains($output, 'WebDriver'), 'WebDriver text presence mismatch.');
+    $this->assertStringContainsString("XDebug:             -\n", $output);
+    $this->assertStringContainsString("\n\nBuild dir:          -\n", $output);
+  }
+
+  public static function dataProviderInfoWebdriverPort(): \Iterator {
+    yield 'FunctionalJavascript tests' => [TRUE];
+    yield 'no FunctionalJavascript tests' => [FALSE];
+  }
+
   public function testInfoDrushDrupalVersionFallbackWhenStatusReturnsNothing(): void {
     // The drush binary exists but `drush status --field=drupal-version`
     // returns empty, for example before the site is installed.
@@ -346,6 +375,12 @@ final class InfoTest extends UnitTestCase {
       'shell_exec_map' => ['*' => ''],
       'files' => [],
       'expected' => 'http://localhost:8000',
+    ];
+    yield 'webdriver-port without FunctionalJavascript tests' => [
+      'field' => 'webdriver-port',
+      'shell_exec_map' => ['*' => ''],
+      'files' => [],
+      'expected' => '4444',
     ];
     yield 'drupal-profile default' => [
       'field' => 'drupal-profile',

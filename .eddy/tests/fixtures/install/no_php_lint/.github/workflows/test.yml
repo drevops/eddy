@@ -1,4 +1,4 @@
-@@ -90,25 +90,9 @@
+@@ -90,26 +90,6 @@
          env:
            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
  
@@ -6,21 +6,22 @@
 -        working-directory: build
 -        run: vendor/bin/phpcs
 -        continue-on-error: ${{ vars.CI_PHPCS_IGNORE_FAILURE == '1' }}
- 
+-
 -      - name: Lint code with PHPStan
 -        working-directory: build
 -        run: vendor/bin/phpstan
 -        continue-on-error: ${{ vars.CI_PHPSTAN_IGNORE_FAILURE == '1' }}
- 
+-
 -      - name: Lint code with Rector
 -        working-directory: build
 -        run: vendor/bin/rector --clear-cache --dry-run
 -        continue-on-error: ${{ vars.CI_RECTOR_IGNORE_FAILURE == '1' }}
- 
+-
 -      - name: Lint code with Twig CS Fixer
 -        working-directory: build
 -        run: vendor/bin/twig-cs-fixer
 -        continue-on-error: ${{ vars.CI_TWIGCSFIXER_IGNORE_FAILURE == '1' }}
- 
+-
        - name: Lint code with NodeJS linters
          if: ${{ hashFiles('build/node_modules/.package-lock.json') != '' }}
+         working-directory: build

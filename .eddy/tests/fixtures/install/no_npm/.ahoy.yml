@@ -26,17 +26,18 @@
        popd >/dev/null || exit 1
  
    test-unit:
-@@ -128,13 +122,6 @@
+@@ -126,14 +120,6 @@
+       export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
+       pushd "build" >/dev/null || exit 1
        php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional-javascript "$@"
-       popd >/dev/null || exit 1
- 
+-      popd >/dev/null || exit 1
+-
 -  test-javascript:
 -    usage: Run JavaScript unit tests.
 -    aliases: [test-js]
 -    cmd: |
 -      pushd "build" >/dev/null || exit 1
 -      [ ! -d node_modules ] || npm test
--      popd >/dev/null || exit 1
+       popd >/dev/null || exit 1
  
    browser-start:
-     usage: Start the browser for FunctionalJavascript tests.

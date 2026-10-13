@@ -75,7 +75,7 @@
  - `config/schema/` - Configuration schema definitions
  - `build/` - Assembled Drupal codebase (symlinked extension)
  - `vendor/` - The installed `drevops/eddy-tooling` package, whose commands (`vendor/bin/eddy-*`) assemble, start, provision and deploy the extension. Not committed and not part of the extension
-@@ -80,27 +82,19 @@
+@@ -80,27 +82,18 @@
  - `DRUPAL_VERSION` - Target Drupal version (e.g., `10`, `11`, `11@alpha`, `12@beta`). Defaults to `extra.eddy.drupal-version` in `composer.dev.json`
  - `WEBSERVER_HOST` - Development server host (default: localhost)
  - `WEBSERVER_PORT` - Development server port. Auto-discovered from range 8000-8099 and written to `.env` if not already set
@@ -98,7 +98,7 @@
 +5. Access site at the URL that `make info` or `ahoy info` reports
  
  ## Code Quality Tools
- 
+-
 -- **CSpell**: Spell checking across the codebase (config at `.cspell.json`)
 -- **PHPCS**: Drupal and DrupalPractice standards
 -- **PHPStan**: Static analysis with Drupal extensions

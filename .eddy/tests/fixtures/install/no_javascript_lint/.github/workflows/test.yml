@@ -1,4 +1,4 @@
-@@ -110,11 +110,6 @@
+@@ -110,12 +110,6 @@
          run: vendor/bin/twig-cs-fixer
          continue-on-error: ${{ vars.CI_TWIGCSFIXER_IGNORE_FAILURE == '1' }}
  
@@ -7,6 +7,7 @@
 -        working-directory: build
 -        run: npm run lint
 -        continue-on-error: ${{ vars.CI_NODEJS_LINT_IGNORE_FAILURE == '1' }}
- 
+-
    test:
      runs-on: ubuntu-26.04
+ 

@@ -11,6 +11,7 @@ use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Yaml\Yaml;
 
 use function eddy_skills;
+use function get_files;
 use function main;
 use function process;
 
@@ -385,6 +386,54 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   /**
+   * Removing a tool removes exactly the CSpell words no file uses any more.
+   *
+   * @param array<string> $tools_remove
+   * @param array<string> $expected
+   */
+  #[DataProvider('dataProviderProcessRemovesCspellWords')]
+  public function testProcessRemovesCspellWords(array $tools_remove, array $expected, string $name = 'My Extension', bool $keep_script = FALSE): void {
+    if (!$keep_script) {
+      unlink(self::$sut . '/install.php');
+    }
+
+    $before = self::cspellWords();
+
+    process($name, strtolower(str_replace(' ', '_', $name)), 'module', ['10', '11', '12'], ['ahoy', 'makefile'], $tools_remove, FALSE, FALSE);
+
+    // The rename of the extension rewrites these placeholders.
+    $removed = array_values(array_diff($before, self::cspellWords(), ['alexskrypnyk', 'yournamespace', 'yourproject']));
+    sort($removed);
+    sort($expected);
+
+    $this->assertSame($expected, $removed);
+  }
+
+  public static function dataProviderProcessRemovesCspellWords(): \Iterator {
+    $phpcs = ['dealerdirect', 'phpcbf', 'phpcodesniffer', 'phpcompatibility', 'phpcs', 'squiz'];
+    $phpstan = ['jangregor', 'mglaman'];
+    $rector = ['palantirnet'];
+    $twigcs = ['twigcsfixer', 'vincentlanglet'];
+    $phpunit = ['behat', 'browserkit', 'codecov', 'mikey', 'phpspec', 'vfsstream'];
+    $functional_javascript = ['chromedriver', 'headful', 'lullabot', 'webdriver'];
+    $renovate = ['renovatebot'];
+    $every_tool_but_cspell = ['phpcs', 'phpstan', 'rector', 'twigcs', 'eslint', 'stylelint', 'jest', 'phpunit', 'functional_javascript', 'renovate'];
+
+    yield 'no tool' => [[], []];
+    yield 'phpcs' => [['phpcs'], $phpcs];
+    yield 'phpstan' => [['phpstan'], $phpstan];
+    yield 'rector' => [['rector'], $rector];
+    yield 'twigcs' => [['twigcs'], $twigcs];
+    yield 'npm tools but CSpell' => [['eslint', 'stylelint', 'jest'], []];
+    yield 'functional_javascript' => [['functional_javascript'], $functional_javascript];
+    yield 'phpunit' => [['phpunit'], [...$phpunit, ...$functional_javascript]];
+    yield 'renovate' => [['renovate'], $renovate];
+    yield 'every tool but CSpell' => [$every_tool_but_cspell, [...$phpcs, ...$phpstan, ...$rector, ...$twigcs, ...$phpunit, ...$functional_javascript, ...$renovate]];
+    yield 'word in the extension name' => [['phpunit'], [...array_diff($phpunit, ['behat']), ...$functional_javascript], 'Behat Tools'];
+    yield 'kept install.php' => [['phpunit'], [], 'My Extension', TRUE];
+  }
+
+  /**
    * The WebDriver settings in the PHPUnit files follow FunctionalJavascript.
    *
    * @param array<string> $tools_remove
@@ -445,6 +494,31 @@ final class InstallProcessTest extends UnitTestCase {
       yield $name . ', no FunctionalJavascript' => [['functional_javascript'], $command_wrapper, FALSE];
       yield $name . ', no PHPUnit' => [['phpunit'], $command_wrapper, FALSE];
     }
+  }
+
+  /**
+   * The 'Makefile' 'test' recipe exports the WebDriver port only with
+   * FunctionalJavascript.
+   *
+   * @param array<string> $tools_remove
+   */
+  #[DataProvider('dataProviderProcessRendersMakefileTestRecipe')]
+  public function testProcessRendersMakefileTestRecipe(array $tools_remove, bool $expect_phpunit, bool $expect_webdriver): void {
+    process('My Extension', 'my_extension', 'module', ['10', '11'], ['makefile'], $tools_remove, FALSE, FALSE);
+
+    $makefile = (string) file_get_contents(self::$sut . '/Makefile');
+    $export = "\t" . 'export WEBDRIVER_PORT="$$(vendor/bin/eddy-info webdriver-port)" && \\' . "\n";
+    $phpunit = "\t" . 'pushd "build" >/dev/null || exit 1 && \\' . "\n\t" . 'php -d pcov.directory=.. vendor/bin/phpunit $(TEST_RUN_ARGS) && \\' . "\n\t" . 'popd >/dev/null || exit 1' . "\n";
+    $recipe = "\t" . '$(call title,Running PHPUnit)' . "\n" . ($expect_webdriver ? $export : '') . $phpunit;
+
+    $this->assertSame($expect_phpunit, str_contains($makefile, $recipe), 'Makefile PHPUnit recipe line mismatch.');
+    $this->assertSame($expect_webdriver, stripos($makefile, 'webdriver') !== FALSE, 'Makefile WebDriver text presence mismatch.');
+  }
+
+  public static function dataProviderProcessRendersMakefileTestRecipe(): \Iterator {
+    yield 'FunctionalJavascript' => [[], TRUE, TRUE];
+    yield 'no FunctionalJavascript' => [['functional_javascript'], TRUE, FALSE];
+    yield 'no PHPUnit' => [['phpunit'], FALSE, FALSE];
   }
 
   /**
@@ -760,7 +834,7 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   /**
-   * Removed blocks leave no double blank line in the Markdown files.
+   * Removed blocks and lines leave no run of blank lines in a project file.
    *
    * @param array<string> $drupal_versions
    * @param array<string> $command_wrapper
@@ -770,12 +844,22 @@ final class InstallProcessTest extends UnitTestCase {
   public function testProcessLeavesNoDoubleBlankLines(array $drupal_versions, array $command_wrapper, array $tools_remove): void {
     process('My Extension', 'my_extension', 'module', $drupal_versions, $command_wrapper, $tools_remove, FALSE, FALSE);
 
-    foreach (['AGENTS.md', 'CONTRIBUTING.md', 'README.md'] as $file) {
-      $this->assertStringNotContainsString("\n\n\n", (string) file_get_contents(self::$sut . '/' . $file), $file . ' holds a double blank line.');
+    $files = get_files();
+    $this->assertNotSame([], $files, 'The project holds no file.');
+
+    foreach ($files as $file) {
+      $content = (string) file_get_contents($file);
+      $path = substr($file, strlen((string) getcwd()) + 1);
+
+      $this->assertStringNotContainsString("\n\n\n", $content, $path . ' holds a double blank line.');
+      $this->assertStringStartsNotWith("\n", $content, $path . ' starts with a blank line.');
+      $this->assertStringEndsNotWith("\n\n", $content, $path . ' ends with a blank line.');
     }
   }
 
   public static function dataProviderProcessLeavesNoDoubleBlankLines(): \Iterator {
+    $tools = ['phpcs', 'phpstan', 'rector', 'twigcs', 'eslint', 'stylelint', 'cspell', 'jest', 'phpunit', 'functional_javascript', 'renovate'];
+
     yield 'both wrappers' => [['10', '11'], ['ahoy', 'makefile'], []];
     yield 'ahoy only' => [['10', '11'], ['ahoy'], []];
     yield 'makefile only' => [['10', '11'], ['makefile'], []];
@@ -786,6 +870,11 @@ final class InstallProcessTest extends UnitTestCase {
     yield 'd12 only' => [['12'], ['ahoy'], []];
     yield 'no FunctionalJavascript' => [['10', '11'], ['ahoy', 'makefile'], ['functional_javascript']];
     yield 'no PHPUnit' => [['10', '11'], ['ahoy', 'makefile'], ['phpunit']];
+    yield 'no Jest' => [['10', '11'], ['ahoy', 'makefile'], ['jest']];
+    yield 'no PHP lint tools' => [['10', '11'], ['ahoy', 'makefile'], ['phpcs', 'phpstan', 'rector', 'twigcs']];
+    yield 'no npm tools' => [['10', '11'], ['ahoy', 'makefile'], ['eslint', 'stylelint', 'cspell', 'jest']];
+    yield 'no tools' => [['10', '11'], ['ahoy', 'makefile'], $tools];
+    yield 'no tools, no wrappers' => [['10', '11'], [], $tools];
   }
 
   /**
@@ -1212,6 +1301,20 @@ final class InstallProcessTest extends UnitTestCase {
     self::assertIsArray($packages);
 
     return array_map(strval(...), array_keys($packages));
+  }
+
+  /**
+   * Read the CSpell words of the SUT '.cspell.json'.
+   *
+   * @return array<int, string>
+   *   The words, in lower case.
+   */
+  protected static function cspellWords(): array {
+    $config = json_decode((string) file_get_contents(self::$sut . '/.cspell.json'), TRUE);
+    $words = is_array($config) ? $config['words'] ?? NULL : NULL;
+    self::assertIsArray($words);
+
+    return array_values(array_map(strtolower(...), array_filter($words, is_string(...))));
   }
 
   /**

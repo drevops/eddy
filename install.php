@@ -427,6 +427,10 @@ function process(string $extension_name, string $extension_machine_name, string 
     @unlink(__FILE__);
     // @codeCoverageIgnoreEnd
   }
+
+  // This runs after every other change, so the words in use come from the
+  // files the project ships.
+  remove_unused_cspell_words(tool_cspell_words($tools_remove));
 }
 
 /**
@@ -1098,7 +1102,8 @@ function origin_github_repository(): ?string {
  *
  * It also removes the tool's files, directories and 'composer.dev.json'
  * entries listed in 'tool_specs()', and its 'package.json' entries listed in
- * 'npm_specs()'. The text in the tool's 'replacements' is rewritten.
+ * 'npm_specs()'. The text in the tool's 'replacements' is rewritten. Its
+ * 'cspell_words' go later, in 'remove_unused_cspell_words()'.
  *
  * '.eddy/CLAUDE.md' lists the steps for adding a tool.
  *
@@ -1106,11 +1111,7 @@ function origin_github_repository(): ?string {
  *   The machine names of the tools to remove.
  */
 function remove_tools(array $tools_remove): void {
-  // FunctionalJavascript tests require PHPUnit; removing PHPUnit removes them.
-  if (in_array('phpunit', $tools_remove, TRUE) && !in_array('functional_javascript', $tools_remove, TRUE)) {
-    $tools_remove[] = 'functional_javascript';
-  }
-
+  $tools_remove = add_dependent_tools($tools_remove);
   $specs = tool_specs();
 
   foreach ($tools_remove as $tool) {
@@ -1151,11 +1152,34 @@ function remove_tools(array $tools_remove): void {
 }
 
 /**
+ * Add the tools that go with the tools to remove.
+ *
+ * FunctionalJavascript tests run on PHPUnit, so removing PHPUnit removes them.
+ *
+ * @param array<string> $tools_remove
+ *   The machine names of the tools to remove.
+ *
+ * @return array<string>
+ *   The machine names, with the tools that go with them.
+ */
+function add_dependent_tools(array $tools_remove): array {
+  if (in_array('phpunit', $tools_remove, TRUE) && !in_array('functional_javascript', $tools_remove, TRUE)) {
+    $tools_remove[] = 'functional_javascript';
+  }
+
+  return $tools_remove;
+}
+
+/**
  * Define the removal footprint for each selectable development tool.
  *
- * A block removes whole lines, so a line that names the tool among other items
- * is rewritten instead. 'replacements' maps the template text of such a line
- * to the text without the tool.
+ * A block removes whole lines, so text it can't remove, such as a line that
+ * names the tool among other items, is rewritten instead. 'replacements' maps
+ * the template text to the text without the tool.
+ *
+ * JSON holds no markers, so 'cspell_words' lists the words that the tool
+ * brings into the CSpell 'words' of '.cspell.json', such as the vendors of
+ * its packages, when no other file uses them.
  *
  * @return array<string, array{
  *   token: string,
@@ -1166,6 +1190,7 @@ function remove_tools(array $tools_remove): void {
  *   composer_extra: list<string>,
  *   composer_scaffold_mappings?: list<string>,
  *   replacements?: array<string, string>,
+ *   cspell_words?: list<string>,
  *   }>
  *   Map of tool machine name to its removal specification.
  */
@@ -1183,6 +1208,7 @@ function tool_specs(): array {
       ],
       'composer_allow_plugins' => ['dealerdirect/phpcodesniffer-composer-installer'],
       'composer_extra' => ['phpcodesniffer-search-depth'],
+      'cspell_words' => ['dealerdirect', 'phpcbf', 'phpcodesniffer', 'phpcompatibility', 'phpcs', 'squiz'],
     ],
     'phpstan' => [
       'token' => 'DEV_PHPSTAN',
@@ -1196,6 +1222,7 @@ function tool_specs(): array {
       ],
       'composer_allow_plugins' => ['phpstan/extension-installer'],
       'composer_extra' => [],
+      'cspell_words' => ['jangregor', 'mglaman'],
     ],
     'rector' => [
       'token' => 'DEV_RECTOR',
@@ -1204,6 +1231,7 @@ function tool_specs(): array {
       'composer_dev' => ['palantirnet/drupal-rector'],
       'composer_allow_plugins' => [],
       'composer_extra' => [],
+      'cspell_words' => ['palantirnet'],
     ],
     'twigcs' => [
       'token' => 'DEV_TWIGCS',
@@ -1212,6 +1240,7 @@ function tool_specs(): array {
       'composer_dev' => ['vincentlanglet/twig-cs-fixer'],
       'composer_allow_plugins' => [],
       'composer_extra' => [],
+      'cspell_words' => ['twigcsfixer', 'vincentlanglet'],
     ],
     'eslint' => [
       'token' => 'DEV_ESLINT',
@@ -1263,6 +1292,7 @@ function tool_specs(): array {
       ],
       'composer_allow_plugins' => [],
       'composer_extra' => [],
+      'cspell_words' => ['behat', 'browserkit', 'codecov', 'mikey', 'phpspec', 'vfsstream'],
     ],
     'functional_javascript' => [
       'token' => 'DEV_FUNCTIONAL_JAVASCRIPT',
@@ -1271,7 +1301,13 @@ function tool_specs(): array {
       'composer_dev' => ['lullabot/mink-selenium2-driver'],
       'composer_allow_plugins' => [],
       'composer_extra' => [],
-      'replacements' => ['XDebug state, WebDriver port, build directory' => 'XDebug state, build directory'],
+      'replacements' => [
+        'XDebug state, WebDriver port, build directory' => 'XDebug state, build directory',
+        // The export opens a backslash-continued recipe line in the 'Makefile',
+        // so a closing marker after it would join the shell command.
+        "\t" . 'export WEBDRIVER_PORT="$$(vendor/bin/eddy-info webdriver-port)" && \\' . "\n" => '',
+      ],
+      'cspell_words' => ['chromedriver', 'headful', 'lullabot', 'webdriver'],
     ],
     'renovate' => [
       'token' => 'DEV_RENOVATE',
@@ -1280,20 +1316,22 @@ function tool_specs(): array {
       'composer_dev' => [],
       'composer_allow_plugins' => [],
       'composer_extra' => [],
+      'cspell_words' => ['renovatebot'],
     ],
   ];
 }
 
 /**
- * Read 'composer.dev.json'.
+ * Read a JSON file.
+ *
+ * @param string $file
+ *   The file path.
  *
  * @return array<int|string, mixed>|null
- *   The decoded configuration, or NULL when the file is missing or holds no
- *   JSON object.
+ *   The decoded content, or NULL when the file is missing or holds no JSON
+ *   object or array.
  */
-function read_composer_dev_json(): ?array {
-  $file = 'composer.dev.json';
-
+function read_json_file(string $file): ?array {
   if (!file_exists($file)) {
     return NULL;
   }
@@ -1306,9 +1344,38 @@ function read_composer_dev_json(): ?array {
     // @codeCoverageIgnoreEnd
   }
 
-  $config = json_decode($raw, TRUE, 512, JSON_THROW_ON_ERROR);
+  $content = json_decode($raw, TRUE, 512, JSON_THROW_ON_ERROR);
 
-  return is_array($config) ? $config : NULL;
+  return is_array($content) ? $content : NULL;
+}
+
+/**
+ * Write a JSON file, indented with 4 spaces and ending with a new line.
+ *
+ * @param string $file
+ *   The file path.
+ * @param array<int|string, mixed> $content
+ *   The content to encode.
+ */
+function write_json_file(string $file, array $content): void {
+  $encoded = json_encode($content, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+
+  if (file_put_contents($file, $encoded . PHP_EOL) === FALSE) {
+    // @codeCoverageIgnoreStart
+    throw new \RuntimeException('Unable to write ' . $file . '.');
+    // @codeCoverageIgnoreEnd
+  }
+}
+
+/**
+ * Read 'composer.dev.json'.
+ *
+ * @return array<int|string, mixed>|null
+ *   The decoded configuration, or NULL when the file is missing or holds no
+ *   JSON object.
+ */
+function read_composer_dev_json(): ?array {
+  return read_json_file('composer.dev.json');
 }
 
 /**
@@ -1326,13 +1393,7 @@ function write_composer_dev_json(array $config): void {
     $config['extra']['patches'] = new \stdClass();
   }
 
-  $encoded = json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
-
-  if (file_put_contents('composer.dev.json', $encoded . PHP_EOL) === FALSE) {
-    // @codeCoverageIgnoreStart
-    throw new \RuntimeException('Unable to write composer.dev.json.');
-    // @codeCoverageIgnoreEnd
-  }
+  write_json_file('composer.dev.json', $config);
 }
 
 /**
@@ -1690,8 +1751,8 @@ function remove_string_content(string $token): void {
     }
 
     $lines = explode("\n", $content);
-    $lines = array_filter($lines, static fn(string $line): bool => !str_starts_with($line, $token));
-    file_put_contents($file, implode("\n", $lines));
+    $removed = array_map(static fn(string $line): bool => str_starts_with($line, $token), $lines);
+    file_put_contents($file, implode("\n", remove_lines($lines, $removed)));
   }
 }
 
@@ -1722,27 +1783,67 @@ function remove_tokens_with_content(string $token): void {
     }
 
     $lines = explode("\n", $content);
-    $result = [];
+    $removed = [];
     $inside = FALSE;
 
     foreach ($lines as $line) {
       if (str_contains($line, $start_marker)) {
         $inside = TRUE;
+        $removed[] = TRUE;
         continue;
       }
 
       if (str_contains($line, $end_marker)) {
         $inside = FALSE;
+        $removed[] = TRUE;
         continue;
       }
 
-      if (!$inside) {
-        $result[] = $line;
-      }
+      $removed[] = $inside;
     }
 
-    file_put_contents($file, implode("\n", $result));
+    file_put_contents($file, implode("\n", remove_lines($lines, $removed)));
   }
+}
+
+/**
+ * Remove lines without leaving a run of blank lines behind.
+ *
+ * A removal between 2 blank lines keeps only 1 of them, and a removal at the
+ * start or the end of the content keeps no blank line there. A removed block
+ * with a blank line on each side leaves a single one.
+ *
+ * @param array<int, string> $lines
+ *   The lines.
+ * @param array<int, bool> $removed
+ *   Whether each line goes, keyed like the lines.
+ *
+ * @return array<int, string>
+ *   The lines that stay.
+ */
+function remove_lines(array $lines, array $removed): array {
+  $kept = [];
+  // The start of the content counts as a blank line.
+  $after_blank = TRUE;
+  $after_removal = FALSE;
+
+  foreach ($lines as $index => $line) {
+    if ($removed[$index] ?? FALSE) {
+      $after_removal = TRUE;
+      continue;
+    }
+
+    $blank = trim($line) === '';
+
+    if (!$after_removal || !$blank || !$after_blank) {
+      $kept[] = $line;
+      $after_blank = $blank;
+    }
+
+    $after_removal = FALSE;
+  }
+
+  return $kept;
 }
 
 /**
@@ -1797,8 +1898,8 @@ function remove_special_comments(): void {
     }
 
     $lines = explode("\n", $content);
-    $lines = array_filter($lines, static fn(string $line): bool => !str_contains($line, '#;'));
-    file_put_contents($file, implode("\n", $lines));
+    $removed = array_map(static fn(string $line): bool => str_contains($line, '#;'), $lines);
+    file_put_contents($file, implode("\n", remove_lines($lines, $removed)));
   }
 }
 
@@ -1811,27 +1912,10 @@ function remove_special_comments(): void {
  * producing duplicate entries. Read, deduplicate, sort, and write back.
  */
 function normalize_cspell_words(): void {
-  if (!file_exists('.cspell.json')) {
-    return;
-  }
-
-  $raw = file_get_contents('.cspell.json');
-
-  if ($raw === FALSE) {
-    // @codeCoverageIgnoreStart
-    return;
-    // @codeCoverageIgnoreEnd
-  }
-
-  $config = json_decode($raw, TRUE, 512, JSON_THROW_ON_ERROR);
-
-  if (!is_array($config)) {
-    return;
-  }
-
+  $config = read_json_file('.cspell.json');
   $raw_words = $config['words'] ?? NULL;
 
-  if (!is_array($raw_words)) {
+  if ($config === NULL || !is_array($raw_words)) {
     return;
   }
 
@@ -1849,13 +1933,90 @@ function normalize_cspell_words(): void {
   sort($words, SORT_FLAG_CASE | SORT_STRING);
   $config['words'] = $words;
 
-  $encoded = json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+  write_json_file('.cspell.json', $config);
+}
 
-  if (file_put_contents('.cspell.json', $encoded . PHP_EOL) === FALSE) {
-    // @codeCoverageIgnoreStart
-    throw new \RuntimeException('Unable to write .cspell.json.');
-    // @codeCoverageIgnoreEnd
+/**
+ * List the CSpell words of the tools to remove.
+ *
+ * @param array<string> $tools_remove
+ *   The machine names of the tools to remove.
+ *
+ * @return list<string>
+ *   The 'cspell_words' of the tools and of the tools that go with them.
+ */
+function tool_cspell_words(array $tools_remove): array {
+  $specs = tool_specs();
+  $words = [];
+
+  foreach (add_dependent_tools($tools_remove) as $tool) {
+    $words = [...$words, ...($specs[$tool]['cspell_words'] ?? [])];
   }
+
+  return $words;
+}
+
+/**
+ * Remove words from the CSpell 'words' of '.cspell.json' that no file uses.
+ *
+ * A word stays while a project file still uses it, such as a word in the
+ * extension name or in a kept 'install.php'.
+ *
+ * @param array<string> $words
+ *   The words to remove once unused.
+ */
+function remove_unused_cspell_words(array $words): void {
+  $config = read_json_file('.cspell.json');
+  $cspell_words = $config['words'] ?? NULL;
+
+  if ($config === NULL || !is_array($cspell_words) || $words === []) {
+    return;
+  }
+
+  $used = [];
+
+  foreach (get_files() as $file) {
+    if (basename($file) !== '.cspell.json') {
+      $used += cspell_text_words((string) file_get_contents($file));
+    }
+  }
+
+  $unused = array_diff(array_map(strtolower(...), $words), array_keys($used));
+  $kept = array_values(array_filter($cspell_words, static fn(mixed $word): bool => !is_string($word) || !in_array(strtolower($word), $unused, TRUE)));
+
+  if ($kept === $cspell_words) {
+    return;
+  }
+
+  $config['words'] = $kept;
+  write_json_file('.cspell.json', $config);
+}
+
+/**
+ * List the words of a text that CSpell may check.
+ *
+ * Each run of letters counts whole and split at its camel case boundaries, in
+ * lower case, so the list holds every word of letters alone that CSpell
+ * checks in the text.
+ *
+ * @param string $text
+ *   The text.
+ *
+ * @return array<string, true>
+ *   The words, as keys.
+ */
+function cspell_text_words(string $text): array {
+  $words = [];
+
+  foreach (preg_split('/[^A-Za-z]+/', $text, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $run) {
+    $words[strtolower($run)] = TRUE;
+
+    foreach (preg_split('/(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])/', $run, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $part) {
+      $words[strtolower($part)] = TRUE;
+    }
+  }
+
+  return $words;
 }
 
 /**

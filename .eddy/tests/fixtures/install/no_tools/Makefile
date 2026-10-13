@@ -135,10 +135,6 @@ endif
 
 test:
 
-
-
-
-
 reset:
 	vendor/bin/eddy-stop > /dev/null 2>&1 || true
 	chmod -Rf 777 build .logs > /dev/null 2>&1 || true

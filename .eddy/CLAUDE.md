@@ -29,6 +29,8 @@ In a Makefile recipe the `@` stops `make` from echoing the line, and the shell t
 
 For each token it strips, `remove_tokens_with_content()` deletes every block of that token, markers included, from every text file in the project. It walks the whole tree apart from `.git`, `.idea`, `.chromedriver`, `vendor` and `node_modules`, the paths the root `.gitignore` ignores, and everything in `.claude` except `settings.json`, so a block works in any other file you put it in. The replacements and the marker-line cleanup walk the same files. Once the pruning is done, `remove_special_comments()` deletes every remaining line that contains `#;`, which clears the markers of the blocks that stayed.
 
+Neither leaves a run of blank lines behind. When the lines they delete sit between 2 blank lines, 1 of the 2 goes with them, and at the start or the end of a file, the blank line next to them goes. A block can keep a blank line on each side, or hold 1 of them the way the `DRUPAL_<major>` blocks in `test.yml` do. `remove_string_content()`, which deletes the template-only lines of `.gitattributes`, works the same way. `InstallProcessTest` checks every generated file for a run of blank lines, and for a blank line at the start or the end, across the command wrapper, Drupal major and tool selections.
+
 | Token                                               | Stripped when                                |
 |-----------------------------------------------------|----------------------------------------------|
 | `DRUPAL_<major>`, such as `DRUPAL_11`               | The major isn't selected                     |
@@ -41,6 +43,8 @@ For each token it strips, `remove_tokens_with_content()` deletes every block of 
 | `META`                                              | Always, since it wraps scaffold-only content |
 
 Dropping PHPUnit drops FunctionalJavascript with it, since those tests run on PHPUnit. Functional tests run on Mink and its BrowserKit driver too, so those packages belong to PHPUnit, and dropping FunctionalJavascript removes only the Selenium driver. Dropping every tool in `npm_specs()` (ESLint, Stylelint, CSpell and Jest) also deletes `package.json` and `package-lock.json`, since nothing runs npm any more.
+
+JSON holds no markers, so the words a tool adds to the `words` of `.cspell.json` are listed in its `cspell_words` in `tool_specs()`. Once every other change is done, `remove_unused_cspell_words()` removes the listed words of each dropped tool that no project file uses. A word that the extension name or a kept `install.php` uses stays, and so do generic words such as `webroot`, which no tool lists.
 
 Blocks of different tokens can nest, because `install.php` strips 1 token at a time: a `DEV_FUNCTIONAL_JAVASCRIPT` block inside a `DEV_MAKEFILE` block goes when either token is stripped.
 
@@ -56,8 +60,6 @@ A broken block fails quietly. Every file stays valid, and `composer update-snaps
 
 `TemplateMarkersTest` checks all 5 rules across the template.
 
-In Markdown, open a block with the blank line that separates it from the text before it, the way `CONTRIBUTING.dist.md` does. A removed block then takes its blank line with it, where a blank line on each side of it would leave a double blank line behind. `InstallProcessTest` checks the generated `AGENTS.md`, `CONTRIBUTING.md` and `README.md` for that across the command wrapper and Drupal major selections.
-
 ### Text rendered from the answers
 
 A block removes whole lines, so it can't trim a line that names several options. `install.php` renders those lines instead. The template holds the text for every option, and `install.php` replaces it with the same function's text for the selected options:
@@ -66,7 +68,7 @@ A block removes whole lines, so it can't trim a line that names several options.
 - `phpunit_config_comment()` renders the comment that opens `phpunit.xml`. It leaves out a major with a `phpunit.d<major>.xml` of its own, which `eddy-assemble` uses for that major instead, so with Drupal 10 and 11 selected it names Drupal 11 only.
 - `command_wrapper_text()` renders "`make` or `ahoy`", and "`make build` or `ahoy build`" for the `build`, `info`, `lint` and `test` commands. Ahoy alone turns them into "`ahoy`" and "`ahoy build`". Without a wrapper, these phrases sit in `DEV_COMMAND_WRAPPER` blocks, and "The command wrappers and CI run it" in `AGENTS.md` becomes "CI runs it".
 - `process_extension_type_text()` renders where the extension sits in the build. A module's `CONTRIBUTING.md` drops the "(`web/themes/custom/` for a theme)" note, a theme's shows its example test paths under `web/themes/custom/`, and the symlink note in `AGENTS.md` names only the directory of the extension's type.
-- A tool's `replacements` in `tool_specs()` map text that names the tool among other items to the same text without it, and `remove_tools()` applies them when the tool goes. Without FunctionalJavascript, the `info` lines in `AGENTS.md` stop naming the WebDriver port.
+- A tool's `replacements` in `tool_specs()` map text that a block can't remove to the same text without the tool, and `remove_tools()` applies them when the tool goes. Without FunctionalJavascript, the `info` lines in `AGENTS.md` stop naming the WebDriver port, and the `test` recipe in the `Makefile` stops exporting it. The export opens a backslash-continued recipe line there, so a closing marker after it would become part of the shell command.
 
 A replacement finds nothing once the template text drifts from the every-option rendering, and the text then ships unrendered. `InstallProcessTest` renders each one for every selection, so it fails when a template edit breaks a replacement. A new phrase that names both wrappers needs its command added to `process_command_wrapper_text()`.
 
@@ -83,7 +85,7 @@ A replacement finds nothing once the template text drifts from the every-option 
 ### Adding a development tool
 
 1. In `install.php`, add the tool to `$tool_options` in `main()` and to the `INSTALL_TOOLS` entry of `print_help()`.
-2. Give it a `tool_specs()` entry: its `DEV_<TOOL>` token plus the files, directories and `composer.dev.json` entries that go with it. List only the packages nothing else needs: Mink, which Functional tests use too, sits with PHPUnit rather than FunctionalJavascript. Text that names the tool among other items goes in its `replacements`. Its npm packages and scripts, if it has any, go in `npm_specs()`.
+2. Give it a `tool_specs()` entry: its `DEV_<TOOL>` token plus the files, directories and `composer.dev.json` entries that go with it. List only the packages nothing else needs: Mink, which Functional tests use too, sits with PHPUnit rather than FunctionalJavascript. Text that names the tool among other items goes in its `replacements`. The words it adds to `.cspell.json`, such as the vendors of its packages, go in its `cspell_words` when no other file uses them. Its npm packages and scripts, if it has any, go in `npm_specs()`.
 3. Wrap every line you add for the tool in a `DEV_<TOOL>` block, wherever it lands: the command wrappers, `.github/workflows/test.yml`, configuration files such as `.gitattributes` and `.editorconfig`, and the docs in `AGENTS.md`, `README.dist.md` and `CONTRIBUTING.dist.md`. A `CI_IS_<TOOL>_RUNNER` flag in `test.yml` belongs inside the block too, and `CiRunnerVariablesTest` checks it's there.
 4. If the tool runs through the shared `npm run lint` step, add it to the condition in `remove_tools()` that strips `DEV_NODEJS_LINT`, and add its sub-scripts to the `rebuild_npm_chain()` calls in `remove_npm()`.
 5. Document it in `README.md`: the feature list, and the ignore-failure table when its CI step has a `CI_<TOOL>_IGNORE_FAILURE` variable.
