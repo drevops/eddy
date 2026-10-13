@@ -1178,8 +1178,8 @@ function add_dependent_tools(array $tools_remove): array {
  * the template text to the text without the tool.
  *
  * JSON holds no markers, so 'cspell_words' lists the words that the tool
- * brings into the CSpell 'words' of '.cspell.json': the names of its
- * packages, vendors and commands that no other file uses.
+ * brings into the CSpell 'words' of '.cspell.json', such as the vendors of
+ * its packages, when no other file uses them.
  *
  * @return array<string, array{
  *   token: string,
