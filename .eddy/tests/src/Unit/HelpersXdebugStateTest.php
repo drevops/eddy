@@ -22,56 +22,45 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class HelpersXdebugStateTest extends UnitTestCase {
 
+  protected const string DOCROOT = '/www/project/build/web';
+
+  protected const string SERVER = 'php -S localhost:8000 -t /www/project/build/web /www/project/build/web/.ht.router.php';
+
+  protected const string SERVER_XDEBUG = 'php -d xdebug.mode=debug -d xdebug.start_with_request=yes -S localhost:8000 -t /www/project/build/web /www/project/build/web/.ht.router.php';
+
+  protected const string OTHER_SERVER_XDEBUG = 'php -d xdebug.mode=debug -d xdebug.start_with_request=yes -S localhost:8000 -t /www/other/build/web /www/other/build/web/.ht.router.php';
+
   protected function setUp(): void {
     parent::setUp();
     require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
   }
 
+  /**
+   * @param array<int, string> $listeners
+   *   The command line of each process listening on the port, keyed by
+   *   process ID.
+   */
   #[DataProvider('dataProviderXdebugState')]
-  public function testXdebugState(string $ps_output, string $expected): void {
-    $captured_cmd = NULL;
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', function (string $cmd) use (&$captured_cmd, $ps_output): string {
-      $captured_cmd = $cmd;
+  public function testXdebugState(array $listeners, string $expected): void {
+    $this->mockPortListeners('8000', $listeners);
 
-      return $ps_output;
-    });
-
-    $this->assertSame($expected, xdebug_state('8000'));
-    $this->assertSame("ps -o command= -p \"$(lsof -ti tcp:'8000' -sTCP:LISTEN 2>/dev/null | head -1)\" 2>/dev/null", $captured_cmd, 'Only the process listening on the port is inspected.');
+    $this->assertSame($expected, xdebug_state('8000', self::DOCROOT));
   }
 
   public static function dataProviderXdebugState(): \Iterator {
-    yield 'no server listening' => [
-      'ps_output' => '',
-      'expected' => '-',
-    ];
-    yield 'server running without xdebug' => [
-      'ps_output' => "php -S localhost:8000\n",
-      'expected' => 'disabled',
-    ];
-    yield 'server running with xdebug' => [
-      'ps_output' => "php -d xdebug.mode=debug -d xdebug.start_with_request=yes -S localhost:8000\n",
-      'expected' => 'enabled',
-    ];
-    yield 'output is whitespace only' => [
-      'ps_output' => "   \n",
-      'expected' => '-',
-    ];
+    yield 'no server listening' => [[], '-'];
+    yield 'project server without XDebug' => [[1234 => self::SERVER], 'disabled'];
+    yield 'project server with XDebug' => [[1234 => self::SERVER_XDEBUG], 'enabled'];
+    yield 'project server with XDebug and a worker' => [[1234 => self::SERVER_XDEBUG, 1235 => self::SERVER_XDEBUG], 'enabled'];
+    yield 'only the server of another project, with XDebug' => [[5678 => self::OTHER_SERVER_XDEBUG], '-'];
+    yield 'project server without XDebug and another project server with it' => [[5678 => self::OTHER_SERVER_XDEBUG, 1234 => self::SERVER], 'disabled'];
   }
 
   public function testPortIsShellEscaped(): void {
-    $captured_cmd = NULL;
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', function (string $cmd) use (&$captured_cmd): string {
-      $captured_cmd = $cmd;
+    // The listener lookup receives the port quoted, or the mock fails.
+    $this->mockPortListeners('8000; rm -rf /');
 
-      return '';
-    });
-
-    xdebug_state('8000; rm -rf /');
-
-    $this->assertNotNull($captured_cmd);
-    $this->assertStringContainsString("'8000; rm -rf /'", $captured_cmd, 'Port is wrapped in escapeshellarg quotes.');
-    $this->assertStringNotContainsString('; rm -rf /;', $captured_cmd, 'Embedded command substitution must not break out of the quotes.');
+    $this->assertSame('-', xdebug_state('8000; rm -rf /', self::DOCROOT));
   }
 
 }

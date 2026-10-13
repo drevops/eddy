@@ -107,7 +107,8 @@ final class InfoTest extends UnitTestCase {
         'npm --version' => "10.8.2\n",
         '--version' => "Drush Commandline Tool 13.3.0\n",
         'status --field=drupal-version' => "11.3.11\n",
-        'lsof -ti' => "php -S example.com:9001\n",
+        'lsof -ti' => "1234\n",
+        'ps -p 1234' => "php -S example.com:9001 -t /test/project/build/web /test/project/build/web/.ht.router.php\n",
       ],
       files: [
         $drush_bin => TRUE,
@@ -242,12 +243,13 @@ final class InfoTest extends UnitTestCase {
   }
 
   #[DataProvider('dataProviderInfoXdebugStateDetection')]
-  public function testInfoXdebugStateDetection(string $ps_output, string $expected_state): void {
+  public function testInfoXdebugStateDetection(?string $listener, string $expected_state): void {
     $cwd = '/test/project';
 
     $this->setupInfoMocks(
       shell_exec_map: [
-        'lsof -ti' => $ps_output,
+        'lsof -ti' => $listener === NULL ? '' : "1234\n",
+        'ps -p 1234' => $listener . "\n",
         '*' => '',
       ],
       files: [],
@@ -261,14 +263,18 @@ final class InfoTest extends UnitTestCase {
   }
 
   public static function dataProviderInfoXdebugStateDetection(): \Iterator {
-    yield 'no server listening' => ['ps_output' => '', 'expected_state' => '-'];
+    yield 'no server listening' => ['listener' => NULL, 'expected_state' => '-'];
     yield 'server running without xdebug' => [
-      'ps_output' => "php -S localhost:8000\n",
+      'listener' => 'php -S localhost:8000 -t /test/project/build/web /test/project/build/web/.ht.router.php',
       'expected_state' => 'disabled',
     ];
     yield 'server running with xdebug' => [
-      'ps_output' => "php -d xdebug.mode=debug -d xdebug.start_with_request=yes -S localhost:8000\n",
+      'listener' => 'php -d xdebug.mode=debug -d xdebug.start_with_request=yes -S localhost:8000 -t /test/project/build/web /test/project/build/web/.ht.router.php',
       'expected_state' => 'enabled',
+    ];
+    yield 'only the server of another project, with xdebug' => [
+      'listener' => 'php -d xdebug.mode=debug -d xdebug.start_with_request=yes -S localhost:8000 -t /www/other/build/web /www/other/build/web/.ht.router.php',
+      'expected_state' => '-',
     ];
   }
 
@@ -342,15 +348,21 @@ final class InfoTest extends UnitTestCase {
   public static function dataProviderInfoFieldModeKnownFields(): \Iterator {
     yield 'xdebug enabled' => [
       'field' => 'xdebug',
-      'shell_exec_map' => ['lsof -ti' => "php -d xdebug.mode=debug -S localhost:8000\n", '*' => ''],
+      'shell_exec_map' => ['lsof -ti' => "1234\n", 'ps -p 1234' => "php -d xdebug.mode=debug -S localhost:8000 -t /test/project/build/web\n", '*' => ''],
       'files' => [],
       'expected' => 'enabled',
     ];
     yield 'xdebug disabled' => [
       'field' => 'xdebug',
-      'shell_exec_map' => ['lsof -ti' => "php -S localhost:8000\n", '*' => ''],
+      'shell_exec_map' => ['lsof -ti' => "1234\n", 'ps -p 1234' => "php -S localhost:8000 -t /test/project/build/web\n", '*' => ''],
       'files' => [],
       'expected' => 'disabled',
+    ];
+    yield 'xdebug only on the server of another project' => [
+      'field' => 'xdebug',
+      'shell_exec_map' => ['lsof -ti' => "1234\n", 'ps -p 1234' => "php -d xdebug.mode=debug -S localhost:8000 -t /www/other/build/web\n", '*' => ''],
+      'files' => [],
+      'expected' => '-',
     ];
     yield 'xdebug no server' => [
       'field' => 'xdebug',

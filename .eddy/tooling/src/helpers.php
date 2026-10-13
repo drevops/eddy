@@ -435,21 +435,29 @@ function resolve_site_url(string $host, string $port, string $dotenv_file = '.en
 }
 
 /**
- * Detect the XDebug state of the dev server listening on the given port.
+ * Detect the XDebug state of the project's webserver.
  *
- * Inspects the running PHP process's command line for the
- * 'xdebug.mode=debug' flag. Returns 'enabled' or 'disabled' when a
- * server is listening, and '-' when no server is bound to the port.
+ * Inspects the command line of the webserver that serves the docroot for the
+ * 'xdebug.mode=debug' flag. Another process listening on the port is left
+ * out, so its flags never stand in for the project's server.
+ *
+ * @param string $port
+ *   The webserver port.
+ * @param string $docroot
+ *   The absolute path of the project's docroot.
+ *
+ * @return string
+ *   'enabled' or 'disabled' while the project's webserver listens on the port,
+ *   and '-' otherwise.
  */
-function xdebug_state(string $port): string {
-  $command = sprintf('ps -o command= -p "$(%s | head -1)" 2>/dev/null', port_listener_pids_command($port));
-  $out = trim((string) @shell_exec($command));
+function xdebug_state(string $port, string $docroot): string {
+  $own = webserver_listeners($port, $docroot)['own'];
 
-  if ($out === '') {
+  if ($own === []) {
     return '-';
   }
 
-  return str_contains($out, 'xdebug.mode=debug') ? 'enabled' : 'disabled';
+  return str_contains((string) reset($own), 'xdebug.mode=debug') ? 'enabled' : 'disabled';
 }
 
 /**
