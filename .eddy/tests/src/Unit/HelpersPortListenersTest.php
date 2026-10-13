@@ -210,6 +210,8 @@ final class HelpersPortListenersTest extends UnitTestCase {
     yield 'started from a directory below the project root' => [[5678 => [$driver, '/www/project/build']], ['own' => [], 'other' => [5678 => $driver]]];
     yield 'another program started from the project root' => [[5678 => ['node server.js --port=4444', '/www/project']], ['own' => [], 'other' => [5678 => 'node server.js --port=4444']]];
     yield 'a program in a directory named after chromedriver, started from the project root' => [[5678 => ['node chromedriver-proxy/server.js', '/www/project']], ['own' => [], 'other' => [5678 => 'node chromedriver-proxy/server.js']]];
+    yield 'a program given a chromedriver path as an argument, started from the project root' => [[5678 => ['node /tmp/chromedriver --port=4444', '/www/project']], ['own' => [], 'other' => [5678 => 'node /tmp/chromedriver --port=4444']]];
+    yield 'an executable path with spaces, started from the project root' => [[5678 => ['/www/my project/bin/chromedriver --port=4444', '/www/project']], ['own' => [], 'other' => [5678 => '/www/my project/bin/chromedriver --port=4444']]];
     yield 'a working directory that cannot be read' => [[5678 => [$driver, '']], ['own' => [], 'other' => [5678 => $driver]]];
     yield 'a command line that cannot be read, started from the project root' => [[5678 => ['', '/www/project']], ['own' => [], 'other' => [5678 => '']]];
     yield 'the project chromedriver and another' => [[1234 => [$driver, '/www/project'], 5678 => [$driver, '/www/other']], ['own' => [1234 => $driver], 'other' => [5678 => $driver]]];
