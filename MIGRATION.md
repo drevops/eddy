@@ -17,7 +17,7 @@ There's a more immediate catch, too: a 4.x project can't update itself anymore. 
 - Commit or stash your work in progress. The upgrade changes most of the files in the project root, and the update skill won't start while the working tree has changes, apart from untracked files in `.claude/` and `.idea/`.
 - Find the edits you made to `.devtools/` and, in a project created from 4.18.0 or 4.19.0, to the `scripts/*-cloudflared.sh` hooks. The upgrade deletes both, so each edit needs a new home (see [`.devtools/` is a package now](#devtools-is-a-package-now)). `git log -p -- .devtools 'scripts/*-cloudflared.sh'` shows every change to those files, template updates included, so look for the commits that are yours. If every commit there is a template update, your edits went in with them, and the log can't tell the 2 apart. The update skill can, as long as it knows the release your project is on: each file you changed comes up as a modify/delete conflict, and the pull request lists it.
 - If your project runs on CircleCI, keep its project settings at hand. Its deployment settings move to GitHub Actions (see [CircleCI is gone](#circleci-is-gone)).
-- If your project is on a release from 4.15.0 to 4.18.0 and deploys from GitHub Actions, set the `DEPLOY_PROCEED` secret to `0` before you start, and back to `1` just before you merge. Otherwise the upgrade pull request pushes your default branch to a new branch of your Drupal.org repository (see [Deployment](#deployment)).
+- If your project is on a release from 4.15.0 to 4.18.0 and deploys from GitHub Actions, set the `DEPLOY_PROCEED` secret to `0` before you start, and back to `1` just before you merge. Otherwise the upgrade pull request's test runs deploy your default branch to your Drupal.org repository (see [Deployment](#deployment)).
 
 ## Upgrade with Claude Code
 
@@ -46,7 +46,7 @@ What it can't do is fetch itself into a 4.x project, so you do that part once, f
 
    On its first run, the skill may add a few command permissions to `.claude/settings.local.json` and ask you to restart Claude Code. Run it again after the restart. If Claude Code won't let it write that file, as in auto mode, the skill prints the permissions for you to add yourself, and carries on when the session doesn't ask before running commands anyway.
 
-   Without a tag, the skill upgrades to the newest release on GitHub that isn't a draft or marked as a pre-release. It goes by that mark, not by the version number, so an alpha or a release candidate published without the mark counts as a regular release. The [releases page](https://github.com/drevops/eddy/releases) shows which release is the newest and labels the pre-releases. To upgrade to a particular release, name its tag after the command: `/update-consumer-eddy <tag>`.
+   Without a tag, the skill upgrades to the release with the highest version that isn't a draft or marked as a pre-release on GitHub, whenever it was published. Only that mark makes a release a pre-release here, so an alpha or a release candidate published without it counts as a regular release. On the [releases page](https://github.com/drevops/eddy/releases), that's the highest version without a "Pre-release" label. To upgrade to a particular release, name its tag after the command: `/update-consumer-eddy <tag>`.
 
    To add Drupal 12 as well, ask for it in the same request, such as `/update-consumer-eddy add Drupal 12` (see [Drupal 12](#drupal-12)).
 
@@ -147,7 +147,7 @@ A project on GitHub Actions has nothing to do here.
 
 ### Deployment
 
-In 4.x, a release tag also force-pushed the tagged commit to a branch of your Drupal.org repository, so a tag behind that branch's tip rewound it. A test run that finished late, or that you re-ran, could rewind a branch the same way. The first deployment of a new branch failed, and the `Deploy` workflow failed on every run until you set up deployment. From 4.15.0 to 4.18.0, a pull request's successful test run deployed too, pushing your default branch to a branch of your Drupal.org repository named after the pull request's branch.
+In 4.x, a release tag also force-pushed the tagged commit to a branch of your Drupal.org repository, so a tag behind that branch's tip rewound it. A test run that finished late, or that you re-ran, could rewind a branch the same way. The first deployment of a new branch failed, and the `Deploy` workflow failed on every run until you set up deployment. From 4.15.0 to 4.18.0, a pull request's successful test run deployed too, pushing your default branch to a branch of your Drupal.org repository named after the pull request's branch. In 4.18.0, a `DEPLOY_BRANCH` repository variable, when set, names the branch instead.
 
 In 5.x:
 
@@ -161,7 +161,7 @@ In 5.x:
 What to do:
 
 - If your release process relied on a tag push to update a branch, push the branch as well.
-- On a release from 4.15.0 to 4.18.0, the upgrade pull request still deploys the 4.x way. GitHub runs a `workflow_run` workflow, such as `Deploy`, from the copy on your default branch, so the 4.x `deploy.yml` stays in charge until you merge, and each test run of the pull request pushes your default branch to a branch named after the pull request's branch. To skip that, set the `DEPLOY_PROCEED` secret to `0` before the pull request opens, and back to `1` just before you merge. Otherwise, once you've merged, delete that branch from your Drupal.org repository, such as with `git push <remote> --delete <branch>`, along with any that earlier pull requests left there.
+- On a release from 4.15.0 to 4.18.0, the upgrade pull request still deploys the 4.x way described above. GitHub runs a `workflow_run` workflow, such as `Deploy`, from the copy on your default branch, so the 4.x `deploy.yml` stays in charge until you merge. To skip that, set the `DEPLOY_PROCEED` secret to `0` before the pull request opens, and back to `1` just before you merge. Otherwise, once you've merged, delete every branch named after a pull request from your Drupal.org repository, such as with `git push <remote> --delete <branch>`, including any that earlier pull requests left there.
 
 [Deployment](README.md#deployment) describes the new behavior in full.
 
