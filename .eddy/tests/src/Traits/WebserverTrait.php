@@ -52,11 +52,19 @@ trait WebserverTrait {
   /**
    * Find a free TCP port outside the range that the tooling discovers from.
    *
+   * A connection to 'localhost' reaches a listener on either IP version, which
+   * a bind to '127.0.0.1' alone can miss.
+   *
    * @return string
-   *   The first port from 9000 to 9099 that nothing listens on.
+   *   The first port from 9000 to 9099 that accepts no connection and can be
+   *   bound.
    */
   protected static function webserverFreePort(): string {
     for ($port = 9000; $port < 9100; $port++) {
+      if (self::webserverPortAccepts((string) $port)) {
+        continue;
+      }
+
       $socket = @stream_socket_server(sprintf('tcp://127.0.0.1:%d', $port));
 
       if ($socket !== FALSE) {
