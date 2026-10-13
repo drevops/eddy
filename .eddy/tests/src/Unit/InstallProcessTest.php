@@ -439,7 +439,9 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   public static function dataProviderProcessRendersInfoText(): \Iterator {
-    foreach (self::dataProviderProcessRemovesWrapperDocs() as $name => [$command_wrapper]) {
+    $wrappers = ['both wrappers' => ['ahoy', 'makefile'], 'ahoy only' => ['ahoy'], 'makefile only' => ['makefile'], 'no wrappers' => []];
+
+    foreach ($wrappers as $name => $command_wrapper) {
       yield $name . ', FunctionalJavascript' => [[], $command_wrapper, TRUE];
       yield $name . ', no FunctionalJavascript' => [['functional_javascript'], $command_wrapper, FALSE];
       yield $name . ', no PHPUnit' => [['phpunit'], $command_wrapper, FALSE];
