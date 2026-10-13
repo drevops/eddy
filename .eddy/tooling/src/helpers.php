@@ -557,6 +557,73 @@ function process_command(int $pid): string {
 }
 
 /**
+ * Check whether a process serves a docroot with the PHP webserver.
+ *
+ * @param string $command
+ *   The command line of the process, as 'ps' prints it.
+ * @param string $docroot
+ *   The absolute path of the docroot.
+ *
+ * @return bool
+ *   TRUE when the command line passes the docroot to '-t', the way
+ *   'eddy-start' launches the webserver.
+ */
+function webserver_serves(string $command, string $docroot): bool {
+  return preg_match('#\s-t ' . preg_quote($docroot, '#') . '(?:\s|$)#', $command) === 1;
+}
+
+/**
+ * List the processes listening on the webserver port, split by owner.
+ *
+ * A process whose command line cannot be read counts as the project's own, so
+ * the port is still freed where 'ps' is missing.
+ *
+ * @param string $port
+ *   The webserver port.
+ * @param string $docroot
+ *   The absolute path of the project's docroot.
+ *
+ * @return array{own: array<int, string>, other: array<int, string>}
+ *   The command line of each listening process, keyed by process ID: 'own'
+ *   for the processes that serve the docroot, 'other' for the rest.
+ */
+function webserver_listeners(string $port, string $docroot): array {
+  $listeners = ['own' => [], 'other' => []];
+  $pids = preg_split('/\s+/', trim((string) shell_exec(port_listener_pids_command($port))), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+  foreach ($pids as $pid) {
+    if (!ctype_digit($pid) || (int) $pid < 1) {
+      continue;
+    }
+
+    $command = process_command((int) $pid);
+    $owner = $command === '' || webserver_serves($command, $docroot) ? 'own' : 'other';
+    $listeners[$owner][(int) $pid] = $command;
+  }
+
+  return $listeners;
+}
+
+/**
+ * Kill processes with SIGKILL.
+ *
+ * Process IDs below 1 are ignored, because 'kill' signals a whole process
+ * group for 0 and negative IDs.
+ *
+ * @param array<int, int> $pids
+ *   The process IDs.
+ */
+function kill_processes(array $pids): void {
+  $pids = array_filter($pids, static fn(int $pid): bool => $pid > 0);
+
+  if ($pids === []) {
+    return;
+  }
+
+  @passthru(sprintf('kill -9 %s 2>/dev/null', implode(' ', $pids)));
+}
+
+/**
  * Wait for a TCP port to accept connections.
  *
  * Each probe follows a 100-millisecond pause, the first one included. The
