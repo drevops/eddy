@@ -143,7 +143,7 @@ To add a project-specific step, use a [custom lifecycle script](#custom-lifecycl
 
 ### Drupal versions
 
-The Drupal version used for the codebase assembly is determined by the `DRUPAL_VERSION` variable and defaults to `11`, the newest stable Drupal 11 release. The default is the `extra.eddy.drupal-version` value in `composer.dev.json`, which `install.php` sets to the highest Drupal major you select.
+The Drupal version used for the codebase assembly is determined by the `DRUPAL_VERSION` variable and defaults to `11`, the newest stable Drupal 11 release. The default is the `extra.eddy.drupal-version` value in `composer.dev.json`, which `install.php` sets to the highest Drupal major you select that has a stable release, or to the lowest one you select when none has. So with Drupal 11 and 12 selected, a plain build stays on Drupal 11: Drupal 12 has no stable release yet and needs PHP 8.5, and CI tests it on every push.
 
 You can specify a different version by setting the `DRUPAL_VERSION` environment variable before running the `make build` or `ahoy build` command:
 
@@ -208,13 +208,13 @@ Because `stable` and `canary` float, the matrix follows Drupal core on its own -
 
 Drupal 12 has no stable release yet, but its jobs use the same kind of values as the Drupal 11 ones: `12` for `stable`, `12.0.0` for `legacy` and `12@beta` for `canary`. Until 12.0.0 ships, all of them build the newest Drupal 12 pre-release. After that, each moves on its own: all of them to 12.0.0 when it ships, then `canary` to the 12.1 pre-releases while `legacy` stays on the 12.0.x patches. Nothing in the CI configuration needs editing along the way.
 
-Drupal 12 requires PHP 8.5, which is already the matrix ceiling, so every Drupal 12 job runs PHP 8.5 for now. The `min` and `max` jobs split apart as soon as a newer PHP joins the matrix.
+Drupal 12 requires PHP 8.5, which is already the matrix ceiling, so every Drupal 12 job runs PHP 8.5 for now. The `min` and `max` jobs split apart as soon as a newer PHP joins the matrix. A local Drupal 12 build needs PHP 8.5 too: run `DRUPAL_VERSION=12 make build` or `DRUPAL_VERSION=12 ahoy build` on it. On an older PHP, the build stops before it changes anything and says which PHP the release needs.
 
 Some of the Drupal 12 toolchain is still catching up - Drush, for one, supports Drupal 12 only on its `14.x` development branch. Drupal 12 builds install that branch for now and move to Drush 14.0.0 on their own once it's tagged - see [How versions are resolved](#how-versions-are-resolved).
 
 Drupal 12 core packages also leave out every `tests` directory, and with it the test base classes and the PHPUnit bootstrap your tests need. So Drupal 12 builds install `drupal/core` from source (a git checkout) rather than from its package archive. The checkout is bigger than the archive, so Drupal 12 builds take a little longer to assemble.
 
-Drupal 12 is opt-in when you run `install.php`: only Drupal 11 starts checked.
+Drupal 12 is opt-in when you run `install.php`: only Drupal 11 starts checked. Selecting Drupal 12 next to Drupal 11 adds its CI jobs and badge, and leaves the local build on Drupal 11 (see [Drupal versions](#drupal-versions)).
 
 ### Distributing tools across CI runners
 

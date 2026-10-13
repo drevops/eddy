@@ -61,7 +61,7 @@ The `provision` command is useful for re-installing the Drupal website without r
 
 ### Drupal versions
 
-The Drupal version used for the codebase assembly is determined by the `DRUPAL_VERSION` variable and defaults to the highest Drupal major this extension targets, which `composer.dev.json` sets as `extra.eddy.drupal-version`.
+The Drupal version used for the codebase assembly is determined by the `DRUPAL_VERSION` variable and defaults to `extra.eddy.drupal-version` in `composer.dev.json`, the newest Drupal major this extension targets that has a stable release.
 
 You can specify a different version by setting the `DRUPAL_VERSION` environment variable when building the website:
 <!-- #;< DEV_MAKEFILE -->

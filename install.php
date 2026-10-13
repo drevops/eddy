@@ -214,14 +214,35 @@ function drupal_version_options(): array {
  *
  * A new extension targets current Drupal, so only the newest stable major
  * starts checked; older majors and a pre-release major are opted into. The
- * shipped 'composer.dev.json' sets the build default to the highest of these
- * majors.
+ * highest of these majors is the newest one with a stable release, which the
+ * shipped 'composer.dev.json' sets as the build default.
  *
  * @return non-empty-array<int, string>
  *   The majors to start checked.
  */
 function drupal_version_default(): array {
   return ['11'];
+}
+
+/**
+ * Pick the Drupal major that a local build uses by default.
+ *
+ * A major without a stable release can require a newer PHP than the other
+ * majors, so the default is the highest selected major with a stable release.
+ * When every selected major is newer, it is the lowest selected major.
+ *
+ * @param non-empty-array<int|string> $majors
+ *   The selected Drupal majors, in any order.
+ *
+ * @return string
+ *   The major, such as '11'.
+ */
+function drupal_version_build_default(array $majors): string {
+  $newest_stable = max(array_map(intval(...), drupal_version_default()));
+  $majors = array_map(intval(...), $majors);
+  $stable = array_filter($majors, static fn(int $major): bool => $major <= $newest_stable);
+
+  return (string) ($stable === [] ? min($majors) : max($stable));
 }
 
 /**
@@ -336,8 +357,7 @@ function process(string $extension_name, string $extension_machine_name, string 
 
   process_drupal_version_text($selected_majors);
 
-  // A local build defaults to the highest selected major.
-  set_composer_dev_eddy_value('drupal-version', (string) max(array_map(intval(...), $selected_majors)));
+  set_composer_dev_eddy_value('drupal-version', drupal_version_build_default($selected_majors));
 
   if ($version !== NULL) {
     set_composer_dev_eddy_value('version', $version);

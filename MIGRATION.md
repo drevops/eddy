@@ -99,7 +99,7 @@ What to do:
 - Add the 5.x entries to `composer.dev.json`, next to your own:
   - `drevops/eddy-tooling` and `cweagans/composer-patches` in `require-dev`, with the constraints from the release's `composer.dev.json`.
   - `cweagans/composer-patches` in `config.allow-plugins`.
-  - `extra.eddy.drupal-version`, set to the highest Drupal major you build, such as `"11"`. A local build uses it when `DRUPAL_VERSION` isn't set, and Drupal 11 when neither is.
+  - `extra.eddy.drupal-version`, set to the newest Drupal major you build that has a stable release, such as `"11"`. A local build uses it when `DRUPAL_VERSION` isn't set, and Drupal 11 when neither is.
   - The release's `drush/drush` constraint, which adds Drush 14 for Drupal 12.
 - Move each edit you made to `.devtools/`:
   - A project-specific step, such as importing extra configuration once the site is installed, becomes a [custom lifecycle script](README.md#custom-lifecycle-scripts): `scripts/assemble-*.sh`, `scripts/provision-*.sh`, `scripts/start-*.sh` or `scripts/stop-*.sh`.
@@ -174,6 +174,8 @@ Drupal 12 brings 5 CI jobs (`lint-d12`, `test-php-min-d12-stable`, `test-php-max
 - Add `^12` to `core_version_requirement` in every `*.info.yml` your project has, not only the main one. A submodule your tests enable, such as an example module, needs it too: without it, every Drupal 12 Functional and FunctionalJavascript test that enables the submodule fails at install.
 - If your FunctionalJavascript tests extend the base class the template generated, declare `string|false` as the return type of its `getMinkDriverArgs()`. Drupal 12 declares that type on the parent method, so an override without it is a fatal error, and Drupal 10 and 11 accept the typed override too. The upgrade never touches `tests/`, so bring 2 more things in that class in line with the 5.x copy while you're there, whether or not you add Drupal 12: drop the `CIRCLECI` check in `setUp()` but keep the base URL setup inside it, and, from 4.18.0, change `.devtools/browser` to `eddy-browser-start` in a comment.
 - Pair `@group` with `#[Group]` and `@dataProvider` with `#[DataProvider]`, the way the example tests do. Drupal 10 runs PHPUnit 9.6, which reads only the annotations, and Drupal 12 runs PHPUnit 12, which reads only the attributes. `@covers` and `@coversDefaultClass` only narrow code coverage, so the example tests leave them without an attribute. Kernel, Functional and FunctionalJavascript test classes also need `#[RunTestsInSeparateProcesses]`, which Drupal 12 requires and the example tests have carried since 4.18.0.
+
+Drupal 12 requires PHP 8.5. CI runs every Drupal 12 job on PHP 8.5, and adding Drupal 12 leaves `extra.eddy.drupal-version` on the newest major you test that has a stable release, so a plain `ahoy build` keeps working on the PHP you have. To build Drupal 12 locally, run `DRUPAL_VERSION=12 ahoy build` on PHP 8.5. On an older PHP, the build stops before it changes anything and says which PHP the release needs.
 
 Check that the dependencies in your `composer.json` support Drupal 12 too, and add the new jobs to your branch protection rules or ruleset (see [Branch protection](README.md#branch-protection)). [Drupal 12](README.md#drupal-12) explains how its jobs follow Drupal releases.
 

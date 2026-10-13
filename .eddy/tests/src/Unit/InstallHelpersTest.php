@@ -14,6 +14,7 @@ use function command_wrapper_text;
 use function committed_workflow_branches;
 use function convert_string;
 use function core_version_requirement;
+use function drupal_version_build_default;
 use function drupal_version_default;
 use function drupal_version_options;
 use function eddy_skills;
@@ -182,6 +183,27 @@ final class InstallHelpersTest extends UnitTestCase {
     /** @var array{extra?: array{eddy?: array{'drupal-version'?: string}}} $config */
 
     $this->assertSame($shipped_default, $config['extra']['eddy']['drupal-version'] ?? NULL);
+  }
+
+  /**
+   * @param non-empty-array<int|string> $majors
+   */
+  #[DataProvider('dataProviderDrupalVersionBuildDefault')]
+  public function testDrupalVersionBuildDefault(array $majors, string $expected): void {
+    $this->assertSame($expected, drupal_version_build_default($majors));
+  }
+
+  public static function dataProviderDrupalVersionBuildDefault(): \Iterator {
+    yield 'newest stable major' => [['11'], '11'];
+    yield 'older major' => [['10'], '10'];
+    yield 'highest stable major' => [['10', '11'], '11'];
+    yield 'pre-release major next to a stable one' => [['11', '12'], '11'];
+    yield 'every major' => [['10', '11', '12'], '11'];
+    yield 'pre-release major next to an older one' => [['10', '12'], '10'];
+    yield 'pre-release major alone' => [['12'], '12'];
+    yield 'lowest of the pre-release majors' => [['13', '12'], '12'];
+    yield 'unordered selection' => [['12', '10', '11'], '11'];
+    yield 'integers' => [[12, 11], '11'];
   }
 
   /**

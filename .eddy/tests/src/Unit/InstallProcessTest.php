@@ -778,7 +778,8 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   /**
-   * The local build default follows the highest selected major.
+   * The local build default is the highest selected major with a stable
+   * release.
    *
    * @param array<string> $drupal_versions
    */
@@ -801,9 +802,9 @@ final class InstallProcessTest extends UnitTestCase {
     yield 'd11 only keeps 11' => [['11'], '11'];
     yield 'd10 only narrows to 10' => [['10'], '10'];
     yield 'd12 only moves to 12' => [['12'], '12'];
-    yield 'd11 and d12 move to 12' => [['11', '12'], '12'];
-    yield 'all majors move to 12' => [['10', '11', '12'], '12'];
-    yield 'unordered selection uses the highest major' => [['12', '10'], '12'];
+    yield 'd11 and d12 keep 11' => [['11', '12'], '11'];
+    yield 'all majors keep 11' => [['10', '11', '12'], '11'];
+    yield 'd10 and d12 narrow to 10' => [['12', '10'], '10'];
   }
 
   /**
