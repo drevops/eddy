@@ -216,3 +216,5 @@ Before you merge the upgrade:
 5. If you set the `DEPLOY_PROCEED` secret to `0` for the upgrade, set it back to `1`.
 
 After you merge it, check that the next `Deploy` run reaches your Drupal.org repository, or reports a notice that says why it didn't. If your project was on a release from 4.15.0 to 4.18.0, also delete the branches that pull requests left in your Drupal.org repository (see [Deployment](#deployment)).
+
+<!-- cspell:ignore killall pkill -->
