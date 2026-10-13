@@ -1,4 +1,6 @@
+#;< DEV_FUNCTIONAL_JAVASCRIPT
 /.chromedriver
+#;> DEV_FUNCTIONAL_JAVASCRIPT
 /.env
 /.logs
 /build

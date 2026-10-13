@@ -1,4 +1,4 @@
-@@ -152,11 +152,6 @@
+@@ -152,12 +152,6 @@
              drupal-version: 11@beta
              stability: canary
  
@@ -7,10 +7,11 @@
 -        image: selenium/standalone-chromium:latest@sha256:08fd293648e126275782c616a61f4ee1d90cf413b1972ebc35dbd054d6789f55
 -        ports:
 -          - 4444:4444
- 
+-
      name: ${{ matrix.name }}
  
-@@ -168,7 +163,6 @@
+     env:
+@@ -168,7 +162,6 @@
        CI_RUNNER_INDEX: ${{ strategy.job-index }}
        CI_RUNNER_TOTAL: ${{ strategy.job-total }}
        CI_IS_JEST_RUNNER: true
@@ -18,7 +19,7 @@
  
      steps:
        - name: Checkout code
-@@ -242,39 +236,3 @@
+@@ -242,39 +235,3 @@
          run: npm test
          continue-on-error: ${{ vars.CI_NODEJS_TEST_IGNORE_FAILURE == '1' }}
  

@@ -50,7 +50,7 @@
  
    test:
      runs-on: ubuntu-26.04
-@@ -152,11 +119,6 @@
+@@ -152,12 +119,6 @@
              drupal-version: 11@beta
              stability: canary
  
@@ -59,10 +59,11 @@
 -        image: selenium/standalone-chromium:latest@sha256:08fd293648e126275782c616a61f4ee1d90cf413b1972ebc35dbd054d6789f55
 -        ports:
 -          - 4444:4444
- 
+-
      name: ${{ matrix.name }}
  
-@@ -167,8 +129,6 @@
+     env:
+@@ -167,8 +128,6 @@
        # covering one Drupal and PHP pair, so every tool runs on all of them.
        CI_RUNNER_INDEX: ${{ strategy.job-index }}
        CI_RUNNER_TOTAL: ${{ strategy.job-total }}
@@ -71,7 +72,7 @@
  
      steps:
        - name: Checkout code
-@@ -236,45 +196,4 @@
+@@ -236,45 +195,4 @@
        - name: Provision site
          run: vendor/bin/eddy-provision
  

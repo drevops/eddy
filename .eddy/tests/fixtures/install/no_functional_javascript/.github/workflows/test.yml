@@ -1,4 +1,4 @@
-@@ -152,11 +152,6 @@
+@@ -152,12 +152,6 @@
              drupal-version: 11@beta
              stability: canary
  
@@ -7,10 +7,11 @@
 -        image: selenium/standalone-chromium:latest@sha256:08fd293648e126275782c616a61f4ee1d90cf413b1972ebc35dbd054d6789f55
 -        ports:
 -          - 4444:4444
- 
+-
      name: ${{ matrix.name }}
  
-@@ -250,7 +245,6 @@
+     env:
+@@ -250,7 +244,6 @@
          env:
            BROWSERTEST_OUTPUT_DIRECTORY: ../.logs/browser_output
            SIMPLETEST_DB: sqlite://tmp/db.sqlite
