@@ -16,7 +16,9 @@
  * projects can run their own endpoint simultaneously without contending for
  * a single port.
  *
- * A WebDriver server that already accepts sessions on the port is reused.
+ * A WebDriver server of this project that already accepts sessions on the
+ * port is reused. When the Selenium container of another project or another
+ * process holds the port, the command fails and names it instead.
  */
 
 declare(strict_types=1);
@@ -47,6 +49,9 @@ $webdriver_backend = webdriver_backend();
 // neither env nor '.env' provides one.
 $webdriver_port = resolve_webdriver_port(auto_discover: TRUE)['port'];
 
+// The project root identifies the backend that this project started.
+$root = (string) getcwd();
+
 // -----------------------------------------------------------------------------
 
 echo '===============================' . PHP_EOL;
@@ -54,11 +59,13 @@ echo '       🌐 START BROWSER        ' . PHP_EOL;
 echo '===============================' . PHP_EOL;
 echo PHP_EOL;
 
+webdriver_fail_when_taken($webdriver_port, $root);
+
 if ($webdriver_backend === 'selenium') {
-  selenium_start($webdriver_port);
+  selenium_start($webdriver_port, $root);
 }
 else {
-  chromedriver_start($webdriver_port);
+  chromedriver_start($webdriver_port, $root);
 }
 
 echo PHP_EOL;
@@ -85,14 +92,52 @@ function webdriver_backend(): string {
 }
 
 /**
+ * Fail when another project's backend or another process holds the port.
+ *
+ * The project's own Selenium container accounts for the process that
+ * publishes its port, so the listeners are checked only without one.
+ */
+function webdriver_fail_when_taken(string $port, string $root): void {
+  $container_project = command_path('docker') !== FALSE ? selenium_container_project($port) : NULL;
+
+  if ($container_project !== NULL && $container_project !== '' && $container_project !== $root) {
+    FAIL_NO_EXIT('Port %s is in use by the Selenium container of another project. Stop its browser, or set WEBDRIVER_PORT in .env to a free port.', $port);
+    NOTE('%s %s', selenium_container($port), $container_project);
+    quit(1);
+  }
+
+  if ($container_project !== NULL) {
+    return;
+  }
+
+  $other = webdriver_listeners($port, $root)['other'];
+
+  if ($other === []) {
+    return;
+  }
+
+  FAIL_NO_EXIT('Port %s is in use by another process. Stop it, or set WEBDRIVER_PORT in .env to a free port.', $port);
+
+  foreach ($other as $pid => $command) {
+    NOTE('%d %s', $pid, $command);
+  }
+
+  quit(1);
+}
+
+/**
  * Ensure a chromedriver matching the installed Chrome is listening.
  */
-function chromedriver_start(string $port): void {
+function chromedriver_start(string $port, string $root): void {
   if (webdriver_ready($port)) {
     PASS('chromedriver is already running on port %s.', $port);
 
     return;
   }
+
+  // A chromedriver of this project that stopped answering still holds the
+  // port.
+  kill_processes(array_keys(webdriver_listeners($port, $root)['own']));
 
   $chrome_version = detect_chrome_version();
 
@@ -124,8 +169,12 @@ function chromedriver_start(string $port): void {
 
 /**
  * Ensure a Selenium container is serving the WebDriver endpoint.
+ *
+ * The container carries the project root in its SELENIUM_PROJECT_LABEL label,
+ * so 'eddy-browser-stop' in another project that recorded the same port
+ * leaves it running.
  */
-function selenium_start(string $port): void {
+function selenium_start(string $port, string $root): void {
   if (webdriver_ready($port)) {
     PASS('Selenium is already running on port %s.', $port);
 
@@ -141,7 +190,7 @@ function selenium_start(string $port): void {
 
   // The default 64 MB '/dev/shm' is too small for Chromium and leads to tab
   // crashes mid-test; the Selenium images document 2g as the required size.
-  passthru_or_fail(sprintf('docker run -d --name %s --shm-size=2g -p %s:4444 %s', escapeshellarg(selenium_container($port)), escapeshellarg($port), escapeshellarg(SELENIUM_IMAGE)), 'Failed to start the Selenium container.');
+  passthru_or_fail(sprintf('docker run -d --name %s --label %s --shm-size=2g -p %s:4444 %s', escapeshellarg(selenium_container($port)), escapeshellarg(SELENIUM_PROJECT_LABEL . '=' . $root), escapeshellarg($port), escapeshellarg(SELENIUM_IMAGE)), 'Failed to start the Selenium container.');
 
   NOTE('Waiting for Selenium to be ready.');
 

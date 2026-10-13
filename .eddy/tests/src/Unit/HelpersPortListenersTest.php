@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use function DrevOps\Eddy\Tooling\kill_port;
 use function DrevOps\Eddy\Tooling\kill_processes;
 use function DrevOps\Eddy\Tooling\port_listener_pids_command;
 use function DrevOps\Eddy\Tooling\process_command;
 use function DrevOps\Eddy\Tooling\process_cwd;
+use function DrevOps\Eddy\Tooling\webdriver_listeners;
 use function DrevOps\Eddy\Tooling\webserver_docroot_argument;
 use function DrevOps\Eddy\Tooling\webserver_listeners;
 use function DrevOps\Eddy\Tooling\webserver_serves;
@@ -25,12 +25,13 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[CoversFunction('DrevOps\Eddy\Tooling\port_listener_pids_command')]
-#[CoversFunction('DrevOps\Eddy\Tooling\kill_port')]
 #[CoversFunction('DrevOps\Eddy\Tooling\process_command')]
 #[CoversFunction('DrevOps\Eddy\Tooling\process_cwd')]
 #[CoversFunction('DrevOps\Eddy\Tooling\webserver_docroot_argument')]
 #[CoversFunction('DrevOps\Eddy\Tooling\webserver_serves')]
 #[CoversFunction('DrevOps\Eddy\Tooling\webserver_listeners')]
+#[CoversFunction('DrevOps\Eddy\Tooling\port_listeners')]
+#[CoversFunction('DrevOps\Eddy\Tooling\webdriver_listeners')]
 #[CoversFunction('DrevOps\Eddy\Tooling\kill_processes')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
@@ -56,20 +57,6 @@ final class HelpersPortListenersTest extends UnitTestCase {
     yield 'string port' => ['8000', "lsof -ti tcp:'8000' -sTCP:LISTEN 2>/dev/null"];
     yield 'integer port' => [4444, "lsof -ti tcp:'4444' -sTCP:LISTEN 2>/dev/null"];
     yield 'shell metacharacters stay quoted' => ['8000; rm -rf /', "lsof -ti tcp:'8000; rm -rf /' -sTCP:LISTEN 2>/dev/null"];
-  }
-
-  #[DataProvider('dataProviderKillPort')]
-  public function testKillPort(int|string $port, string $expected): void {
-    $this->mockPassthru(['cmd' => $expected]);
-
-    kill_port($port);
-
-    $this->mockPassthruAssertAllMocksConsumed();
-  }
-
-  public static function dataProviderKillPort(): \Iterator {
-    yield 'string port' => ['8000', "lsof -ti tcp:'8000' -sTCP:LISTEN 2>/dev/null | xargs kill -9 2>/dev/null"];
-    yield 'integer port' => [4444, "lsof -ti tcp:'4444' -sTCP:LISTEN 2>/dev/null | xargs kill -9 2>/dev/null"];
   }
 
   #[DataProvider('dataProviderProcessCommand')]
@@ -195,6 +182,31 @@ final class HelpersPortListenersTest extends UnitTestCase {
     yield 'another program' => [[5678 => 'node server.js --port 8000'], ['own' => [], 'other' => [5678 => 'node server.js --port 8000']]];
     yield 'the project server and another' => [[1234 => self::SERVER, 5678 => self::OTHER_SERVER], ['own' => [1234 => self::SERVER], 'other' => [5678 => self::OTHER_SERVER]]];
     yield 'a command line that cannot be read' => [[1234 => ''], ['own' => [1234 => ''], 'other' => []]];
+  }
+
+  /**
+   * @param array<int, array{0: string, 1: string}> $listeners
+   *   The command line and the working directory of each listening process,
+   *   keyed by process ID.
+   * @param array{own: array<int, string>, other: array<int, string>} $expected
+   *   The expected listeners, split by owner.
+   */
+  #[DataProvider('dataProviderWebdriverListeners')]
+  public function testWebdriverListeners(array $listeners, array $expected): void {
+    $this->mockPortListeners('4444', $listeners);
+
+    $this->assertSame($expected, webdriver_listeners('4444', '/www/project'));
+  }
+
+  public static function dataProviderWebdriverListeners(): \Iterator {
+    $driver = '/usr/local/bin/chromedriver --port=4444';
+
+    yield 'nothing listens' => [[], ['own' => [], 'other' => []]];
+    yield 'started from the project root' => [[1234 => [$driver, '/www/project']], ['own' => [1234 => $driver], 'other' => []]];
+    yield 'started from the root of another project' => [[5678 => [$driver, '/www/other']], ['own' => [], 'other' => [5678 => $driver]]];
+    yield 'started from a directory below the project root' => [[5678 => [$driver, '/www/project/build']], ['own' => [], 'other' => [5678 => $driver]]];
+    yield 'a working directory that cannot be read' => [[1234 => [$driver, '']], ['own' => [1234 => $driver], 'other' => []]];
+    yield 'the project chromedriver and another' => [[1234 => [$driver, '/www/project'], 5678 => [$driver, '/www/other']], ['own' => [1234 => $driver], 'other' => [5678 => $driver]]];
   }
 
   public function testWebserverListenersResolvesRelativeDocroot(): void {

@@ -391,12 +391,14 @@ function resolve_webdriver_port(bool $auto_discover = FALSE, bool $validate_port
 
 const SELENIUM_CONTAINER_PREFIX = 'selenium';
 
+const SELENIUM_PROJECT_LABEL = 'eddy.project';
+
 /**
  * Build the container name for the Selenium endpoint on the given port.
  *
- * The port is the per-project identity of the endpoint, so naming the
- * container after it stops projects running side by side from removing or
- * overwriting each other's container.
+ * Projects running side by side use different ports, so naming the container
+ * after the port keeps their containers apart. The SELENIUM_PROJECT_LABEL
+ * label tells apart 2 projects that recorded the same port.
  *
  * @param string $port
  *   The WebDriver port the container publishes.
@@ -406,6 +408,55 @@ const SELENIUM_CONTAINER_PREFIX = 'selenium';
  */
 function selenium_container(string $port): string {
   return SELENIUM_CONTAINER_PREFIX . '-' . $port;
+}
+
+/**
+ * Get the project that started the Selenium container for a port.
+ *
+ * @param string $port
+ *   The WebDriver port the container publishes.
+ *
+ * @return string|null
+ *   The project root in the container's SELENIUM_PROJECT_LABEL label, an empty
+ *   string for a container without the label, or NULL when no such container
+ *   exists.
+ */
+function selenium_container_project(string $port): ?string {
+  $format = sprintf('{{.Name}}|{{index .Config.Labels "%s"}}', SELENIUM_PROJECT_LABEL);
+  $output = (string) shell_exec(sprintf('docker inspect --format %s %s 2>/dev/null', escapeshellarg($format), escapeshellarg(selenium_container($port))));
+  $separator = strpos($output, '|');
+
+  if ($separator === FALSE) {
+    return NULL;
+  }
+
+  $project = trim(substr($output, $separator + 1));
+
+  return $project === '<no value>' ? '' : $project;
+}
+
+/**
+ * List the processes listening on the WebDriver port, split by owner.
+ *
+ * 'eddy-browser-start' launches chromedriver from the project root, so a
+ * process belongs to the project when its working directory is the root. A
+ * process whose working directory cannot be read counts as the project's own,
+ * the way port_listeners() counts a command line that cannot be read.
+ *
+ * @param string $port
+ *   The WebDriver port.
+ * @param string $root
+ *   The absolute path of the project root.
+ *
+ * @return array{own: array<int, string>, other: array<int, string>}
+ *   The command line of each listening process, keyed by process ID.
+ */
+function webdriver_listeners(string $port, string $root): array {
+  return port_listeners($port, static function (int $pid) use ($root): bool {
+    $cwd = process_cwd($pid);
+
+    return $cwd === '' || $cwd === $root;
+  });
 }
 
 /**
@@ -540,20 +591,6 @@ function find_free_port(int $start = 8000, int $max_attempts = 100): int {
   // @codeCoverageIgnoreStart
   return $start;
   // @codeCoverageIgnoreEnd
-}
-
-/**
- * Kill whatever process is listening on a TCP port, if any.
- *
- * A best-effort operation: a missing listener or a missing 'lsof' binary
- * are silenced so callers may invoke it unconditionally before (re)binding
- * the same port.
- *
- * @param int|string $port
- *   The TCP port to free.
- */
-function kill_port(int|string $port): void {
-  @passthru(port_listener_pids_command($port) . ' | xargs kill -9 2>/dev/null');
 }
 
 /**
