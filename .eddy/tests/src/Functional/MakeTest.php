@@ -6,6 +6,7 @@ namespace DrevOps\Eddy\Tests\Functional;
 
 use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\Group;
+use Symfony\Component\Process\Process;
 
 /**
  * Tests for the make-based tooling workflow.
@@ -55,6 +56,34 @@ final class MakeTest extends ToolingTestCase {
 
     $this->processRun('make', ['lint'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
+  }
+
+  public function testReset(): void {
+    self::webserverCreateDocroot(self::$sut);
+
+    $this->processRun('make', ['start'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->assertProcessSuccessful();
+    $this->assertProcessAnyOutputContains('ENVIRONMENT READY');
+
+    $port = $this->webserverPort();
+    $this->assertTrue(self::webserverPortAccepts($port), 'The webserver of the project is running.');
+
+    // Another PHP process of the same user, such as the webserver of another
+    // project or a Composer run.
+    $other = new Process(['php', '-r', 'sleep(60);']);
+    $other->start();
+    $this->assertTrue($other->isRunning(), 'The other PHP process is running.');
+
+    $this->processRun('make', ['reset'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->assertProcessSuccessful();
+
+    $this->assertFalse(self::webserverPortAccepts($port), 'reset stops the webserver of the project.');
+    $this->assertTrue($other->isRunning(), 'reset leaves other PHP processes running.');
+    $this->assertDirectoryDoesNotExist(self::$sut . '/build');
+    $this->assertDirectoryDoesNotExist(self::$sut . '/.logs');
+    $this->assertDirectoryDoesNotExist(self::$sut . '/vendor');
+
+    $other->stop();
   }
 
   public function testWorkflow(): void {

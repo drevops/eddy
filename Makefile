@@ -81,8 +81,9 @@ help:
 	@echo "test-javascript            - Run JavaScript unit tests (alias: test-js)."
 	@#;> DEV_JEST
 
-# Every target that runs a tooling command installs the tooling first. Progress
-# goes to stderr, so a captured target output holds only the target's own.
+# Every target that runs a tooling command installs the tooling first, except
+# `reset`, which still cleans up when the install fails. Progress goes to
+# stderr, so a captured target output holds only the target's own.
 assemble build debug drush info login provision start stop: tooling
 #;< DEV_PHPUNIT
 test: tooling
@@ -272,7 +273,7 @@ test-js: test-javascript
 #;> DEV_JEST
 
 reset:
-	killall -9 php >/dev/null 2>&1 || true
+	vendor/bin/eddy-stop > /dev/null 2>&1 || true
 	chmod -Rf 777 build .logs > /dev/null 2>&1 || true
 	rm -Rf build > /dev/null 2>&1 || true
 	rm -Rf .logs > /dev/null 2>&1 || true
