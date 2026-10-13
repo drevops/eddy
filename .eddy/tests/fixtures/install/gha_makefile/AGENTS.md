@@ -74,7 +74,7 @@
  
 -- `ahoy drush <command>` - Run Drush commands
 -- `ahoy login` - Get one-time login link
-+- `make drush <command>` - Run Drush commands. Put `--` before options and separate an option from its value with a space, such as `make drush -- status --format json`, because `make` reads an argument that holds `=` as a variable. An argument that holds `:` fails, so use the command's alias, such as `cget` for `config:get`
++- `make drush <command>` - Run Drush commands. Put `--` before options and separate an option from its value with a space, such as `make drush -- status --format json`, because `make` reads an argument that holds `=` as a variable. An argument that holds `:` fails, so use the command's alias, such as `cr` for `cache:rebuild`
 +- `make login` - Get one-time login link
  
  ### Diagnostics
