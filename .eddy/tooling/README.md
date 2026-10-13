@@ -19,6 +19,8 @@ The installer reads the version constraint from `composer.dev.json`:
 
 Keep the `~` constraint. It accepts patch releases but holds the minor version, so a new minor release reaches your project with the next scaffold update rather than in the middle of a CI run.
 
+The package requires PHP 8.3 or newer, so every CI job and local build that installs it needs PHP 8.3 or newer too.
+
 The installer runs Composer only when the constraint, the patches for the package or the contents of a local patch file change, or when a command is missing from `vendor/bin`. Otherwise it returns straight away, so running it before every command costs next to nothing. A local install keeps its patch release until `vendor/` is removed, which `ahoy reset` and `make reset` do.
 
 ## Commands

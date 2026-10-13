@@ -363,6 +363,7 @@ Use `git diff HEAD` and `git status` to review all changes. Pay attention to:
 git grep -n -e '^<<<<<<< ' -e '^>>>>>>> '
 ```
 
+- **PHP versions**: the `drevops/eddy-tooling` package requires PHP 8.3 or newer, so a job in `.github/workflows/test.yml` with a lower `php-version`, such as Drupal 10 on PHP 8.2, fails at "Install the tooling". The merge keeps the project's matrix, so list those jobs for the pull request and tell the user about them. Leave them as they are: raising them drops a PHP version the extension tests, and that's the user's call.
 - **Branch references**: both renders ran in the scratch directory, where `install.php` finds no committed `test.yml`, so they filter the workflows on `1.x`. The merge keeps the branches the project lists wherever the 2 renders agree, and without a base, Step 8 resolved them as conflicts. Confirm that `.github/workflows/test.yml` and `.github/workflows/draft-release-notes.yml` list the branches the project builds from.
 - **README.md and CONTRIBUTING.md**: check them as described below.
 - **Added files**: review the files the release added (`A` in `git status --porcelain`). Without a base, they can include template files the project once removed on purpose - remove those again.
@@ -498,7 +499,7 @@ When `DEPLOY_REMOTE` isn't in the list, the project doesn't deploy, so carry on.
 
 ### Open the pull request
 
-Push the branch and open a pull request. Use the `/open-pr` skill or create the PR manually with a summary of all changes. Include the conflicts you resolved by judgment, the changes from Step 9 that need a new home, the leftover template files from Step 11, the code changes Step 12 made for a new Drupal major, and a new major that Step 13 left to CI.
+Push the branch and open a pull request. Use the `/open-pr` skill or create the PR manually with a summary of all changes. Include the conflicts you resolved by judgment, the changes from Step 9 that need a new home, the leftover template files and the jobs below PHP 8.3 from Step 11, the code changes Step 12 made for a new Drupal major, and a new major that Step 13 left to CI.
 
 When the deployment check above found `DEPLOY_REMOTE`, end the description with what's left around the merge:
 
