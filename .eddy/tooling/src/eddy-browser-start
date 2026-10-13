@@ -16,9 +16,11 @@
  * projects can run their own endpoint simultaneously without contending for
  * a single port.
  *
- * A WebDriver server of this project that already accepts sessions on the
- * port is reused. When the Selenium container of another project or another
- * process holds the port, the command fails and names it instead.
+ * A WebDriver server that already accepts sessions on the port is reused,
+ * whichever project started it, since every session is independent. When the
+ * port is held by something that does not accept sessions, only the project's
+ * own backend is replaced: the Selenium container of another project, or
+ * another process, fails the command and is named instead.
  */
 
 declare(strict_types=1);
@@ -59,8 +61,6 @@ echo '       🌐 START BROWSER        ' . PHP_EOL;
 echo '===============================' . PHP_EOL;
 echo PHP_EOL;
 
-webdriver_fail_when_taken($webdriver_port, $root);
-
 if ($webdriver_backend === 'selenium') {
   selenium_start($webdriver_port, $root);
 }
@@ -94,8 +94,10 @@ function webdriver_backend(): string {
 /**
  * Fail when another project's backend or another process holds the port.
  *
- * The project's own Selenium container accounts for the process that
- * publishes its port, so the listeners are checked only without one.
+ * Called once the port has no WebDriver server that accepts sessions, so the
+ * holder is not reusable. The project's own Selenium container accounts for
+ * the process that publishes its port, so the listeners are checked only
+ * without one.
  */
 function webdriver_fail_when_taken(string $port, string $root): void {
   $container_project = command_path('docker') !== FALSE ? selenium_container_project($port) : NULL;
@@ -134,6 +136,8 @@ function chromedriver_start(string $port, string $root): void {
 
     return;
   }
+
+  webdriver_fail_when_taken($port, $root);
 
   // A chromedriver of this project that stopped answering still holds the
   // port.
@@ -184,6 +188,8 @@ function selenium_start(string $port, string $root): void {
   if (command_path('docker') === FALSE) {
     FAIL('docker was not found. Install Docker, or unset WEBDRIVER_BACKEND to use the locally installed Chrome.');
   }
+
+  webdriver_fail_when_taken($port, $root);
 
   TASK('Starting the Selenium container on port %s.', $port);
   @passthru(sprintf('docker rm -f %s >/dev/null 2>&1', escapeshellarg(selenium_container($port))));

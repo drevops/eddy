@@ -43,7 +43,7 @@ Before it touches `build/`, `eddy-assemble` reads the PHP requirement of the Dru
 
 `eddy-start` and `eddy-stop` only stop a webserver that serves the project's own `build/web`, so they leave another project's server running when 2 projects record the same port. `eddy-start` fails and names the process that holds the port instead of stopping it. Once it has launched the server, it waits up to `WEBSERVER_WAIT_TIMEOUT` seconds, a whole number of 1 or more that defaults to 5, for the server to accept connections.
 
-`eddy-browser-start` and `eddy-browser-stop` treat the WebDriver backend the same way. A chromedriver belongs to the project whose root it runs from, and a Selenium container to the project that its `eddy.project` label names. `eddy-browser-stop` leaves the backend of another project running, and `eddy-browser-start` reuses only the project's own, failing and naming the holder when another backend holds the port.
+`eddy-browser-stop` treats the WebDriver backend the same way. A chromedriver belongs to the project whose root it runs from, and a Selenium container to the project that its `eddy.project` label names, so `eddy-browser-stop` leaves the backend of another project running. `eddy-browser-start` reuses any backend that already accepts WebDriver sessions on the port, since every session is independent. When the port is held by something that doesn't, it replaces only the project's own backend, and otherwise fails and names the holder.
 
 ## Verbose output
 
