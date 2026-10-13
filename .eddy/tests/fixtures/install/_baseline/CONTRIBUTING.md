@@ -5,6 +5,8 @@ This document explains how to set up a local development environment, build the 
 ## Local development
 
 1. Install PHP with SQLite support and Composer
+   - Install Node.js with npm, which the build and the linters use
+   - Install [Ahoy](https://github.com/ahoy-cli/ahoy)
 2. Clone this repository
 3. Build the website:
 
@@ -16,7 +18,7 @@ This document explains how to set up a local development environment, build the 
 
 Building the website assembles the codebase, starts the PHP server and provisions the Drupal website with this extension enabled. These operations are run by the commands of the [`drevops/eddy-tooling`](https://github.com/drevops/eddy-tooling) package, which `scripts/eddy-tooling` installs into `vendor/`. CI uses the same commands to build and test this extension.
 
-The package version is set in `composer.dev.json`. The installer runs Composer only when that version, the patches declared for the package or the contents of a local patch file change, so a newer patch release reaches a local checkout once `vendor/` is removed.
+The package version is set in `composer.dev.json`. The installer runs Composer only when that version, the patches declared for the package or the contents of a local patch file change, or when one of its commands is missing from `vendor/bin`, so a newer patch release reaches a local checkout once `vendor/` is removed.
 
 The resulting codebase is then placed in the `build` directory. The extension files are symlinked into the Drupal site structure.
 
@@ -52,7 +54,7 @@ DRUPAL_VERSION=12 ahoy build
 
 The build pins Drupal core to the newest release matching `DRUPAL_VERSION` and prints it. A version with no stable release yet resolves to its newest pre-release. When that release requires a newer PHP than the one running the build, the build stops before it changes anything and says which PHP the release needs.
 
-Every other dependency installs its most stable release that supports that core and the PHP running the build, even when the global Composer configuration sets `config.platform.php`. A dependency falls back to a pre-release or a development branch only when no stable release fits, and the build output lists every dependency installed from a development branch.
+Every other dependency installs its most stable release that supports that core and the PHP running the build, or the `config.platform.php` that `composer.dev.json` or `composer.json` sets, even when the global Composer configuration sets its own. A dependency falls back to a pre-release or a development branch only when no stable release fits, and the build output lists every dependency installed from a development branch.
 
 ### Patching dependencies
 
@@ -78,7 +80,7 @@ To overcome GitHub API rate limits, you may provide a `GITHUB_TOKEN` environment
 
 ### Provisioning the website
 
-The `provision` command installs the Drupal website from the `standard` profile with the extension (and any `suggest`'ed extensions) enabled. The profile can be changed by setting the `DRUPAL_PROFILE` environment variable.
+The `provision` command installs the Drupal website from the `standard` profile with the extension (and any `drupal/*` modules in `suggest`) enabled. The profile can be changed by setting the `DRUPAL_PROFILE` environment variable.
 
 The website is served at `http://localhost:8000`, or at the first free port up to 8099 when another process uses 8000, as described below, and the `start` command prints the URL. The hostname can be changed by setting the `WEBSERVER_HOST` environment variable.
 
@@ -116,7 +118,7 @@ To start and stop debug sessions from the browser, install the Xdebug Helper ext
 ## Coding standards
 
 The codebase is checked using multiple tools:
-- PHP code standards checking against `Drupal` and `DrupalPractice` standards.
+- PHP code standards checking against `Drupal`, `DrupalPractice`, `DrevOps` and `PHPCompatibility` standards.
 - PHP code static analysis with PHPStan.
 - PHP deprecated code analysis and auto-fixing with Drupal Rector.
 - Twig code analysis with Twig CS Fixer.
@@ -182,7 +184,7 @@ ahoy browser-stop
 
 The browser reaches the webserver at `localhost` with the default backend, and at `host.docker.internal` (macOS) or `__VERSION__.1` (other systems) from the Selenium container. Set `WEBDRIVER_HOST` to use a different address.
 
-Either backend gets its own WebDriver port: a free one is claimed starting at 4444 and stored in `.env`, so several projects can run FunctionalJavascript tests at the same time. Set `WEBDRIVER_PORT` to pin a specific one. Tests reach the claimed port because the base class applies it to the WebDriver endpoint, so extend `ForceCrystalFunctionalJavascriptTestBase` rather than `WebDriverTestBase` directly - a test that bypasses it keeps the default endpoint from `phpunit.xml` unless it exports its own `MINK_DRIVER_ARGS_WEBDRIVER`.
+Each project gets its own WebDriver port, whichever backend it uses: a free one is claimed starting at 4444 and stored in `.env`, so several projects can run FunctionalJavascript tests at the same time. Set `WEBDRIVER_PORT` to pin a specific one. Tests reach the claimed port because the base class applies it to the WebDriver endpoint, so extend `ForceCrystalFunctionalJavascriptTestBase` rather than `WebDriverTestBase` directly - a test that bypasses it keeps the default endpoint from `phpunit.xml` unless it exports its own `MINK_DRIVER_ARGS_WEBDRIVER`.
 
 ### Running specific tests
 
@@ -190,7 +192,7 @@ You can run specific tests by passing a path to the test file or PHPUnit CLI opt
 
 ```bash
 ahoy test-unit web/modules/custom/force_crystal/tests/src/Unit/MyUnitTest.php
-ahoy test-unit -- --group=wip
+ahoy test-unit -- --group wip
 ```
 
 You may also run tests using the `phpunit` command directly:

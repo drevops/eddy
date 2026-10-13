@@ -17,11 +17,25 @@
  - `ahoy browser-start` - Start the browser for FunctionalJavascript tests (local Chrome by default; set `WEBDRIVER_BACKEND=selenium` for Docker)
  - `ahoy browser-stop` - Stop the browser
  
-@@ -96,7 +92,6 @@
+@@ -101,13 +97,10 @@
  
  ## Code Quality Tools
  
 -- **CSpell**: Spell checking across the codebase (config at `.cspell.json`)
- - **PHPCS**: Drupal and DrupalPractice standards
+ - **PHPCS**: Drupal, DrupalPractice, DrevOps and PHPCompatibility standards
  - **PHPStan**: Static analysis with Drupal extensions
  - **Rector**: Automated refactoring and deprecation fixes
+ - **Twig CS Fixer**: Twig template formatting
+-- **ESLint**: JavaScript linting with Prettier formatting (config at `.eslintrc.json`)
+-- **Stylelint**: CSS linting (config at `.stylelintrc.js`)
+ 
+ ## CI/CD Support
+ 
+@@ -123,7 +116,6 @@
+ - Extension files are symlinked from root into `build/web/modules/custom/`
+ - SQLite database created in `/tmp/site_force_crystal.sqlite`
+ - The PHP and JavaScript quality tools run from within the `build/` directory
+-- CSpell runs from the project root
+ 
+ ## Updating the scaffold
+ 

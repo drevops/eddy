@@ -1,4 +1,9 @@
-@@ -9,7 +9,7 @@
+@@ -6,12 +6,11 @@
+ 
+ 1. Install PHP with SQLite support and Composer
+    - Install Node.js with npm, which the build and the linters use
+-   - Install [Ahoy](https://github.com/ahoy-cli/ahoy)
+ 2. Clone this repository
  3. Build the website:
  
     ```bash
@@ -7,7 +12,7 @@
     ```
  
  ## Building website
-@@ -23,9 +23,9 @@
+@@ -25,9 +24,9 @@
  The `build` command is a wrapper for more granular commands:
  
  ```bash
@@ -20,7 +25,7 @@
  ```
  
  The `provision` command is useful for re-installing the Drupal website without re-assembling the codebase.
-@@ -38,16 +38,16 @@
+@@ -40,16 +39,16 @@
  
  ```bash
  # Newest stable Drupal 11 release.
@@ -41,7 +46,7 @@
  ```
  
  The build pins Drupal core to the newest release matching `DRUPAL_VERSION` and prints it. A version with no stable release yet resolves to its newest pre-release. When that release requires a newer PHP than the one running the build, the build stops before it changes anything and says which PHP the release needs.
-@@ -101,8 +101,8 @@
+@@ -103,8 +102,8 @@
  PHP step-debugging is supported via [XDebug](https://xdebug.org/docs/install). Install the XDebug PHP extension on your host (`php -v` should mention `with Xdebug`), then toggle it on the development server:
  
  ```bash
@@ -52,7 +57,7 @@
  ```
  
  `debug` is also available as `debug-on`, `xdebug` and `xdebug-on`, and `start` as `debug-off` and `xdebug-off`.
-@@ -128,7 +128,7 @@
+@@ -130,7 +129,7 @@
  Run all checks with:
  
  ```bash
@@ -61,7 +66,7 @@
  ```
  
  ### Fixing coding standards issues
-@@ -136,7 +136,7 @@
+@@ -138,7 +137,7 @@
  To fix coding standards issues automatically, run the same tools with the `--fix` option (for the tools that support it):
  
  ```bash
@@ -70,7 +75,7 @@
  ```
  
  ## Testing
-@@ -144,7 +144,7 @@
+@@ -146,7 +145,7 @@
  Run the tests for this extension with:
  
  ```bash
@@ -79,7 +84,7 @@
  ```
  
  The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests. It uses Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
-@@ -152,10 +152,10 @@
+@@ -154,10 +153,10 @@
  Each test suite can also be run on its own:
  
  ```bash
@@ -94,7 +99,7 @@
  ```
  
  ### Running FunctionalJavascript tests
-@@ -163,10 +163,10 @@
+@@ -165,10 +164,10 @@
  FunctionalJavascript tests need a real browser driven via WebDriver. By default they use the Google Chrome already installed on your machine - a matching `chromedriver` is downloaded automatically on first run, so no Docker is required:
  
  ```bash
@@ -109,7 +114,7 @@
  ```
  
  The `test` and `test-functional-javascript` commands both start the browser before they run the suite. It keeps running afterwards, so the next run reuses it - stop it with `browser-stop` when you're done. The `browser-start` command reuses any browser that already answers on the WebDriver port, and fails and names whatever else holds the port. The `browser-stop` command stops only the project's own browser, so the browser of another project that recorded the same port keeps running.
-@@ -174,10 +174,10 @@
+@@ -176,10 +175,10 @@
  To run the browser in a Docker Selenium container instead, set `WEBDRIVER_BACKEND=selenium`. The container cannot reach the host's `localhost`, so start the webserver on all interfaces:
  
  ```bash
@@ -124,14 +129,17 @@
  ```
  
  The browser reaches the webserver at `localhost` with the default backend, and at `host.docker.internal` (macOS) or `__VERSION__.1` (other systems) from the Selenium container. Set `WEBDRIVER_HOST` to use a different address.
-@@ -189,8 +189,8 @@
+@@ -191,9 +190,11 @@
  You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the test commands. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site:
  
  ```bash
 -ahoy test-unit web/modules/custom/force_crystal/tests/src/Unit/MyUnitTest.php
--ahoy test-unit -- --group=wip
+-ahoy test-unit -- --group wip
 +make test-unit web/modules/custom/force_crystal/tests/src/Unit/MyUnitTest.php
-+make test-unit -- --group=wip
++make test-unit -- --group wip
  ```
++
++`make` reads an argument that holds `=` as a variable, so separate an option from its value with a space.
  
  You may also run tests using the `phpunit` command directly:
+ 
