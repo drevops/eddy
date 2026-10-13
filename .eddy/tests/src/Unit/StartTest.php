@@ -40,7 +40,7 @@ final class StartTest extends UnitTestCase {
       ['cmd' => self::serverCommand($expected_host, $expected_port, $cwd)],
     ]);
 
-    $this->mockUsleep();
+    $this->mockClock();
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
@@ -109,7 +109,7 @@ final class StartTest extends UnitTestCase {
       ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
-    $this->mockUsleep();
+    $this->mockClock();
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
@@ -143,7 +143,7 @@ final class StartTest extends UnitTestCase {
       ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
-    $this->mockUsleep();
+    $this->mockClock();
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
@@ -189,7 +189,7 @@ final class StartTest extends UnitTestCase {
       ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
-    $this->mockUsleep();
+    $this->mockClock();
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
@@ -250,7 +250,7 @@ final class StartTest extends UnitTestCase {
       ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
-    $this->mockUsleep();
+    $this->mockClock();
 
     $probes = 0;
     $this->registerMock('fsockopen', 'DrevOps\\Eddy\\Tooling', function () use (&$probes): false {
@@ -294,7 +294,7 @@ final class StartTest extends UnitTestCase {
       ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
-    $this->mockUsleep();
+    $this->mockClock();
 
     $this->registerMock('fsockopen', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
 
@@ -317,6 +317,52 @@ final class StartTest extends UnitTestCase {
     }
   }
 
+  public function testStartWaitEndsAtTimeoutWhenConnectionsAreDropped(): void {
+    $this->envSet('WEBSERVER_PORT', '8000');
+    $cwd = '/test/project';
+
+    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
+
+    $this->mockPassthruMultiple([
+      ['cmd' => self::killPortCommand('8000')],
+      ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
+    ]);
+
+    $this->mockClock();
+
+    // Each connection attempt lasts its whole timeout, as it does when the
+    // host drops connection attempts.
+    $probes = 0;
+    $this->registerMock('fsockopen', 'DrevOps\\Eddy\\Tooling', function (string $host, int $port, &$errno = NULL, &$errstr = NULL, ?float $timeout = NULL) use (&$probes): false {
+      $probes++;
+      $this->mockClockNanoseconds += (int) round((float) $timeout * 1000000000);
+
+      return FALSE;
+    });
+
+    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
+
+    $this->mockQuit(1);
+
+    ob_start();
+    try {
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
+      $this->fail('Expected QuitErrorException to be thrown.');
+    }
+    catch (QuitErrorException $e) {
+      $this->assertSame(1, $e->getCode());
+    }
+    finally {
+      $output = (string) ob_get_clean();
+    }
+
+    $this->assertStringContainsString('Waiting up to 5 seconds for the server to be ready.', $output);
+    $this->assertStringContainsString('Unable to start inbuilt PHP server', $output);
+    // A probe is a 100-millisecond pause and a 100-millisecond attempt.
+    $this->assertSame(25, $probes);
+    $this->assertSame(5000000000, $this->mockClockNanoseconds, 'The wait ends at the 5-second timeout.');
+  }
+
   public function testStartGetHeadersFailure(): void {
     $this->envSet('WEBSERVER_PORT', '8000');
     $cwd = '/test/project';
@@ -328,7 +374,7 @@ final class StartTest extends UnitTestCase {
       ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
-    $this->mockUsleep();
+    $this->mockClock();
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
@@ -371,7 +417,7 @@ final class StartTest extends UnitTestCase {
       ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
-    $this->mockUsleep();
+    $this->mockClock();
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
@@ -429,7 +475,7 @@ final class StartTest extends UnitTestCase {
       ['cmd' => self::serverCommand('localhost', '8123', $cwd)],
     ]);
 
-    $this->mockUsleep();
+    $this->mockClock();
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
@@ -487,7 +533,7 @@ final class StartTest extends UnitTestCase {
       ['cmd' => self::serverCommand('localhost', '8001', $cwd)],
     ]);
 
-    $this->mockUsleep();
+    $this->mockClock();
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
@@ -529,7 +575,7 @@ final class StartTest extends UnitTestCase {
       ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
-    $this->mockUsleep();
+    $this->mockClock();
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
@@ -567,7 +613,7 @@ final class StartTest extends UnitTestCase {
       ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
-    $this->mockUsleep();
+    $this->mockClock();
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
@@ -619,7 +665,7 @@ final class StartTest extends UnitTestCase {
       ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
-    $this->mockUsleep();
+    $this->mockClock();
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
@@ -654,7 +700,7 @@ final class StartTest extends UnitTestCase {
       ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
     ]);
 
-    $this->mockUsleep();
+    $this->mockClock();
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
