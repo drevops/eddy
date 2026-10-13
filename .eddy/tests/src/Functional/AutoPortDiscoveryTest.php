@@ -136,17 +136,21 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
     // test in the middle of a request does.
     $client = new Process(['php', '-r', sprintf('$c = @stream_socket_client("tcp://localhost:%s"); echo $c === FALSE ? "refused" : "connected"; sleep(60);', $port)]);
     $client->start();
-    $client->waitUntil(fn(string $type, string $output): bool => $type === Process::OUT && $output !== '');
-    $this->assertSame('connected', $client->getOutput());
 
-    $this->processRun('php', [self::TOOLING_DIR . '/eddy-stop'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
-    $this->assertProcessSuccessful();
-    $this->assertProcessAnyOutputContains('ENVIRONMENT STOPPED');
+    try {
+      $client->waitUntil(fn(string $type, string $output): bool => $type === Process::OUT && $output !== '');
+      $this->assertSame('connected', $client->getOutput());
 
-    $this->assertTrue($client->isRunning(), 'stop leaves a client of the port running.');
-    $this->assertFalse(self::webserverPortAccepts($port), 'stop stops the webserver.');
+      $this->processRun('php', [self::TOOLING_DIR . '/eddy-stop'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
+      $this->assertProcessSuccessful();
+      $this->assertProcessAnyOutputContains('ENVIRONMENT STOPPED');
 
-    $client->stop();
+      $this->assertTrue($client->isRunning(), 'stop leaves a client of the port running.');
+      $this->assertFalse(self::webserverPortAccepts($port), 'stop stops the webserver.');
+    }
+    finally {
+      $client->stop();
+    }
   }
 
   public function testProjectsSharingPortLeaveEachOtherServerRunning(): void {
@@ -223,13 +227,10 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
   }
 
   protected function readEnvPort(string $sut): string {
-    $contents = @file_get_contents($sut . '/.env');
-    $this->assertNotFalse($contents, 'Expected .env file to exist at ' . $sut . '/.env');
-    if (!preg_match('/^WEBSERVER_PORT=(\d+)$/m', $contents, $matches)) {
-      $this->fail('.env does not contain WEBSERVER_PORT line. Contents: ' . $contents);
-    }
+    $port = self::webserverDotenvPort($sut);
+    $this->assertNotNull($port, sprintf('%s/.env records no WEBSERVER_PORT.', $sut));
 
-    return $matches[1];
+    return $port;
   }
 
   protected function assertPortInRange(string $port): void {

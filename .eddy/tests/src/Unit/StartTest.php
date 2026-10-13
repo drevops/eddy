@@ -96,6 +96,38 @@ final class StartTest extends UnitTestCase {
     ];
   }
 
+  #[DataProvider('dataProviderStartFailsOnInvalidWaitTimeout')]
+  public function testStartFailsOnInvalidWaitTimeout(string $timeout): void {
+    $this->envSet('WEBSERVER_PORT', '8000');
+    $this->envSet('WEBSERVER_WAIT_TIMEOUT', $timeout);
+
+    // Nothing is looked up, killed or launched.
+    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(string $command): never => throw new \RuntimeException(sprintf('shell_exec() called with unexpected command "%s".', $command)));
+    $this->mockPassthruNever();
+    $this->mockQuit(1);
+
+    ob_start();
+    try {
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
+      $this->fail('Expected QuitErrorException to be thrown.');
+    }
+    catch (QuitErrorException $e) {
+      $this->assertSame(1, $e->getCode());
+    }
+    finally {
+      $output = (string) ob_get_clean();
+    }
+
+    $this->assertStringContainsString(sprintf('Invalid WEBSERVER_WAIT_TIMEOUT "%s". Expected a whole number of seconds, 1 or more.', $timeout), $output);
+    $this->assertStringNotContainsString('START ENVIRONMENT', $output);
+  }
+
+  public static function dataProviderStartFailsOnInvalidWaitTimeout(): \Iterator {
+    yield 'zero' => ['0'];
+    yield 'negative' => ['-5'];
+    yield 'not a number' => ['five'];
+  }
+
   public function testStartServerWith302Response(): void {
     $this->envSet('WEBSERVER_PORT', '8000');
     $cwd = '/test/project';

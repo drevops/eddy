@@ -391,12 +391,14 @@ function resolve_webdriver_port(bool $auto_discover = FALSE, bool $validate_port
 
 const SELENIUM_CONTAINER_PREFIX = 'selenium';
 
+const SELENIUM_PROJECT_LABEL = 'eddy.project';
+
 /**
  * Build the container name for the Selenium endpoint on the given port.
  *
- * The port is the per-project identity of the endpoint, so naming the
- * container after it stops projects running side by side from removing or
- * overwriting each other's container.
+ * Projects running side by side use different ports, so naming the container
+ * after the port keeps their containers apart. The SELENIUM_PROJECT_LABEL
+ * label tells apart 2 projects that recorded the same port.
  *
  * @param string $port
  *   The WebDriver port the container publishes.
@@ -406,6 +408,79 @@ const SELENIUM_CONTAINER_PREFIX = 'selenium';
  */
 function selenium_container(string $port): string {
   return SELENIUM_CONTAINER_PREFIX . '-' . $port;
+}
+
+/**
+ * Get the project that started the Selenium container for a port.
+ *
+ * @param string $port
+ *   The WebDriver port the container publishes.
+ *
+ * @return string|null
+ *   The project root in the container's SELENIUM_PROJECT_LABEL label, an empty
+ *   string for a container without the label, or NULL when no such container
+ *   exists.
+ */
+function selenium_container_project(string $port): ?string {
+  $format = sprintf('{{.Name}}|{{index .Config.Labels "%s"}}', SELENIUM_PROJECT_LABEL);
+  $output = (string) shell_exec(sprintf('docker inspect --format %s %s 2>/dev/null', escapeshellarg($format), escapeshellarg(selenium_container($port))));
+  $separator = strpos($output, '|');
+
+  if ($separator === FALSE) {
+    return NULL;
+  }
+
+  $project = trim(substr($output, $separator + 1));
+
+  return $project === '<no value>' ? '' : $project;
+}
+
+/**
+ * Check whether the Selenium container for a port is running.
+ *
+ * @param string $port
+ *   The WebDriver port the container publishes.
+ *
+ * @return bool
+ *   TRUE when the container exists and is running.
+ */
+function selenium_container_running(string $port): bool {
+  $output = (string) shell_exec(sprintf('docker inspect --format %s %s 2>/dev/null', escapeshellarg('{{.State.Running}}'), escapeshellarg(selenium_container($port))));
+
+  return trim($output) === 'true';
+}
+
+/**
+ * List the processes listening on the WebDriver port, split by owner.
+ *
+ * 'eddy-browser-start' launches chromedriver from the project root. A process
+ * is the project's own when its command line starts with a 'chromedriver'
+ * executable and its working directory resolves to the root.
+ *
+ * 'ps' prints the command line unquoted, so an executable path with spaces
+ * does not match. A process whose command line or working directory cannot be
+ * read counts as another's, so it is never stopped.
+ *
+ * @param string $port
+ *   The WebDriver port.
+ * @param string $root
+ *   The absolute path of the project root.
+ *
+ * @return array{own: array<int, string>, other: array<int, string>}
+ *   The command line of each listening process, keyed by process ID.
+ */
+function webdriver_listeners(string $port, string $root): array {
+  $resolved_root = realpath($root) ?: $root;
+
+  return port_listeners($port, static function (int $pid, string $command) use ($resolved_root): bool {
+    if (preg_match('#^(?:\S*/)?chromedriver(?:\s|$)#', $command) !== 1) {
+      return FALSE;
+    }
+
+    $cwd = process_cwd($pid);
+
+    return $cwd !== '' && (realpath($cwd) ?: $cwd) === $resolved_root;
+  });
 }
 
 /**
@@ -435,21 +510,29 @@ function resolve_site_url(string $host, string $port, string $dotenv_file = '.en
 }
 
 /**
- * Detect the XDebug state of the dev server listening on the given port.
+ * Detect the XDebug state of the project's webserver.
  *
- * Inspects the running PHP process's command line for the
- * 'xdebug.mode=debug' flag. Returns 'enabled' or 'disabled' when a
- * server is listening, and '-' when no server is bound to the port.
+ * Inspects the command line of the webserver that serves the docroot for the
+ * 'xdebug.mode=debug' flag. Another process listening on the port is left
+ * out, so its flags never stand in for the project's server.
+ *
+ * @param string $port
+ *   The webserver port.
+ * @param string $docroot
+ *   The absolute path of the project's docroot.
+ *
+ * @return string
+ *   'enabled' or 'disabled' while the project's webserver listens on the port,
+ *   and '-' otherwise.
  */
-function xdebug_state(string $port): string {
-  $command = sprintf('ps -o command= -p "$(%s | head -1)" 2>/dev/null', port_listener_pids_command($port));
-  $out = trim((string) @shell_exec($command));
+function xdebug_state(string $port, string $docroot): string {
+  $own = webserver_listeners($port, $docroot)['own'];
 
-  if ($out === '') {
+  if ($own === []) {
     return '-';
   }
 
-  return str_contains($out, 'xdebug.mode=debug') ? 'enabled' : 'disabled';
+  return str_contains(reset($own), 'xdebug.mode=debug') ? 'enabled' : 'disabled';
 }
 
 /**
@@ -466,6 +549,27 @@ function validate_port_or_fail(string $value, string $source): void {
   if (!ctype_digit($value) || (int) $value < 1 || (int) $value > 65535) {
     FAIL('Invalid %s "%s". Expected integer in range 1-65535.', $source, $value);
   }
+}
+
+/**
+ * Validate that a value is a whole number of seconds, 1 or more.
+ *
+ * Calls FAIL() with a descriptive message if validation fails.
+ *
+ * @param string $value
+ *   The value to validate.
+ * @param string $source
+ *   Source name used in the error message (e.g. 'WEBSERVER_WAIT_TIMEOUT').
+ *
+ * @return int
+ *   The number of seconds.
+ */
+function validate_timeout_or_fail(string $value, string $source): int {
+  if (!ctype_digit($value) || (int) $value < 1) {
+    FAIL('Invalid %s "%s". Expected a whole number of seconds, 1 or more.', $source, $value);
+  }
+
+  return (int) $value;
 }
 
 /**
@@ -514,20 +618,6 @@ function find_free_port(int $start = 8000, int $max_attempts = 100): int {
 }
 
 /**
- * Kill whatever process is listening on a TCP port, if any.
- *
- * A best-effort operation: a missing listener or a missing 'lsof' binary
- * are silenced so callers may invoke it unconditionally before (re)binding
- * the same port.
- *
- * @param int|string $port
- *   The TCP port to free.
- */
-function kill_port(int|string $port): void {
-  @passthru(port_listener_pids_command($port) . ' | xargs kill -9 2>/dev/null');
-}
-
-/**
  * Build the command that prints the IDs of the processes listening on a port.
  *
  * Only a listening TCP socket matches, so a process that holds a client
@@ -557,19 +647,120 @@ function process_command(int $pid): string {
 }
 
 /**
+ * Get the working directory of a process.
+ *
+ * @param int $pid
+ *   The process ID.
+ *
+ * @return string
+ *   The absolute path, or an empty string when it cannot be read.
+ */
+function process_cwd(int $pid): string {
+  $output = (string) shell_exec(sprintf('lsof -a -p %d -d cwd -Fn 2>/dev/null', $pid));
+
+  return preg_match('/^n(.+)$/m', $output, $matches) === 1 ? $matches[1] : '';
+}
+
+/**
+ * Get the path that a PHP webserver command line passes to '-t'.
+ *
+ * The command line is split on whitespace, so a path with spaces is cut at
+ * the first one.
+ *
+ * @param string $command
+ *   The command line, as 'ps' prints it.
+ *
+ * @return string|null
+ *   The path, as given, or NULL when the command line has no '-t' value.
+ */
+function webserver_docroot_argument(string $command): ?string {
+  $arguments = preg_split('/\s+/', trim($command), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+  foreach ($arguments as $index => $argument) {
+    if ($argument === '-t') {
+      return $arguments[$index + 1] ?? NULL;
+    }
+
+    if (str_starts_with($argument, '-t')) {
+      return substr($argument, 2);
+    }
+  }
+
+  return NULL;
+}
+
+/**
  * Check whether a process serves a docroot with the PHP webserver.
+ *
+ * The command line passes the docroot to '-t', either the way 'eddy-start'
+ * launches the webserver or through a path that resolves to it: a symlink, or
+ * a relative path, which the process resolves against its working directory.
  *
  * @param string $command
  *   The command line of the process, as 'ps' prints it.
  * @param string $docroot
  *   The absolute path of the docroot.
+ * @param int $pid
+ *   The process ID, used to read the working directory for a relative path.
+ *   0 leaves a relative path unresolved.
  *
  * @return bool
- *   TRUE when the command line passes the docroot to '-t', the way
- *   'eddy-start' launches the webserver.
+ *   TRUE when the process serves the docroot.
  */
-function webserver_serves(string $command, string $docroot): bool {
-  return preg_match('#\s-t ' . preg_quote($docroot, '#') . '(?:\s|$)#', $command) === 1;
+function webserver_serves(string $command, string $docroot, int $pid = 0): bool {
+  if (preg_match('#\s-t ' . preg_quote($docroot, '#') . '(?:\s|$)#', $command) === 1) {
+    return TRUE;
+  }
+
+  $path = webserver_docroot_argument($command);
+
+  if ($path === NULL || $path === '') {
+    return FALSE;
+  }
+
+  if (!str_starts_with($path, '/')) {
+    $cwd = $pid > 0 ? process_cwd($pid) : '';
+
+    if ($cwd === '') {
+      return FALSE;
+    }
+
+    $path = $cwd . '/' . $path;
+  }
+
+  $resolved = realpath($path);
+
+  return $resolved !== FALSE && $resolved === realpath($docroot);
+}
+
+/**
+ * List the processes listening on a port, split by owner.
+ *
+ * @param string $port
+ *   The TCP port.
+ * @param callable(int, string): bool $owns
+ *   Receives the ID and the command line of a process, which is empty when it
+ *   cannot be read, and returns TRUE for a process the caller owns.
+ *
+ * @return array{own: array<int, string>, other: array<int, string>}
+ *   The command line of each listening process, keyed by process ID.
+ */
+function port_listeners(string $port, callable $owns): array {
+  $listeners = ['own' => [], 'other' => []];
+  $values = preg_split('/\s+/', trim((string) shell_exec(port_listener_pids_command($port))), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+  foreach ($values as $value) {
+    $pid = (int) $value;
+
+    if (!ctype_digit($value) || $pid < 1) {
+      continue;
+    }
+
+    $command = process_command($pid);
+    $listeners[$owns($pid, $command) ? 'own' : 'other'][$pid] = $command;
+  }
+
+  return $listeners;
 }
 
 /**
@@ -585,25 +776,10 @@ function webserver_serves(string $command, string $docroot): bool {
  *
  * @return array{own: array<int, string>, other: array<int, string>}
  *   The command line of each listening process, keyed by process ID: 'own'
- *   for the processes that serve the docroot, 'other' for the rest.
+ *   for the processes that serve the docroot, and 'other' for the rest.
  */
 function webserver_listeners(string $port, string $docroot): array {
-  $listeners = ['own' => [], 'other' => []];
-  $values = preg_split('/\s+/', trim((string) shell_exec(port_listener_pids_command($port))), -1, PREG_SPLIT_NO_EMPTY) ?: [];
-
-  foreach ($values as $value) {
-    $pid = (int) $value;
-
-    if (!ctype_digit($value) || $pid < 1) {
-      continue;
-    }
-
-    $command = process_command($pid);
-    $owner = $command === '' || webserver_serves($command, $docroot) ? 'own' : 'other';
-    $listeners[$owner][$pid] = $command;
-  }
-
-  return $listeners;
+  return port_listeners($port, static fn(int $pid, string $command): bool => $command === '' || webserver_serves($command, $docroot, $pid));
 }
 
 /**

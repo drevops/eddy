@@ -1,4 +1,4 @@
-@@ -60,89 +60,19 @@
+@@ -60,96 +60,25 @@
      usage: Check coding standards for violations.
      cmd: |
        pushd "build" >/dev/null || exit 1
@@ -39,7 +39,7 @@
 -      php -d pcov.directory=.. vendor/bin/phpunit "$@"
 -      [ ! -d node_modules ] || (ahoy title "Running Jest" && npm test)
        popd >/dev/null || exit 1
--
+ 
 -  test-unit:
 -    usage: Run unit tests.
 -    cmd: |
@@ -85,6 +85,13 @@
 -  browser-stop:
 -    usage: Stop the browser.
 -    cmd: vendor/bin/eddy-browser-stop
- 
+-
    reset:
      usage: Reset project to the default state.
+     aliases: [delete, destroy]
+     cmd: |
+       vendor/bin/eddy-stop > /dev/null 2>&1 || true
+-      vendor/bin/eddy-browser-stop > /dev/null 2>&1 || true
+       chmod -Rf 777 build .logs > /dev/null 2>&1 || true
+       rm -Rf build > /dev/null 2>&1 || true
+       rm -Rf .logs > /dev/null 2>&1 || true

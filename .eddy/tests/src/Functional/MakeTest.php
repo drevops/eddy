@@ -58,6 +58,20 @@ final class MakeTest extends ToolingTestCase {
     $this->assertProcessSuccessful();
   }
 
+  public function testStartDiscoversPort(): void {
+    self::webserverCreateDocroot(self::$sut);
+
+    $this->processRun('make', ['start'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->assertProcessSuccessful();
+    $this->assertProcessAnyOutputContains('ENVIRONMENT READY');
+
+    $port = self::webserverDotenvPort(self::$sut);
+    $this->assertNotNull($port, 'start records the port it discovered in .env.');
+    $this->assertGreaterThanOrEqual(8000, (int) $port);
+    $this->assertLessThanOrEqual(8099, (int) $port);
+    $this->assertTrue(self::webserverPortAccepts($port), 'The webserver listens on the discovered port.');
+  }
+
   public function testReset(): void {
     self::webserverCreateDocroot(self::$sut);
 
@@ -68,42 +82,66 @@ final class MakeTest extends ToolingTestCase {
     $port = $this->webserverPort();
     $this->assertTrue(self::webserverPortAccepts($port), 'The webserver of the project is running.');
 
+    // The WebDriver backend of the project, which runs from the project root.
+    $webdriver_port = self::webserverFreePort();
+    file_put_contents(self::$sut . '/.env', 'WEBDRIVER_PORT=' . $webdriver_port . "\n", FILE_APPEND);
+    $browser = self::webserverStartListener(self::$sut, $webdriver_port);
+
     // Another PHP process of the same user, such as the webserver of another
     // project or a Composer run.
     $other = new Process(['php', '-r', 'sleep(60);']);
     $other->start();
-    $this->assertTrue($other->isRunning(), 'The other PHP process is running.');
 
-    $this->processRun('make', ['reset'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
-    $this->assertProcessSuccessful();
+    try {
+      $this->assertTrue(self::webserverPortAccepts($webdriver_port), 'The WebDriver backend of the project is running.');
+      $this->assertTrue($other->isRunning(), 'The other PHP process is running.');
 
-    $this->assertFalse(self::webserverPortAccepts($port), 'reset stops the webserver of the project.');
-    $this->assertTrue($other->isRunning(), 'reset leaves other PHP processes running.');
-    $this->assertDirectoryDoesNotExist(self::$sut . '/build');
-    $this->assertDirectoryDoesNotExist(self::$sut . '/.logs');
-    $this->assertDirectoryDoesNotExist(self::$sut . '/vendor');
+      $this->processRun('make', ['reset'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
+      $this->assertProcessSuccessful();
 
-    $other->stop();
+      $this->assertFalse(self::webserverPortAccepts($port), 'reset stops the webserver of the project.');
+      $this->assertFalse(self::webserverPortAccepts($webdriver_port), 'reset stops the WebDriver backend of the project.');
+      $this->assertTrue($other->isRunning(), 'reset leaves other PHP processes running.');
+      $this->assertDirectoryDoesNotExist(self::$sut . '/build');
+      $this->assertDirectoryDoesNotExist(self::$sut . '/.logs');
+      $this->assertDirectoryDoesNotExist(self::$sut . '/vendor');
+    }
+    finally {
+      $browser->stop();
+      $other->stop();
+    }
   }
 
   public function testStopAndResetLeaveServerOfAnotherProject(): void {
-    // Another project recorded the same port, and its webserver runs on it.
+    $other_root = self::$tmp . '/other_' . uniqid();
+
+    // Another project recorded the same ports, and its webserver and its
+    // WebDriver backend run on them.
     $port = self::webserverFreePort();
-    file_put_contents(self::$sut . '/.env', 'WEBSERVER_PORT=' . $port . "\n");
-    $other = self::webserverStartOther(self::$tmp . '/other_' . uniqid(), $port);
-    $this->assertTrue(self::webserverPortAccepts($port), 'The webserver of the other project is running.');
+    $other = self::webserverStartOther($other_root, $port);
+    $webdriver_port = self::webserverFreePort();
+    $other_browser = self::webserverStartListener($other_root, $webdriver_port);
+    file_put_contents(self::$sut . '/.env', sprintf("WEBSERVER_PORT=%s\nWEBDRIVER_PORT=%s\n", $port, $webdriver_port));
 
-    $this->processRun('make', ['stop'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
-    $this->assertProcessSuccessful();
-    $this->assertProcessAnyOutputContains('Port ' . $port . ' is still in use by another process, which was left running:');
-    $this->assertTrue(self::webserverPortAccepts($port), 'stop leaves the webserver of another project running.');
+    try {
+      $this->assertTrue(self::webserverPortAccepts($port), 'The webserver of the other project is running.');
+      $this->assertTrue(self::webserverPortAccepts($webdriver_port), 'The WebDriver backend of the other project is running.');
 
-    $this->processRun('make', ['reset'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
-    $this->assertProcessSuccessful();
-    $this->assertTrue(self::webserverPortAccepts($port), 'reset leaves the webserver of another project running.');
-    $this->assertDirectoryDoesNotExist(self::$sut . '/vendor');
+      $this->processRun('make', ['stop'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
+      $this->assertProcessSuccessful();
+      $this->assertProcessAnyOutputContains('Port ' . $port . ' is still in use by another process, which was left running:');
+      $this->assertTrue(self::webserverPortAccepts($port), 'stop leaves the webserver of another project running.');
 
-    $other->stop();
+      $this->processRun('make', ['reset'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
+      $this->assertProcessSuccessful();
+      $this->assertTrue(self::webserverPortAccepts($port), 'reset leaves the webserver of another project running.');
+      $this->assertTrue(self::webserverPortAccepts($webdriver_port), 'reset leaves the WebDriver backend of another project running.');
+      $this->assertDirectoryDoesNotExist(self::$sut . '/vendor');
+    }
+    finally {
+      $other_browser->stop();
+      $other->stop();
+    }
   }
 
   public function testWorkflow(): void {

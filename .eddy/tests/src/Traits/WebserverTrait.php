@@ -81,7 +81,8 @@ trait WebserverTrait {
    * Start the webserver of another project the way 'eddy-start' does.
    *
    * @param string $root
-   *   The root of the other project. Its docroot is created.
+   *   The root of the other project. Its docroot is created, and the
+   *   webserver runs from the root.
    * @param string $port
    *   The TCP port.
    *
@@ -92,14 +93,74 @@ trait WebserverTrait {
   protected static function webserverStartOther(string $root, string $port): Process {
     self::webserverCreateDocroot($root);
 
-    $server = new Process(['php', '-S', 'localhost:' . $port, '-t', $root . '/build/web', $root . '/build/web/.ht.router.php']);
-    $server->start();
+    return self::webserverStartProcess(['php', '-S', 'localhost:' . $port, '-t', $root . '/build/web', $root . '/build/web/.ht.router.php'], $root, $port);
+  }
+
+  /**
+   * Start a chromedriver stand-in that listens on a port.
+   *
+   * The stand-in is a PHP webserver run through a symlink named
+   * 'chromedriver', so webdriver_listeners() counts it as a chromedriver.
+   *
+   * @param string $cwd
+   *   The working directory of the process: the root of the project it belongs
+   *   to.
+   * @param string $port
+   *   The TCP port.
+   *
+   * @return \Symfony\Component\Process\Process
+   *   The process, once the port accepts connections or after 5 seconds.
+   */
+  protected static function webserverStartListener(string $cwd, string $port): Process {
+    $chromedriver = self::locationsMkdir(self::$tmp . '/webdriver-' . $port) . '/chromedriver';
+    symlink(PHP_BINARY, $chromedriver);
+
+    return self::webserverStartProcess([$chromedriver, '-S', 'localhost:' . $port, '-t', $cwd], $cwd, $port);
+  }
+
+  /**
+   * Start a process and wait for its port to accept connections.
+   *
+   * @param array<int, string> $command
+   *   The command and its arguments.
+   * @param string $cwd
+   *   The working directory of the process.
+   * @param string $port
+   *   The TCP port the process listens on.
+   *
+   * @return \Symfony\Component\Process\Process
+   *   The process, once the port accepts connections or after 5 seconds.
+   */
+  protected static function webserverStartProcess(array $command, string $cwd, string $port): Process {
+    $process = new Process($command, $cwd);
+    $process->start();
 
     for ($i = 0; $i < 50 && !self::webserverPortAccepts($port); $i++) {
       usleep(100000);
     }
 
-    return $server;
+    return $process;
+  }
+
+  /**
+   * Read a port that a project recorded in its '.env'.
+   *
+   * @param string $root
+   *   The project root.
+   * @param string $name
+   *   The variable that holds the port.
+   *
+   * @return string|null
+   *   The port, or NULL when '.env' records none.
+   */
+  protected static function webserverDotenvPort(string $root, string $name = 'WEBSERVER_PORT'): ?string {
+    $contents = @file_get_contents($root . '/.env');
+
+    if ($contents === FALSE || preg_match('/^' . preg_quote($name, '/') . '=(\d+)$/m', $contents, $matches) !== 1) {
+      return NULL;
+    }
+
+    return $matches[1];
   }
 
   /**

@@ -48,6 +48,13 @@ final class BrowserStartTest extends UnitTestCase {
     $this->envUnset('WEBDRIVER_PORT');
     $this->envUnset('WEBDRIVER_BACKEND');
 
+    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => '/test/project');
+
+    // Nothing listens on either port the tests resolve, and neither has a
+    // Selenium container. A test replaces these outputs to add either.
+    $this->mockPortListeners('4444', [], self::seleniumContainerOutputs('4444', NULL));
+    $this->mockPortListeners('4445', [], self::seleniumContainerOutputs('4445', NULL));
+
     // The mocked '.env' supplies port 4444, so the port resolves without the
     // free-port probe.
     $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $f): bool => $f === '.env');
@@ -100,12 +107,170 @@ final class BrowserStartTest extends UnitTestCase {
   }
 
   public function testBrowserStartAlreadyRunning(): void {
+    $this->mockCommands([]);
     $this->mockReady([TRUE]);
 
     $output = $this->runBrowserStart();
 
     $this->assertStringContainsString('START BROWSER', $output);
     $this->assertStringContainsString('chromedriver is already running on port 4444', $output);
+  }
+
+  public function testBrowserStartReusesOwnChromedriver(): void {
+    $this->mockCommands([]);
+    $this->mockPortListeners('4444', [1234 => ['/usr/local/bin/chromedriver --port=4444', '/test/project']]);
+    $this->mockReady([TRUE]);
+    $commands = [];
+    $this->recordPassthru($commands);
+
+    $output = $this->runBrowserStart();
+
+    $this->assertStringContainsString('chromedriver is already running on port 4444', $output);
+    $this->assertSame([], $commands, 'A running chromedriver of the project must be reused.');
+  }
+
+  public function testBrowserStartRestartsOwnChromedriverThatDoesNotAnswer(): void {
+    $this->mockChrome(FALSE);
+    $this->mockCommands(['google-chrome' => '/usr/bin/google-chrome', 'chromedriver' => '/usr/local/bin/chromedriver']);
+    $this->mockVersions('Google Chrome 150.0.7871.129', 'ChromeDriver 150.0.7871.129 (abc)');
+    $this->mockPortListeners('4444', [1234 => ['/usr/local/bin/chromedriver --port=4444', '/test/project']]);
+    $this->mockReady([FALSE, TRUE]);
+    $commands = [];
+    $this->recordPassthru($commands);
+
+    $output = $this->runBrowserStart();
+
+    $this->assertStringContainsString('chromedriver is ready on port 4444', $output);
+    $this->assertSame('kill -9 1234 2>/dev/null', $commands[0] ?? NULL, 'A chromedriver of the project that does not answer must be stopped first.');
+    $this->assertStringContainsString('nohup', $commands[1] ?? '', 'A new chromedriver must be launched after the old one is stopped.');
+  }
+
+  /**
+   * A WebDriver session belongs to whoever opens it, so a backend of another
+   * project that answers on the port serves this project too.
+   *
+   * @param array<int, array{0: string, 1: string}> $listeners
+   *   The command line and the working directory of each process listening on
+   *   the port, keyed by process ID.
+   */
+  #[DataProvider('dataProviderBrowserStartReusesRunningBackendOfAnotherProject')]
+  public function testBrowserStartReusesRunningBackendOfAnotherProject(string $backend, array $listeners, ?string $container, string $expected): void {
+    $this->envSet('WEBDRIVER_BACKEND', $backend);
+    $this->mockCommands(['docker' => '/usr/bin/docker']);
+    $this->mockPortListeners('4444', $listeners, self::seleniumContainerOutputs('4444', $container));
+    $this->mockReady([TRUE]);
+    $commands = [];
+    $this->recordPassthru($commands);
+
+    $output = $this->runBrowserStart();
+
+    $this->assertStringContainsString($expected, $output);
+    $this->assertSame([], $commands, 'A running backend of another project must be reused, not stopped, removed or replaced.');
+  }
+
+  public static function dataProviderBrowserStartReusesRunningBackendOfAnotherProject(): \Iterator {
+    $driver = [5678 => ['/usr/bin/chromedriver --port=4444', '/www/other']];
+    $docker = [9999 => ['/Applications/Docker.app/Contents/MacOS/com.docker.backend', '/']];
+
+    yield 'chromedriver of another project, chromedriver backend' => ['chromedriver', $driver, NULL, 'chromedriver is already running on port 4444'];
+    yield 'chromedriver of another project, selenium backend' => ['selenium', $driver, NULL, 'Selenium is already running on port 4444'];
+    yield 'container of another project, chromedriver backend' => ['chromedriver', $docker, '/www/other', 'chromedriver is already running on port 4444'];
+    yield 'container of another project, selenium backend' => ['selenium', $docker, '/www/other', 'Selenium is already running on port 4444'];
+  }
+
+  #[DataProvider('dataProviderBrowserStartFailsWhenAnotherProcessHoldsPort')]
+  public function testBrowserStartFailsWhenAnotherProcessHoldsPort(string $backend, string $cwd): void {
+    $this->envSet('WEBDRIVER_BACKEND', $backend);
+    $this->mockCommands(['docker' => '/usr/bin/docker']);
+    $this->mockPortListeners('4444', [5678 => ['node server.js --port=4444', $cwd]]);
+    $this->mockReady([FALSE]);
+    $commands = [];
+    $this->recordPassthru($commands);
+
+    $output = $this->runBrowserStart(1);
+
+    $this->assertStringContainsString('Port 4444 is in use by another process. Stop it, or set WEBDRIVER_PORT in .env to a free port.', $output);
+    $this->assertStringContainsString('5678 node server.js --port=4444', $output);
+    $this->assertSame([], $commands, 'Nothing may be stopped, removed or started while another process holds the port.');
+  }
+
+  public static function dataProviderBrowserStartFailsWhenAnotherProcessHoldsPort(): \Iterator {
+    yield 'chromedriver backend, a program of another project' => ['chromedriver', '/www/other'];
+    yield 'selenium backend, a program of another project' => ['selenium', '/www/other'];
+    yield 'chromedriver backend, another program started from the project root' => ['chromedriver', '/test/project'];
+    yield 'selenium backend, another program started from the project root' => ['selenium', '/test/project'];
+  }
+
+  #[DataProvider('dataProviderBrowserStartFailsWhenAnotherProjectContainerHoldsPort')]
+  public function testBrowserStartFailsWhenAnotherProjectContainerHoldsPort(string $backend): void {
+    $this->envSet('WEBDRIVER_BACKEND', $backend);
+    $this->mockCommands(['docker' => '/usr/bin/docker']);
+    $this->mockPortListeners('4444', [9999 => ['/Applications/Docker.app/Contents/MacOS/com.docker.backend', '/']], self::seleniumContainerOutputs('4444', '/www/other'));
+    $this->mockReady([FALSE]);
+    $commands = [];
+    $this->recordPassthru($commands);
+
+    $output = $this->runBrowserStart(1);
+
+    $this->assertStringContainsString('Port 4444 is in use by the Selenium container of another project. Stop its browser, or set WEBDRIVER_PORT in .env to a free port.', $output);
+    $this->assertStringContainsString('selenium-4444 /www/other', $output);
+    $this->assertSame([], $commands, "Another project's container that does not answer must not be removed or replaced.");
+  }
+
+  public static function dataProviderBrowserStartFailsWhenAnotherProjectContainerHoldsPort(): \Iterator {
+    yield 'chromedriver' => ['chromedriver'];
+    yield 'selenium' => ['selenium'];
+  }
+
+  /**
+   * A stopped container publishes no port, so the process that holds the port
+   * is named whichever project the container belongs to.
+   */
+  #[DataProvider('dataProviderBrowserStartFailsWhenAnotherProcessHoldsPortBesideStoppedContainer')]
+  public function testBrowserStartFailsWhenAnotherProcessHoldsPortBesideStoppedContainer(string $backend, string $container): void {
+    $this->envSet('WEBDRIVER_BACKEND', $backend);
+    $this->mockCommands(['docker' => '/usr/bin/docker']);
+    $this->mockPortListeners('4444', [5678 => ['node /www/other/server.js --port=4444', '/www/other']], self::seleniumContainerOutputs('4444', $container, FALSE));
+    $this->mockReady([FALSE]);
+    $commands = [];
+    $this->recordPassthru($commands);
+
+    $output = $this->runBrowserStart(1);
+
+    $this->assertStringContainsString('Port 4444 is in use by another process. Stop it, or set WEBDRIVER_PORT in .env to a free port.', $output);
+    $this->assertStringContainsString('5678 node /www/other/server.js --port=4444', $output);
+    $this->assertSame([], $commands, 'Nothing may be stopped, removed or started while another process holds the port.');
+  }
+
+  public static function dataProviderBrowserStartFailsWhenAnotherProcessHoldsPortBesideStoppedContainer(): \Iterator {
+    yield 'container of the project, chromedriver backend' => ['chromedriver', '/test/project'];
+    yield 'container of the project, selenium backend' => ['selenium', '/test/project'];
+    yield 'container without the label, chromedriver backend' => ['chromedriver', ''];
+    yield 'container without the label, selenium backend' => ['selenium', ''];
+    yield 'container of another project, chromedriver backend' => ['chromedriver', '/www/other'];
+    yield 'container of another project, selenium backend' => ['selenium', '/www/other'];
+  }
+
+  #[DataProvider('dataProviderBrowserStartStartsChromedriverBesideStoppedContainer')]
+  public function testBrowserStartStartsChromedriverBesideStoppedContainer(string $container): void {
+    $this->mockChrome(FALSE);
+    $this->mockCommands(['docker' => '/usr/bin/docker', 'google-chrome' => '/usr/bin/google-chrome', 'chromedriver' => '/usr/local/bin/chromedriver']);
+    $this->mockVersions('Google Chrome 150.0.7871.129', 'ChromeDriver 150.0.7871.129 (abc)');
+    $this->mockPortListeners('4444', [], self::seleniumContainerOutputs('4444', $container, FALSE));
+    $this->mockReady([FALSE, TRUE]);
+    $commands = [];
+    $this->recordPassthru($commands);
+
+    $output = $this->runBrowserStart();
+
+    $this->assertStringContainsString('chromedriver is ready on port 4444', $output);
+    $this->assertCount(1, $commands, 'Only chromedriver may be launched: the stopped container holds no port.');
+    $this->assertStringContainsString('nohup', $commands[0] ?? '');
+  }
+
+  public static function dataProviderBrowserStartStartsChromedriverBesideStoppedContainer(): \Iterator {
+    yield 'container of the project' => ['/test/project'];
+    yield 'container of another project' => ['/www/other'];
   }
 
   public function testBrowserStartUsesMatchingInstalledDriver(): void {
@@ -309,11 +474,63 @@ final class BrowserStartTest extends UnitTestCase {
 
   public function testBrowserStartSeleniumAlreadyRunning(): void {
     $this->envSet('WEBDRIVER_BACKEND', 'selenium');
+    $this->mockCommands(['docker' => '/usr/bin/docker']);
     $this->mockReady([TRUE]);
 
     $output = $this->runBrowserStart();
 
     $this->assertStringContainsString('Selenium is already running on port 4444', $output);
+  }
+
+  /**
+   * The listener that publishes the port of the project's own container does
+   * not count as another process.
+   */
+  #[DataProvider('dataProviderBrowserStartSeleniumReusesOwnContainer')]
+  public function testBrowserStartSeleniumReusesOwnContainer(string $project): void {
+    $this->envSet('WEBDRIVER_BACKEND', 'selenium');
+    $this->mockCommands(['docker' => '/usr/bin/docker']);
+    $this->mockPortListeners('4444', [9999 => ['/Applications/Docker.app/Contents/MacOS/com.docker.backend', '/']], self::seleniumContainerOutputs('4444', $project));
+    $this->mockReady([TRUE]);
+    $commands = [];
+    $this->recordPassthru($commands);
+
+    $output = $this->runBrowserStart();
+
+    $this->assertStringContainsString('Selenium is already running on port 4444', $output);
+    $this->assertSame([], $commands);
+  }
+
+  public static function dataProviderBrowserStartSeleniumReusesOwnContainer(): \Iterator {
+    yield 'labelled with the project root' => ['/test/project'];
+    yield 'without the label' => [''];
+  }
+
+  /**
+   * A stopped container holds the container name but not the port, so it is
+   * replaced whichever project it belongs to.
+   */
+  #[DataProvider('dataProviderBrowserStartSeleniumReplacesStaleContainer')]
+  public function testBrowserStartSeleniumReplacesStaleContainer(string $project, bool $running): void {
+    $this->envSet('WEBDRIVER_BACKEND', 'selenium');
+    $this->mockCommands(['docker' => '/usr/bin/docker']);
+    $this->mockPortListeners('4444', [], self::seleniumContainerOutputs('4444', $project, $running));
+    $this->mockReady([FALSE, TRUE]);
+    $commands = [];
+    $this->recordPassthru($commands);
+
+    $output = $this->runBrowserStart();
+
+    $this->assertStringContainsString('Selenium is ready on port 4444', $output);
+    $this->assertSame("docker rm -f 'selenium-4444' >/dev/null 2>&1", $commands[0] ?? NULL, 'The stale container must be removed first.');
+    $this->assertStringContainsString("--label 'eddy.project=/test/project'", $commands[1] ?? '', 'The new container must carry the project label.');
+  }
+
+  public static function dataProviderBrowserStartSeleniumReplacesStaleContainer(): \Iterator {
+    yield 'running container of the project' => ['/test/project', TRUE];
+    yield 'running container without the label' => ['', TRUE];
+    yield 'stopped container of the project' => ['/test/project', FALSE];
+    yield 'stopped container of another project' => ['/www/other', FALSE];
   }
 
   public function testBrowserStartSeleniumStartsContainer(): void {
@@ -332,6 +549,7 @@ final class BrowserStartTest extends UnitTestCase {
     $run_command = (string) reset($run_commands);
     $this->assertStringContainsString("'4444':4444", $run_command, 'The container must publish the resolved WebDriver port.');
     $this->assertStringContainsString('--shm-size=2g', $run_command, 'The container must get the shared memory size Chromium needs.');
+    $this->assertStringContainsString("--label 'eddy.project=/test/project'", $run_command, 'The container must name the project that started it.');
     $this->assertStringContainsString('standalone-chromium', $run_command);
   }
 

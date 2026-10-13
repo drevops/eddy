@@ -5,18 +5,24 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\selenium_container;
+use function DrevOps\Eddy\Tooling\selenium_container_project;
+use function DrevOps\Eddy\Tooling\selenium_container_running;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * Tests for the selenium_container() helper.
+ * Tests for the helpers that name and inspect the Selenium container.
  *
  * phpcs:disable Drupal.Classes.FullyQualifiedNamespace.UseStatementMissing
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[CoversFunction('DrevOps\Eddy\Tooling\selenium_container')]
+#[CoversFunction('DrevOps\Eddy\Tooling\selenium_container_project')]
+#[CoversFunction('DrevOps\Eddy\Tooling\selenium_container_running')]
+#[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersSeleniumContainerTest extends UnitTestCase {
 
@@ -39,6 +45,34 @@ final class HelpersSeleniumContainerTest extends UnitTestCase {
       'port' => '4445',
       'expected' => 'selenium-4445',
     ];
+  }
+
+  #[DataProvider('dataProviderSeleniumContainerProject')]
+  public function testSeleniumContainerProject(string $inspect_output, ?string $expected): void {
+    $this->mockShellExecOutputs([self::seleniumInspectCommand('4444') => $inspect_output]);
+
+    $this->assertSame($expected, selenium_container_project('4444'));
+  }
+
+  public static function dataProviderSeleniumContainerProject(): \Iterator {
+    yield 'no container' => ['', NULL];
+    yield 'container with the project label' => ["/selenium-4444|/www/project\n", '/www/project'];
+    yield 'project root with spaces' => ["/selenium-4444|/www/my project\n", '/www/my project'];
+    yield 'container without the label' => ["/selenium-4444|\n", ''];
+    yield 'container without labels' => ["/selenium-4444|<no value>\n", ''];
+  }
+
+  #[DataProvider('dataProviderSeleniumContainerRunning')]
+  public function testSeleniumContainerRunning(string $inspect_output, bool $expected): void {
+    $this->mockShellExecOutputs([self::seleniumRunningCommand('4444') => $inspect_output]);
+
+    $this->assertSame($expected, selenium_container_running('4444'));
+  }
+
+  public static function dataProviderSeleniumContainerRunning(): \Iterator {
+    yield 'running container' => ["true\n", TRUE];
+    yield 'stopped container' => ["false\n", FALSE];
+    yield 'no container' => ['', FALSE];
   }
 
 }

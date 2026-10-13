@@ -11,9 +11,6 @@ ifdef TMPDIR
 export TMPDIR := $(abspath $(TMPDIR))
 endif
 
-WEBSERVER_HOST ?= localhost
-WEBSERVER_PORT ?= 8000
-
 # Resolve the site URL through the shared `eddy-info` resolver so `drush`
 # and `login` report the same tunnel-aware URL as start, provision, and info
 # (see resolve_site_url()). Lazy `=` so the probe runs only when the recipes
@@ -26,9 +23,11 @@ unexport DRUSH
 # Test environment exported to every recipe (see the blanket `export` above),
 # matching what the ahoy entrypoint exports for every command, so `make
 # test*` runs against the same base URL, database, and browser-output
-# directory as `ahoy test*`.
+# directory as `ahoy test*`. The webserver host and port fall back to their
+# defaults only inside the URL: an exported default port would stop `start`
+# from discovering a free one.
 EXTENSION_NAME = $(shell basename -s .info.yml -- ./*.info.yml)
-SIMPLETEST_BASE_URL = http://$(WEBSERVER_HOST):$(WEBSERVER_PORT)
+SIMPLETEST_BASE_URL = http://$(or $(WEBSERVER_HOST),localhost):$(or $(WEBSERVER_PORT),8000)
 SIMPLETEST_DB = sqlite://localhost/drupal_test_$(EXTENSION_NAME).sqlite
 BROWSERTEST_OUTPUT_DIRECTORY = $(CURDIR)/.logs/browser_output
 
@@ -119,7 +118,7 @@ info:
 # line. Run `make start` to disable.
 debug:
 	@[ "$$(vendor/bin/eddy-info xdebug)" = "enabled" ] && echo "XDebug is already enabled. Run 'make start' to disable." || \
-		(XDEBUG=1 vendor/bin/eddy-start && sleep 1 && [ "$$(vendor/bin/eddy-info xdebug)" = "enabled" ] && echo "Enabled XDebug. Run 'make start' to disable." || (echo "Failed to enable XDebug." && exit 1))
+		(XDEBUG=1 vendor/bin/eddy-start && [ "$$(vendor/bin/eddy-info xdebug)" = "enabled" ] && echo "Enabled XDebug. Run 'make start' to disable." || (echo "Failed to enable XDebug." && exit 1))
 
 # Make has no native command aliases - the alias targets declare `debug` as
 # their sole prerequisite, so running e.g. `make xdebug` executes the `debug`
@@ -274,6 +273,9 @@ test-js: test-javascript
 
 reset:
 	vendor/bin/eddy-stop > /dev/null 2>&1 || true
+	@#;< DEV_FUNCTIONAL_JAVASCRIPT
+	vendor/bin/eddy-browser-stop > /dev/null 2>&1 || true
+	@#;> DEV_FUNCTIONAL_JAVASCRIPT
 	chmod -Rf 777 build .logs > /dev/null 2>&1 || true
 	rm -Rf build > /dev/null 2>&1 || true
 	rm -Rf .logs > /dev/null 2>&1 || true

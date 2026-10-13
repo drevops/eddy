@@ -23,11 +23,10 @@
    test-javascript:
      usage: Run JavaScript unit tests.
      aliases: [test-js]
-@@ -135,14 +124,6 @@
-       pushd "build" >/dev/null || exit 1
+@@ -136,20 +125,11 @@
        [ ! -d node_modules ] || npm test
        popd >/dev/null || exit 1
--
+ 
 -  browser-start:
 -    usage: Start the browser for FunctionalJavascript tests.
 -    cmd: vendor/bin/eddy-browser-start
@@ -35,6 +34,13 @@
 -  browser-stop:
 -    usage: Stop the browser.
 -    cmd: vendor/bin/eddy-browser-stop
- 
+-
    reset:
      usage: Reset project to the default state.
+     aliases: [delete, destroy]
+     cmd: |
+       vendor/bin/eddy-stop > /dev/null 2>&1 || true
+-      vendor/bin/eddy-browser-stop > /dev/null 2>&1 || true
+       chmod -Rf 777 build .logs > /dev/null 2>&1 || true
+       rm -Rf build > /dev/null 2>&1 || true
+       rm -Rf .logs > /dev/null 2>&1 || true

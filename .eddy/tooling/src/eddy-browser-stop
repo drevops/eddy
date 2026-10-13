@@ -9,6 +9,11 @@
  * The port is resolved via the env -> '.env' -> 4444 chain instead of
  * discovered, so the command targets the endpoint that 'eddy-browser-start'
  * created.
+ *
+ * Only the backend that this project started is stopped: the Selenium
+ * container that its label assigns to the project root, and the chromedriver
+ * processes whose working directory is the root. A backend of another project
+ * that recorded the same port, or any other process on it, is left running.
  */
 
 declare(strict_types=1);
@@ -24,6 +29,9 @@ require_once __DIR__ . '/helpers.php';
 // WebDriver port resolved via the env -> '.env' -> default chain.
 $webdriver_port = resolve_webdriver_port()['port'];
 
+// The project root identifies the backend that this project started.
+$root = (string) getcwd();
+
 // -----------------------------------------------------------------------------
 
 echo '===============================' . PHP_EOL;
@@ -34,15 +42,29 @@ echo PHP_EOL;
 // The Selenium container publishes the port chromedriver would bind, so
 // killing the port process alone stops only the container's docker proxy.
 // Removing the container first frees the port whichever backend is running.
-if (command_path('docker') !== FALSE) {
-  TASK('Removing the Selenium container, if any.');
+$container_project = command_path('docker') !== FALSE ? selenium_container_project($webdriver_port) : NULL;
+
+if (in_array($container_project, ['', $root], TRUE)) {
+  TASK('Removing the Selenium container %s.', selenium_container($webdriver_port));
   @passthru(sprintf('docker rm -f %s >/dev/null 2>&1', escapeshellarg(selenium_container($webdriver_port))));
+}
+elseif ($container_project !== NULL && selenium_container_running($webdriver_port)) {
+  NOTE('The Selenium container %s belongs to %s and was left running.', selenium_container($webdriver_port), $container_project);
 }
 
 TASK('Stopping the WebDriver process on port %s, if any.', $webdriver_port);
-kill_port($webdriver_port);
+$listeners = webdriver_listeners($webdriver_port, $root);
+kill_processes(array_keys($listeners['own']));
 sleep(1);
 PASS('Browser stopped on port %s.', $webdriver_port);
+
+if ($listeners['other'] !== []) {
+  NOTE('Port %s is still in use by another process, which was left running:', $webdriver_port);
+
+  foreach ($listeners['other'] as $pid => $command) {
+    NOTE('%d %s', $pid, $command);
+  }
+}
 
 echo PHP_EOL;
 echo '===============================' . PHP_EOL;

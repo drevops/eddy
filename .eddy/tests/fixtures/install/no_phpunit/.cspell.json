@@ -43,7 +43,7 @@
          "phpstan",
          "phpstorm",
          "phpunit",
-@@ -93,9 +85,7 @@
+@@ -92,9 +84,7 @@
          "twigcs",
          "twigcsfixer",
          "updatedb",

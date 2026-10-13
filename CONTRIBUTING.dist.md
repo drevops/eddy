@@ -143,7 +143,7 @@ To overcome GitHub API rate limits, you may provide a `GITHUB_TOKEN` environment
 
 The `provision` command installs the Drupal website from the `standard` profile with the extension (and any `suggest`'ed extensions) enabled. The profile can be changed by setting the `DRUPAL_PROFILE` environment variable.
 
-The website will be available at http://localhost:8000 by default. The hostname can be changed by setting the `WEBSERVER_HOST` environment variable.
+The website is served at `http://localhost:8000`, or at the first free port up to 8099 when another process uses 8000, as described below, and the `start` command prints the URL. The hostname can be changed by setting the `WEBSERVER_HOST` environment variable.
 
 The `WEBSERVER_PORT` is resolved with the following precedence:
 
@@ -398,7 +398,7 @@ vendor/bin/eddy-browser-stop
 <!-- #;> DEV_NO_COMMAND_WRAPPER -->
 <!-- #;< DEV_COMMAND_WRAPPER -->
 
-The `test` and `test-functional-javascript` commands both start the browser before they run the suite. It keeps running afterwards, so the next run reuses it - stop it with `browser-stop` when you're done.
+The `test` and `test-functional-javascript` commands both start the browser before they run the suite. It keeps running afterwards, so the next run reuses it - stop it with `browser-stop` when you're done. The `browser-start` command reuses any browser that already answers on the WebDriver port, and fails and names whatever else holds the port. The `browser-stop` command stops only the project's own browser, so the browser of another project that recorded the same port keeps running.
 <!-- #;> DEV_COMMAND_WRAPPER -->
 
 To run the browser in a Docker Selenium container instead, set `WEBDRIVER_BACKEND=selenium`. The container cannot reach the host's `localhost`, so start the webserver on all interfaces:
