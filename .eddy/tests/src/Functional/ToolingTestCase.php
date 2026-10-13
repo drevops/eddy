@@ -35,8 +35,7 @@ abstract class ToolingTestCase extends FunctionalTestCase {
    * {@inheritdoc}
    */
   protected function tearDown(): void {
-    // phpcs:ignore
-    @exec('lsof -ti tcp:8000 -sTCP:LISTEN | xargs kill -9 2>/dev/null');
+    self::webserverStop(self::$sut, $this->webserverPort());
     sleep(1);
 
     // Give enough permission to clean the build dir.

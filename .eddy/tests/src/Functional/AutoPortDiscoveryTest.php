@@ -108,7 +108,7 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
     $sut = self::$tmp . '/proj_preset_' . uniqid();
     $this->buildMinimalSut($sut);
 
-    $preset_port = $this->pickFreePortForTest();
+    $preset_port = self::webserverFreePort();
     file_put_contents($sut . '/.env', 'WEBSERVER_PORT=' . $preset_port . "\n# user comment\n");
     $original_env = file_get_contents($sut . '/.env');
 
@@ -149,6 +149,68 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
     $client->stop();
   }
 
+  public function testProjectsSharingPortLeaveEachOtherServerRunning(): void {
+    $this->sut1 = self::$tmp . '/proj1_' . uniqid();
+    $this->sut2 = self::$tmp . '/proj2_' . uniqid();
+
+    $this->buildMinimalSut($this->sut1);
+    $this->buildMinimalSut($this->sut2);
+
+    // Both projects recorded the same port, as they do when one of them
+    // discovers the port that the other one freed.
+    $port = self::webserverFreePort();
+    file_put_contents($this->sut1 . '/.env', 'WEBSERVER_PORT=' . $port . "\n");
+    file_put_contents($this->sut2 . '/.env', 'WEBSERVER_PORT=' . $port . "\n");
+
+    $this->processCwd = $this->sut2;
+    $this->processRun('php', [self::TOOLING_DIR . '/eddy-start'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->assertProcessSuccessful();
+    $this->startedPorts[] = $port;
+
+    $this->processCwd = $this->sut1;
+    $this->processRun('php', [self::TOOLING_DIR . '/eddy-stop'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->assertProcessSuccessful();
+    $this->assertProcessAnyOutputContains('Port ' . $port . ' is still in use by another process, which was left running:');
+    $this->assertProcessAnyOutputContains('-t ' . $this->sut2 . '/build/web');
+    $this->assertTrue(self::webserverPortAccepts($port), 'stop in one project leaves the webserver of the other project running.');
+
+    $this->processRun('php', [self::TOOLING_DIR . '/eddy-start'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->assertProcessFailed();
+    $this->assertProcessAnyOutputContains('Port ' . $port . ' is in use by another process. Stop it, or set WEBSERVER_PORT in .env to a free port.');
+    $this->assertProcessAnyOutputContains('-t ' . $this->sut2 . '/build/web');
+    $this->assertTrue(self::webserverPortAccepts($port), 'start in one project leaves the webserver of the other project running.');
+
+    $this->processCwd = $this->sut2;
+    $this->processRun('php', [self::TOOLING_DIR . '/eddy-stop'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->assertProcessSuccessful();
+    $this->assertProcessAnyOutputNotContains('left running');
+    $this->assertFalse(self::webserverPortAccepts($port), 'stop stops the webserver of its own project.');
+  }
+
+  public function testWebserverStopStopsOnlyTheProjectServer(): void {
+    $this->sut1 = self::$tmp . '/proj1_' . uniqid();
+    $this->sut2 = self::$tmp . '/proj2_' . uniqid();
+
+    $this->buildMinimalSut($this->sut1);
+    $this->buildMinimalSut($this->sut2);
+
+    $port = self::webserverFreePort();
+    file_put_contents($this->sut2 . '/.env', 'WEBSERVER_PORT=' . $port . "\n");
+
+    $this->processCwd = $this->sut2;
+    $this->processRun('php', [self::TOOLING_DIR . '/eddy-start'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->assertProcessSuccessful();
+    $this->startedPorts[] = $port;
+
+    self::webserverStop($this->sut1, $port);
+    sleep(1);
+    $this->assertTrue(self::webserverPortAccepts($port), 'Stopping the webserver of one project leaves the webserver of another project on the same port running.');
+
+    self::webserverStop($this->sut2, $port);
+    sleep(1);
+    $this->assertFalse(self::webserverPortAccepts($port), 'Stopping the webserver of a project stops it.');
+  }
+
   protected function buildMinimalSut(string $sut): void {
     mkdir($sut . '/' . self::TOOLING_DIR, 0755, TRUE);
 
@@ -174,23 +236,6 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
     $port_int = (int) $port;
     $this->assertGreaterThanOrEqual(8000, $port_int);
     $this->assertLessThanOrEqual(8099, $port_int);
-  }
-
-  /**
-   * Pick a free port in the 9000+ range so it does not collide with the
-   * 8000-8099 auto-discovery window used by the other test scenarios.
-   */
-  protected function pickFreePortForTest(): string {
-    for ($port = 9000; $port < 9100; $port++) {
-      $sock = @stream_socket_server(sprintf('tcp://127.0.0.1:%d', $port));
-      if ($sock !== FALSE) {
-        fclose($sock);
-
-        return (string) $port;
-      }
-    }
-
-    $this->fail('Could not find a free test port in 9000-9099.');
   }
 
 }
