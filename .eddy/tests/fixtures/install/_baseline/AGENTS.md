@@ -92,7 +92,7 @@ Run each tool through its `ahoy` wrapper, never the binary directly:
 2. Develop Force Crystal code in `src/`
 3. Check standards: `ahoy lint`
 4. Run tests: `ahoy test`
-5. Access site at http://localhost:8000
+5. Access site at the URL that `ahoy info` reports
 
 ## Code Quality Tools
 

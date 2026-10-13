@@ -71,7 +71,7 @@
  - `ahoy info` - Print a read-only summary of PHP/Drupal/Composer/Drush/Node/npm versions, webserver host/port (with source), site URL, XDebug state, WebDriver port, build directory, database path, and active profile. (alias: `ahoy describe`)
  
  ## Project Structure
-@@ -88,10 +121,10 @@
+@@ -88,11 +121,11 @@
  
  ## Development Workflow
  
@@ -80,8 +80,10 @@
  2. Develop Force Crystal code in `src/`
 -3. Check standards: `ahoy lint`
 -4. Run tests: `ahoy test`
+-5. Access site at the URL that `ahoy info` reports
 +3. Check standards: `make lint` or `ahoy lint`
 +4. Run tests: `make test` or `ahoy test`
- 5. Access site at http://localhost:8000
++5. Access site at the URL that `make info` or `ahoy info` reports
  
  ## Code Quality Tools
+ 
