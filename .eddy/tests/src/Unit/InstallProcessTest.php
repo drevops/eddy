@@ -397,14 +397,13 @@ final class InstallProcessTest extends UnitTestCase {
       $content = (string) file_get_contents(self::$sut . '/' . $file);
       $document = new \DOMDocument();
       $this->assertTrue($document->loadXML($content), $file . ' is not valid XML.');
-      $xpath = new \DOMXPath($document);
 
-      $this->assertSame($expect ? 1 : 0, self::countNodes($xpath, '//php/env[@name="MINK_DRIVER_ARGS_WEBDRIVER"]'), $file . ' MINK_DRIVER_ARGS_WEBDRIVER presence mismatch.');
-      $this->assertSame($expect ? 1 : 0, self::countNodes($xpath, '//testsuite[@name="functional-javascript"]'), $file . ' functional-javascript suite presence mismatch.');
+      $this->assertSame($expect ? 1 : 0, self::countNodes($content, '//php/env[@name="MINK_DRIVER_ARGS_WEBDRIVER"]'), $file . ' MINK_DRIVER_ARGS_WEBDRIVER presence mismatch.');
+      $this->assertSame($expect ? 1 : 0, self::countNodes($content, '//testsuite[@name="functional-javascript"]'), $file . ' functional-javascript suite presence mismatch.');
       $this->assertSame($expect, stripos($content, 'webdriver') !== FALSE, $file . ' WebDriver text presence mismatch.');
       // 'BrowserTestBase' reads these for Functional tests too.
-      $this->assertSame(1, self::countNodes($xpath, '//php/env[@name="MINK_DRIVER_CLASS"]'), $file . ' misses MINK_DRIVER_CLASS.');
-      $this->assertSame(1, self::countNodes($xpath, '//php/env[@name="MINK_DRIVER_ARGS"]'), $file . ' misses MINK_DRIVER_ARGS.');
+      $this->assertSame(1, self::countNodes($content, '//php/env[@name="MINK_DRIVER_CLASS"]'), $file . ' misses MINK_DRIVER_CLASS.');
+      $this->assertSame(1, self::countNodes($content, '//php/env[@name="MINK_DRIVER_ARGS"]'), $file . ' misses MINK_DRIVER_ARGS.');
       $this->assertStringNotContainsString('#;', $content, $file . ' keeps a marker line.');
     }
   }
@@ -1212,18 +1211,20 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   /**
-   * Count the nodes that an XPath expression selects.
+   * Count the nodes that an XPath expression selects in an XML document.
    *
-   * @param \DOMXPath $xpath
-   *   The XPath object of the document.
+   * @param string $xml
+   *   The XML document.
    * @param string $expression
    *   The expression.
    *
    * @return int
    *   The number of nodes.
    */
-  protected static function countNodes(\DOMXPath $xpath, string $expression): int {
-    $nodes = $xpath->query($expression);
+  protected static function countNodes(string $xml, string $expression): int {
+    $document = new \DOMDocument();
+    $document->loadXML($xml);
+    $nodes = (new \DOMXPath($document))->query($expression);
     self::assertInstanceOf(\DOMNodeList::class, $nodes);
 
     return $nodes->length;
