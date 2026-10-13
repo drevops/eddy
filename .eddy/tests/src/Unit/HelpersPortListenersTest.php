@@ -205,8 +205,40 @@ final class HelpersPortListenersTest extends UnitTestCase {
     yield 'started from the project root' => [[1234 => [$driver, '/www/project']], ['own' => [1234 => $driver], 'other' => []]];
     yield 'started from the root of another project' => [[5678 => [$driver, '/www/other']], ['own' => [], 'other' => [5678 => $driver]]];
     yield 'started from a directory below the project root' => [[5678 => [$driver, '/www/project/build']], ['own' => [], 'other' => [5678 => $driver]]];
-    yield 'a working directory that cannot be read' => [[1234 => [$driver, '']], ['own' => [1234 => $driver], 'other' => []]];
+    yield 'a working directory that cannot be read' => [[5678 => [$driver, '']], ['own' => [], 'other' => [5678 => $driver]]];
+    yield 'a command line that cannot be read, started from the project root' => [[1234 => ['', '/www/project']], ['own' => [1234 => ''], 'other' => []]];
+    yield 'a command line that cannot be read, started from the root of another project' => [[5678 => ['', '/www/other']], ['own' => [], 'other' => [5678 => '']]];
     yield 'the project chromedriver and another' => [[1234 => [$driver, '/www/project'], 5678 => [$driver, '/www/other']], ['own' => [1234 => $driver], 'other' => [5678 => $driver]]];
+  }
+
+  /**
+   * @param string $root
+   *   The project root, where '{project}' and '{link}' stand for the real
+   *   directory and a symlink to it.
+   * @param string $cwd
+   *   The working directory that 'lsof' reports for process 1234, with the same
+   *   placeholders and '{other}' for the root of another project.
+   */
+  #[DataProvider('dataProviderWebdriverListenersResolvesPaths')]
+  public function testWebdriverListenersResolvesPaths(string $root, string $cwd, bool $expected_own): void {
+    $project = self::$tmp . '/project';
+    $other = self::$tmp . '/other';
+    mkdir($project, 0755, TRUE);
+    mkdir($other, 0755, TRUE);
+    symlink($project, self::$tmp . '/link');
+    $replacements = ['{project}' => $project, '{link}' => self::$tmp . '/link', '{other}' => $other];
+    $driver = '/usr/local/bin/chromedriver --port=4444';
+
+    $this->mockPortListeners('4444', [1234 => [$driver, strtr($cwd, $replacements)]]);
+
+    $expected = $expected_own ? ['own' => [1234 => $driver], 'other' => []] : ['own' => [], 'other' => [1234 => $driver]];
+    $this->assertSame($expected, webdriver_listeners('4444', strtr($root, $replacements)));
+  }
+
+  public static function dataProviderWebdriverListenersResolvesPaths(): \Iterator {
+    yield 'root through a symlink' => ['{link}', '{project}', TRUE];
+    yield 'working directory through a symlink' => ['{project}', '{link}', TRUE];
+    yield 'root through a symlink, started from the root of another project' => ['{link}', '{other}', FALSE];
   }
 
   public function testWebserverListenersResolvesRelativeDocroot(): void {

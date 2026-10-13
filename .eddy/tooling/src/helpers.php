@@ -436,12 +436,27 @@ function selenium_container_project(string $port): ?string {
 }
 
 /**
+ * Check whether the Selenium container for a port is running.
+ *
+ * @param string $port
+ *   The WebDriver port the container publishes.
+ *
+ * @return bool
+ *   TRUE when the container exists and is running.
+ */
+function selenium_container_running(string $port): bool {
+  $output = (string) shell_exec(sprintf('docker inspect --format %s %s 2>/dev/null', escapeshellarg('{{.State.Running}}'), escapeshellarg(selenium_container($port))));
+
+  return trim($output) === 'true';
+}
+
+/**
  * List the processes listening on the WebDriver port, split by owner.
  *
  * 'eddy-browser-start' launches chromedriver from the project root, so a
- * process belongs to the project when its working directory is the root. A
- * process whose working directory cannot be read counts as the project's own,
- * the way port_listeners() counts a command line that cannot be read.
+ * process belongs to the project when its working directory resolves to the
+ * root. A process whose working directory cannot be read counts as another's,
+ * so a backend of unknown origin is never stopped.
  *
  * @param string $port
  *   The WebDriver port.
@@ -452,10 +467,12 @@ function selenium_container_project(string $port): ?string {
  *   The command line of each listening process, keyed by process ID.
  */
 function webdriver_listeners(string $port, string $root): array {
-  return port_listeners($port, static function (int $pid) use ($root): bool {
+  $resolved_root = realpath($root) ?: $root;
+
+  return port_listeners($port, static function (int $pid) use ($resolved_root): bool {
     $cwd = process_cwd($pid);
 
-    return $cwd === '' || $cwd === $root;
+    return $cwd !== '' && (realpath($cwd) ?: $cwd) === $resolved_root;
   });
 }
 
@@ -712,14 +729,11 @@ function webserver_serves(string $command, string $docroot, int $pid = 0): bool 
 /**
  * List the processes listening on a port, split by owner.
  *
- * A process whose command line cannot be read counts as the caller's own, so
- * the port is still freed where 'ps' is missing.
- *
  * @param string $port
  *   The TCP port.
  * @param callable(int, string): bool $owns
- *   Receives the ID and the command line of a process, and returns TRUE for a
- *   process the caller owns.
+ *   Receives the ID and the command line of a process, which is empty when it
+ *   cannot be read, and returns TRUE for a process the caller owns.
  *
  * @return array{own: array<int, string>, other: array<int, string>}
  *   The command line of each listening process, keyed by process ID.
@@ -736,8 +750,7 @@ function port_listeners(string $port, callable $owns): array {
     }
 
     $command = process_command($pid);
-    $owner = $command === '' || $owns($pid, $command) ? 'own' : 'other';
-    $listeners[$owner][$pid] = $command;
+    $listeners[$owns($pid, $command) ? 'own' : 'other'][$pid] = $command;
   }
 
   return $listeners;
@@ -746,6 +759,9 @@ function port_listeners(string $port, callable $owns): array {
 /**
  * List the processes listening on the webserver port, split by owner.
  *
+ * A process whose command line cannot be read counts as the project's own, so
+ * the port is still freed where 'ps' is missing.
+ *
  * @param string $port
  *   The webserver port.
  * @param string $docroot
@@ -753,11 +769,10 @@ function port_listeners(string $port, callable $owns): array {
  *
  * @return array{own: array<int, string>, other: array<int, string>}
  *   The command line of each listening process, keyed by process ID: 'own'
- *   for the processes that serve the docroot, as port_listeners() counts
- *   them, and 'other' for the rest.
+ *   for the processes that serve the docroot, and 'other' for the rest.
  */
 function webserver_listeners(string $port, string $docroot): array {
-  return port_listeners($port, static fn(int $pid, string $command): bool => webserver_serves($command, $docroot, $pid));
+  return port_listeners($port, static fn(int $pid, string $command): bool => $command === '' || webserver_serves($command, $docroot, $pid));
 }
 
 /**

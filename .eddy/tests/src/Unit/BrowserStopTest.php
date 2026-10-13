@@ -56,7 +56,7 @@ final class BrowserStopTest extends UnitTestCase {
 
     // The container and the chromedriver of this project on the resolved
     // port.
-    $this->mockPortListeners($expected_port, [1234 => ['/usr/local/bin/chromedriver --port=' . $expected_port, self::ROOT]], $docker ? [self::seleniumInspectCommand($expected_port) => self::seleniumInspectOutput($expected_port, self::ROOT)] : []);
+    $this->mockPortListeners($expected_port, [1234 => ['/usr/local/bin/chromedriver --port=' . $expected_port, self::ROOT]], $docker ? self::seleniumContainerOutputs($expected_port, self::ROOT) : []);
 
     $commands = [];
     if ($docker) {
@@ -136,12 +136,14 @@ final class BrowserStopTest extends UnitTestCase {
    *   The process IDs that are killed.
    * @param array<int, string> $expected_notes
    *   Lines the output reports about what was left running.
+   * @param bool $running
+   *   Whether the container is running.
    */
   #[DataProvider('dataProviderBrowserStopStopsOnlyOwnBackend')]
-  public function testBrowserStopStopsOnlyOwnBackend(?string $container, array $listeners, bool $expected_removed, array $expected_killed, array $expected_notes): void {
+  public function testBrowserStopStopsOnlyOwnBackend(?string $container, array $listeners, bool $expected_removed, array $expected_killed, array $expected_notes, bool $running = TRUE): void {
     $this->envSet('WEBDRIVER_PORT', '4444');
     $this->mockCommandAvailable('docker', TRUE);
-    $this->mockPortListeners('4444', $listeners, [self::seleniumInspectCommand('4444') => $container === NULL ? '' : self::seleniumInspectOutput('4444', $container)]);
+    $this->mockPortListeners('4444', $listeners, self::seleniumContainerOutputs('4444', $container, $running));
 
     $commands = [];
     if ($expected_removed) {
@@ -178,12 +180,14 @@ final class BrowserStopTest extends UnitTestCase {
     yield 'nothing runs' => [NULL, [], FALSE, [], []];
     yield 'the chromedriver of the project' => [NULL, [1234 => $own_driver], FALSE, [1234], []];
     yield 'the chromedriver of the project with a child on the port' => [NULL, [1234 => $own_driver, 1235 => $own_driver], FALSE, [1234, 1235], []];
-    yield 'a process whose working directory cannot be read' => [NULL, [1234 => ['/usr/local/bin/chromedriver --port=4444', '']], FALSE, [1234], []];
+    yield 'a process whose working directory cannot be read' => [NULL, [5678 => ['/usr/local/bin/chromedriver --port=4444', '']], FALSE, [], ['Port 4444 is still in use by another process, which was left running:', '5678 /usr/local/bin/chromedriver --port=4444']];
     yield 'the chromedriver of another project' => [NULL, [5678 => $other_driver], FALSE, [], ['Port 4444 is still in use by another process, which was left running:', '5678 /usr/local/bin/chromedriver --port=4444']];
     yield 'the chromedriver of the project and of another project' => [NULL, [1234 => $own_driver, 5678 => $other_driver], FALSE, [1234], ['5678 /usr/local/bin/chromedriver --port=4444']];
     yield 'the container of the project' => [self::ROOT, [], TRUE, [], []];
     yield 'a container without the project label' => ['', [], TRUE, [], []];
     yield 'the container of another project' => ['/www/other', [9999 => $docker_backend], FALSE, [], ['The Selenium container selenium-4444 belongs to /www/other and was left running.', '9999 /Applications/Docker.app/Contents/MacOS/com.docker.backend']];
+    yield 'a stopped container of the project' => [self::ROOT, [], TRUE, [], [], FALSE];
+    yield 'a stopped container of another project' => ['/www/other', [], FALSE, [], [], FALSE];
   }
 
   public function testBrowserStopFailsOnInvalidPort(): void {

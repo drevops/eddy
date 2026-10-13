@@ -19,8 +19,9 @@
  * A WebDriver server that already accepts sessions on the port is reused,
  * whichever project started it, since every session is independent. When the
  * port is held by something that does not accept sessions, only the project's
- * own backend is replaced: the Selenium container of another project, or
- * another process, fails the command and is named instead.
+ * own backend is replaced: a running Selenium container of another project, or
+ * another process, fails the command and is named instead. A stopped Selenium
+ * container holds no port and is replaced whichever project started it.
  */
 
 declare(strict_types=1);
@@ -95,12 +96,15 @@ function webdriver_backend(): string {
  * Fail when another project's backend or another process holds the port.
  *
  * Called once the port has no WebDriver server that accepts sessions, so the
- * holder is not reusable. The project's own Selenium container accounts for
- * the process that publishes its port, so the listeners are checked only
- * without one.
+ * holder is not reusable.
+ *
+ * Only a running Selenium container holds the port, since a stopped one
+ * publishes none. The project's own running container accounts for the
+ * process that publishes its port, so the listeners are checked only without
+ * one.
  */
 function webdriver_fail_when_taken(string $port, string $root): void {
-  $container_project = command_path('docker') !== FALSE ? selenium_container_project($port) : NULL;
+  $container_project = command_path('docker') !== FALSE && selenium_container_running($port) ? selenium_container_project($port) : NULL;
 
   if (!in_array($container_project, [NULL, '', $root], TRUE)) {
     FAIL_NO_EXIT('Port %s is in use by the Selenium container of another project. Stop its browser, or set WEBDRIVER_PORT in .env to a free port.', $port);

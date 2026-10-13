@@ -62,15 +62,32 @@ abstract class UnitTestCase extends UpstreamUnitTestCase {
   }
 
   /**
-   * Build the output of seleniumInspectCommand() for an existing container.
+   * Build the command that reads whether a Selenium container is running.
+   */
+  protected static function seleniumRunningCommand(string $port): string {
+    return sprintf('docker inspect --format %s %s 2>/dev/null', escapeshellarg('{{.State.Running}}'), escapeshellarg('selenium-' . $port));
+  }
+
+  /**
+   * Build the outputs of the commands that inspect a Selenium container.
    *
    * @param string $port
    *   The WebDriver port the container publishes.
-   * @param string $project
-   *   The project root in the container's label, or '' for no label.
+   * @param string|null $project
+   *   The project root in the container's label, '' for a container without
+   *   the label, or NULL for no container.
+   * @param bool $running
+   *   Whether the container is running.
+   *
+   * @return array<string, string>
+   *   The output keyed by command, as for mockShellExecOutputs().
    */
-  protected static function seleniumInspectOutput(string $port, string $project): string {
-    return sprintf("/selenium-%s|%s\n", $port, $project);
+  protected static function seleniumContainerOutputs(string $port, ?string $project, bool $running = TRUE): array {
+    if ($project === NULL) {
+      return [self::seleniumInspectCommand($port) => '', self::seleniumRunningCommand($port) => ''];
+    }
+
+    return [self::seleniumInspectCommand($port) => sprintf("/selenium-%s|%s\n", $port, $project), self::seleniumRunningCommand($port) => $running ? "true\n" : "false\n"];
   }
 
   /**
