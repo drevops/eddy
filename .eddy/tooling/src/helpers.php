@@ -578,37 +578,108 @@ function process_command(int $pid): string {
 }
 
 /**
+ * Get the working directory of a process.
+ *
+ * @param int $pid
+ *   The process ID.
+ *
+ * @return string
+ *   The absolute path, or an empty string when it cannot be read.
+ */
+function process_cwd(int $pid): string {
+  $output = (string) shell_exec(sprintf('lsof -a -p %d -d cwd -Fn 2>/dev/null', $pid));
+
+  return preg_match('/^n(.+)$/m', $output, $matches) === 1 ? $matches[1] : '';
+}
+
+/**
+ * Get the path that a PHP webserver command line passes to '-t'.
+ *
+ * The command line is split on whitespace, so a path with spaces is cut at
+ * the first one.
+ *
+ * @param string $command
+ *   The command line, as 'ps' prints it.
+ *
+ * @return string|null
+ *   The path, as given, or NULL when the command line has no '-t' value.
+ */
+function webserver_docroot_argument(string $command): ?string {
+  $arguments = preg_split('/\s+/', trim($command), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+  foreach ($arguments as $index => $argument) {
+    if ($argument === '-t') {
+      return $arguments[$index + 1] ?? NULL;
+    }
+
+    if (str_starts_with($argument, '-t')) {
+      return substr($argument, 2);
+    }
+  }
+
+  return NULL;
+}
+
+/**
  * Check whether a process serves a docroot with the PHP webserver.
+ *
+ * The command line passes the docroot to '-t', either the way 'eddy-start'
+ * launches the webserver or through a path that resolves to it: a symlink, or
+ * a relative path, which the process resolves against its working directory.
  *
  * @param string $command
  *   The command line of the process, as 'ps' prints it.
  * @param string $docroot
  *   The absolute path of the docroot.
+ * @param int $pid
+ *   The process ID, used to read the working directory for a relative path.
+ *   0 leaves a relative path unresolved.
  *
  * @return bool
- *   TRUE when the command line passes the docroot to '-t', the way
- *   'eddy-start' launches the webserver.
+ *   TRUE when the process serves the docroot.
  */
-function webserver_serves(string $command, string $docroot): bool {
-  return preg_match('#\s-t ' . preg_quote($docroot, '#') . '(?:\s|$)#', $command) === 1;
+function webserver_serves(string $command, string $docroot, int $pid = 0): bool {
+  if (preg_match('#\s-t ' . preg_quote($docroot, '#') . '(?:\s|$)#', $command) === 1) {
+    return TRUE;
+  }
+
+  $path = webserver_docroot_argument($command);
+
+  if ($path === NULL || $path === '') {
+    return FALSE;
+  }
+
+  if (!str_starts_with($path, '/')) {
+    $cwd = $pid > 0 ? process_cwd($pid) : '';
+
+    if ($cwd === '') {
+      return FALSE;
+    }
+
+    $path = $cwd . '/' . $path;
+  }
+
+  $resolved = realpath($path);
+
+  return $resolved !== FALSE && $resolved === realpath($docroot);
 }
 
 /**
- * List the processes listening on the webserver port, split by owner.
+ * List the processes listening on a port, split by owner.
  *
- * A process whose command line cannot be read counts as the project's own, so
+ * A process whose command line cannot be read counts as the caller's own, so
  * the port is still freed where 'ps' is missing.
  *
  * @param string $port
- *   The webserver port.
- * @param string $docroot
- *   The absolute path of the project's docroot.
+ *   The TCP port.
+ * @param callable(int, string): bool $owns
+ *   Receives the ID and the command line of a process, and returns TRUE for a
+ *   process the caller owns.
  *
  * @return array{own: array<int, string>, other: array<int, string>}
- *   The command line of each listening process, keyed by process ID: 'own'
- *   for the processes that serve the docroot, 'other' for the rest.
+ *   The command line of each listening process, keyed by process ID.
  */
-function webserver_listeners(string $port, string $docroot): array {
+function port_listeners(string $port, callable $owns): array {
   $listeners = ['own' => [], 'other' => []];
   $values = preg_split('/\s+/', trim((string) shell_exec(port_listener_pids_command($port))), -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
@@ -620,11 +691,28 @@ function webserver_listeners(string $port, string $docroot): array {
     }
 
     $command = process_command($pid);
-    $owner = $command === '' || webserver_serves($command, $docroot) ? 'own' : 'other';
+    $owner = $command === '' || $owns($pid, $command) ? 'own' : 'other';
     $listeners[$owner][$pid] = $command;
   }
 
   return $listeners;
+}
+
+/**
+ * List the processes listening on the webserver port, split by owner.
+ *
+ * @param string $port
+ *   The webserver port.
+ * @param string $docroot
+ *   The absolute path of the project's docroot.
+ *
+ * @return array{own: array<int, string>, other: array<int, string>}
+ *   The command line of each listening process, keyed by process ID: 'own'
+ *   for the processes that serve the docroot, as port_listeners() counts
+ *   them, and 'other' for the rest.
+ */
+function webserver_listeners(string $port, string $docroot): array {
+  return port_listeners($port, static fn(int $pid, string $command): bool => webserver_serves($command, $docroot, $pid));
 }
 
 /**

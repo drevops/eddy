@@ -8,6 +8,8 @@ use function DrevOps\Eddy\Tooling\kill_port;
 use function DrevOps\Eddy\Tooling\kill_processes;
 use function DrevOps\Eddy\Tooling\port_listener_pids_command;
 use function DrevOps\Eddy\Tooling\process_command;
+use function DrevOps\Eddy\Tooling\process_cwd;
+use function DrevOps\Eddy\Tooling\webserver_docroot_argument;
 use function DrevOps\Eddy\Tooling\webserver_listeners;
 use function DrevOps\Eddy\Tooling\webserver_serves;
 use PHPUnit\Framework\Attributes\CoversFunction;
@@ -25,6 +27,8 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[CoversFunction('DrevOps\Eddy\Tooling\port_listener_pids_command')]
 #[CoversFunction('DrevOps\Eddy\Tooling\kill_port')]
 #[CoversFunction('DrevOps\Eddy\Tooling\process_command')]
+#[CoversFunction('DrevOps\Eddy\Tooling\process_cwd')]
+#[CoversFunction('DrevOps\Eddy\Tooling\webserver_docroot_argument')]
 #[CoversFunction('DrevOps\Eddy\Tooling\webserver_serves')]
 #[CoversFunction('DrevOps\Eddy\Tooling\webserver_listeners')]
 #[CoversFunction('DrevOps\Eddy\Tooling\kill_processes')]
@@ -81,6 +85,75 @@ final class HelpersPortListenersTest extends UnitTestCase {
     yield 'no output at all' => [NULL, ''];
   }
 
+  #[DataProvider('dataProviderProcessCwd')]
+  public function testProcessCwd(?string $lsof_output, string $expected): void {
+    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(string $command): ?string => $command === 'lsof -a -p 1234 -d cwd -Fn 2>/dev/null' ? $lsof_output : throw new \RuntimeException(sprintf('shell_exec() called with unexpected command "%s".', $command)));
+
+    $this->assertSame($expected, process_cwd(1234));
+  }
+
+  public static function dataProviderProcessCwd(): \Iterator {
+    yield 'working directory' => ["p1234\nfcwd\nn/www/project\n", '/www/project'];
+    yield 'working directory with spaces' => ["p1234\nfcwd\nn/www/my project\n", '/www/my project'];
+    yield 'no such process' => ['', ''];
+    yield 'no output at all' => [NULL, ''];
+  }
+
+  #[DataProvider('dataProviderWebserverDocrootArgument')]
+  public function testWebserverDocrootArgument(string $command, ?string $expected): void {
+    $this->assertSame($expected, webserver_docroot_argument($command));
+  }
+
+  public static function dataProviderWebserverDocrootArgument(): \Iterator {
+    yield 'separate value' => [self::SERVER, '/www/project/build/web'];
+    yield 'relative value' => ['php -S localhost:8000 -t build/web', 'build/web'];
+    yield 'attached value' => ['php -S localhost:8000 -tbuild/web', 'build/web'];
+    yield 'after the XDebug flags' => ['php -d xdebug.mode=debug -S localhost:8000 -t /www/project/build/web', '/www/project/build/web'];
+    yield 'before the address' => ['php -t build/web -S localhost:8000', 'build/web'];
+    yield 'value with spaces is cut at the first space' => ['php -S localhost:8000 -t /www/my project/build/web', '/www/my'];
+    yield 'no value' => ['php -S localhost:8000 -t', NULL];
+    yield 'no option' => ['node server.js --port 8000', NULL];
+    yield 'empty command line' => ['', NULL];
+  }
+
+  /**
+   * @param string $command
+   *   The command line, where '{project}', '{link}' and '{other}' stand for the
+   *   project root, a symlink to it and the root of another project.
+   * @param string|null $cwd
+   *   The working directory that 'lsof' reports for process 1234, with the same
+   *   placeholders, or NULL when it reports none.
+   */
+  #[DataProvider('dataProviderWebserverServesResolvesPath')]
+  public function testWebserverServesResolvesPath(string $command, ?string $cwd, int $pid, bool $expected): void {
+    $project = self::$tmp . '/project';
+    $other = self::$tmp . '/other';
+    mkdir($project . '/build/web', 0755, TRUE);
+    mkdir($other . '/build/web', 0755, TRUE);
+    symlink($project, self::$tmp . '/link');
+    $replacements = ['{project}' => $project, '{link}' => self::$tmp . '/link', '{other}' => $other];
+
+    $lsof_output = $cwd === NULL ? '' : sprintf("p1234\nfcwd\nn%s\n", strtr($cwd, $replacements));
+    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(string $command): string => $command === 'lsof -a -p 1234 -d cwd -Fn 2>/dev/null' ? $lsof_output : throw new \RuntimeException(sprintf('shell_exec() called with unexpected command "%s".', $command)));
+
+    $this->assertSame($expected, webserver_serves(strtr($command, $replacements), $project . '/build/web', $pid));
+  }
+
+  public static function dataProviderWebserverServesResolvesPath(): \Iterator {
+    yield 'relative to the project root' => ['php -S localhost:8000 -t build/web build/web/.ht.router.php', '{project}', 1234, TRUE];
+    yield 'relative with a dot and a trailing slash' => ['php -S localhost:8000 -t ./build/web/', '{project}', 1234, TRUE];
+    yield 'relative to the build directory' => ['php -S localhost:8000 -t web', '{project}/build', 1234, TRUE];
+    yield 'the working directory itself' => ['php -S localhost:8000 -t .', '{project}/build/web', 1234, TRUE];
+    yield 'attached to the option' => ['php -S localhost:8000 -tbuild/web', '{project}', 1234, TRUE];
+    yield 'relative to another project root' => ['php -S localhost:8000 -t build/web', '{other}', 1234, FALSE];
+    yield 'relative to a working directory that cannot be read' => ['php -S localhost:8000 -t build/web', NULL, 1234, FALSE];
+    yield 'relative without a process ID' => ['php -S localhost:8000 -t build/web', '{project}', 0, FALSE];
+    yield 'relative to a path that does not exist' => ['php -S localhost:8000 -t missing/web', '{project}', 1234, FALSE];
+    yield 'absolute through a symlink' => ['php -S localhost:8000 -t {link}/build/web {link}/build/web/.ht.router.php', NULL, 1234, TRUE];
+    yield 'absolute to another project' => ['php -S localhost:8000 -t {other}/build/web', NULL, 1234, FALSE];
+    yield 'no value after the option' => ['php -S localhost:8000 -t', '{project}', 1234, FALSE];
+  }
+
   #[DataProvider('dataProviderWebserverServes')]
   public function testWebserverServes(string $command, string $docroot, bool $expected): void {
     $this->assertSame($expected, webserver_serves($command, $docroot));
@@ -122,6 +195,20 @@ final class HelpersPortListenersTest extends UnitTestCase {
     yield 'another program' => [[5678 => 'node server.js --port 8000'], ['own' => [], 'other' => [5678 => 'node server.js --port 8000']]];
     yield 'the project server and another' => [[1234 => self::SERVER, 5678 => self::OTHER_SERVER], ['own' => [1234 => self::SERVER], 'other' => [5678 => self::OTHER_SERVER]]];
     yield 'a command line that cannot be read' => [[1234 => ''], ['own' => [1234 => ''], 'other' => []]];
+  }
+
+  public function testWebserverListenersResolvesRelativeDocroot(): void {
+    $project = self::$tmp . '/project';
+    mkdir($project . '/build/web', 0755, TRUE);
+    $server = 'php -S localhost:8000 -t build/web';
+
+    // Started by hand from the project root, and from another directory.
+    $this->mockPortListeners('8000', [1234 => $server, 5678 => $server], [
+      'lsof -a -p 1234 -d cwd -Fn 2>/dev/null' => "p1234\nfcwd\nn" . $project . "\n",
+      'lsof -a -p 5678 -d cwd -Fn 2>/dev/null' => "p5678\nfcwd\nn/www/other\n",
+    ]);
+
+    $this->assertSame(['own' => [1234 => $server], 'other' => [5678 => $server]], webserver_listeners('8000', $project . '/build/web'));
   }
 
   #[DataProvider('dataProviderWebserverListenersIgnoresOutput')]
