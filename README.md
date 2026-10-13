@@ -328,7 +328,7 @@ The `assemble` command installs (`npm ci`) and builds (`npm run build`) the fron
 
 The `provision` command installs the Drupal website from the `standard` profile with your extension (and any `suggest`'ed extensions) enabled. The profile can be changed by setting the `DRUPAL_PROFILE` environment variable.
 
-The website will be available at http://localhost:8000 by default. The hostname can be changed by setting the `WEBSERVER_HOST` environment variable.
+The website is served at `http://localhost:8000`, or at the first free port up to 8099 when another process uses 8000, and `start` prints the URL (see [Webserver port](#webserver-port)). The hostname can be changed by setting the `WEBSERVER_HOST` environment variable.
 
 #### Webserver port
 
@@ -458,7 +458,7 @@ ahoy test-functional-javascript
 ahoy browser-stop
 ```
 
-Both `test` and `test-functional-javascript` start the browser before they run the suite. It keeps running afterwards, so the next run reuses it - stop it with `browser-stop` when you're done.
+Both `test` and `test-functional-javascript` start the browser before they run the suite. It keeps running afterwards, so the next run reuses it - stop it with `browser-stop` when you're done. `browser-start` reuses only the project's own browser: when the browser of another project holds the WebDriver port, it fails and names it, and `browser-stop` and `reset` leave that browser running.
 
 To run the browser in a Docker Selenium container instead, set `WEBDRIVER_BACKEND=selenium`. The container cannot reach the host's `localhost`, so start the webserver on all interfaces:
 
