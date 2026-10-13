@@ -37,7 +37,7 @@ final class HelpersDrupalReleaseTest extends UnitTestCase {
    */
   protected function mockReleaseList(array $output, int $exit_code = 0): void {
     $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $cmd, ?array &$exec_output = NULL, ?int &$code = NULL) use ($output, $exit_code): string {
-      $this->assertSame('composer show --all --format=json drupal/recommended-project', $cmd);
+      $this->assertSame("composer show --all --format=json 'drupal/recommended-project'", $cmd);
       $exec_output = $output;
       $code = $exit_code;
 

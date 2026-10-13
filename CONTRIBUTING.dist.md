@@ -113,9 +113,9 @@ DRUPAL_VERSION=12 vendor/bin/eddy-assemble
 ```
 <!-- #;> DEV_NO_COMMAND_WRAPPER -->
 
-The build pins Drupal core to the newest release matching `DRUPAL_VERSION` and prints it. A version with no stable release yet resolves to its newest pre-release.
+The build pins Drupal core to the newest release matching `DRUPAL_VERSION` and prints it. A version with no stable release yet resolves to its newest pre-release. When that release requires a newer PHP than the one running the build, the build stops before it changes anything and says which PHP the release needs.
 
-Every other dependency installs its most stable release that supports that core. A dependency falls back to a pre-release or a development branch only when no stable release fits, and the build output lists every dependency installed from a development branch.
+Every other dependency installs its most stable release that supports that core and the PHP running the build, even when the global Composer configuration sets `config.platform.php`. A dependency falls back to a pre-release or a development branch only when no stable release fits, and the build output lists every dependency installed from a development branch.
 
 ### Patching dependencies
 
@@ -137,7 +137,7 @@ A patch that no longer applies fails the build. Patches declared for `drevops/ed
 
 ### Providing `GITHUB_TOKEN`
 
-To overcome GitHub API rate limits, you may provide a `GITHUB_TOKEN` environment variable with a personal access token.
+To overcome GitHub API rate limits, you may provide a `GITHUB_TOKEN` environment variable with a personal access token. The build passes it to its own Composer commands through `COMPOSER_AUTH`, so the global Composer configuration stays as it is.
 
 ### Provisioning the website
 

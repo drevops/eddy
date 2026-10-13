@@ -937,6 +937,31 @@ function default_drupal_version(string $dev_manifest = 'composer.dev.json'): str
 }
 
 /**
+ * Show a package from the Composer repositories, as decoded JSON.
+ *
+ * @param string $package
+ *   The package name, such as 'drupal/core'.
+ * @param string $version
+ *   The version to show, or an empty string for the package with its list of
+ *   versions.
+ *
+ * @return array<mixed>|null
+ *   The decoded output, or NULL when Composer fails or prints no JSON object.
+ */
+function composer_show(string $package, string $version = ''): ?array {
+  $output = [];
+  $exit_code = 0;
+  $command = 'composer show --all --format=json ' . escapeshellarg($package) . ($version === '' ? '' : ' ' . escapeshellarg($version));
+  // exec() captures stdout only, so a Composer warning on stderr leaves the
+  // JSON intact.
+  exec($command, $output, $exit_code);
+
+  $decoded = json_decode(implode("\n", $output), TRUE);
+
+  return $exit_code === 0 && is_array($decoded) ? $decoded : NULL;
+}
+
+/**
  * Resolve a Drupal version constraint to the release it selects.
  *
  * Fails when the releases cannot be listed or none matches the constraint.
@@ -950,15 +975,9 @@ function default_drupal_version(string $dev_manifest = 'composer.dev.json'): str
  * @see drupal_release_select()
  */
 function drupal_release(string $constraint): string {
-  $output = [];
-  $exit_code = 0;
-  // exec() captures stdout only, so a Composer warning on stderr leaves the
-  // JSON intact.
-  exec('composer show --all --format=json drupal/recommended-project', $output, $exit_code);
+  $versions = composer_show('drupal/recommended-project')['versions'] ?? NULL;
 
-  $package = json_decode(implode("\n", $output), TRUE);
-
-  if ($exit_code !== 0 || !is_array($package) || !isset($package['versions']) || !is_array($package['versions'])) {
+  if (!is_array($versions)) {
     FAIL('Unable to list the Drupal releases.');
 
     // @codeCoverageIgnoreStart
@@ -966,7 +985,7 @@ function drupal_release(string $constraint): string {
     // @codeCoverageIgnoreEnd
   }
 
-  $release = drupal_release_select($constraint, array_values(array_filter($package['versions'], is_string(...))));
+  $release = drupal_release_select($constraint, array_values(array_filter($versions, is_string(...))));
 
   if ($release === NULL) {
     FAIL('No Drupal release matches %s.', $constraint);
@@ -1029,6 +1048,68 @@ function drupal_release_select(string $constraint, array $versions): ?string {
   }
 
   return $newest;
+}
+
+/**
+ * Get the PHP version constraint that a Drupal core release requires.
+ *
+ * @param string $release
+ *   The release, such as '12.0.0-beta1'.
+ *
+ * @return string|null
+ *   The constraint, such as '>=8.5', or NULL when it cannot be read.
+ */
+function drupal_php_requirement(string $release): ?string {
+  $requirement = composer_show('drupal/core', $release)['requires']['php'] ?? NULL;
+
+  return is_string($requirement) && $requirement !== '' ? $requirement : NULL;
+}
+
+/**
+ * Check whether a version satisfies a Composer version constraint.
+ *
+ * Handles comparisons such as '>=8.3.0', alone or combined: with a space or a
+ * comma for AND, and with '||' for OR. A version number with fewer parts is
+ * padded with zeros, so '>=8.5' accepts '8.5.0'.
+ *
+ * @param string $version
+ *   The version, such as '8.4.17'.
+ * @param string $constraint
+ *   The constraint, such as '>=8.5' or '>=8.3 <9 || >=10'.
+ *
+ * @return bool|null
+ *   Whether the version satisfies the constraint, or NULL when the constraint
+ *   holds another form, such as '^8.3'.
+ */
+function version_satisfies(string $version, string $constraint): ?bool {
+  $pad = static fn(string $number): string => implode('.', array_pad(explode('.', $number), 4, '0'));
+  // An operator may stand apart from its version, as in '>= 8.3'.
+  $constraint = preg_replace('/(<>|!=|>=?|<=?|==?)\s+/', '$1', trim($constraint)) ?? '';
+  $satisfied = FALSE;
+
+  foreach (preg_split('/\s*\|\|?\s*/', $constraint) ?: [] as $alternative) {
+    $all = TRUE;
+
+    foreach (preg_split('/\s*,\s*|\s+/', $alternative) ?: [] as $comparison) {
+      if (preg_match('/^(<>|!=|>=|<=|>|<|==|=)?v?(\d+(?:\.\d+){0,3})$/', $comparison, $matches) !== 1) {
+        return NULL;
+      }
+
+      $operator = match ($matches[1]) {
+        '<>', '!=' => '!=',
+        '>=' => '>=',
+        '<=' => '<=',
+        '>' => '>',
+        '<' => '<',
+        default => '==',
+      };
+      $all = $all && version_compare($pad($version), $pad($matches[2]), $operator);
+    }
+
+    $satisfied = $satisfied || $all;
+  }
+
+  return $satisfied;
 }
 
 /**

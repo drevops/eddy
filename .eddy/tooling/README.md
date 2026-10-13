@@ -37,6 +37,8 @@ The installer runs Composer only when the constraint, the patches for the packag
 
 `eddy-assemble` builds the Drupal version in `DRUPAL_VERSION`. When the variable isn't set, it builds the version in `extra.eddy.drupal-version` of `composer.dev.json`, and Drupal 11 when that isn't set either.
 
+Before it touches `build/`, `eddy-assemble` reads the PHP requirement of the Drupal core release it resolved and stops when the PHP running it doesn't meet it. It then sets `config.platform.php` in `build/composer.json` to the running PHP, unless the extension's `composer.json` or `composer.dev.json` sets one, so a `platform` setting in the global Composer configuration doesn't change what gets installed. With `GITHUB_TOKEN` set, it passes the token to the Composer commands it runs through `COMPOSER_AUTH`, unless that variable is already set, and leaves the global Composer configuration alone.
+
 ## Verbose output
 
 By default the commands print only their own `[TASK]`/`[ OK ]` progress and suppress the output of the tools they run (Composer, npm, Drush). When a tool fails, its captured output is shown so the failure is diagnosable. The output of the project's own commands - `npm run build` and the custom scripts below - is always shown. Set `DEBUG=1` to stream the full output of every tool live, for example `DEBUG=1 make build` or `DEBUG=1 ahoy build`.

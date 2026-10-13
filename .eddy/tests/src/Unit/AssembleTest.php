@@ -36,6 +36,13 @@ final class AssembleTest extends UnitTestCase {
    */
   protected array $symlinkedItems = [];
 
+  /**
+   * Assignments passed to putenv(), in call order.
+   *
+   * @var array<int, string>
+   */
+  protected array $putenvCalls = [];
+
   protected function setUp(): void {
     parent::setUp();
     require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
@@ -48,12 +55,14 @@ final class AssembleTest extends UnitTestCase {
    *   Configuration with keys: extension_name, extension_type, drupal_version,
    *   drupal_release, releases, releases_result_code, has_build_dir,
    *   has_patches, github_token, suggestions, extension_require,
-   *   extension_require_dev, extension_extra, dev_composer_json,
+   *   extension_require_dev, extension_extra, extension_config,
+   *   dev_composer_json,
    *   has_deprecations_disabled, has_package_lock, has_skip_npm_build,
    *   has_nvmrc, has_node_modules, tool_files, has_version_specific_phpunit,
    *   has_polyfill_bootstrap, create_project_result_code,
-   *   installed_packages. A NULL drupal_release expects the release
-   *   resolution to fail.
+   *   installed_packages, php_requirement, expect_php_failure. A NULL
+   *   drupal_release expects the release resolution to fail, and a NULL
+   *   php_requirement makes the core lookup fail.
    *
    * @return array
    *   The configuration with defaults applied.
@@ -66,6 +75,8 @@ final class AssembleTest extends UnitTestCase {
       'drupal_release' => '11.4.8',
       'releases' => self::RELEASES,
       'releases_result_code' => 0,
+      'php_requirement' => '>=8.1',
+      'expect_php_failure' => FALSE,
       'has_build_dir' => FALSE,
       'has_patches' => FALSE,
       'github_token' => '',
@@ -73,6 +84,7 @@ final class AssembleTest extends UnitTestCase {
       'extension_require' => [],
       'extension_require_dev' => [],
       'extension_extra' => [],
+      'extension_config' => [],
       'dev_composer_json' => ['require-dev' => ['drupal/coder' => '^8']],
       'has_deprecations_disabled' => FALSE,
       'has_package_lock' => FALSE,
@@ -101,6 +113,9 @@ final class AssembleTest extends UnitTestCase {
     }
     if ($config['extension_extra'] !== []) {
       $composer_json['extra'] = $config['extension_extra'];
+    }
+    if ($config['extension_config'] !== []) {
+      $composer_json['config'] = $config['extension_config'];
     }
     $composer_json_str = json_encode($composer_json, JSON_THROW_ON_ERROR);
 
@@ -132,9 +147,13 @@ final class AssembleTest extends UnitTestCase {
       if (str_contains($cmd, 'command -v composer')) {
         $output[] = '/usr/bin/composer';
       }
-      if ($cmd === 'composer show --all --format=json drupal/recommended-project') {
+      if ($cmd === self::composerShowCommand('drupal/recommended-project')) {
         $output = explode("\n", json_encode(['name' => 'drupal/recommended-project', 'versions' => $config['releases']], JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
         $code = $config['releases_result_code'];
+      }
+      if ($cmd === self::composerShowCommand('drupal/core', (string) $config['drupal_release'])) {
+        $output = is_string($config['php_requirement']) ? explode("\n", json_encode(['name' => 'drupal/core', 'requires' => ['php' => $config['php_requirement']]], JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR)) : [];
+        $code = is_string($config['php_requirement']) ? 0 : 1;
       }
       return '';
     });
@@ -250,7 +269,12 @@ final class AssembleTest extends UnitTestCase {
       return TRUE;
     });
 
-    $this->registerMock('putenv', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
+    $this->putenvCalls = [];
+    $this->registerMock('putenv', 'DrevOps\\Eddy\\Tooling', function (string $assignment): bool {
+      $this->putenvCalls[] = $assignment;
+
+      return TRUE;
+    });
 
     $this->registerMock('unlink', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
 
@@ -258,7 +282,7 @@ final class AssembleTest extends UnitTestCase {
 
     $passthru_responses[] = ['cmd' => 'composer validate --ansi --strict'];
 
-    if ($config['drupal_release'] === NULL) {
+    if ($config['drupal_release'] === NULL || $config['expect_php_failure']) {
       $this->mockPassthruMultiple($passthru_responses);
 
       return $config;
@@ -275,10 +299,6 @@ final class AssembleTest extends UnitTestCase {
     if ($config['has_patches']) {
       // copy_dir() is a real function using PHP iterators and needs no mock.
       // HelpersCopyDirTest covers it.
-    }
-
-    if ($config['github_token'] !== '') {
-      $passthru_responses[] = ['cmd' => sprintf('composer config --global github-oauth.github.com %s', escapeshellarg((string) $config['github_token']))];
     }
 
     $passthru_responses[] = ['cmd' => 'composer --working-dir=build install'];
@@ -314,9 +334,10 @@ final class AssembleTest extends UnitTestCase {
       $this->envSet($name, $value);
     }
 
-    // An explicit empty value overrides GITHUB_TOKEN inherited from the
-    // environment.
+    // An explicit empty value overrides GITHUB_TOKEN and COMPOSER_AUTH
+    // inherited from the environment.
     $this->envSet('GITHUB_TOKEN', $config['github_token'] ?? '');
+    $this->envSet('COMPOSER_AUTH', '');
 
     if ($config['has_deprecations_disabled'] ?? FALSE) {
       $this->envSet('SYMFONY_DEPRECATIONS_HELPER', 'disabled');
@@ -364,7 +385,9 @@ final class AssembleTest extends UnitTestCase {
 
     $drupal_version = $env['DRUPAL_VERSION'] ?? '11';
     $this->assertStringContainsString('Resolved Drupal ' . $drupal_version . ' to ' . $config['drupal_release'] . '.', $output);
+    $this->assertStringContainsString(sprintf('Drupal %s supports PHP %s.', $config['drupal_release'], self::phpVersion()), $output);
     $this->assertStringContainsString('Creating Drupal ' . $drupal_version . ' project', $output);
+    $this->assertStringContainsString('PHP platform set to ' . self::phpVersion() . '.', $output);
 
     if ($config['has_build_dir']) {
       $this->assertStringContainsString('Removing existing build directory', $output);
@@ -375,7 +398,8 @@ final class AssembleTest extends UnitTestCase {
     }
 
     if (($config['github_token'] ?? '') !== '') {
-      $this->assertStringContainsString('GitHub authentication token', $output);
+      $this->assertStringContainsString('GitHub token passed to Composer.', $output);
+      $this->assertContains('COMPOSER_AUTH={"github-oauth":{"github.com":"' . $config['github_token'] . '"}}', $this->putenvCalls);
     }
 
     if ($config['has_deprecations_disabled'] ?? FALSE) {
@@ -887,6 +911,116 @@ final class AssembleTest extends UnitTestCase {
     $this->assertStringNotContainsString('Drupal project created', $output);
   }
 
+  #[DataProvider('dataProviderAssembleComposerAuth')]
+  public function testAssembleComposerAuth(string $github_token, string $composer_auth, ?string $expected_auth): void {
+    $this->envSet('DRUPAL_VERSION', '11');
+    $this->envSet('GITHUB_TOKEN', $github_token);
+    $this->envSet('COMPOSER_AUTH', $composer_auth);
+    $this->envSet('SYMFONY_DEPRECATIONS_HELPER', '');
+
+    $this->setupAssembleMocks(['github_token' => $github_token]);
+
+    ob_start();
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
+    $output = (string) ob_get_clean();
+
+    $auth_calls = array_values(array_filter($this->putenvCalls, static fn(string $assignment): bool => str_starts_with($assignment, 'COMPOSER_AUTH=')));
+    $this->assertSame($expected_auth === NULL ? [] : ['COMPOSER_AUTH=' . $expected_auth], $auth_calls);
+    $this->assertSame($expected_auth !== NULL, str_contains($output, 'GitHub token passed to Composer.'));
+  }
+
+  public static function dataProviderAssembleComposerAuth(): \Iterator {
+    yield 'token' => ['ghp_test123', '', '{"github-oauth":{"github.com":"ghp_test123"}}'];
+    yield "token next to the caller's COMPOSER_AUTH" => ['ghp_test123', '{"github-oauth":{"github.com":"own"}}', NULL];
+    yield 'no token' => ['', '', NULL];
+  }
+
+  #[DataProvider('dataProviderAssemblePhpRequirement')]
+  public function testAssemblePhpRequirement(?string $php_requirement, string $expected_message): void {
+    $this->envSet('DRUPAL_VERSION', '11');
+    $this->envSet('GITHUB_TOKEN', '');
+    $this->envSet('SYMFONY_DEPRECATIONS_HELPER', '');
+
+    $this->setupAssembleMocks(['php_requirement' => $php_requirement]);
+
+    ob_start();
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
+    $output = (string) ob_get_clean();
+
+    $this->assertStringContainsString('Checking PHP ' . self::phpVersion() . ' against Drupal 11.4.8.', $output);
+    $this->assertStringContainsString(sprintf($expected_message, self::phpVersion()), $output);
+    $this->assertStringContainsString('ASSEMBLE COMPLETE', $output);
+  }
+
+  public static function dataProviderAssemblePhpRequirement(): \Iterator {
+    $supported = 'Drupal 11.4.8 supports PHP %s.';
+    $skipped = 'Skipped the check: the PHP requirement of Drupal 11.4.8 is unknown. Composer checks it during the install.';
+
+    yield 'supported' => ['>=8.1', $supported];
+    yield 'supported by 1 of the alternatives' => ['<8.1 || >=8.1', $supported];
+    yield 'core lookup fails' => [NULL, $skipped];
+    yield 'constraint the check does not read' => ['^8.1', $skipped];
+  }
+
+  public function testAssemblePhpRequirementFailure(): void {
+    $this->envSet('DRUPAL_VERSION', '12');
+    $this->envSet('GITHUB_TOKEN', '');
+    $this->envSet('SYMFONY_DEPRECATIONS_HELPER', '');
+
+    $this->setupAssembleMocks(['drupal_version' => '12', 'drupal_release' => '12.0.0-beta1', 'php_requirement' => '>=99', 'expect_php_failure' => TRUE, 'has_build_dir' => TRUE]);
+
+    $this->mockQuit(1);
+
+    ob_start();
+    try {
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
+      $this->fail('Expected QuitErrorException to be thrown.');
+    }
+    catch (QuitErrorException $e) {
+      $this->assertSame(1, $e->getCode());
+    }
+    finally {
+      $output = (string) ob_get_clean();
+    }
+
+    $this->assertStringContainsString(sprintf('Drupal 12.0.0-beta1 requires PHP >=99, but the build runs on PHP %1$s. Run the build on a PHP version that meets the requirement, or set DRUPAL_VERSION to a Drupal version that supports PHP %1$s.', self::phpVersion()), $output);
+    $this->assertStringNotContainsString('Removing existing build directory', $output);
+    $this->assertStringNotContainsString('Creating Drupal', $output);
+  }
+
+  #[DataProvider('dataProviderAssemblePinsPhpPlatform')]
+  public function testAssemblePinsPhpPlatform(array $extension_config, array $dev_composer_json, ?string $expected_platform): void {
+    $this->envSet('DRUPAL_VERSION', '11');
+    $this->envSet('GITHUB_TOKEN', '');
+    $this->envSet('SYMFONY_DEPRECATIONS_HELPER', '');
+
+    $this->setupAssembleMocks(['extension_config' => $extension_config, 'dev_composer_json' => $dev_composer_json]);
+
+    ob_start();
+    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
+    $output = (string) ob_get_clean();
+
+    $expected_platform ??= self::phpVersion();
+    $this->assertStringContainsString('PHP platform set to ' . $expected_platform . '.', $output);
+
+    $last_write = end($this->capturedBuildComposerJson);
+    $this->assertIsString($last_write);
+    $build_json = json_decode($last_write, TRUE, 512, JSON_THROW_ON_ERROR);
+    $this->assertIsArray($build_json);
+    /** @var array{config: array{platform: array{php: string}}} $build_json */
+
+    $this->assertSame($expected_platform, $build_json['config']['platform']['php']);
+  }
+
+  public static function dataProviderAssemblePinsPhpPlatform(): \Iterator {
+    $dev = ['require-dev' => ['drupal/coder' => '^8']];
+
+    yield 'running PHP' => [[], $dev, NULL];
+    yield 'platform from composer.json' => [['platform' => ['php' => '8.3.0']], $dev, '8.3.0'];
+    yield 'platform from composer.dev.json' => [[], $dev + ['config' => ['platform' => ['php' => '8.4.0']]], '8.4.0'];
+    yield 'empty platform' => [['platform' => ['php' => '']], $dev, NULL];
+  }
+
   public function testAssembleMissingComposerJson(): void {
     $this->envUnset('GITHUB_TOKEN');
     $this->envUnset('SYMFONY_DEPRECATIONS_HELPER');
@@ -909,6 +1043,20 @@ final class AssembleTest extends UnitTestCase {
       $this->assertStringContainsString('ASSEMBLE', $output);
       $this->assertStringContainsString('Missing composer.json file', $output);
     }
+  }
+
+  /**
+   * Build the command that 'composer_show()' runs.
+   */
+  protected static function composerShowCommand(string $package, string $version = ''): string {
+    return 'composer show --all --format=json ' . escapeshellarg($package) . ($version === '' ? '' : ' ' . escapeshellarg($version));
+  }
+
+  /**
+   * Get the PHP version that runs the tests, as the build reports it.
+   */
+  protected static function phpVersion(): string {
+    return sprintf('%d.%d.%d', PHP_MAJOR_VERSION, PHP_MINOR_VERSION, PHP_RELEASE_VERSION);
   }
 
 }

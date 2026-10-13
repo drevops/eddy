@@ -168,6 +168,8 @@ The build resolves versions in 2 steps, so nothing needs editing as Drupal and i
 1. **Drupal core is pinned to one exact release.** The build picks the newest release matching `DRUPAL_VERSION`, prints it and pins core to it. A version with no stable release yet resolves to its newest pre-release.
 2. **Every other dependency gets its most stable release that fits.** The build sets `minimum-stability: dev` with `prefer-stable: true`, so `composer.dev.json` and your `composer.json` only say which versions are acceptable. A dependency falls back to a pre-release or a development branch only when no stable release supports the chosen core, and the build output lists every dependency installed from a development branch.
 
+Before it touches the `build` directory, the build checks the PHP that runs it against the PHP requirement of the chosen core release, and stops with a message when the release needs a newer PHP, such as a Drupal 12 build on PHP 8.4. Composer then resolves every dependency for that same PHP: the build sets `config.platform.php` in `build/composer.json` to it, so a `platform` setting in your global Composer configuration doesn't apply. To resolve for another PHP version on purpose, set `config.platform.php` in `composer.dev.json`.
+
 For example, as of October 2026:
 
 | `DRUPAL_VERSION` | Drupal core | Drush |
@@ -301,7 +303,7 @@ Patches declared for `drevops/eddy-tooling` itself are the exception: the build 
 
 ### Providing `GITHUB_TOKEN`
 
-To overcome GitHub API rate limits, you may provide a `GITHUB_TOKEN` environment variable with a personal access token.
+To overcome GitHub API rate limits, you may provide a `GITHUB_TOKEN` environment variable with a personal access token. The build passes it to its own Composer commands through the `COMPOSER_AUTH` variable, so your global Composer configuration stays as it is. When `COMPOSER_AUTH` is already set, the build uses it unchanged.
 
 ### Debugging command output
 
