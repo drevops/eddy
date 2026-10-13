@@ -37,6 +37,7 @@ use function process_drupal_version_text;
 use function process_extension_type_text;
 use function read_composer_dev_json;
 use function remove_dir;
+use function remove_lines;
 use function remove_npm;
 use function remove_special_comments;
 use function remove_string_content;
@@ -1213,6 +1214,18 @@ final class InstallHelpersTest extends UnitTestCase {
       '# Uncomment the lines below in your project.',
       ".ahoy.yml export-ignore\n.circleci export-ignore",
     ];
+
+    yield 'remove lines between blank lines' => [
+      "keep\n\n# Remove me\n# Remove me too\n\nkeep this too\n",
+      '# Remove me',
+      "keep\n\nkeep this too\n",
+    ];
+
+    yield 'remove lines at end of file after a blank line' => [
+      "keep\n\n# Remove me\n",
+      '# Remove me',
+      "keep\n",
+    ];
   }
 
   #[DataProvider('dataProviderRemoveTokensWithContent')]
@@ -1261,6 +1274,66 @@ final class InstallHelpersTest extends UnitTestCase {
       'META',
       'kept',
     ];
+
+    yield 'block between blank lines' => [
+      "before\n\n#;< META\nremoved\n#;> META\n\nafter\n",
+      'META',
+      "before\n\nafter\n",
+    ];
+
+    yield 'adjacent blocks between blank lines' => [
+      "before\n\n#;< META\nblock1\n#;> META\n\n#;< META\nblock2\n#;> META\n\nafter\n",
+      'META',
+      "before\n\nafter\n",
+    ];
+
+    yield 'block holding its blank line' => [
+      "before\n#;< META\n\nremoved\n#;> META\n\nafter\n",
+      'META',
+      "before\n\nafter\n",
+    ];
+
+    yield 'block between blank lines at start of file' => [
+      "#;< META\nremoved\n#;> META\n\nkept\n",
+      'META',
+      "kept\n",
+    ];
+
+    yield 'block between blank lines at end of file' => [
+      "kept\n\n#;< META\nremoved\n#;> META\n",
+      'META',
+      "kept\n",
+    ];
+
+    yield 'block of another token kept' => [
+      "before\n\n#;< META\nremoved\n#;> META\n#;< OTHER\nkept\n#;> OTHER\n\nafter\n",
+      'META',
+      "before\n\n#;< OTHER\nkept\n#;> OTHER\n\nafter\n",
+    ];
+  }
+
+  /**
+   * @param array<int, string> $lines
+   * @param array<int, bool> $removed
+   * @param array<int, string> $expected
+   */
+  #[DataProvider('dataProviderRemoveLines')]
+  public function testRemoveLines(array $lines, array $removed, array $expected): void {
+    $this->assertSame($expected, remove_lines($lines, $removed));
+  }
+
+  public static function dataProviderRemoveLines(): \Iterator {
+    yield 'nothing removed' => [['', 'a', '', '', 'b', ''], [FALSE, FALSE, FALSE, FALSE, FALSE, FALSE], ['', 'a', '', '', 'b', '']];
+    yield 'between text' => [['a', 'x', 'b'], [FALSE, TRUE, FALSE], ['a', 'b']];
+    yield 'blank line before' => [['a', '', 'x', 'b'], [FALSE, FALSE, TRUE, FALSE], ['a', '', 'b']];
+    yield 'blank line after' => [['a', 'x', '', 'b'], [FALSE, TRUE, FALSE, FALSE], ['a', '', 'b']];
+    yield 'blank line on each side' => [['a', '', 'x', 'y', '', 'b'], [FALSE, FALSE, TRUE, TRUE, FALSE, FALSE], ['a', '', 'b']];
+    yield 'only the doubled blank line goes' => [['a', '', 'x', '', '', 'b'], [FALSE, FALSE, TRUE, FALSE, FALSE, FALSE], ['a', '', '', 'b']];
+    yield 'whitespace counts as blank' => [['a', '  ', 'x', "\t", 'b'], [FALSE, FALSE, TRUE, FALSE, FALSE], ['a', '  ', 'b']];
+    yield 'separate removals' => [['a', '', 'x', '', 'y', '', 'b'], [FALSE, FALSE, TRUE, FALSE, TRUE, FALSE, FALSE], ['a', '', 'b']];
+    yield 'start of content' => [['x', '', 'a'], [TRUE, FALSE, FALSE], ['a']];
+    yield 'end of content' => [['a', '', 'x', ''], [FALSE, FALSE, TRUE, FALSE], ['a', '']];
+    yield 'everything' => [['x', ''], [TRUE, FALSE], []];
   }
 
   #[DataProvider('dataProviderUncommentLine')]
@@ -1344,6 +1417,11 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'mixed content' => [
       "keep\n#; remove\nkeep too\n  #; also remove\nand keep",
       "keep\nkeep too\nand keep",
+    ];
+
+    yield 'marker lines between blank lines' => [
+      "before\n\n#;< META\n#;> META\n\nafter\n",
+      "before\n\nafter\n",
     ];
   }
 

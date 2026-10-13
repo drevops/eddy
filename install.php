@@ -1690,8 +1690,8 @@ function remove_string_content(string $token): void {
     }
 
     $lines = explode("\n", $content);
-    $lines = array_filter($lines, static fn(string $line): bool => !str_starts_with($line, $token));
-    file_put_contents($file, implode("\n", $lines));
+    $removed = array_map(static fn(string $line): bool => str_starts_with($line, $token), $lines);
+    file_put_contents($file, implode("\n", remove_lines($lines, $removed)));
   }
 }
 
@@ -1722,27 +1722,67 @@ function remove_tokens_with_content(string $token): void {
     }
 
     $lines = explode("\n", $content);
-    $result = [];
+    $removed = [];
     $inside = FALSE;
 
     foreach ($lines as $line) {
       if (str_contains($line, $start_marker)) {
         $inside = TRUE;
+        $removed[] = TRUE;
         continue;
       }
 
       if (str_contains($line, $end_marker)) {
         $inside = FALSE;
+        $removed[] = TRUE;
         continue;
       }
 
-      if (!$inside) {
-        $result[] = $line;
-      }
+      $removed[] = $inside;
     }
 
-    file_put_contents($file, implode("\n", $result));
+    file_put_contents($file, implode("\n", remove_lines($lines, $removed)));
   }
+}
+
+/**
+ * Remove lines without leaving a run of blank lines behind.
+ *
+ * A removal between 2 blank lines keeps only 1 of them, and a removal at the
+ * start or the end of the content keeps no blank line there. A removed block
+ * with a blank line on each side leaves a single one.
+ *
+ * @param array<int, string> $lines
+ *   The lines.
+ * @param array<int, bool> $removed
+ *   Whether each line goes, keyed like the lines.
+ *
+ * @return array<int, string>
+ *   The lines that stay.
+ */
+function remove_lines(array $lines, array $removed): array {
+  $kept = [];
+  // The start of the content counts as a blank line.
+  $after_blank = TRUE;
+  $after_removal = FALSE;
+
+  foreach ($lines as $index => $line) {
+    if ($removed[$index] ?? FALSE) {
+      $after_removal = TRUE;
+      continue;
+    }
+
+    $blank = trim($line) === '';
+
+    if (!$after_removal || !$blank || !$after_blank) {
+      $kept[] = $line;
+      $after_blank = $blank;
+    }
+
+    $after_removal = FALSE;
+  }
+
+  return $kept;
 }
 
 /**
@@ -1797,8 +1837,8 @@ function remove_special_comments(): void {
     }
 
     $lines = explode("\n", $content);
-    $lines = array_filter($lines, static fn(string $line): bool => !str_contains($line, '#;'));
-    file_put_contents($file, implode("\n", $lines));
+    $removed = array_map(static fn(string $line): bool => str_contains($line, '#;'), $lines);
+    file_put_contents($file, implode("\n", remove_lines($lines, $removed)));
   }
 }
 

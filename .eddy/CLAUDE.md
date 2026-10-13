@@ -29,6 +29,8 @@ In a Makefile recipe the `@` stops `make` from echoing the line, and the shell t
 
 For each token it strips, `remove_tokens_with_content()` deletes every block of that token, markers included, from every text file in the project. It walks the whole tree apart from `.git`, `.idea`, `.chromedriver`, `vendor` and `node_modules`, the paths the root `.gitignore` ignores, and everything in `.claude` except `settings.json`, so a block works in any other file you put it in. The replacements and the marker-line cleanup walk the same files. Once the pruning is done, `remove_special_comments()` deletes every remaining line that contains `#;`, which clears the markers of the blocks that stayed.
 
+Neither leaves a run of blank lines behind. When the lines they delete sit between 2 blank lines, 1 of the 2 goes with them, and at the start or the end of a file, the blank line next to them goes. A block can keep a blank line on each side, or hold 1 of them the way the `DRUPAL_<major>` blocks in `test.yml` do. `remove_string_content()`, which deletes the template-only lines of `.gitattributes`, works the same way. `InstallProcessTest` checks every generated file for a run of blank lines, and for a blank line at the start or the end, across the command wrapper, Drupal major and tool selections.
+
 | Token                                               | Stripped when                                |
 |-----------------------------------------------------|----------------------------------------------|
 | `DRUPAL_<major>`, such as `DRUPAL_11`               | The major isn't selected                     |
@@ -55,8 +57,6 @@ A broken block fails quietly. Every file stays valid, and `composer update-snaps
 - **Wrap a new Drupal major everywhere the other majors are wrapped.** A selected major keeps only the blocks that exist for it, so a missing one leaves a gap, such as a project with Drupal 13 CI jobs but no Drupal 13 badge.
 
 `TemplateMarkersTest` checks all 5 rules across the template.
-
-In Markdown, open a block with the blank line that separates it from the text before it, the way `CONTRIBUTING.dist.md` does. A removed block then takes its blank line with it, where a blank line on each side of it would leave a double blank line behind. `InstallProcessTest` checks the generated `AGENTS.md`, `CONTRIBUTING.md` and `README.md` for that across the command wrapper and Drupal major selections.
 
 ### Text rendered from the answers
 

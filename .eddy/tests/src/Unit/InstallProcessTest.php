@@ -11,6 +11,7 @@ use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Yaml\Yaml;
 
 use function eddy_skills;
+use function get_files;
 use function main;
 use function process;
 
@@ -760,7 +761,7 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   /**
-   * Removed blocks leave no double blank line in the Markdown files.
+   * Removed blocks and lines leave no run of blank lines in a project file.
    *
    * @param array<string> $drupal_versions
    * @param array<string> $command_wrapper
@@ -770,12 +771,22 @@ final class InstallProcessTest extends UnitTestCase {
   public function testProcessLeavesNoDoubleBlankLines(array $drupal_versions, array $command_wrapper, array $tools_remove): void {
     process('My Extension', 'my_extension', 'module', $drupal_versions, $command_wrapper, $tools_remove, FALSE, FALSE);
 
-    foreach (['AGENTS.md', 'CONTRIBUTING.md', 'README.md'] as $file) {
-      $this->assertStringNotContainsString("\n\n\n", (string) file_get_contents(self::$sut . '/' . $file), $file . ' holds a double blank line.');
+    $files = get_files();
+    $this->assertNotSame([], $files, 'The project holds no file.');
+
+    foreach ($files as $file) {
+      $content = (string) file_get_contents($file);
+      $path = substr($file, strlen((string) getcwd()) + 1);
+
+      $this->assertStringNotContainsString("\n\n\n", $content, $path . ' holds a double blank line.');
+      $this->assertStringStartsNotWith("\n", $content, $path . ' starts with a blank line.');
+      $this->assertStringEndsNotWith("\n\n", $content, $path . ' ends with a blank line.');
     }
   }
 
   public static function dataProviderProcessLeavesNoDoubleBlankLines(): \Iterator {
+    $tools = ['phpcs', 'phpstan', 'rector', 'twigcs', 'eslint', 'stylelint', 'cspell', 'jest', 'phpunit', 'functional_javascript', 'renovate'];
+
     yield 'both wrappers' => [['10', '11'], ['ahoy', 'makefile'], []];
     yield 'ahoy only' => [['10', '11'], ['ahoy'], []];
     yield 'makefile only' => [['10', '11'], ['makefile'], []];
@@ -786,6 +797,11 @@ final class InstallProcessTest extends UnitTestCase {
     yield 'd12 only' => [['12'], ['ahoy'], []];
     yield 'no FunctionalJavascript' => [['10', '11'], ['ahoy', 'makefile'], ['functional_javascript']];
     yield 'no PHPUnit' => [['10', '11'], ['ahoy', 'makefile'], ['phpunit']];
+    yield 'no Jest' => [['10', '11'], ['ahoy', 'makefile'], ['jest']];
+    yield 'no PHP lint tools' => [['10', '11'], ['ahoy', 'makefile'], ['phpcs', 'phpstan', 'rector', 'twigcs']];
+    yield 'no npm tools' => [['10', '11'], ['ahoy', 'makefile'], ['eslint', 'stylelint', 'cspell', 'jest']];
+    yield 'no tools' => [['10', '11'], ['ahoy', 'makefile'], $tools];
+    yield 'no tools, no wrappers' => [['10', '11'], [], $tools];
   }
 
   /**
