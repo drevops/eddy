@@ -100,7 +100,7 @@ Take the version from the newest subject that names one, such as `Updated scaffo
 gh release list --repo drevops/eddy --exclude-drafts --exclude-pre-releases --limit 10
 ```
 
-`--exclude-drafts` is mandatory. Draft releases are unpublished work in progress and must never be selected, even when they carry the highest version number. `--exclude-pre-releases` skips the releases GitHub marks as pre-releases, such as an alpha or a release candidate, so a project moves to one only when its maintainer asks for it.
+`--exclude-drafts` is mandatory. Draft releases are unpublished work in progress and must never be selected, even when they carry the highest version number. `--exclude-pre-releases` skips the releases marked as pre-releases on GitHub, so a project moves to one only when its maintainer asks for it. It goes by that mark, not by the tag: the list still includes a release published without the mark, even when its tag carries a pre-release suffix such as `-alpha2` or `-rc1`.
 
 Take the release with the highest version from that list. It is usually the topmost, but the list is ordered by publication date, and a patch for an older line can be published after a newer release. Use its tag **verbatim** - exactly as printed, including any prefix - for the branch name, the download and the commit message. Never reformat, shorten or normalise it.
 
@@ -456,7 +456,7 @@ Both lint **warnings** and **errors** must be fixed - warnings are not accepted.
 
 ### PHPUnit doc-comment deprecations
 
-Drupal 10 runs PHPUnit 9.6, which reads only doc-comment annotations such as `@covers`, `@group` and `@dataProvider`. PHPUnit 11 (used by Drupal 11) reports those annotations as deprecated, and PHPUnit 12 (used by Drupal 12) ignores them entirely. **Keep both forms**, the way the scaffold's example tests do: the doc-comment annotation for Drupal 10 and the matching PHP attribute (`#[Group]`, `#[DataProvider]`, and so on) for Drupal 11 and 12. Do not drop the attributes: a test that relies on a doc-comment `@dataProvider` alone loses its data provider on Drupal 12. The `phpstan.neon` ignore for missing `PHPUnit\Framework\Attributes` classes keeps the Drupal 10 lint passing.
+Drupal 10 runs PHPUnit 9.6, which reads only doc-comment annotations such as `@covers`, `@group` and `@dataProvider`. PHPUnit 11 (used by Drupal 11) reports those annotations as deprecated, and PHPUnit 12 (used by Drupal 12) ignores them entirely. **Keep both forms** of the 2 annotations that affect which tests run and how, the way the scaffold's example tests do: `@group` with `#[Group]`, and `@dataProvider` with `#[DataProvider]`. Do not drop the attributes: a test that relies on a doc-comment `@dataProvider` alone loses its data provider on Drupal 12. `@covers` and `@coversDefaultClass` only narrow code coverage, so the example tests keep them as annotations without an attribute. Kernel, Functional and FunctionalJavascript test classes also need `#[RunTestsInSeparateProcesses]`, which the example tests carry without an annotation: Drupal 11.3 deprecates a test class without it, and Drupal 12 throws an exception. The `phpstan.neon` ignore for missing `PHPUnit\Framework\Attributes` classes keeps the Drupal 10 lint passing.
 
 ## Step 14: Open PR
 
@@ -464,7 +464,7 @@ Push the branch and open a pull request. Use the `/open-pr` skill or create the 
 
 ## Important notes
 
-- When the user names a version, use that tag verbatim. Otherwise take the published release with the highest version that is neither a draft nor a pre-release. Either way, use the tag verbatim and start without asking the user to confirm it, and stop when the project is already on that release or a newer one, unless the user asked to add or drop a Drupal major.
+- When the user names a version, use that tag verbatim. Otherwise take the published release with the highest version that is neither a draft nor marked as a pre-release. Either way, use the tag verbatim and start without asking the user to confirm it, and stop when the project is already on that release or a newer one, unless the user asked to add or drop a Drupal major.
 - Never run the installer in the project root, and never copy the release's files over the project's: the merge keeps what the project changed.
 - A Drupal major the user asks to add or drop changes the render of the new release only. The render of the installed version keeps the majors the project tests now.
 - Always remove the scaffold's example extension and example scripts - a real project never ships them. Step 6 keeps them out of the merge.

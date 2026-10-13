@@ -504,7 +504,7 @@ Note that the CI test jobs that run PHP 8.4 or newer set the `SYMFONY_DEPRECATIO
 
 ## Branch protection
 
-You should configure [branch protection rules](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/managing-a-branch-protection-rule) in GitHub to ensure that the code tests pass before merging.
+You should configure [branch protection rules](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/managing-a-branch-protection-rule) or a [ruleset](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets) in GitHub to ensure that the code tests pass before merging.
 
 Add the jobs for every Drupal major you selected in `install.php` as required status checks for your default branch:
 
