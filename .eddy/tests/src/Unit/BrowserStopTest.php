@@ -182,6 +182,7 @@ final class BrowserStopTest extends UnitTestCase {
     yield 'the chromedriver of the project with a child on the port' => [NULL, [1234 => $own_driver, 1235 => $own_driver], FALSE, [1234, 1235], []];
     yield 'a process whose working directory cannot be read' => [NULL, [5678 => ['/usr/local/bin/chromedriver --port=4444', '']], FALSE, [], ['Port 4444 is still in use by another process, which was left running:', '5678 /usr/local/bin/chromedriver --port=4444']];
     yield 'the chromedriver of another project' => [NULL, [5678 => $other_driver], FALSE, [], ['Port 4444 is still in use by another process, which was left running:', '5678 /usr/local/bin/chromedriver --port=4444']];
+    yield 'another program started from the project root' => [NULL, [5678 => ['node server.js --port=4444', self::ROOT]], FALSE, [], ['Port 4444 is still in use by another process, which was left running:', '5678 node server.js --port=4444']];
     yield 'the chromedriver of the project and of another project' => [NULL, [1234 => $own_driver, 5678 => $other_driver], FALSE, [1234], ['5678 /usr/local/bin/chromedriver --port=4444']];
     yield 'the container of the project' => [self::ROOT, [], TRUE, [], []];
     yield 'a container without the project label' => ['', [], TRUE, [], []];

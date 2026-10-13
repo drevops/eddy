@@ -11,9 +11,9 @@
  * created.
  *
  * Only the backend that this project started is stopped: the Selenium
- * container that its label assigns to the project root, and the processes
- * whose working directory is the root. A backend of another project that
- * recorded the same port is left running.
+ * container that its label assigns to the project root, and the chromedriver
+ * processes whose working directory is the root. A backend of another project
+ * that recorded the same port, or any other process on it, is left running.
  */
 
 declare(strict_types=1);

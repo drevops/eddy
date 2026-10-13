@@ -97,13 +97,14 @@ trait WebserverTrait {
   }
 
   /**
-   * Start a process that listens on a port from a working directory.
+   * Start a chromedriver stand-in that listens on a port.
    *
-   * The process stands in for a WebDriver backend, which belongs to the project
-   * whose root is its working directory.
+   * The stand-in is a PHP webserver run through a symlink named
+   * 'chromedriver', so webdriver_listeners() counts it as a chromedriver.
    *
    * @param string $cwd
-   *   The working directory of the process.
+   *   The working directory of the process: the root of the project it belongs
+   *   to.
    * @param string $port
    *   The TCP port.
    *
@@ -111,7 +112,10 @@ trait WebserverTrait {
    *   The process, once the port accepts connections or after 5 seconds.
    */
   protected static function webserverStartListener(string $cwd, string $port): Process {
-    return self::webserverStartProcess(['php', '-S', 'localhost:' . $port, '-t', $cwd], $cwd, $port);
+    $chromedriver = self::locationsMkdir(self::$tmp . '/webdriver-' . $port) . '/chromedriver';
+    symlink(PHP_BINARY, $chromedriver);
+
+    return self::webserverStartProcess([$chromedriver, '-S', 'localhost:' . $port, '-t', $cwd], $cwd, $port);
   }
 
   /**

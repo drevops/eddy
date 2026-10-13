@@ -179,10 +179,10 @@ final class BrowserStartTest extends UnitTestCase {
   }
 
   #[DataProvider('dataProviderBrowserStartFailsWhenAnotherProcessHoldsPort')]
-  public function testBrowserStartFailsWhenAnotherProcessHoldsPort(string $backend): void {
+  public function testBrowserStartFailsWhenAnotherProcessHoldsPort(string $backend, string $cwd): void {
     $this->envSet('WEBDRIVER_BACKEND', $backend);
     $this->mockCommands(['docker' => '/usr/bin/docker']);
-    $this->mockPortListeners('4444', [5678 => ['node /www/other/server.js --port=4444', '/www/other']]);
+    $this->mockPortListeners('4444', [5678 => ['node server.js --port=4444', $cwd]]);
     $this->mockReady([FALSE]);
     $commands = [];
     $this->recordPassthru($commands);
@@ -190,13 +190,15 @@ final class BrowserStartTest extends UnitTestCase {
     $output = $this->runBrowserStart(1);
 
     $this->assertStringContainsString('Port 4444 is in use by another process. Stop it, or set WEBDRIVER_PORT in .env to a free port.', $output);
-    $this->assertStringContainsString('5678 node /www/other/server.js --port=4444', $output);
+    $this->assertStringContainsString('5678 node server.js --port=4444', $output);
     $this->assertSame([], $commands, 'Nothing may be stopped, removed or started while another process holds the port.');
   }
 
   public static function dataProviderBrowserStartFailsWhenAnotherProcessHoldsPort(): \Iterator {
-    yield 'chromedriver' => ['chromedriver'];
-    yield 'selenium' => ['selenium'];
+    yield 'chromedriver backend, a program of another project' => ['chromedriver', '/www/other'];
+    yield 'selenium backend, a program of another project' => ['selenium', '/www/other'];
+    yield 'chromedriver backend, another program started from the project root' => ['chromedriver', '/test/project'];
+    yield 'selenium backend, another program started from the project root' => ['selenium', '/test/project'];
   }
 
   #[DataProvider('dataProviderBrowserStartFailsWhenAnotherProjectContainerHoldsPort')]

@@ -453,10 +453,12 @@ function selenium_container_running(string $port): bool {
 /**
  * List the processes listening on the WebDriver port, split by owner.
  *
- * 'eddy-browser-start' launches chromedriver from the project root, so a
- * process belongs to the project when its working directory resolves to the
- * root. A process whose working directory cannot be read counts as another's,
- * so a backend of unknown origin is never stopped.
+ * 'eddy-browser-start' launches chromedriver from the project root. A process
+ * is the project's own when it runs 'chromedriver' from a directory that
+ * resolves to the root.
+ *
+ * A process whose command line or working directory cannot be read counts as
+ * another's, so it is never stopped.
  *
  * @param string $port
  *   The WebDriver port.
@@ -469,7 +471,11 @@ function selenium_container_running(string $port): bool {
 function webdriver_listeners(string $port, string $root): array {
   $resolved_root = realpath($root) ?: $root;
 
-  return port_listeners($port, static function (int $pid) use ($resolved_root): bool {
+  return port_listeners($port, static function (int $pid, string $command) use ($resolved_root): bool {
+    if (preg_match('#(?:^|/)chromedriver(?:\s|$)#', $command) !== 1) {
+      return FALSE;
+    }
+
     $cwd = process_cwd($pid);
 
     return $cwd !== '' && (realpath($cwd) ?: $cwd) === $resolved_root;

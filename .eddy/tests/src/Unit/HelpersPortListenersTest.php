@@ -200,14 +200,18 @@ final class HelpersPortListenersTest extends UnitTestCase {
 
   public static function dataProviderWebdriverListeners(): \Iterator {
     $driver = '/usr/local/bin/chromedriver --port=4444';
+    $fetched = '.chromedriver/chromedriver/mac_arm-150.0.7871.129/chromedriver-mac-arm64/chromedriver --port=4444';
 
     yield 'nothing listens' => [[], ['own' => [], 'other' => []]];
     yield 'started from the project root' => [[1234 => [$driver, '/www/project']], ['own' => [1234 => $driver], 'other' => []]];
+    yield 'fetched into the project, started from the project root' => [[1234 => [$fetched, '/www/project']], ['own' => [1234 => $fetched], 'other' => []]];
+    yield 'found on PATH, started from the project root' => [[1234 => ['chromedriver --port=4444', '/www/project']], ['own' => [1234 => 'chromedriver --port=4444'], 'other' => []]];
     yield 'started from the root of another project' => [[5678 => [$driver, '/www/other']], ['own' => [], 'other' => [5678 => $driver]]];
     yield 'started from a directory below the project root' => [[5678 => [$driver, '/www/project/build']], ['own' => [], 'other' => [5678 => $driver]]];
+    yield 'another program started from the project root' => [[5678 => ['node server.js --port=4444', '/www/project']], ['own' => [], 'other' => [5678 => 'node server.js --port=4444']]];
+    yield 'a program in a directory named after chromedriver, started from the project root' => [[5678 => ['node chromedriver-proxy/server.js', '/www/project']], ['own' => [], 'other' => [5678 => 'node chromedriver-proxy/server.js']]];
     yield 'a working directory that cannot be read' => [[5678 => [$driver, '']], ['own' => [], 'other' => [5678 => $driver]]];
-    yield 'a command line that cannot be read, started from the project root' => [[1234 => ['', '/www/project']], ['own' => [1234 => ''], 'other' => []]];
-    yield 'a command line that cannot be read, started from the root of another project' => [[5678 => ['', '/www/other']], ['own' => [], 'other' => [5678 => '']]];
+    yield 'a command line that cannot be read, started from the project root' => [[5678 => ['', '/www/project']], ['own' => [], 'other' => [5678 => '']]];
     yield 'the project chromedriver and another' => [[1234 => [$driver, '/www/project'], 5678 => [$driver, '/www/other']], ['own' => [1234 => $driver], 'other' => [5678 => $driver]]];
   }
 
