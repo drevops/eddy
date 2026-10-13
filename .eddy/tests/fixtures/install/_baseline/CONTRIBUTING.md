@@ -169,7 +169,7 @@ ahoy test-functional-javascript
 ahoy browser-stop
 ```
 
-The `test` and `test-functional-javascript` commands both start the browser before they run the suite. It keeps running afterwards, so the next run reuses it - stop it with `browser-stop` when you're done. The `browser-start` command reuses only the project's own browser: when the browser of another project holds the WebDriver port, it fails and names it, and `browser-stop` leaves that browser running.
+The `test` and `test-functional-javascript` commands both start the browser before they run the suite. It keeps running afterwards, so the next run reuses it - stop it with `browser-stop` when you're done. The `browser-start` command reuses any browser that already answers on the WebDriver port, and fails and names whatever else holds the port. The `browser-stop` command stops only the project's own browser, so the browser of another project that recorded the same port keeps running.
 
 To run the browser in a Docker Selenium container instead, set `WEBDRIVER_BACKEND=selenium`. The container cannot reach the host's `localhost`, so start the webserver on all interfaces:
 
