@@ -1,4 +1,4 @@
-@@ -114,10 +114,6 @@
+@@ -116,10 +116,6 @@
  ## Coding standards
  
  The codebase is checked using multiple tools:
