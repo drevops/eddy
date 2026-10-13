@@ -449,6 +449,31 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   /**
+   * The 'Makefile' 'test' recipe exports the WebDriver port only with
+   * FunctionalJavascript.
+   *
+   * @param array<string> $tools_remove
+   */
+  #[DataProvider('dataProviderProcessRendersMakefileTestRecipe')]
+  public function testProcessRendersMakefileTestRecipe(array $tools_remove, bool $expect_phpunit, bool $expect_webdriver): void {
+    process('My Extension', 'my_extension', 'module', ['10', '11'], ['makefile'], $tools_remove, FALSE, FALSE);
+
+    $makefile = (string) file_get_contents(self::$sut . '/Makefile');
+    $export = "\t" . 'export WEBDRIVER_PORT="$$(vendor/bin/eddy-info webdriver-port)" && \\' . "\n";
+    $phpunit = "\t" . 'pushd "build" >/dev/null || exit 1 && \\' . "\n\t" . 'php -d pcov.directory=.. vendor/bin/phpunit $(TEST_RUN_ARGS) && \\' . "\n\t" . 'popd >/dev/null || exit 1' . "\n";
+    $recipe = "\t" . '$(call title,Running PHPUnit)' . "\n" . ($expect_webdriver ? $export : '') . $phpunit;
+
+    $this->assertSame($expect_phpunit, str_contains($makefile, $recipe), 'Makefile PHPUnit recipe line mismatch.');
+    $this->assertSame($expect_webdriver, stripos($makefile, 'webdriver') !== FALSE, 'Makefile WebDriver text presence mismatch.');
+  }
+
+  public static function dataProviderProcessRendersMakefileTestRecipe(): \Iterator {
+    yield 'FunctionalJavascript' => [[], TRUE, TRUE];
+    yield 'no FunctionalJavascript' => [['functional_javascript'], TRUE, FALSE];
+    yield 'no PHPUnit' => [['phpunit'], FALSE, FALSE];
+  }
+
+  /**
    * The browser setup in CI and in '.gitignore' follows FunctionalJavascript.
    *
    * @param array<string> $tools_remove

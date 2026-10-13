@@ -1153,9 +1153,9 @@ function remove_tools(array $tools_remove): void {
 /**
  * Define the removal footprint for each selectable development tool.
  *
- * A block removes whole lines, so a line that names the tool among other items
- * is rewritten instead. 'replacements' maps the template text of such a line
- * to the text without the tool.
+ * A block removes whole lines, so text it can't remove, such as a line that
+ * names the tool among other items, is rewritten instead. 'replacements' maps
+ * the template text to the text without the tool.
  *
  * @return array<string, array{
  *   token: string,
@@ -1271,7 +1271,12 @@ function tool_specs(): array {
       'composer_dev' => ['lullabot/mink-selenium2-driver'],
       'composer_allow_plugins' => [],
       'composer_extra' => [],
-      'replacements' => ['XDebug state, WebDriver port, build directory' => 'XDebug state, build directory'],
+      'replacements' => [
+        'XDebug state, WebDriver port, build directory' => 'XDebug state, build directory',
+        // The export opens a backslash-continued recipe line in the 'Makefile',
+        // so a closing marker after it would join the shell command.
+        "\t" . 'export WEBDRIVER_PORT="$$(vendor/bin/eddy-info webdriver-port)" && \\' . "\n" => '',
+      ],
     ],
     'renovate' => [
       'token' => 'DEV_RENOVATE',
