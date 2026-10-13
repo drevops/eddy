@@ -63,18 +63,11 @@ mkdir_or_fail(dirname($webserver_log));
 $cwd = (string) getcwd();
 passthru(sprintf('nohup php%s -S %s:%s -t %s/build/web %s/build/web/.ht.router.php >%s 2>&1 &', $xdebug_flags, escapeshellarg($webserver_host), escapeshellarg($webserver_port), escapeshellarg($cwd), escapeshellarg($cwd), escapeshellarg($webserver_log)));
 
-NOTE('Waiting %s seconds for the server to be ready.', (string) $webserver_wait_timeout);
-sleep($webserver_wait_timeout);
+NOTE('Waiting up to %s seconds for the server to be ready.', (string) $webserver_wait_timeout);
 
-NOTE('Checking that the server was started.');
-$fp = @fsockopen($webserver_host, (int) $webserver_port, $errno, $errstr, 5);
-
-if ($fp === FALSE) {
+if (!wait_for_port($webserver_host, $webserver_port, $webserver_wait_timeout)) {
   $log = @file_get_contents($webserver_log) ?: '';
   FAIL('Unable to start inbuilt PHP server' . ($log !== '' ? "\n" . $log : ''));
-}
-else {
-  fclose($fp);
 }
 
 PASS('Server started successfully.');

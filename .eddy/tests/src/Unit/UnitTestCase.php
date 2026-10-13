@@ -33,4 +33,11 @@ abstract class UnitTestCase extends UpstreamUnitTestCase {
     parent::tearDown();
   }
 
+  /**
+   * Build the command that kill_port() runs for a port.
+   */
+  protected static function killPortCommand(string $port): string {
+    return sprintf('lsof -ti tcp:%s -sTCP:LISTEN 2>/dev/null | xargs kill -9 2>/dev/null', escapeshellarg($port));
+  }
+
 }

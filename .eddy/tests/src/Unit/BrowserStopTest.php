@@ -55,7 +55,7 @@ final class BrowserStopTest extends UnitTestCase {
     if ($docker) {
       $commands[] = ['cmd' => sprintf('docker rm -f %s >/dev/null 2>&1', escapeshellarg('selenium-' . $expected_port))];
     }
-    $commands[] = ['cmd' => sprintf('lsof -ti:%s 2>/dev/null | xargs kill -9 2>/dev/null', escapeshellarg($expected_port))];
+    $commands[] = ['cmd' => self::killPortCommand($expected_port)];
     $this->mockPassthruMultiple($commands);
 
     $this->mockSleep();

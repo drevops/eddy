@@ -369,4 +369,18 @@ trait MockTrait {
     $this->registerMock('sleep', $namespace, fn(): int => 0);
   }
 
+  /**
+   * Mock usleep() function as a no-op.
+   *
+   * @param string $namespace
+   *   Namespace to mock the function in.
+   */
+  protected function mockUsleep(string $namespace = 'DrevOps\\Eddy\\Tooling'): void {
+    if (isset($this->mocks['usleep'])) {
+      return;
+    }
+
+    $this->registerMock('usleep', $namespace, function (): void {});
+  }
+
 }

@@ -63,9 +63,7 @@ final class XdebugTest extends ToolingTestCase {
   }
 
   protected function fetchProbe(): string {
-    $env = file_exists(self::$sut . '/.env') ? parse_ini_file(self::$sut . '/.env') : [];
-    $port = (string) ($env['WEBSERVER_PORT'] ?? '8000');
-    $body = @file_get_contents('http://localhost:' . $port . '/_xdebug_check.php');
+    $body = @file_get_contents('http://localhost:' . $this->webserverPort() . '/_xdebug_check.php');
 
     return $body === FALSE ? '' : trim($body);
   }

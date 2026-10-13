@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Functional;
 
 use AlexSkrypnyk\PhpunitHelpers\Traits\ProcessTrait;
+use DrevOps\Eddy\Tests\Traits\WebserverTrait;
 use DrevOps\Eddy\Tests\Unit\UnitTestCase;
 use PHPUnit\Framework\Attributes\Group;
+use Symfony\Component\Process\Process;
 
 /**
- * Functional tests for auto-port discovery across multiple projects.
+ * Functional tests for the webservers of several projects on the same machine.
  *
  * phpcs:disable Drupal.Classes.FullyQualifiedNamespace.UseStatementMissing
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
@@ -19,6 +21,7 @@ use PHPUnit\Framework\Attributes\Group;
 final class AutoPortDiscoveryTest extends UnitTestCase {
 
   use ProcessTrait;
+  use WebserverTrait;
 
   protected const string TOOLING_DIR = 'vendor/drevops/eddy-tooling/src';
 
@@ -40,7 +43,7 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
   protected function tearDown(): void {
     foreach ($this->startedPorts as $port) {
       // phpcs:ignore
-      @exec(sprintf('lsof -ti:%s | xargs kill -9 2>/dev/null', escapeshellarg($port)));
+      @exec(sprintf('lsof -ti tcp:%s -sTCP:LISTEN | xargs kill -9 2>/dev/null', escapeshellarg($port)));
     }
     sleep(1);
 
@@ -118,17 +121,43 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
     $this->assertSame($original_env, file_get_contents($sut . '/.env'), '.env must not be rewritten when WEBSERVER_PORT is already set.');
   }
 
+  public function testStopLeavesClientsRunning(): void {
+    $sut = self::$tmp . '/proj_client_' . uniqid();
+    $this->buildMinimalSut($sut);
+
+    $this->processCwd = $sut;
+    $this->processRun('php', [self::TOOLING_DIR . '/eddy-start'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->assertProcessSuccessful();
+
+    $port = $this->readEnvPort($sut);
+    $this->startedPorts[] = $port;
+
+    // A process that holds a client connection to the port, as a browser or a
+    // test in the middle of a request does.
+    $client = new Process(['php', '-r', sprintf('$c = @stream_socket_client("tcp://localhost:%s"); echo $c === FALSE ? "refused" : "connected"; sleep(60);', $port)]);
+    $client->start();
+    $client->waitUntil(fn(string $type, string $output): bool => $type === Process::OUT && $output !== '');
+    $this->assertSame('connected', $client->getOutput());
+
+    $this->processRun('php', [self::TOOLING_DIR . '/eddy-stop'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->assertProcessSuccessful();
+    $this->assertProcessAnyOutputContains('ENVIRONMENT STOPPED');
+
+    $this->assertTrue($client->isRunning(), 'stop leaves a client of the port running.');
+    $this->assertFalse(self::webserverPortAccepts($port), 'stop stops the webserver.');
+
+    $client->stop();
+  }
+
   protected function buildMinimalSut(string $sut): void {
     mkdir($sut . '/' . self::TOOLING_DIR, 0755, TRUE);
-    mkdir($sut . '/build/web', 0755, TRUE);
 
     $source_dir = dirname(__DIR__, 4) . '/.eddy/tooling/src';
     foreach (['helpers.php', 'eddy-start', 'eddy-stop'] as $file) {
       copy($source_dir . '/' . $file, $sut . '/' . self::TOOLING_DIR . '/' . $file);
     }
 
-    file_put_contents($sut . '/build/web/.ht.router.php', "<?php return FALSE;\n");
-    file_put_contents($sut . '/build/web/index.html', "OK\n");
+    self::webserverCreateDocroot($sut);
   }
 
   protected function readEnvPort(string $sut): string {

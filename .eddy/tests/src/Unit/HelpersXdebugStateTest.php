@@ -37,8 +37,7 @@ final class HelpersXdebugStateTest extends UnitTestCase {
     });
 
     $this->assertSame($expected, xdebug_state('8000'));
-    $this->assertNotNull($captured_cmd);
-    $this->assertStringContainsString("lsof -ti:'8000'", $captured_cmd);
+    $this->assertSame("ps -o command= -p \"$(lsof -ti tcp:'8000' -sTCP:LISTEN 2>/dev/null | head -1)\" 2>/dev/null", $captured_cmd, 'Only the process listening on the port is inspected.');
   }
 
   public static function dataProviderXdebugState(): \Iterator {

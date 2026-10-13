@@ -442,7 +442,7 @@ function resolve_site_url(string $host, string $port, string $dotenv_file = '.en
  * server is listening, and '-' when no server is bound to the port.
  */
 function xdebug_state(string $port): string {
-  $command = sprintf('ps -o command= -p "$(lsof -ti:%s 2>/dev/null | head -1)" 2>/dev/null', escapeshellarg($port));
+  $command = sprintf('ps -o command= -p "$(%s | head -1)" 2>/dev/null', port_listener_pids_command($port));
   $out = trim((string) @shell_exec($command));
 
   if ($out === '') {
@@ -524,7 +524,59 @@ function find_free_port(int $start = 8000, int $max_attempts = 100): int {
  *   The TCP port to free.
  */
 function kill_port(int|string $port): void {
-  @passthru(sprintf('lsof -ti:%s 2>/dev/null | xargs kill -9 2>/dev/null', escapeshellarg((string) $port)));
+  @passthru(port_listener_pids_command($port) . ' | xargs kill -9 2>/dev/null');
+}
+
+/**
+ * Build the command that prints the IDs of the processes listening on a port.
+ *
+ * Only a listening TCP socket matches, so a process that holds a client
+ * connection to the port, such as a browser, is left out.
+ *
+ * @param int|string $port
+ *   The TCP port.
+ *
+ * @return string
+ *   The 'lsof' command. It discards its own errors.
+ */
+function port_listener_pids_command(int|string $port): string {
+  return sprintf('lsof -ti tcp:%s -sTCP:LISTEN 2>/dev/null', escapeshellarg((string) $port));
+}
+
+/**
+ * Wait for a TCP port to accept connections.
+ *
+ * Each probe follows a 100-millisecond pause, the first one included, and the
+ * probes run for up to the timeout.
+ *
+ * @param string $host
+ *   The host to connect to.
+ * @param string $port
+ *   The TCP port.
+ * @param int $timeout
+ *   The number of seconds to wait. A value below 1 allows 1 probe.
+ *
+ * @return bool
+ *   TRUE once the port accepts a connection, FALSE when no probe connects.
+ */
+function wait_for_port(string $host, string $port, int $timeout): bool {
+  $interval = 0.1;
+
+  for ($i = 0; $i < max(1, $timeout * 10); $i++) {
+    usleep((int) ($interval * 1000000));
+
+    // A probe times out after 1 interval, so the wait stays under twice the
+    // timeout when the host drops connection attempts.
+    $fp = @fsockopen($host, (int) $port, $errno, $errstr, $interval);
+
+    if ($fp !== FALSE) {
+      fclose($fp);
+
+      return TRUE;
+    }
+  }
+
+  return FALSE;
 }
 
 /**
