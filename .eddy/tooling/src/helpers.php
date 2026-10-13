@@ -544,6 +544,19 @@ function port_listener_pids_command(int|string $port): string {
 }
 
 /**
+ * Get the command line of a process.
+ *
+ * @param int $pid
+ *   The process ID.
+ *
+ * @return string
+ *   The command line, or an empty string when no such process runs.
+ */
+function process_command(int $pid): string {
+  return trim((string) shell_exec(sprintf('ps -p %d -o command= 2>/dev/null', $pid)));
+}
+
+/**
  * Wait for a TCP port to accept connections.
  *
  * Each probe follows a 100-millisecond pause, the first one included. The
@@ -1598,7 +1611,7 @@ function tunnel_pid(): ?int {
     return NULL;
   }
 
-  return str_contains(tunnel_command((int) $pid), 'cloudflared') ? (int) $pid : NULL;
+  return str_contains(process_command((int) $pid), 'cloudflared') ? (int) $pid : NULL;
 }
 
 /**
@@ -1613,20 +1626,7 @@ function tunnel_pid(): ?int {
  *   TRUE when the process was started with '--url http://localhost:<port>'.
  */
 function tunnel_forwards_to(int $pid, string $port): bool {
-  return preg_match('#--url http://localhost:' . preg_quote($port, '#') . '(?:\s|$)#', tunnel_command($pid)) === 1;
-}
-
-/**
- * Get the command line of a process.
- *
- * @param int $pid
- *   The process ID.
- *
- * @return string
- *   The command line, or an empty string when no such process runs.
- */
-function tunnel_command(int $pid): string {
-  return trim((string) shell_exec(sprintf('ps -p %d -o command= 2>/dev/null', $pid)));
+  return preg_match('#--url http://localhost:' . preg_quote($port, '#') . '(?:\s|$)#', process_command($pid)) === 1;
 }
 
 /**
