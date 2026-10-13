@@ -37,6 +37,7 @@ use function process_drupal_version_text;
 use function process_extension_type_text;
 use function read_composer_dev_json;
 use function remove_dir;
+use function remove_npm;
 use function remove_special_comments;
 use function remove_string_content;
 use function remove_tokens_with_content;
@@ -682,6 +683,29 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'tab inside a branch' => ["1.x,2.x\t3.x", "Invalid branch: \"2.x\t3.x\"."];
     yield 'new line inside a branch' => ["1.x\n- 2.x", "Invalid branch: \"1.x\n- 2.x\"."];
     yield 'control character' => ["1.x\x1b", "Invalid branch: \"1.x\x1b\"."];
+  }
+
+  /**
+   * @param array<string, mixed> $package
+   * @param array<string> $tools_remove
+   * @param array<string, mixed> $expected
+   */
+  #[DataProvider('dataProviderRemoveNpm')]
+  public function testRemoveNpm(array $package, array $tools_remove, array $expected): void {
+    chdir(self::$sut);
+    file_put_contents(self::$sut . '/package.json', json_encode($package, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+
+    remove_npm($tools_remove);
+
+    $this->assertSame($expected, json_decode((string) file_get_contents(self::$sut . '/package.json'), TRUE));
+  }
+
+  public static function dataProviderRemoveNpm(): \Iterator {
+    $package = ['name' => 'test', 'scripts' => ['lint-js' => 'eslint .', 'lint' => 'npm run lint-js', 'test' => 'jest'], 'devDependencies' => ['eslint' => '^8', 'jest' => '^29']];
+
+    yield 'no npm tool' => [$package, ['phpcs'], $package];
+    yield 'dependencies left' => [$package, ['eslint'], ['name' => 'test', 'scripts' => ['test' => 'jest'], 'devDependencies' => ['jest' => '^29']]];
+    yield 'no dependencies left' => [['name' => 'test', 'scripts' => ['test' => 'jest'], 'devDependencies' => ['eslint' => '^8']], ['eslint'], ['name' => 'test', 'scripts' => ['test' => 'jest']]];
   }
 
   #[DataProvider('dataProviderParseGithubRepository')]
