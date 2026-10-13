@@ -45,7 +45,7 @@
 +DRUPAL_VERSION=12 vendor/bin/eddy-assemble
  ```
  
- The build pins Drupal core to the newest release matching `DRUPAL_VERSION` and prints it. A version with no stable release yet resolves to its newest pre-release.
+ The build pins Drupal core to the newest release matching `DRUPAL_VERSION` and prints it. A version with no stable release yet resolves to its newest pre-release. When that release requires a newer PHP than the one running the build, the build stops before it changes anything and says which PHP the release needs.
 @@ -99,14 +94,10 @@
  PHP step-debugging is supported via [XDebug](https://xdebug.org/docs/install). Install the XDebug PHP extension on your host (`php -v` should mention `with Xdebug`), then toggle it on the development server:
  
@@ -163,7 +163,7 @@
 @@ -185,13 +199,6 @@
  ### Running specific tests
  
- You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the test commands. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site (`web/themes/custom/` for a theme):
+ You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the test commands. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site:
 -
 -```bash
 -ahoy test-unit web/modules/custom/force_crystal/tests/src/Unit/MyUnitTest.php
