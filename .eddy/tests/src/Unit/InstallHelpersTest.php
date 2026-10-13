@@ -10,10 +10,12 @@ use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Process\Process;
 
+use function add_dependent_tools;
 use function command_wrapper_text;
 use function committed_workflow_branches;
 use function convert_string;
 use function core_version_requirement;
+use function cspell_text_words;
 use function drupal_version_build_default;
 use function drupal_version_default;
 use function drupal_version_options;
@@ -42,11 +44,14 @@ use function remove_npm;
 use function remove_special_comments;
 use function remove_string_content;
 use function remove_tokens_with_content;
+use function remove_unused_cspell_words;
 use function replace_string_content;
 use function set_composer_dev_eddy_value;
 use function set_workflow_branches;
 use function sort_drupal_majors;
 use function template_version;
+use function tool_cspell_words;
+use function tool_specs;
 use function uncomment_line;
 use function workflow_push_branches;
 
@@ -1470,6 +1475,125 @@ final class InstallHelpersTest extends UnitTestCase {
     normalize_cspell_words();
 
     $this->assertSame(json_encode($input), file_get_contents(self::$sut . '/.cspell.json'));
+  }
+
+  /**
+   * @param array<string, string> $files
+   * @param array<string> $words
+   * @param array<int, string>|null $expected
+   */
+  #[DataProvider('dataProviderRemoveUnusedCspellWords')]
+  public function testRemoveUnusedCspellWords(?string $cspell, array $files, array $words, ?array $expected): void {
+    chdir(self::$sut);
+
+    if ($cspell !== NULL) {
+      file_put_contents('.cspell.json', $cspell);
+    }
+
+    foreach ($files as $name => $content) {
+      file_put_contents($name, $content);
+    }
+
+    remove_unused_cspell_words($words);
+
+    if ($expected === NULL) {
+      $this->assertSame($cspell, is_file('.cspell.json') ? file_get_contents('.cspell.json') : NULL, '.cspell.json changed.');
+
+      return;
+    }
+
+    $config = json_decode((string) file_get_contents('.cspell.json'), TRUE);
+    $this->assertIsArray($config);
+    $this->assertSame($expected, $config['words'] ?? NULL);
+  }
+
+  public static function dataProviderRemoveUnusedCspellWords(): \Iterator {
+    $cspell = static fn(array $words): string => (string) json_encode(['files' => ['**'], 'words' => $words]);
+
+    yield 'unused word goes' => [$cspell(['ahoy', 'lullabot']), ['Makefile' => 'ahoy'], ['lullabot'], ['ahoy']];
+    yield 'word in another case goes' => [$cspell(['Lullabot', 'phpcs']), ['phpcs.xml' => 'phpcs'], ['lullabot'], ['phpcs']];
+    yield 'word a file uses stays' => [$cspell(['behat', 'lullabot']), ['README.md' => '# Behat Tools'], ['behat', 'lullabot'], ['behat']];
+    yield 'word inside another word goes' => [$cspell(['ahoy', 'rector']), ['README.md' => 'ahoy directory'], ['rector'], ['ahoy']];
+    yield 'word not given stays' => [$cspell(['gnomovision', 'lullabot']), [], ['lullabot'], ['gnomovision']];
+    yield 'every word goes' => [$cspell(['lullabot']), [], ['lullabot'], []];
+    yield 'camel case part of a word stays' => [$cspell(['chromedriver']), ['Test.php' => 'class ChromedriverTest {}'], ['chromedriver'], NULL];
+    yield 'no words given' => [$cspell(['lullabot']), [], [], NULL];
+    yield 'no words list' => ['{"files":["**"]}', [], ['lullabot'], NULL];
+    yield 'no file' => [NULL, ['README.md' => 'text'], ['lullabot'], NULL];
+  }
+
+  /**
+   * @param array<string> $expected
+   */
+  #[DataProvider('dataProviderCspellTextWords')]
+  public function testCspellTextWords(string $text, array $expected): void {
+    $words = array_keys(cspell_text_words($text));
+    sort($words);
+
+    $this->assertSame($expected, $words);
+  }
+
+  public static function dataProviderCspellTextWords(): \Iterator {
+    yield 'empty' => ['', []];
+    yield 'separators and digits' => ['lullabot/mink-selenium2-driver', ['driver', 'lullabot', 'mink', 'selenium']];
+    yield 'case' => ['Behat BEHAT behat', ['behat']];
+    yield 'underscores' => ['CI_TWIGCSFIXER_IGNORE_FAILURE', ['ci', 'failure', 'ignore', 'twigcsfixer']];
+    yield 'camel case' => ['ChromedriverTest', ['chromedriver', 'chromedrivertest', 'test']];
+    yield 'acronym' => ['PHPUnitTest', ['php', 'phpunittest', 'test', 'unit']];
+    yield 'word inside a word' => ['directory', ['directory']];
+  }
+
+  /**
+   * @param array<string> $tools_remove
+   * @param array<string> $expected
+   */
+  #[DataProvider('dataProviderAddDependentTools')]
+  public function testAddDependentTools(array $tools_remove, array $expected): void {
+    $this->assertSame($expected, add_dependent_tools($tools_remove));
+  }
+
+  public static function dataProviderAddDependentTools(): \Iterator {
+    yield 'no tool' => [[], []];
+    yield 'independent tool' => [['phpcs'], ['phpcs']];
+    yield 'FunctionalJavascript' => [['functional_javascript'], ['functional_javascript']];
+    yield 'PHPUnit' => [['phpunit'], ['phpunit', 'functional_javascript']];
+    yield 'PHPUnit and FunctionalJavascript' => [['functional_javascript', 'phpunit'], ['functional_javascript', 'phpunit']];
+  }
+
+  /**
+   * @param array<string> $tools_remove
+   * @param array<string> $expected
+   */
+  #[DataProvider('dataProviderToolCspellWords')]
+  public function testToolCspellWords(array $tools_remove, array $expected): void {
+    $this->assertSame($expected, tool_cspell_words($tools_remove));
+  }
+
+  public static function dataProviderToolCspellWords(): \Iterator {
+    $functional_javascript = ['chromedriver', 'headful', 'lullabot', 'webdriver'];
+
+    yield 'no tool' => [[], []];
+    yield 'tool without words' => [['eslint'], []];
+    yield 'unknown tool' => [['unknown'], []];
+    yield 'tools with words' => [['rector', 'renovate'], ['palantirnet', 'renovatebot']];
+    yield 'FunctionalJavascript' => [['functional_javascript'], $functional_javascript];
+    yield 'PHPUnit takes FunctionalJavascript along' => [['phpunit'], ['behat', 'browserkit', 'codecov', 'mikey', 'phpspec', 'vfsstream', ...$functional_javascript]];
+  }
+
+  /**
+   * Every word a tool lists is in the 'words' of the template '.cspell.json'.
+   */
+  public function testToolSpecsCspellWordsAreTemplateWords(): void {
+    $config = json_decode((string) file_get_contents(dirname(__DIR__, 4) . '/.cspell.json'), TRUE);
+    $this->assertIsArray($config);
+    $template_words = $config['words'] ?? NULL;
+    $this->assertIsArray($template_words);
+
+    foreach (tool_specs() as $tool => $spec) {
+      foreach ($spec['cspell_words'] ?? [] as $word) {
+        $this->assertContains($word, $template_words, sprintf('The CSpell word "%s" of "%s" is not in .cspell.json.', $word, $tool));
+      }
+    }
   }
 
   /**

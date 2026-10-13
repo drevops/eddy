@@ -44,6 +44,8 @@ Neither leaves a run of blank lines behind. When the lines they delete sit betwe
 
 Dropping PHPUnit drops FunctionalJavascript with it, since those tests run on PHPUnit. Functional tests run on Mink and its BrowserKit driver too, so those packages belong to PHPUnit, and dropping FunctionalJavascript removes only the Selenium driver. Dropping every tool in `npm_specs()` (ESLint, Stylelint, CSpell and Jest) also deletes `package.json` and `package-lock.json`, since nothing runs npm any more.
 
+JSON holds no markers, so the words a tool adds to the `words` of `.cspell.json` are listed in its `cspell_words` in `tool_specs()`. Once every other change is done, `remove_unused_cspell_words()` removes the listed words of each dropped tool that no project file uses. A word that the extension name or a kept `install.php` uses stays, and so do generic words such as `webroot`, which no tool lists.
+
 Blocks of different tokens can nest, because `install.php` strips 1 token at a time: a `DEV_FUNCTIONAL_JAVASCRIPT` block inside a `DEV_MAKEFILE` block goes when either token is stripped.
 
 ### Rules for a block
@@ -83,7 +85,7 @@ A replacement finds nothing once the template text drifts from the every-option 
 ### Adding a development tool
 
 1. In `install.php`, add the tool to `$tool_options` in `main()` and to the `INSTALL_TOOLS` entry of `print_help()`.
-2. Give it a `tool_specs()` entry: its `DEV_<TOOL>` token plus the files, directories and `composer.dev.json` entries that go with it. List only the packages nothing else needs: Mink, which Functional tests use too, sits with PHPUnit rather than FunctionalJavascript. Text that names the tool among other items goes in its `replacements`. Its npm packages and scripts, if it has any, go in `npm_specs()`.
+2. Give it a `tool_specs()` entry: its `DEV_<TOOL>` token plus the files, directories and `composer.dev.json` entries that go with it. List only the packages nothing else needs: Mink, which Functional tests use too, sits with PHPUnit rather than FunctionalJavascript. Text that names the tool among other items goes in its `replacements`. The words it adds to `.cspell.json`, such as the vendors of its packages, go in its `cspell_words` when no other file uses them. Its npm packages and scripts, if it has any, go in `npm_specs()`.
 3. Wrap every line you add for the tool in a `DEV_<TOOL>` block, wherever it lands: the command wrappers, `.github/workflows/test.yml`, configuration files such as `.gitattributes` and `.editorconfig`, and the docs in `AGENTS.md`, `README.dist.md` and `CONTRIBUTING.dist.md`. A `CI_IS_<TOOL>_RUNNER` flag in `test.yml` belongs inside the block too, and `CiRunnerVariablesTest` checks it's there.
 4. If the tool runs through the shared `npm run lint` step, add it to the condition in `remove_tools()` that strips `DEV_NODEJS_LINT`, and add its sub-scripts to the `rebuild_npm_chain()` calls in `remove_npm()`.
 5. Document it in `README.md`: the feature list, and the ignore-failure table when its CI step has a `CI_<TOOL>_IGNORE_FAILURE` variable.

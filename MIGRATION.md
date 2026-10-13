@@ -197,7 +197,7 @@ The rest of the template moved on as well, and an upgrade merges these files lik
 - `.github/workflows/test.yml` installs the tooling and calls `vendor/bin/eddy-*`. Its Composer cache works now: the 4.x cache step pointed at a directory Composer never wrote to, so it never stored anything.
 - `.github/workflows/deploy.yml` installs the tooling and calls `vendor/bin/eddy-deploy` (see [Deployment](#deployment)).
 - Since 4.18.0, `phpunit.xml`, `phpunit.d10.xml`, `phpcs.xml`, `phpstan.neon` and `jest.config.js` changed only in their comments, and `rector.php` didn't change at all, so keep any settings you added to them. The exceptions are the `MINK_DRIVER_ARGS_WEBDRIVER` entries in both PHPUnit files. 4.19.0 dropped their `force="true"`: in a project on 4.18.0 or earlier, a value you export now overrides the one in the file instead of the other way round. A project without FunctionalJavascript tests loses the entries altogether, since only those tests read them.
-- `.cspell.json` adds the word `cweagans`, which `composer.dev.json` now contains. Merge it with your own words.
+- `.cspell.json` adds the word `cweagans`, which `composer.dev.json` now contains, and drops the words of the tools you don't keep, such as `lullabot` without FunctionalJavascript tests. Merge it with your own words.
 - `AGENTS.md` describes the tooling commands, `vendor/` and `scripts/eddy-tooling` in place of `.devtools/`, drops CircleCI, and carries the new "Updating the scaffold" section.
 - `CONTRIBUTING.md` documents only the command wrappers you keep, or the `vendor/bin/eddy-*` commands when you keep neither. Carry your own notes over from the old copy.
 - `README.md` drops the CircleCI badge, shows Drupal badges only for the majors you test, and credits Eddy.

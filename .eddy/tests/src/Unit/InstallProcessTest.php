@@ -386,6 +386,54 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   /**
+   * Removing a tool removes exactly the CSpell words no file uses any more.
+   *
+   * @param array<string> $tools_remove
+   * @param array<string> $expected
+   */
+  #[DataProvider('dataProviderProcessRemovesCspellWords')]
+  public function testProcessRemovesCspellWords(array $tools_remove, array $expected, string $name = 'My Extension', bool $keep_script = FALSE): void {
+    if (!$keep_script) {
+      unlink(self::$sut . '/install.php');
+    }
+
+    $before = self::cspellWords();
+
+    process($name, strtolower(str_replace(' ', '_', $name)), 'module', ['10', '11', '12'], ['ahoy', 'makefile'], $tools_remove, FALSE, FALSE);
+
+    // The rename of the extension rewrites these placeholders.
+    $removed = array_values(array_diff($before, self::cspellWords(), ['alexskrypnyk', 'yournamespace', 'yourproject']));
+    sort($removed);
+    sort($expected);
+
+    $this->assertSame($expected, $removed);
+  }
+
+  public static function dataProviderProcessRemovesCspellWords(): \Iterator {
+    $phpcs = ['dealerdirect', 'phpcbf', 'phpcodesniffer', 'phpcompatibility', 'phpcs', 'squiz'];
+    $phpstan = ['jangregor', 'mglaman'];
+    $rector = ['palantirnet'];
+    $twigcs = ['twigcsfixer', 'vincentlanglet'];
+    $phpunit = ['behat', 'browserkit', 'codecov', 'mikey', 'phpspec', 'vfsstream'];
+    $functional_javascript = ['chromedriver', 'headful', 'lullabot', 'webdriver'];
+    $renovate = ['renovatebot'];
+    $every_tool_but_cspell = ['phpcs', 'phpstan', 'rector', 'twigcs', 'eslint', 'stylelint', 'jest', 'phpunit', 'functional_javascript', 'renovate'];
+
+    yield 'no tool' => [[], []];
+    yield 'phpcs' => [['phpcs'], $phpcs];
+    yield 'phpstan' => [['phpstan'], $phpstan];
+    yield 'rector' => [['rector'], $rector];
+    yield 'twigcs' => [['twigcs'], $twigcs];
+    yield 'npm tools but CSpell' => [['eslint', 'stylelint', 'jest'], []];
+    yield 'functional_javascript' => [['functional_javascript'], $functional_javascript];
+    yield 'phpunit' => [['phpunit'], [...$phpunit, ...$functional_javascript]];
+    yield 'renovate' => [['renovate'], $renovate];
+    yield 'every tool but CSpell' => [$every_tool_but_cspell, [...$phpcs, ...$phpstan, ...$rector, ...$twigcs, ...$phpunit, ...$functional_javascript, ...$renovate]];
+    yield 'word in the extension name' => [['phpunit'], [...array_diff($phpunit, ['behat']), ...$functional_javascript], 'Behat Tools'];
+    yield 'kept install.php' => [['phpunit'], [], 'My Extension', TRUE];
+  }
+
+  /**
    * The WebDriver settings in the PHPUnit files follow FunctionalJavascript.
    *
    * @param array<string> $tools_remove
@@ -1253,6 +1301,20 @@ final class InstallProcessTest extends UnitTestCase {
     self::assertIsArray($packages);
 
     return array_map(strval(...), array_keys($packages));
+  }
+
+  /**
+   * Read the CSpell words of the SUT '.cspell.json'.
+   *
+   * @return array<int, string>
+   *   The words, in lower case.
+   */
+  protected static function cspellWords(): array {
+    $config = json_decode((string) file_get_contents(self::$sut . '/.cspell.json'), TRUE);
+    $words = is_array($config) ? $config['words'] ?? NULL : NULL;
+    self::assertIsArray($words);
+
+    return array_values(array_map(strtolower(...), array_filter($words, is_string(...))));
   }
 
   /**
