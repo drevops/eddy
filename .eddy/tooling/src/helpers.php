@@ -589,16 +589,18 @@ function webserver_serves(string $command, string $docroot): bool {
  */
 function webserver_listeners(string $port, string $docroot): array {
   $listeners = ['own' => [], 'other' => []];
-  $pids = preg_split('/\s+/', trim((string) shell_exec(port_listener_pids_command($port))), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+  $values = preg_split('/\s+/', trim((string) shell_exec(port_listener_pids_command($port))), -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
-  foreach ($pids as $pid) {
-    if (!ctype_digit($pid) || (int) $pid < 1) {
+  foreach ($values as $value) {
+    $pid = (int) $value;
+
+    if (!ctype_digit($value) || $pid < 1) {
       continue;
     }
 
-    $command = process_command((int) $pid);
+    $command = process_command($pid);
     $owner = $command === '' || webserver_serves($command, $docroot) ? 'own' : 'other';
-    $listeners[$owner][(int) $pid] = $command;
+    $listeners[$owner][$pid] = $command;
   }
 
   return $listeners;
