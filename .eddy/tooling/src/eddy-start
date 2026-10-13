@@ -32,7 +32,7 @@ $webserver_log = '.logs/php.log';
 
 // The docroot identifies the webserver of this project among the processes
 // that listen on the port.
-$docroot = (string) getcwd() . '/build/web';
+$docroot = getcwd() . '/build/web';
 
 // Enable XDebug when XDebug env var is set. XDebug extension must be installed
 // and configured on host environment (php -v should show `with Xdebug`).
