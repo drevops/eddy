@@ -64,6 +64,14 @@ ahoy provision    # Provision the Drupal website
 <!-- #;> DEV_AHOY -->
 
 The `provision` command is useful for re-installing the Drupal website without re-assembling the codebase.
+<!-- #;< DEV_COMMAND_WRAPPER -->
+
+The `info` command prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path. The `reset` command stops the development server and removes the `build`, `.logs` and `vendor` directories.
+<!-- #;> DEV_COMMAND_WRAPPER -->
+<!-- #;< DEV_NO_COMMAND_WRAPPER -->
+
+`vendor/bin/eddy-info` prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path.
+<!-- #;> DEV_NO_COMMAND_WRAPPER -->
 
 ### Drupal versions
 
@@ -335,7 +343,7 @@ npm test
 <!-- #;> DEV_NO_COMMAND_WRAPPER -->
 <!-- #;< DEV_PHPUNIT -->
 
-The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests. It uses Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
+The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests, and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both use Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
 
 Each test suite can also be run on its own:
 <!-- #;< DEV_MAKEFILE -->
