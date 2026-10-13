@@ -140,7 +140,7 @@
 +make test-unit -- --group wip
 +```
 +
-+`make` reads an argument that holds `=` as a variable, so separate an option from its value with a space.
++`make` reads an argument that holds `=` as a variable and fails on one that holds `:`, so separate an option from its value with a space, and pass `--filter` a class or method name rather than `Class::method`.
  
  ```bash
  ahoy test-unit web/modules/custom/force_crystal/tests/src/Unit/MyUnitTest.php
