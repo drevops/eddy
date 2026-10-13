@@ -86,6 +86,26 @@ final class AhoyTest extends ToolingTestCase {
     $other->stop();
   }
 
+  public function testStopAndResetLeaveServerOfAnotherProject(): void {
+    // Another project recorded the same port, and its webserver runs on it.
+    $port = self::webserverFreePort();
+    file_put_contents(self::$sut . '/.env', 'WEBSERVER_PORT=' . $port . "\n");
+    $other = self::webserverStartOther(self::$tmp . '/other_' . uniqid(), $port);
+    $this->assertTrue(self::webserverPortAccepts($port), 'The webserver of the other project is running.');
+
+    $this->processRun('ahoy', ['stop'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->assertProcessSuccessful();
+    $this->assertProcessAnyOutputContains('Port ' . $port . ' is still in use by another process, which was left running:');
+    $this->assertTrue(self::webserverPortAccepts($port), 'stop leaves the webserver of another project running.');
+
+    $this->processRun('ahoy', ['reset'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->assertProcessSuccessful();
+    $this->assertTrue(self::webserverPortAccepts($port), 'reset leaves the webserver of another project running.');
+    $this->assertDirectoryDoesNotExist(self::$sut . '/vendor');
+
+    $other->stop();
+  }
+
   public function testWorkflow(): void {
     $this->processRun('ahoy', ['start'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessFailed();

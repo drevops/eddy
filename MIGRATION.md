@@ -112,6 +112,8 @@ The build changed in 2 ways you might notice:
 - It applies the patches you declare. From 4.14.0 to 4.19.0, the build didn't install `cweagans/composer-patches`. Unless your project required the plugin itself, Composer skipped every patch in `composer.json` and `composer.dev.json` without a word. In 5.x they apply, and a patch that no longer applies fails the build (see [Patching dependencies](README.md#patching-dependencies)).
 - It pins Drupal core to 1 exact release, and resolves every other dependency with `minimum-stability: dev` and `prefer-stable: true` (see [How versions are resolved](README.md#how-versions-are-resolved)). `DRUPAL_VERSION` takes values such as `11`, `11.1.0` or `11@beta`, but no longer `@dev`, because a development branch isn't a release.
 
+`start` and `stop` changed too. In 4.x they killed whatever listened on the project's port. In 5.x they only stop the webserver that serves the project's own `build/web`, so the server of another project that recorded the same port keeps running, and `start` fails and names it instead of taking the port over (see [Webserver port](README.md#webserver-port)).
+
 ### Cloudflare tunnel hooks
 
 In 4.18.0 and 4.19.0, `init.php` could keep 3 hooks that ran a Cloudflare quick tunnel: `scripts/provision-cloudflared.sh`, `scripts/start-cloudflared.sh` and `scripts/stop-cloudflared.sh`.
@@ -193,7 +195,7 @@ Check that the dependencies in your `composer.json` support Drupal 12 too, and a
 
 The rest of the template moved on as well, and an upgrade merges these files like any template update:
 
-- `.ahoy.yml` and `Makefile` call `vendor/bin/eddy-*` and install the tooling first. When you keep FunctionalJavascript tests, `test` now starts the browser before PHPUnit, so it needs Chrome, or Docker with `WEBDRIVER_BACKEND=selenium`. `test-unit`, `test-kernel` and `test-functional` don't. `reset` stops only the webserver on the project's port rather than every PHP process you're running, and it also removes `vendor/`, which is how a local checkout picks up a newer patch release of the tooling.
+- `.ahoy.yml` and `Makefile` call `vendor/bin/eddy-*` and install the tooling first. When you keep FunctionalJavascript tests, `test` now starts the browser before PHPUnit, so it needs Chrome, or Docker with `WEBDRIVER_BACKEND=selenium`. `test-unit`, `test-kernel` and `test-functional` don't. `reset` stops only the project's own webserver rather than every PHP process you're running, and it also removes `vendor/`, which is how a local checkout picks up a newer patch release of the tooling.
 - `.github/workflows/test.yml` installs the tooling and calls `vendor/bin/eddy-*`. Its Composer cache works now: the 4.x cache step pointed at a directory Composer never wrote to, so it never stored anything.
 - `.github/workflows/deploy.yml` installs the tooling and calls `vendor/bin/eddy-deploy` (see [Deployment](#deployment)).
 - Since 4.18.0, `phpunit.xml`, `phpunit.d10.xml`, `phpcs.xml`, `phpstan.neon` and `jest.config.js` changed only in their comments, and `rector.php` didn't change at all, so keep any settings you added to them. The exceptions are the `MINK_DRIVER_ARGS_WEBDRIVER` entries in both PHPUnit files. 4.19.0 dropped their `force="true"`: in a project on 4.18.0 or earlier, a value you export now overrides the one in the file instead of the other way round. A project without FunctionalJavascript tests loses the entries altogether, since only those tests read them.

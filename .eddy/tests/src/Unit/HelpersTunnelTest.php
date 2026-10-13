@@ -30,7 +30,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[CoversFunction('DrevOps\Eddy\Tooling\tunnel_write_settings')]
 #[CoversFunction('DrevOps\Eddy\Tooling\tunnel_pid')]
 #[CoversFunction('DrevOps\Eddy\Tooling\tunnel_forwards_to')]
-#[CoversFunction('DrevOps\Eddy\Tooling\tunnel_command')]
+#[CoversFunction('DrevOps\Eddy\Tooling\process_command')]
 #[CoversFunction('DrevOps\Eddy\Tooling\tunnel_log_url')]
 #[CoversFunction('DrevOps\Eddy\Tooling\tunnel_responds')]
 #[CoversFunction('DrevOps\Eddy\Tooling\tunnel_kill')]

@@ -41,6 +41,8 @@ The installer runs Composer only when the constraint, the patches for the packag
 
 Before it touches `build/`, `eddy-assemble` reads the PHP requirement of the Drupal core release it resolved and stops when the PHP running it doesn't meet it, or when the `config.platform.php` that the extension's `composer.dev.json` or `composer.json` sets doesn't. It then sets `config.platform.php` in `build/composer.json` to that setting, or to the running PHP when the extension sets none, so a `platform` setting in the global Composer configuration doesn't change what gets installed. With `GITHUB_TOKEN` set, it passes the token to the Composer commands it runs through `COMPOSER_AUTH`, unless that variable is already set, and leaves the global Composer configuration alone.
 
+`eddy-start` and `eddy-stop` only stop a webserver that serves the project's own `build/web`, so they leave another project's server running when 2 projects record the same port. `eddy-start` fails and names the process that holds the port instead of stopping it. Once it has launched the server, it waits up to `WEBSERVER_WAIT_TIMEOUT` seconds, 5 by default, for the server to accept connections.
+
 ## Verbose output
 
 By default the commands print only their own `[TASK]`/`[ OK ]` progress and suppress the output of the tools they run (Composer, npm, Drush). When a tool fails, its captured output is shown so the failure is diagnosable. The output of the project's own commands - `npm run build` and the custom scripts below - is always shown. Set `DEBUG=1` to stream the full output of every tool live, for example `DEBUG=1 make build` or `DEBUG=1 ahoy build`.

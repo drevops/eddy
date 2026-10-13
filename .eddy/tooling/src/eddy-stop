@@ -19,6 +19,10 @@ require_once __DIR__ . '/helpers.php';
 // Webserver port resolved via the env -> '.env' -> default chain.
 $webserver_port = resolve_webserver()['port'];
 
+// The docroot identifies the webserver of this project among the processes
+// that listen on the port.
+$docroot = getcwd() . '/build/web';
+
 // -----------------------------------------------------------------------------
 
 echo '===============================' . PHP_EOL;
@@ -33,9 +37,18 @@ run_custom_scripts('scripts', 'stop-');
 tunnel_stop();
 
 TASK('Stopping previously started services on port %s, if any.', $webserver_port);
-kill_port($webserver_port);
+$listeners = webserver_listeners($webserver_port, $docroot);
+kill_processes(array_keys($listeners['own']));
 sleep(1);
 PASS('Services stopped on port %s.', $webserver_port);
+
+if ($listeners['other'] !== []) {
+  NOTE('Port %s is still in use by another process, which was left running:', $webserver_port);
+
+  foreach ($listeners['other'] as $pid => $command) {
+    NOTE('%d %s', $pid, $command);
+  }
+}
 
 echo PHP_EOL;
 echo '===============================' . PHP_EOL;

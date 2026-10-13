@@ -41,6 +41,18 @@ trait MockTrait {
    */
   protected array $mockChecked = [];
 
+  /**
+   * The time of the fake clock that mockClock() installs, in nanoseconds.
+   */
+  protected int $mockClockNanoseconds = 0;
+
+  /**
+   * The pauses that usleep() made on the fake clock, in microseconds.
+   *
+   * @var array<int, int>
+   */
+  protected array $mockClockPauses = [];
+
   protected function mockTearDown(): void {
     foreach (array_keys($this->mocks) as $function_name) {
       $this->assertMockConsumed($function_name);
@@ -370,17 +382,23 @@ trait MockTrait {
   }
 
   /**
-   * Mock usleep() function as a no-op.
+   * Mock hrtime() and usleep() with a fake clock.
+   *
+   * hrtime() reads the clock in nanoseconds and usleep() advances it, so a
+   * wait loop runs to its deadline without sleeping. A test advances
+   * $mockClockNanoseconds itself to simulate a call that takes time.
    *
    * @param string $namespace
-   *   Namespace to mock the function in.
+   *   Namespace to mock the functions in.
    */
-  protected function mockUsleep(string $namespace = 'DrevOps\\Eddy\\Tooling'): void {
-    if (isset($this->mocks['usleep'])) {
-      return;
-    }
+  protected function mockClock(string $namespace = 'DrevOps\\Eddy\\Tooling'): void {
+    // cspell:ignore hrtime
+    $this->registerMock('hrtime', $namespace, fn(): int => $this->mockClockNanoseconds);
 
-    $this->registerMock('usleep', $namespace, function (): void {});
+    $this->registerMock('usleep', $namespace, function (int $microseconds): void {
+      $this->mockClockPauses[] = $microseconds;
+      $this->mockClockNanoseconds += $microseconds * 1000;
+    });
   }
 
 }

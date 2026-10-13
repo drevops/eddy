@@ -544,37 +544,124 @@ function port_listener_pids_command(int|string $port): string {
 }
 
 /**
+ * Get the command line of a process.
+ *
+ * @param int $pid
+ *   The process ID.
+ *
+ * @return string
+ *   The command line, or an empty string when no such process runs.
+ */
+function process_command(int $pid): string {
+  return trim((string) shell_exec(sprintf('ps -p %d -o command= 2>/dev/null', $pid)));
+}
+
+/**
+ * Check whether a process serves a docroot with the PHP webserver.
+ *
+ * @param string $command
+ *   The command line of the process, as 'ps' prints it.
+ * @param string $docroot
+ *   The absolute path of the docroot.
+ *
+ * @return bool
+ *   TRUE when the command line passes the docroot to '-t', the way
+ *   'eddy-start' launches the webserver.
+ */
+function webserver_serves(string $command, string $docroot): bool {
+  return preg_match('#\s-t ' . preg_quote($docroot, '#') . '(?:\s|$)#', $command) === 1;
+}
+
+/**
+ * List the processes listening on the webserver port, split by owner.
+ *
+ * A process whose command line cannot be read counts as the project's own, so
+ * the port is still freed where 'ps' is missing.
+ *
+ * @param string $port
+ *   The webserver port.
+ * @param string $docroot
+ *   The absolute path of the project's docroot.
+ *
+ * @return array{own: array<int, string>, other: array<int, string>}
+ *   The command line of each listening process, keyed by process ID: 'own'
+ *   for the processes that serve the docroot, 'other' for the rest.
+ */
+function webserver_listeners(string $port, string $docroot): array {
+  $listeners = ['own' => [], 'other' => []];
+  $values = preg_split('/\s+/', trim((string) shell_exec(port_listener_pids_command($port))), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+  foreach ($values as $value) {
+    $pid = (int) $value;
+
+    if (!ctype_digit($value) || $pid < 1) {
+      continue;
+    }
+
+    $command = process_command($pid);
+    $owner = $command === '' || webserver_serves($command, $docroot) ? 'own' : 'other';
+    $listeners[$owner][$pid] = $command;
+  }
+
+  return $listeners;
+}
+
+/**
+ * Kill processes with SIGKILL.
+ *
+ * Process IDs below 1 are ignored, because 'kill' signals a whole process
+ * group for 0 and negative IDs.
+ *
+ * @param array<int, int> $pids
+ *   The process IDs.
+ */
+function kill_processes(array $pids): void {
+  $pids = array_filter($pids, static fn(int $pid): bool => $pid > 0);
+
+  if ($pids === []) {
+    return;
+  }
+
+  @passthru(sprintf('kill -9 %s 2>/dev/null', implode(' ', $pids)));
+}
+
+/**
  * Wait for a TCP port to accept connections.
  *
- * Each probe follows a 100-millisecond pause, the first one included, and the
- * probes run for up to the timeout.
+ * Each probe follows a 100-millisecond pause, the first one included. The
+ * pause and the connection attempt are both capped at the time left, so the
+ * wait ends at the timeout even when the host drops connection attempts.
  *
  * @param string $host
  *   The host to connect to.
  * @param string $port
  *   The TCP port.
  * @param int $timeout
- *   The number of seconds to wait. A value below 1 allows 1 probe.
+ *   The number of seconds to wait. A value below 1 allows 1 probe, with no
+ *   pause and no time to connect.
  *
  * @return bool
  *   TRUE once the port accepts a connection, FALSE when no probe connects.
  */
 function wait_for_port(string $host, string $port, int $timeout): bool {
   $interval = 0.1;
+  // cspell:ignore hrtime
+  // hrtime() is monotonic, so a change of the system time cannot move the
+  // deadline.
+  $deadline = hrtime(TRUE) / 1e9 + $timeout;
+  $time_left = static fn(): float => max(0.0, $deadline - hrtime(TRUE) / 1e9);
 
-  for ($i = 0; $i < max(1, $timeout * 10); $i++) {
-    usleep((int) ($interval * 1000000));
+  do {
+    usleep((int) round(min($interval, $time_left()) * 1e6));
 
-    // A probe times out after 1 interval, so the wait stays under twice the
-    // timeout when the host drops connection attempts.
-    $fp = @fsockopen($host, (int) $port, $errno, $errstr, $interval);
+    $fp = @fsockopen($host, (int) $port, $errno, $errstr, min($interval, $time_left()));
 
     if ($fp !== FALSE) {
       fclose($fp);
 
       return TRUE;
     }
-  }
+  } while ($time_left() > 0);
 
   return FALSE;
 }
@@ -1594,7 +1681,7 @@ function tunnel_pid(): ?int {
     return NULL;
   }
 
-  return str_contains(tunnel_command((int) $pid), 'cloudflared') ? (int) $pid : NULL;
+  return str_contains(process_command((int) $pid), 'cloudflared') ? (int) $pid : NULL;
 }
 
 /**
@@ -1609,20 +1696,7 @@ function tunnel_pid(): ?int {
  *   TRUE when the process was started with '--url http://localhost:<port>'.
  */
 function tunnel_forwards_to(int $pid, string $port): bool {
-  return preg_match('#--url http://localhost:' . preg_quote($port, '#') . '(?:\s|$)#', tunnel_command($pid)) === 1;
-}
-
-/**
- * Get the command line of a process.
- *
- * @param int $pid
- *   The process ID.
- *
- * @return string
- *   The command line, or an empty string when no such process runs.
- */
-function tunnel_command(int $pid): string {
-  return trim((string) shell_exec(sprintf('ps -p %d -o command= 2>/dev/null', $pid)));
+  return preg_match('#--url http://localhost:' . preg_quote($port, '#') . '(?:\s|$)#', process_command($pid)) === 1;
 }
 
 /**

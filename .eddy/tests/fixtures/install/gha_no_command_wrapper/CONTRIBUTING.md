@@ -46,7 +46,7 @@
  ```
  
  The build pins Drupal core to the newest release matching `DRUPAL_VERSION` and prints it. A version with no stable release yet resolves to its newest pre-release. When that release requires a newer PHP than the one running the build, the build stops before it changes anything and says which PHP the release needs.
-@@ -99,14 +94,10 @@
+@@ -101,14 +96,10 @@
  PHP step-debugging is supported via [XDebug](https://xdebug.org/docs/install). Install the XDebug PHP extension on your host (`php -v` should mention `with Xdebug`), then toggle it on the development server:
  
  ```bash
@@ -63,7 +63,7 @@
  Code coverage stays on [pcov](https://github.com/krakjoe/pcov) because the XDebug settings apply only to the development server, not to the test commands.
  
  To start and stop debug sessions from the browser, install the Xdebug Helper extension: [Chrome](https://chromewebstore.google.com/detail/xdebug-helper-by-jetbrain/aoelhdemabeimdhedkidlnbkfhnhgnhm) / [Firefox](https://addons.mozilla.org/en-US/firefox/addon/xdebug-helper-by-jetbrains/).
-@@ -126,7 +117,15 @@
+@@ -128,7 +119,15 @@
  Run all checks with:
  
  ```bash
@@ -80,7 +80,7 @@
  ```
  
  ### Fixing coding standards issues
-@@ -134,7 +133,11 @@
+@@ -136,7 +135,11 @@
  To fix coding standards issues automatically, run the same tools with the `--fix` option (for the tools that support it):
  
  ```bash
@@ -93,7 +93,7 @@
  ```
  
  ## Testing
-@@ -142,7 +145,11 @@
+@@ -144,7 +147,11 @@
  Run the tests for this extension with:
  
  ```bash
@@ -106,7 +106,7 @@
  ```
  
  The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests. It uses Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
-@@ -150,10 +157,10 @@
+@@ -152,10 +159,10 @@
  Each test suite can also be run on its own:
  
  ```bash
@@ -121,7 +121,7 @@
  ```
  
  ### Running FunctionalJavascript tests
-@@ -161,21 +168,28 @@
+@@ -163,21 +170,28 @@
  FunctionalJavascript tests need a real browser driven via WebDriver. By default they use the Google Chrome already installed on your machine - a matching `chromedriver` is downloaded automatically on first run, so no Docker is required:
  
  ```bash
@@ -160,7 +160,7 @@
  ```
  
  The browser reaches the webserver at `localhost` with the default backend, and at `host.docker.internal` (macOS) or `__VERSION__.1` (other systems) from the Selenium container. Set `WEBDRIVER_HOST` to use a different address.
-@@ -185,13 +199,6 @@
+@@ -187,13 +201,6 @@
  ### Running specific tests
  
  You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the test commands. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site:
