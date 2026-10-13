@@ -392,6 +392,7 @@ trait MockTrait {
    *   Namespace to mock the functions in.
    */
   protected function mockClock(string $namespace = 'DrevOps\\Eddy\\Tooling'): void {
+    // cspell:ignore hrtime
     $this->registerMock('hrtime', $namespace, fn(): int => $this->mockClockNanoseconds);
 
     $this->registerMock('usleep', $namespace, function (int $microseconds): void {

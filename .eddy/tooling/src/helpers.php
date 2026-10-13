@@ -643,6 +643,7 @@ function kill_processes(array $pids): void {
  */
 function wait_for_port(string $host, string $port, int $timeout): bool {
   $interval = 0.1;
+  // cspell:ignore hrtime
   // hrtime() is monotonic, so a change of the system time cannot move the
   // deadline.
   $deadline = hrtime(TRUE) / 1e9 + $timeout;
