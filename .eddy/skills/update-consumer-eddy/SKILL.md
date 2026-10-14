@@ -22,6 +22,7 @@ This skill requires several Bash commands to run without prompts. Before doing a
   "Bash(chmod:*)",
   "Bash(composer:*)",
   "Bash(cp:*)",
+  "Bash(curl:*)",
   "Bash(find:*)",
   "Bash(gh:*)",
   "Bash(git:*)",
@@ -103,6 +104,8 @@ git log -i --grep=scaffold --format='%h %s'
 
 Take the version from the newest subject that names one, such as `Updated scaffold to 4.18.0.`, with or without a pull request number after it. When neither source names a version, the installed version is unknown.
 
+A version that ends in `-<count>-g<hash>`, such as `5.0.0-3-g1a2b3c4`, comes from a branch download rather than a release. `git describe` printed it for the commit the project was created from: the last tag before that commit (`5.0.0`), the number of commits after the tag (`3`) and, after the `g`, the abbreviated hash of the commit (`1a2b3c4`). Wherever a later step compares the installed version with a release, compare the tag: the project already has the release with that tag, and a later release is newer. No release carries such a version, so Steps 4 and 5 download the archive of the commit instead.
+
 ## Step 2: Get the latest published scaffold version
 
 ```bash
@@ -115,7 +118,7 @@ Take the release with the highest version from that list. It is usually the topm
 
 Do not ask the user to confirm the version. If the user named a version when invoking the skill, use that version verbatim and skip the lookup, whether or not it is a pre-release.
 
-Compare the version with the installed version from Step 1. When the project is already on that release or a newer one - such as a pre-release it moved to on purpose - tell the user there is nothing newer to update to and stop: a merge from a newer base would apply the difference backwards. The exception is a user who asked to add or drop a Drupal major: take the installed version as the release instead, so the update changes the majors and nothing else.
+Compare the version with the installed version from Step 1, or with its tag when it comes from a branch download. When the project is already on that release or a newer one - such as a pre-release it moved to on purpose - tell the user there is nothing newer to update to and stop: a merge from a newer base would apply the difference backwards. The exception is a user who asked to add or drop a Drupal major: take the installed version as the release instead, so the update changes the majors and nothing else.
 
 ## Step 3: Create the feature branch
 
@@ -148,6 +151,14 @@ mkdir -p .artifacts/tmp/eddy-update/base .artifacts/tmp/eddy-update/new
 ```bash
 gh release download <version> --repo drevops/eddy --archive tar.gz --output .artifacts/tmp/eddy-update/new.tar.gz
 ```
+
+Step 2 takes a version from a branch download as the release only when the user asks to add or drop a Drupal major. That version has no release, so download the archive of its commit instead, with `<commit>` the hash after the `g` (see Step 1):
+
+```bash
+curl -fsSL -o .artifacts/tmp/eddy-update/new.tar.gz https://github.com/drevops/eddy/archive/<commit>.tar.gz
+```
+
+Then extract the archive:
 
 ```bash
 tar -xzf .artifacts/tmp/eddy-update/new.tar.gz --strip-components=1 -C .artifacts/tmp/eddy-update/new
@@ -195,7 +206,7 @@ The script is `install.php` with the `INSTALL_` prefix in releases after 4.x. A 
 
 ## Step 5: Render the installed version
 
-Step 7 merges against a render of the release the project is on, which is how it tells the project's own changes to the template's files apart from the new release's.
+Step 7 merges against a render of the version the project is on, which is how it tells the project's own changes to the template's files apart from the new release's.
 
 Skip this step and leave `base` empty when Step 1 found no installed version, or found one older than 4.14.0: earlier releases don't read their answers from environment variables. Step 7 then merges without a base.
 
@@ -205,6 +216,14 @@ Otherwise render the installed version into `base` the way Step 4 renders the ne
 gh release download <installed_version> --repo drevops/eddy --archive tar.gz --output .artifacts/tmp/eddy-update/base.tar.gz
 ```
 
+A version from a branch download renders from its commit, not its tag: a render of the tag lacks the commits after it, so the merge would count their changes as the project's own. Download the archive of the commit instead, as Step 4 does:
+
+```bash
+curl -fsSL -o .artifacts/tmp/eddy-update/base.tar.gz https://github.com/drevops/eddy/archive/<commit>.tar.gz
+```
+
+Then extract the archive and enter the render:
+
 ```bash
 tar -xzf .artifacts/tmp/eddy-update/base.tar.gz --strip-components=1 -C .artifacts/tmp/eddy-update/base
 ```
@@ -213,7 +232,7 @@ tar -xzf .artifacts/tmp/eddy-update/base.tar.gz --strip-components=1 -C .artifac
 cd .artifacts/tmp/eddy-update/base
 ```
 
-Run that release's installer here with the answers from Step 1 as they are, `INSTALL_GITHUB_REPOSITORY` included, under the script name and prefix the release uses (see Step 4), then return to the project root. As in Step 4, run each command only after the previous one finishes:
+Run the installer of that version here with the answers from Step 1 as they are, `INSTALL_GITHUB_REPOSITORY` included, under the script name and prefix that version uses (see Step 4), then return to the project root. As in Step 4, run each command only after the previous one finishes:
 
 ```bash
 cd ../../../..
