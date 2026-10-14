@@ -86,22 +86,38 @@
     </extensions>
     <testsuites>
         <testsuite name="unit">
+            <!-- #;< EXTENSION_MODULE -->
             <directory>web/modules/custom/*/tests/src/Unit</directory>
+            <!-- #;> EXTENSION_MODULE -->
+            <!-- #;< EXTENSION_THEME -->
             <directory>web/themes/custom/*/tests/src/Unit</directory>
+            <!-- #;> EXTENSION_THEME -->
         </testsuite>
         <testsuite name="kernel">
+            <!-- #;< EXTENSION_MODULE -->
             <directory>web/modules/custom/*/tests/src/Kernel</directory>
+            <!-- #;> EXTENSION_MODULE -->
+            <!-- #;< EXTENSION_THEME -->
             <directory>web/themes/custom/*/tests/src/Kernel</directory>
+            <!-- #;> EXTENSION_THEME -->
         </testsuite>
         <testsuite name="functional">
+            <!-- #;< EXTENSION_MODULE -->
             <directory>web/modules/custom/*/tests/src/Functional</directory>
+            <!-- #;> EXTENSION_MODULE -->
+            <!-- #;< EXTENSION_THEME -->
             <directory>web/themes/custom/*/tests/src/Functional</directory>
+            <!-- #;> EXTENSION_THEME -->
         </testsuite>
 
         <!-- #;< DEV_FUNCTIONAL_JAVASCRIPT -->
         <testsuite name="functional-javascript">
+            <!-- #;< EXTENSION_MODULE -->
             <directory>web/modules/custom/*/tests/src/FunctionalJavascript</directory>
+            <!-- #;> EXTENSION_MODULE -->
+            <!-- #;< EXTENSION_THEME -->
             <directory>web/themes/custom/*/tests/src/FunctionalJavascript</directory>
+            <!-- #;> EXTENSION_THEME -->
         </testsuite>
         <!-- #;> DEV_FUNCTIONAL_JAVASCRIPT -->
     </testsuites>
@@ -122,18 +138,30 @@
     </coverage>
     <source>
         <include>
+            <!-- #;< EXTENSION_MODULE -->
             <directory>web/modules/custom</directory>
+            <!-- #;> EXTENSION_MODULE -->
+            <!-- #;< EXTENSION_THEME -->
             <directory>web/themes/custom</directory>
             <!-- A theme holds its PHP in its '.theme' file. -->
             <directory suffix=".theme">web/themes/custom</directory>
+            <!-- #;> EXTENSION_THEME -->
         </include>
 
         <exclude>
+            <!-- #;< EXTENSION_MODULE -->
             <directory>web/modules/custom/*/tests</directory>
+            <!-- #;> EXTENSION_MODULE -->
+            <!-- #;< EXTENSION_THEME -->
             <directory>web/themes/custom/*/tests</directory>
+            <!-- #;> EXTENSION_THEME -->
             <!-- #;< DEV_RECTOR -->
+            <!-- #;< EXTENSION_MODULE -->
             <file>web/modules/custom/your_extension/rector.php</file>
+            <!-- #;> EXTENSION_MODULE -->
+            <!-- #;< EXTENSION_THEME -->
             <file>web/themes/custom/your_extension/rector.php</file>
+            <!-- #;> EXTENSION_THEME -->
             <!-- #;> DEV_RECTOR -->
             <directory>**/node_modules/**</directory>
             <!-- #;< META -->

@@ -1433,6 +1433,49 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   /**
+   * A project names only the custom directory of its own extension type.
+   *
+   * @param array<string> $tools_remove
+   * @param array<string> $expected
+   */
+  #[DataProvider('dataProviderProcessNamesOwnCustomDirectory')]
+  public function testProcessNamesOwnCustomDirectory(string $type, array $tools_remove, array $expected): void {
+    // The copy of 'install.php' names both directories.
+    unlink(self::$sut . '/install.php');
+
+    process('My Extension', 'my_extension', $type, ['10', '11'], ['ahoy', 'makefile'], $tools_remove, FALSE, FALSE);
+
+    $own = $type === 'theme' ? 'web/themes/custom' : 'web/modules/custom';
+    $other = $type === 'theme' ? 'web/modules/custom' : 'web/themes/custom';
+    $naming_own = [];
+
+    foreach (get_files() as $file) {
+      $content = (string) file_get_contents($file);
+      $path = substr($file, strlen((string) getcwd()) + 1);
+
+      $this->assertStringNotContainsString($other, $content, $path . ' names the custom directory of the other extension type.');
+
+      if (str_contains($content, $own)) {
+        $naming_own[] = $path;
+      }
+    }
+
+    sort($naming_own);
+
+    $this->assertSame($expected, $naming_own);
+  }
+
+  public static function dataProviderProcessNamesOwnCustomDirectory(): \Iterator {
+    $configs = ['.twig-cs-fixer.php', 'AGENTS.md', 'CONTRIBUTING.md', 'jest.config.js', 'package.json', 'phpcs.xml', 'phpstan.neon', 'phpunit.d10.xml', 'phpunit.xml', 'rector.php'];
+    $tools = ['phpcs', 'phpstan', 'rector', 'twigcs', 'eslint', 'stylelint', 'cspell', 'jest', 'phpunit', 'functional_javascript', 'renovate'];
+
+    yield 'module' => ['module', [], $configs];
+    yield 'theme' => ['theme', [], $configs];
+    yield 'module, no tools' => ['module', $tools, ['AGENTS.md']];
+    yield 'theme, no tools' => ['theme', $tools, ['AGENTS.md']];
+  }
+
+  /**
    * The template version, when known, is recorded next to the build default.
    */
   #[DataProvider('dataProviderProcessRecordsVersion')]

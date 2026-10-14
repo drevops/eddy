@@ -19,8 +19,12 @@ parameters:
   tmpDir: .phpstan
 
   paths:
+    #;< EXTENSION_MODULE
     - web/modules/custom
+    #;> EXTENSION_MODULE
+    #;< EXTENSION_THEME
     - web/themes/custom
+    #;> EXTENSION_THEME
 
   excludePaths:
     - vendor/*

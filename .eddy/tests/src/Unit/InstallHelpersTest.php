@@ -1085,11 +1085,15 @@ final class InstallHelpersTest extends UnitTestCase {
     $config = "<file>web/modules/custom/your_extension/rector.php</file>\n<file>web/themes/custom/your_extension/rector.php</file>\n";
     $test_base = static fn(string $setup): string => "abstract class TestBase extends WebDriverTestBase {\n\n  /**\n   * {@inheritdoc}\n   */\n" . $setup . "\n  /**\n   * {@inheritdoc}\n   */\n  protected function setUp(): void {\n  }\n\n}\n";
     $module_setup = "  protected \$defaultTheme = 'stark';\n\n  /**\n   * {@inheritdoc}\n   */\n  protected static \$modules = ['your_extension'];\n";
+    $package = static fn(string $js, string $css): string => sprintf("\"lint-js\": \"eslint %s --ext .js\",\n\"lint-css\": \"stylelint --allow-empty-input %s\"\n", $js, $css);
+    $jest = static fn(string $dirs): string => sprintf("const dirs = [%s];\n", $dirs);
     $template = [
       'CONTRIBUTING.md' => $contributing(' (`web/themes/custom/` for a theme)', 'modules'),
       'AGENTS.md' => $agents('`build/web/modules/custom/` (module) or `build/web/themes/custom/` (theme)'),
       'phpunit.xml' => $config,
       'TestBase.php' => $test_base($module_setup),
+      'package.json' => $package('web/modules/custom web/themes/custom', '\"web/modules/custom/**/*.css\" \"web/themes/custom/**/*.css\"'),
+      'jest.config.js' => $jest("'web/modules/custom', 'web/themes/custom'"),
     ];
 
     yield 'module' => [
@@ -1100,6 +1104,8 @@ final class InstallHelpersTest extends UnitTestCase {
         'AGENTS.md' => $agents('`build/web/modules/custom/`'),
         'phpunit.xml' => $config,
         'TestBase.php' => $test_base($module_setup),
+        'package.json' => $package('web/modules/custom', '\"web/modules/custom/**/*.css\"'),
+        'jest.config.js' => $jest("'web/modules/custom'"),
       ],
     ];
 
@@ -1111,6 +1117,8 @@ final class InstallHelpersTest extends UnitTestCase {
         'AGENTS.md' => $agents('`build/web/themes/custom/`'),
         'phpunit.xml' => $config,
         'TestBase.php' => $test_base("  protected \$defaultTheme = 'your_extension';\n"),
+        'package.json' => $package('web/themes/custom', '\"web/themes/custom/**/*.css\"'),
+        'jest.config.js' => $jest("'web/themes/custom'"),
       ],
     ];
   }

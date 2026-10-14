@@ -637,8 +637,10 @@ function process_command_wrapper_text(array $command_wrapper): void {
 /**
  * Render the text that follows the extension type.
  *
- * The template names the directories of both extension types. Each mention
- * is replaced with the directory of the extension's type.
+ * The template names the directories of both extension types, in the docs and
+ * on the lines of 'package.json' and 'jest.config.js' that list both, where no
+ * marker block fits. Each mention is replaced with the directory of the
+ * extension's type.
  *
  * The FunctionalJavascript base class enables the extension as a module, with
  * Stark as the default theme. A theme cannot be enabled as a module, so its
@@ -653,6 +655,9 @@ function process_extension_type_text(string $extension_type): void {
   replace_string_content(' (`web/themes/custom/` for a theme)', '');
   replace_string_content('`build/web/modules/custom/` (module) or `build/web/themes/custom/` (theme)', '`build/web/' . $dir . '/custom/`');
   replace_string_content('web/modules/custom/your_extension/tests/', 'web/' . $dir . '/custom/your_extension/tests/');
+  replace_string_content('web/modules/custom web/themes/custom', 'web/' . $dir . '/custom');
+  replace_string_content('\"web/modules/custom/**/*.css\" \"web/themes/custom/**/*.css\"', '\"web/' . $dir . '/custom/**/*.css\"');
+  replace_string_content("['web/modules/custom', 'web/themes/custom']", "['web/" . $dir . "/custom']");
 
   if ($extension_type === 'theme') {
     $module_setup = implode("\n", [
