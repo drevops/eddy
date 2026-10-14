@@ -153,6 +153,9 @@ const config = {
         darkTheme: prismThemes.dracula,
         additionalLanguages: ['bash', 'json', 'php'],
       },
+      mermaid: {
+        theme: {light: 'neutral', dark: 'dark'},
+      },
       colorMode: {
         defaultMode: 'light',
         disableSwitch: false,

@@ -15,7 +15,7 @@ Once the tests pass, CI mirrors the code to your extension's Drupal.org reposito
 CI deploys pushes to the `1.x` branch and release tags, and pull requests never deploy. To deploy another branch, such as `2.x`, add it to the `push` branches in `.github/workflows/test.yml`. Updating the scaffold with the [`update-consumer-eddy`](../updating/README.mdx) skill keeps the branches you list there.
 
 ```mermaid
-flowchart LR
+flowchart TB
   push["Push to a branch<br/>or a release tag"] --> test["Test workflow"]
   test -->|passes| deploy["Deploy workflow"]
   deploy --> kind{"Tag or branch?"}
