@@ -75,6 +75,9 @@ const config = {
         hashed: true,
         highlightSearchTermsOnTargetPage: true,
         explicitSearchResultPath: true,
+        // The 'noindex' robots meta of a non-release build is meant for search
+        // engines, and would otherwise leave the site's own index empty.
+        forceIgnoreNoIndex: true,
       }),
     ],
     '@docusaurus/theme-mermaid',
