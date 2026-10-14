@@ -1,5 +1,5 @@
 @@ -15,11 +15,8 @@
- ![LICENSE](https://img.shields.io/github/license/force_crystal/force_crystal)
+ ![License: GPL-2.0-or-later](https://img.shields.io/badge/license-GPL--2.0--or--later-orange.svg)
  ![Renovate](https://img.shields.io/badge/renovate-enabled-green?logo=renovatebot)
  
 -![PHP 8.3](https://img.shields.io/badge/PHP-8.3-777BB4.svg)
