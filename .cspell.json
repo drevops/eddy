@@ -124,7 +124,8 @@
         "LICENSE",
         ".eddy/tests/fixtures/",
         ".eddy/tests/vendor/",
-        ".eddy/assets/node_modules/"
+        ".eddy/assets/node_modules/",
+        ".eddy/docs/"
     ],
     "useGitignore": true,
     "overrides": [

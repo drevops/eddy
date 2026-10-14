@@ -1,0 +1,50 @@
+---
+title: Configuring CI
+sidebar_position: 1
+description: Spread tools across CI runners, let a lint or test step fail without failing its job, and upload coverage to Codecov.
+---
+
+# Configuring CI
+
+The `Test` workflow in `.github/workflows/test.yml` works as it is. This page covers the settings you're most likely to change.
+
+## Distributing tools across CI runners
+
+Each test job lists at its top which tools run on which runner. `CI_RUNNER_INDEX` and `CI_RUNNER_TOTAL` give the runner's position, and each tool has a `CI_IS_<TOOL>_RUNNER` flag inside its own block that only its steps read, so moving a tool to another runner is 1 edit:
+
+```yaml
+env:
+  CI_RUNNER_INDEX: ${{ strategy.job-index }}
+  CI_RUNNER_TOTAL: ${{ strategy.job-total }}
+  CI_IS_JEST_RUNNER: true
+  CI_IS_PHPUNIT_RUNNER: true
+```
+
+Every leg of the matrix covers a different Drupal and PHP pair, so every flag is `true`.
+
+To shard a tool, add a matrix dimension and compare the tool's flag against it, after checking your [branch protection](branch-protection.mdx), since a renamed or duplicated leg renames its status check. If a test runner names its shards after the runner index, give a tool that needs its own runner the last one: excluding runner 0 orphans the first shard, which is often the catch-all for untagged tests.
+
+## Allowing a CI step to fail
+
+To let a lint or test step fail without failing its job, set its repository variable to `1` in **Settings** → **Secrets and variables** → **Actions** → **Variables**. The step still runs and reports what it finds, which helps while you work through a backlog of findings from a newly added tool.
+
+| Variable                         | Step                 |
+|----------------------------------|----------------------|
+| `CI_CSPELL_IGNORE_FAILURE`       | CSpell               |
+| `CI_PHPCS_IGNORE_FAILURE`        | PHPCS                |
+| `CI_PHPSTAN_IGNORE_FAILURE`      | PHPStan              |
+| `CI_RECTOR_IGNORE_FAILURE`       | Rector               |
+| `CI_TWIGCSFIXER_IGNORE_FAILURE`  | Twig CS Fixer        |
+| `CI_NODEJS_LINT_IGNORE_FAILURE`  | ESLint and Stylelint |
+| `CI_NODEJS_TEST_IGNORE_FAILURE`  | Jest                 |
+| `CI_TEST_IGNORE_FAILURE`         | PHPUnit              |
+
+Your workflow has only the steps of the tools you kept, and so only their variables.
+
+## Uploading coverage to Codecov
+
+Every test job uploads its coverage reports as a workflow artifact. To send them to [Codecov](https://codecov.io) as well, add a `CODECOV_TOKEN` repository secret: the upload step runs only when it's set, and fails the job when the upload fails, so a broken upload doesn't go unnoticed.
+
+## Deprecations on newer PHP
+
+Test jobs on PHP 8.4 or newer set `SYMFONY_DEPRECATIONS_HELPER` to `disabled`, because not every tested Drupal version fully supports the newer PHP versions yet. [Deprecated code](../testing/README.mdx#deprecated-code) explains how to tune this to your project's deprecation policy.

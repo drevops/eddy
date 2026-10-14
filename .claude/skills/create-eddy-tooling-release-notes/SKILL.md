@@ -158,7 +158,7 @@ Projects require `~1.<minor>.0` in `composer.dev.json`, so they install a new pa
 - **Minor** (e.g. `1.1.0`): a new command or a new opt-in capability, flag or environment variable; a change that needs the matching scaffold update; new behaviour that existing projects are unaffected by.
 - **Patch** (e.g. `1.0.1`): a bug fix, a hardening change, an internal refactor with no contract change, or documentation fixes, all of them safe for projects on their current scaffold.
 
-For a minor or major release, remind the user to raise the constraint in `composer.dev.json` in `drevops/eddy`, as `CONTRIBUTING.md` describes.
+For a minor or major release, remind the user to raise the constraint in `composer.dev.json` in `drevops/eddy`, as `.eddy/docs/content/contributing/tooling-releases.mdx` describes.
 
 ### Step 5: Write and display the notes
 

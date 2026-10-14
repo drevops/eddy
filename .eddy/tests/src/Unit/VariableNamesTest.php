@@ -48,6 +48,8 @@ final class VariableNamesTest extends UnitTestCase {
 
     $paths = array_merge(
       glob($root . '/*.md') ?: [],
+      glob($root . '/.eddy/docs/content/*.mdx') ?: [],
+      glob($root . '/.eddy/docs/content/*/*.mdx') ?: [],
       glob($root . '/.github/workflows/*.yml') ?: [],
       glob($root . '/.eddy/tooling/src/*') ?: [],
       glob($root . '/scripts/*') ?: [],
@@ -60,6 +62,7 @@ final class VariableNamesTest extends UnitTestCase {
         $root . '/phpunit.xml',
         $root . '/phpunit.d10.xml',
         $root . '/.eddy/CLAUDE.md',
+        $root . '/.eddy/docs/docusaurus.config.js',
         $root . '/.eddy/assets/update-assets.php',
         $root . '/.eddy/skills/update-consumer-eddy/SKILL.md',
         $root . '/.claude/skills/create-eddy-tooling-release-notes/SKILL.md',

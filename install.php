@@ -824,6 +824,7 @@ function process_internal(string $extension_name, string $extension_machine_name
   remove_tokens_with_content('META');
   remove_special_comments();
 
+  remove_cspell_eddy_paths();
   normalize_cspell_words();
 
   if ($extension_type === 'theme') {
@@ -1932,6 +1933,31 @@ function normalize_cspell_words(): void {
   $words = array_values($deduped);
   sort($words, SORT_FLAG_CASE | SORT_STRING);
   $config['words'] = $words;
+
+  write_json_file('.cspell.json', $config);
+}
+
+/**
+ * Remove the paths inside '.eddy' from the CSpell `ignorePaths`.
+ *
+ * A generated project has no '.eddy' directory, so these paths ignore
+ * nothing there.
+ */
+function remove_cspell_eddy_paths(): void {
+  $config = read_json_file('.cspell.json');
+  $paths = $config['ignorePaths'] ?? NULL;
+
+  if ($config === NULL || !is_array($paths)) {
+    return;
+  }
+
+  $kept = array_values(array_filter($paths, static fn(mixed $path): bool => !is_string($path) || preg_match('#^/?\.eddy(/|$)#', $path) !== 1));
+
+  if (count($kept) === count($paths)) {
+    return;
+  }
+
+  $config['ignorePaths'] = $kept;
 
   write_json_file('.cspell.json', $config);
 }

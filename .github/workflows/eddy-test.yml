@@ -190,6 +190,57 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
+  eddy-test-docs:
+    runs-on: ubuntu-26.04
+
+    permissions:
+      contents: read # Read the documentation source.
+      pull-requests: write # Post the Netlify preview link on the pull request.
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: .eddy/docs
+
+      - name: Build documentation site
+        run: npm run build
+        working-directory: .eddy/docs
+
+      - name: Test documentation
+        run: npm test
+        working-directory: .eddy/docs
+
+      # A push to 'main' updates the development site, and any other build
+      # deploys a preview. Fork pull requests get no secrets, so they skip it.
+      - name: Deploy documentation to Netlify
+        if: ${{ env.NETLIFY_AUTH_TOKEN != '' && env.NETLIFY_SITE_ID != '' }}
+        uses: nwtgck/actions-netlify@d22a32a27c918fe470bbc562e984f80ec48c2668 # v4.0
+        with:
+          publish-dir: .eddy/docs/build
+          production-deploy: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: Deploy from GitHub Actions
+          enable-pull-request-comment: true
+          overwrites-pull-request-comment: true
+          enable-commit-comment: false
+          enable-commit-status: false
+          enable-github-deployment: false
+        env:
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        timeout-minutes: 1
+
   eddy-test-actions:
     runs-on: ubuntu-26.04
 

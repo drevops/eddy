@@ -33,6 +33,7 @@ abstract class FunctionalTestCase extends UnitTestCase {
       '.phpunit.cache',
       '.artifacts',
       '.chromedriver',
+      '.docusaurus',
       'build',
     ]);
 

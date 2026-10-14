@@ -1,0 +1,79 @@
+---
+title: FunctionalJavascript tests
+sidebar_position: 1
+description: Run FunctionalJavascript tests against your local Chrome or a Selenium container, with a WebDriver port per project.
+---
+
+import CommandTabs from '@site/src/components/CommandTabs';
+
+# FunctionalJavascript tests
+
+FunctionalJavascript tests drive a real browser through WebDriver. By default they use the Google Chrome on your machine, with a matching `chromedriver` downloaded on the first run, so you don't need Docker:
+
+<CommandTabs
+  make={`make start
+make provision
+make test-functional-javascript
+make browser-stop`}
+  ahoy={`ahoy start
+ahoy provision
+ahoy test-functional-javascript
+ahoy browser-stop`}
+  none={`vendor/bin/eddy-start
+vendor/bin/eddy-provision
+vendor/bin/eddy-browser-start
+export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
+export WEBSERVER_PORT="$(vendor/bin/eddy-info webserver-port)"
+export SIMPLETEST_BASE_URL="http://localhost:\${WEBSERVER_PORT}"
+cd build
+php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional-javascript
+cd ..
+vendor/bin/eddy-browser-stop`}
+/>
+
+`test` and `test-functional-javascript` start the browser first and leave it running, so the next run reuses it. Stop it with `browser-stop` when you're done. Chrome runs headless with this backend, so it works on a machine without a display, such as a CI runner.
+
+## Running the browser in Docker
+
+To run the browser in a Docker Selenium container instead, set `WEBDRIVER_BACKEND=selenium`. The container can't reach the host's `localhost`, so start the webserver on all interfaces:
+
+<CommandTabs
+  make={`WEBSERVER_HOST=0.0.0.0 make start
+make provision
+WEBDRIVER_BACKEND=selenium make test-functional-javascript
+make browser-stop`}
+  ahoy={`WEBSERVER_HOST=0.0.0.0 ahoy start
+ahoy provision
+WEBDRIVER_BACKEND=selenium ahoy test-functional-javascript
+ahoy browser-stop`}
+  none={`WEBSERVER_HOST=0.0.0.0 vendor/bin/eddy-start
+vendor/bin/eddy-provision
+WEBDRIVER_BACKEND=selenium vendor/bin/eddy-browser-start
+export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
+export WEBSERVER_PORT="$(vendor/bin/eddy-info webserver-port)"
+export SIMPLETEST_BASE_URL="http://localhost:\${WEBSERVER_PORT}"
+cd build
+WEBDRIVER_BACKEND=selenium php -d pcov.directory=.. vendor/bin/phpunit \\
+  --testsuite functional-javascript
+cd ..
+vendor/bin/eddy-browser-stop`}
+/>
+
+The browser reaches the webserver at `localhost` with the default backend, and at `host.docker.internal` (macOS) or `172.17.0.1` (other systems) from the Selenium container. Set `WEBDRIVER_HOST` to use a different address.
+
+## WebDriver ports
+
+Each project gets its own WebDriver port, whichever backend it uses: a free one is claimed starting at 4444 and saved in `.env`, so several projects can run these tests at the same time. Set `WEBDRIVER_PORT` to pin a specific one.
+
+Tests reach the claimed port through the base class that the installer generates, so extend `YourExtensionFunctionalJavascriptTestBase`, named after your extension, rather than `WebDriverTestBase`. The base class also points the browser at the right webserver address for the backend. A test that bypasses it keeps the default endpoint from `phpunit.xml`, unless it exports its own `MINK_DRIVER_ARGS_WEBDRIVER`.
+
+## Sharing a machine with other projects
+
+`browser-start` reuses any browser that already accepts WebDriver sessions on the port, since every session is independent. When something else holds the port, it replaces only the project's own browser, and otherwise fails and names whatever holds it.
+
+`browser-stop` and `reset` stop only the project's own browser, so another project's browser on the same port keeps running:
+
+- A chromedriver belongs to the project whose root it runs from.
+- A Selenium container belongs to the project that its `eddy.project` label names.
+
+A stopped Selenium container holds no port, so it never blocks `browser-start`, and the `selenium` backend replaces it whichever project started it.

@@ -55,7 +55,16 @@
  ```
  
  The build pins Drupal core to the newest release matching `DRUPAL_VERSION` and prints it. A version with no stable release yet resolves to its newest pre-release. When that release requires a newer PHP than the one running the build, the build stops before it changes anything and says which PHP the release needs.
-@@ -107,14 +101,10 @@
+@@ -94,8 +88,6 @@
+ 2. **`WEBSERVER_PORT` line in the project-root `.env` file** - used as-is. The `start` script does not modify `.env` when this entry is already present, so the same port is reused across `start`, `stop`, `provision`, `drush` and `login` commands.
+ 3. **Neither is set** - the `start` script discovers the first free port in the range `8000-8099` and writes it to `.env` as `WEBSERVER_PORT=NNNN`. Subsequent commands read this value from `.env`.
+ 
+-The command wrapper loads `.env` into the environment of every command, so through the wrapper a `WEBSERVER_PORT` line in `.env` wins over the shell. Edit that line to change a saved port.
+-
+ To force re-discovery, delete `.env` (or just the `WEBSERVER_PORT` line in it) and re-run the `start` command.
+ 
+ The `start` and `stop` commands only stop the webserver that serves the project's own `build/web`. When another process holds the port, such as the server of another project that recorded the same port, `stop` leaves it running and `start` fails and names it. Stop that process, or set `WEBSERVER_PORT` in `.env` to a free port.
+@@ -109,14 +101,10 @@
  PHP step-debugging is supported via [XDebug](https://xdebug.org/docs/install). Install the XDebug PHP extension on your host (`php -v` should mention `with Xdebug`), then toggle it on the development server:
  
  ```bash
@@ -72,7 +81,7 @@
  Code coverage stays on [pcov](https://github.com/krakjoe/pcov) because the XDebug settings apply only to the development server, not to the test commands.
  
  To start and stop debug sessions from the browser, install the Xdebug Helper extension: [Chrome](https://chromewebstore.google.com/detail/xdebug-helper-by-jetbrain/aoelhdemabeimdhedkidlnbkfhnhgnhm) / [Firefox](https://addons.mozilla.org/en-US/firefox/addon/xdebug-helper-by-jetbrains/).
-@@ -134,7 +124,15 @@
+@@ -136,7 +124,15 @@
  Run all checks with:
  
  ```bash
@@ -89,7 +98,7 @@
  ```
  
  ### Fixing coding standards issues
-@@ -142,7 +140,11 @@
+@@ -144,7 +140,11 @@
  To fix coding standards issues automatically, run the same tools with the `--fix` option (for the tools that support it):
  
  ```bash
@@ -102,7 +111,7 @@
  ```
  
  ## Testing
-@@ -150,7 +152,13 @@
+@@ -152,7 +152,13 @@
  Run the tests for this extension with:
  
  ```bash
@@ -117,7 +126,7 @@
  ```
  
  The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests, and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both use Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
-@@ -158,10 +166,12 @@
+@@ -160,10 +166,12 @@
  Each test suite can also be run on its own:
  
  ```bash
@@ -134,7 +143,7 @@
  ```
  
  ### Running FunctionalJavascript tests
-@@ -169,21 +179,32 @@
+@@ -171,21 +179,32 @@
  FunctionalJavascript tests need a real browser driven via WebDriver. By default they use the Google Chrome already installed on your machine - a matching `chromedriver` is downloaded automatically on first run, so no Docker is required:
  
  ```bash
@@ -177,7 +186,7 @@
  ```
  
  The browser reaches the webserver at `localhost` with the default backend, and at `host.docker.internal` (macOS) or `__VERSION__.1` (other systems) from the Selenium container. Set `WEBDRIVER_HOST` to use a different address.
-@@ -193,13 +214,6 @@
+@@ -195,13 +214,6 @@
  ### Running specific tests
  
  You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the test commands. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site:

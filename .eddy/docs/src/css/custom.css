@@ -1,0 +1,50 @@
+/**
+ * Global styles on top of Infima, the CSS framework of the classic theme.
+ *
+ * @see https://docusaurus.io/docs/styling-layout#styling-your-site-with-infima
+ */
+
+/* The primary shades step from the Eddy logo blue, #009cde. */
+:root {
+  --ifm-color-primary: #009cde;
+  --ifm-color-primary-dark: #008cc8;
+  --ifm-color-primary-darker: #0085bd;
+  --ifm-color-primary-darkest: #006d9b;
+  --ifm-color-primary-light: #00acf4;
+  --ifm-color-primary-lighter: #00b3ff;
+  --ifm-color-primary-lightest: #22bdff;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+  --eddy-ink: #192d62;
+}
+
+/* Dark mode steps from a lighter blue that keeps links readable on the dark
+   background. */
+[data-theme='dark'] {
+  --ifm-color-primary: #5cb8ec;
+  --ifm-color-primary-dark: #3fabe9;
+  --ifm-color-primary-darker: #30a5e7;
+  --ifm-color-primary-darkest: #188cce;
+  --ifm-color-primary-light: #79c5ef;
+  --ifm-color-primary-lighter: #88cbf1;
+  --ifm-color-primary-lightest: #b4def6;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+  --eddy-ink: #ffffff;
+}
+
+.navbar__logo {
+  height: 2.25rem;
+}
+
+.markdown h1:first-child {
+  color: var(--eddy-ink);
+}
+
+.footer__copyright-link {
+  color: var(--ifm-footer-link-color);
+  text-decoration: underline;
+}
+
+.footer__copyright-link:hover {
+  color: var(--ifm-footer-link-hover-color);
+}

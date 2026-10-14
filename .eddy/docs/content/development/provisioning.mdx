@@ -1,0 +1,60 @@
+---
+title: Provisioning
+sidebar_position: 5
+description: Install the Drupal site with your extension enabled, run Drush against it and log in.
+---
+
+import CommandTabs from '@site/src/components/CommandTabs';
+
+# Provisioning
+
+`provision` installs Drupal on the assembled codebase with your extension enabled, and prints a one-time login link when it finishes. Run it on its own to get a clean site without reassembling the codebase:
+
+<CommandTabs
+  make={`make provision`}
+  ahoy={`ahoy provision`}
+  none={`vendor/bin/eddy-provision`}
+/>
+
+## What it does
+
+1. It installs Drupal from the `standard` profile into a fresh SQLite database, with an `admin` account and without the Update Status module. Set `DRUPAL_PROFILE` to install from another profile.
+2. It enables your extension, as a module or as a theme.
+3. It enables each `drupal/*` extension in the `suggest` section of your `composer.json` as a module (see [Optional dependencies](dependencies.mdx#optional-dependencies)).
+4. It requests the front page once, so the caches are warm before you open the site.
+5. It links Drupal's browser test output into `.logs/browser_output`, next to the other test artifacts.
+6. It adds the reverse-proxy and trusted-host settings that a [public tunnel](tunnel.mdx) needs, when the tunnel is on.
+7. It runs your `scripts/provision-*.sh` [lifecycle scripts](lifecycle-scripts.mdx).
+8. It prints the site URL and a one-time login link.
+
+## The database
+
+The site keeps its data in an SQLite file at `/tmp/site_<extension>.sqlite`, named after your extension's machine name. Each provision starts it from scratch. [DB Browser for SQLite](https://sqlitebrowser.org/) can open it when you want to look inside.
+
+## Running Drush
+
+`drush` runs a Drush command against the site, with the site URL already set:
+
+<CommandTabs
+  make={`make drush status
+make drush cr
+make drush -- status --format json`}
+  ahoy={`ahoy drush status
+ahoy drush cr
+ahoy drush status --format=json`}
+  none={`build/vendor/bin/drush -l "$(vendor/bin/eddy-info site-url)" status`}
+/>
+
+`make` reads an argument that holds `=` as a variable of its own, so put `--` before the options and separate an option from its value with a space, as in `make drush -- status --format json`. An argument that holds `:` fails, so use the command's alias, such as `cr` for `cache:rebuild`. Ahoy passes the arguments through as they are.
+
+## Logging in
+
+`login` prints a one-time login link for the `admin` account:
+
+<CommandTabs
+  make={`make login`}
+  ahoy={`ahoy login`}
+  none={`build/vendor/bin/drush -l "$(vendor/bin/eddy-info site-url)" uli`}
+/>
+
+Set `LOGIN_QRCODE=1` in `.env` or your shell to have `make login` and `ahoy login` draw the link as a QR code too, which is handy for opening the site on a phone over a [public tunnel](tunnel.mdx). The wrappers only check that the variable is set, so unset it to turn the QR code off rather than setting it to `0`. The QR code needs [`qrencode`](https://fukuchi.org/works/qrencode/) on `PATH`.

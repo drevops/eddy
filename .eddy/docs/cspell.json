@@ -1,0 +1,52 @@
+{
+    "language": "en-US",
+    "dictionaries": [
+        "bash",
+        "misc",
+        "node",
+        "php",
+        "softwareTerms"
+    ],
+    "words": [
+        "ahoy",
+        "behat",
+        "browserkit",
+        "browsertest",
+        "chromedriver",
+        "cweagans",
+        "Docusaurus",
+        "drevops",
+        "drush",
+        "linkit",
+        "lullabot",
+        "myextension",
+        "phpcbf",
+        "prompty",
+        "qrcode",
+        "qrencode",
+        "simpletest",
+        "skrypnyk",
+        "testmode",
+        "trycloudflare",
+        "twigcsfixer",
+        "zizmor"
+    ],
+    "overrides": [
+        {
+            "filename": "**/*.mdx",
+            "languageId": [
+                "mdx",
+                "markdown"
+            ]
+        }
+    ],
+    "languageSettings": [
+        {
+            "languageId": "markdown",
+            "ignoreRegExpList": [
+                "/^\\s*```(.|\\n)+?^\\s*```/gm",
+                "/<CommandTabs[\\s\\S]*?\\/>/g"
+            ]
+        }
+    ]
+}

@@ -2,13 +2,14 @@
 
 Maintenance guide for the Eddy template itself.
 
-This file documents how `install.php` prunes the template, how to regenerate the scaffold's own artifacts (animated README SVGs, the social preview card, snapshot fixtures) and how to run its self-tests. It does **not** apply to consumer projects produced by running `install.php`.
+This file documents how `install.php` prunes the template, how to regenerate the scaffold's own artifacts (animated demo SVGs, the social preview card, snapshot fixtures), how to run its self-tests and how to work on its documentation site. It does **not** apply to consumer projects produced by running `install.php`.
 
 ## Layout
 
-- `.eddy/assets/` - Source files for animated SVG demos used in the root `README.md` (`install.svg`, `build.svg`, `lint.svg`, `test.svg`) plus the `update-assets.php` generator and a small `svg-term` Node wrapper. It also holds the repository's social preview card, `social-preview.png`, and the `social-preview.html` page it's rendered from.
+- `.eddy/assets/` - Source files for animated SVG demos used in the root `README.md` and the documentation site (`install.svg`, `build.svg`, `lint.svg`, `test.svg`) plus the `update-assets.php` generator and a small `svg-term` Node wrapper. It also holds the repository's social preview card, `social-preview.png`, and the `social-preview.html` page it's rendered from.
+- `.eddy/docs/` - The Docusaurus documentation site, with its pages in `.eddy/docs/content/`. It's the home of the user-facing docs: `README.md`, `MIGRATION.md` and `CONTRIBUTING.md` only point into it. See [Documentation site](#documentation-site).
 - `.eddy/tests/` - PHPUnit suite that validates the scaffold itself: the `install.php` interactive flow, the tooling commands in `.eddy/tooling/src/` with their installer `scripts/eddy-tooling`, and the resulting project structure. Snapshots live under `.eddy/tests/fixtures/install/`.
-- `.eddy/tooling/` - Source of the `drevops/eddy-tooling` Composer package (the `eddy-*` commands). `scripts/eddy-tooling` installs it into `vendor/` as a symlink in this repository, and `eddy-publish-tooling.yml` mirrors it to the read-only `drevops/eddy-tooling` repository on every push to `main` and to a branch whose name contains `eddy-tooling`. Releases are created on the mirror by hand, with notes from the `create-eddy-tooling-release-notes` skill - see `CONTRIBUTING.md`.
+- `.eddy/tooling/` - Source of the `drevops/eddy-tooling` Composer package (the `eddy-*` commands). `scripts/eddy-tooling` installs it into `vendor/` as a symlink in this repository, and `eddy-publish-tooling.yml` mirrors it to the read-only `drevops/eddy-tooling` repository on every push to `main` and to a branch whose name contains `eddy-tooling`. Releases are created on the mirror by hand, with notes from the `create-eddy-tooling-release-notes` skill - see `.eddy/docs/content/contributing/tooling-releases.mdx`.
 - `.eddy/skills/update-consumer-eddy/` - the update skill that consumer projects fetch through the "Updating the scaffold" section of their `AGENTS.md`.
 - `.claude/skills/` - Claude Code skills for maintaining the scaffold, such as `create-eddy-tooling-release-notes`. `install.php` removes each one by name, as listed in `eddy_skills()`, so generated projects never get them, and keeps any other skill, such as a project's own when `install.php` runs again in the root of an existing project. A new skill goes into `eddy_skills()` as well: `InstallHelpersTest` fails until every tracked skill is listed.
 
@@ -77,9 +78,9 @@ A replacement finds nothing once the template text drifts from the every-option 
 1. In `install.php`, add the major to `drupal_version_options()` and to the `INSTALL_DRUPAL_VERSION` entry of `print_help()`.
 2. Add a `DRUPAL_<major>` block wherever the existing majors have one. `git grep -n '#;< DRUPAL_'` lists them: today that's the `lint` and `test` matrices in `.github/workflows/test.yml`, the badges in `README.dist.md` and the matrix list in `AGENTS.md`.
 3. Add the major to `core_version_requirement` in `your_extension.info.yml`, and to the comment that opens `phpunit.xml` unless the major gets a `phpunit.d<major>.xml` of its own (see [Text rendered from the answers](#text-rendered-from-the-answers)). A new `phpunit.d<major>.xml` needs the same wiring as `phpunit.d10.xml`: an entry in the PHPUnit `files` of `tool_specs()`, a `.gitattributes` line with its `uncomment_line()` call in `process_internal()`, and an entry in the PHPUnit config list of `InstallProcessTest`.
-4. To have the major start checked, add it to `drupal_version_default()` and update the defaults that `print_help()` and `README.md` name. Then set `extra.eddy.drupal-version` in `composer.dev.json` to the highest major `drupal_version_default()` returns: `InstallHelpersTest` fails until they agree. That major also caps the build default of a generated project, because `drupal_version_build_default()` picks the highest selected major up to it. Add a major to `drupal_version_default()` only once it has a stable release.
+4. To have the major start checked, add it to `drupal_version_default()` and update the defaults that `print_help()` and the documentation name: the questions table in `.eddy/docs/content/installation.mdx` and the default in `.eddy/docs/content/development/drupal-versions.mdx`. Then set `extra.eddy.drupal-version` in `composer.dev.json` to the highest major `drupal_version_default()` returns: `InstallHelpersTest` fails until they agree. That major also caps the build default of a generated project, because `drupal_version_build_default()` picks the highest selected major up to it. Add a major to `drupal_version_default()` only once it has a stable release.
 5. Review `.eddy/tooling/src/eddy-assemble`. It picks the PHPUnit, `symfony/phpunit-bridge` and Rector constraints by major, and it uses `phpunit.d<major>.xml` in place of `phpunit.xml` when that file exists.
-6. Update `README.md` where it lists the majors: the badges, the Drupal version matrix in the feature list, the CI job table and the job count above it, and the branch protection table.
+6. Update the documentation where it lists the majors: the badges and the feature list in `README.md`, the feature list in `.eddy/docs/content/README.mdx`, the job tables and the job count above them in `.eddy/docs/content/continuous-integration/README.mdx`, and the table in `.eddy/docs/content/continuous-integration/branch-protection.mdx`. `DocumentationTest` fails until those tables list every job of `test.yml`. `git grep -n 'Drupal 12' -- .eddy/docs/content` finds the other pages that name the majors.
 7. Update the expected majors in `InstallHelpersTest` and the Drupal data providers in `InstallProcessTest`, add a `d<major>_only` dataset to `InstallTest`, then regenerate the snapshot fixtures.
 
 ### Adding a development tool
@@ -88,7 +89,7 @@ A replacement finds nothing once the template text drifts from the every-option 
 2. Give it a `tool_specs()` entry: its `DEV_<TOOL>` token plus the files, directories and `composer.dev.json` entries that go with it. List only the packages nothing else needs: Mink, which Functional tests use too, sits with PHPUnit rather than FunctionalJavascript. Text that names the tool among other items goes in its `replacements`. The words it adds to `.cspell.json`, such as the vendors of its packages, go in its `cspell_words` when no other file uses them. Its npm packages and scripts, if it has any, go in `npm_specs()`.
 3. Wrap every line you add for the tool in a `DEV_<TOOL>` block, wherever it lands: the command wrappers, `.github/workflows/test.yml`, configuration files such as `.gitattributes` and `.editorconfig`, and the docs in `AGENTS.md`, `README.dist.md` and `CONTRIBUTING.dist.md`. A `CI_IS_<TOOL>_RUNNER` flag in `test.yml` belongs inside the block too, and `CiRunnerVariablesTest` checks it's there. A commented-out `export-ignore` line in `.gitattributes` also needs an `uncomment_line()` call in `process_internal()`, or it ships commented out.
 4. If the tool runs through the shared `npm run lint` step, add it to the condition in `remove_tools()` that strips `DEV_NODEJS_LINT`, and add its sub-scripts to the `rebuild_npm_chain()` calls in `remove_npm()`.
-5. Document it in `README.md`: the feature list, and the ignore-failure table when its CI step has a `CI_<TOOL>_IGNORE_FAILURE` variable.
+5. Document it: the feature lists in `README.md` and `.eddy/docs/content/README.mdx`, the tools table in `.eddy/docs/content/development/coding-standards.mdx`, the Tools row in `.eddy/docs/content/installation.mdx`, and the ignore-failure table in `.eddy/docs/content/continuous-integration/configuration.mdx` when its CI step has a `CI_<TOOL>_IGNORE_FAILURE` variable. `DocumentationTest` fails until that table lists every toggle of `test.yml`.
 6. Add the tool to the Tools list in `.eddy/skills/update-consumer-eddy/SKILL.md`, followed by the file that marks it, such as `` `phpcs` (`phpcs.xml`) ``. `DocumentationTest` fails until it's there, because the update skill would otherwise remove the tool from every project it updates.
 7. Add the tool to `dataProviderProcessRemovesTools()` and `dataProviderProcessRemovesGitattributes()` in `InstallProcessTest`. In `InstallTest`, add it to `defaultAnswers()` and to every `tools` answer other than the empty one of `no_tools`, and add a `no_<tool>` dataset, then regenerate the snapshot fixtures.
 
@@ -187,7 +188,7 @@ The trait that drives the diff-and-update behavior is `SnapshotTrait` (see `tear
 
 ## Regenerating animated SVG assets
 
-The README demo SVGs are produced from real terminal recordings:
+The demo SVGs of `README.md` and the documentation site are produced from real terminal recordings:
 
 ```bash
 composer --working-dir=.eddy/tests update-assets
@@ -229,11 +230,24 @@ agent-browser screenshot "$PWD/.eddy/assets/social-preview.png"
 
 GitHub has no API for the social preview, so upload the new PNG by hand in the repository's **Settings > General > Social preview**.
 
+## Documentation site
+
+`.eddy/docs/` is a Docusaurus site set up like the getscaffold.dev one from `AlexSkrypnyk/scaffold`. Its pages live in `.eddy/docs/content/`, 1 topic per page, and the sidebar follows the folder tree in the order of each page's `sidebar_position`. `.eddy/docs/content/contributing/documentation.mdx` is the guide for humans; these points matter most when editing:
+
+- Run `npm --prefix .eddy/docs ci` once, then `npm --prefix .eddy/docs run build` and `npm --prefix .eddy/docs test`, which runs Jest for `src/components` and CSpell for the pages. The build fails on a broken link, anchor or Markdown link.
+- Link pages by their relative `.mdx` path, and show commands with the `CommandTabs` component (`make`, `ahoy` and `none` props), so every page covers the 3 wrapper setups.
+- `.eddy/docs/cspell.json` checks the pages in US English and skips fenced code and `CommandTabs` blocks. The root `.cspell.json` ignores `.eddy/docs/`, and `remove_cspell_eddy_paths()` drops every `.eddy/` ignore path from a generated project.
+- `DocumentationTest` checks the pages against the code: the tooling commands in `development/tooling.mdx`, the CI jobs in `continuous-integration/README.mdx` and `continuous-integration/branch-protection.mdx`, the ignore-failure toggles in `continuous-integration/configuration.mdx`, the variables the tooling reads in `development/environment-variables.mdx`, and the update skill commands and the tooling PHP floor in `updating/upgrading-from-4x.mdx`.
+- The `eddy-test-docs` job deploys every build to Netlify when the `NETLIFY_SITE_ID` and `NETLIFY_AUTH_TOKEN` secrets are set: a push to `main` updates the development site at https://drevops-eddy-docs.netlify.app, and a pull request gets a preview linked in a comment.
+- `eddy-release-docs.yml` publishes to GitHub Pages on a release tag, or on a manual run with a version. It passes `DOCS_URL` and `DOCS_BASE_URL` from the Pages settings, so a custom domain needs no code change, and sets `RELEASE_VERSION`, which turns on Google Analytics, search engine indexing and the version in the footer. The `github-pages` environment must allow the tag or branch that deploys.
+
 ## CI
 
-`.github/workflows/eddy-test.yml` runs the suite across the `p0`-`p5` groups on Ubuntu and macOS, runs `p3` and `p4` once per WebDriver backend (Selenium on Ubuntu only, chromedriver on both), and validates `.eddy/tests/composer.json` and the tooling package's `composer.json` (validate + normalize) plus the PHP lint step in `p0`. A second job (`eddy-test-actions`) lints the workflow YAML with `yamllint` and `actionlint` and checks it for security issues with Zizmor.
+`.github/workflows/eddy-test.yml` runs the suite across the `p0`-`p5` groups on Ubuntu and macOS, runs `p3` and `p4` once per WebDriver backend (Selenium on Ubuntu only, chromedriver on both), and validates `.eddy/tests/composer.json` and the tooling package's `composer.json` (validate + normalize) plus the PHP lint step in `p0`. A second job (`eddy-test-docs`) builds and tests the documentation site and deploys it to Netlify, and a third (`eddy-test-actions`) lints the workflow YAML with `yamllint` and `actionlint` and checks it for security issues with Zizmor.
 
 `.github/workflows/eddy-publish-tooling.yml` publishes `.eddy/tooling/` to the same-named branch of `drevops/eddy-tooling` on every push to `main` and to a branch whose name contains `eddy-tooling`.
+
+`.github/workflows/eddy-release-docs.yml` publishes the documentation site to GitHub Pages on a release tag or a manual run (see [Documentation site](#documentation-site)).
 
 `.github/workflows/deploy.yml` deploys `main` and release tags to [`drevops/eddy_destination`](https://github.com/drevops/eddy_destination) the way it deploys a generated project to Drupal.org. The `DEPLOY_BRANCH` repository variable sends `main` to `5.x` there, and the `DEPLOY_PROCEED` secret set to `1` lets the push through.
 
