@@ -4,5 +4,5 @@
  [![Build, test and deploy](https://github.com/force_crystal/force_crystal/actions/workflows/test.yml/badge.svg)](https://github.com/force_crystal/force_crystal/actions/workflows/test.yml)
 -[![codecov](https://codecov.io/gh/force_crystal/force_crystal/graph/badge.svg)](https://codecov.io/gh/force_crystal/force_crystal)
  ![GitHub release (latest by date)](https://img.shields.io/github/v/release/force_crystal/force_crystal)
- ![LICENSE](https://img.shields.io/github/license/force_crystal/force_crystal)
+ ![License: GPL-2.0-or-later](https://img.shields.io/badge/license-GPL--2.0--or--later-orange.svg)
  ![Renovate](https://img.shields.io/badge/renovate-enabled-green?logo=renovatebot)

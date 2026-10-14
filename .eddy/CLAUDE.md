@@ -121,11 +121,13 @@ The badges in `README.dist.md` name the GitHub repository as `YourNamespace/your
 
 The repository goes in after the generic replacements, which would rewrite an owner or a name spelled like a placeholder, such as `alexskrypnyk`. The update skill renders in a scratch directory inside the project's repository, which the root check rules out, so it passes `INSTALL_GITHUB_REPOSITORY` to both renders.
 
+The license badge names no repository: it states GPL-2.0-or-later. GitHub detects a license only from a license file, and a generated project has none, because Drupal.org adds `LICENSE.txt` to every release it packages and asks projects not to commit one. The deployment pushes the project's commits as they are, so it can't leave a committed license file out either.
+
 ## Template version
 
 `install.php` records the Eddy release a project came from as `extra.eddy.version` in its `composer.dev.json`, so the update skill can render that release as the base of its 3-way merge.
 
-The value comes from the `TEMPLATE_VERSION` constant. `.gitattributes` marks `install.php` as `export-subst`, so `git archive` expands the constant's `$Format:%(describe:tags=true)$` placeholder to `git describe` output for the archived commit. GitHub builds every download that way: a release archive, as the update skill fetches it, gets the tag, such as `5.0.0`, and **Download ZIP** of a branch gets the commit after the last tag, such as `5.0.0-3-g1a2b3c4`. A clone, or a repository created with **Use this template**, keeps the placeholder, and `install.php` records nothing.
+The value comes from the `TEMPLATE_VERSION` constant. `.gitattributes` marks `install.php` as `export-subst`, so `git archive` expands the constant's `$Format:%(describe:tags=true)$` placeholder to `git describe` output for the archived commit. GitHub builds every download that way: a release archive, as the update skill fetches it, gets the tag, such as `5.0.0`, and **Download ZIP** of a branch gets the commit after the last tag, such as `5.0.0-3-g1a2b3c4`. No release carries the second form, so the update skill renders its base from the archive of the commit, `https://github.com/drevops/eddy/archive/<commit>.tar.gz`, which GitHub expands to the same version. A clone, or a repository created with **Use this template**, keeps the placeholder, and `install.php` records nothing.
 
 `git archive` expands every `$Format:` in the file up to the next `$`, which in PHP is usually the next variable. Keep the constant the only place `install.php` holds that text, in comments too. `InstallHelpersTest` archives the real `install.php` and fails when anything other than the constant changes.
 

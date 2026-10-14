@@ -97,6 +97,7 @@ final class InstallProcessTest extends UnitTestCase {
     $readme = (string) file_get_contents(self::$sut . '/README.md');
     $this->assertStringContainsString($name, $readme);
     $this->assertStringContainsString('[Eddy](https://github.com/drevops/eddy)', $readme);
+    $this->assertStringNotContainsString('img.shields.io/github/license', $readme, 'The README badge reads the license from GitHub, which finds no license file in the project.');
   }
 
   public static function dataProviderProcess(): \Iterator {
@@ -1210,7 +1211,7 @@ final class InstallProcessTest extends UnitTestCase {
     $this->assertStringContainsString('https://img.shields.io/github/issues/' . $expected . '.svg', $readme);
     $this->assertStringContainsString('https://github.com/' . $expected . '/actions/workflows/test.yml', $readme);
     $this->assertStringContainsString('https://codecov.io/gh/' . $expected . '/graph/badge.svg', $readme);
-    $this->assertStringContainsString('https://img.shields.io/github/license/' . $expected . ')', $readme);
+    $this->assertStringContainsString('https://img.shields.io/github/v/release/' . $expected . ')', $readme);
     $this->assertStringNotContainsString('__GITHUB_REPOSITORY__', $readme);
     $this->assertStringContainsString('[Eddy](https://github.com/drevops/eddy)', $readme);
   }

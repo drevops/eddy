@@ -14,7 +14,7 @@
 [![codecov](https://codecov.io/gh/YourNamespace/your_extension/graph/badge.svg)](https://codecov.io/gh/YourNamespace/your_extension)
 <!-- #;> DEV_PHPUNIT -->
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/YourNamespace/your_extension)
-![LICENSE](https://img.shields.io/github/license/YourNamespace/your_extension)
+![License: GPL-2.0-or-later](https://img.shields.io/badge/license-GPL--2.0--or--later-orange.svg)
 <!-- #;< DEV_RENOVATE -->
 ![Renovate](https://img.shields.io/badge/renovate-enabled-green?logo=renovatebot)
 <!-- #;> DEV_RENOVATE -->
