@@ -19,7 +19,7 @@
  - `build/` - Assembled Drupal codebase (symlinked extension)
  - `vendor/` - The installed `drevops/eddy-tooling` package, whose commands (`vendor/bin/eddy-*`) assemble, start, provision and deploy the extension. Not committed and not part of the extension
  - `scripts/eddy-tooling` - Installs the tooling package into `vendor/` from the constraint in `composer.dev.json`. The command wrappers and CI run it before the tooling commands
-@@ -72,10 +71,9 @@
+@@ -72,10 +71,10 @@
  
  ## Architecture
  
@@ -28,21 +28,22 @@
 -- **Test coverage**: Unit, kernel, and functional test examples provided
 -- **Form integration**: Admin forms in `src/Form/` for configuration
 +- **No base theme**: `base theme: false`, so Drupal's default templates render every page until the theme overrides them in `templates/`
++- **Theme hooks**: `force_crystal.theme` adds a `div[data-force_crystal-time]` element to every page, which `js/force_crystal.js` fills with the page load time
 +- **Global library**: The `libraries` key in `force_crystal.info.yml` attaches the `global` library from `force_crystal.libraries.yml` to every page
 +- **Test coverage**: FunctionalJavascript smoke test example provided, with the theme installed as the default theme
  
  ## Environment Variables
  
-@@ -96,7 +94,7 @@
+@@ -96,7 +95,7 @@
  ## Development Workflow
  
  1. Build environment: `ahoy build`
 -2. Develop Force Crystal code in `src/`
-+2. Develop your theme: Twig templates in `templates/`, styles in `css/` and behaviors in `js/`
++2. Develop your theme: Twig templates in `templates/`, hooks in `force_crystal.theme`, styles in `css/` and behaviors in `js/`
  3. Check standards: `ahoy lint`
  4. Run tests: `ahoy test`
  5. Access site at the URL that `ahoy info` reports
-@@ -122,7 +120,7 @@
+@@ -122,7 +121,7 @@
  ## Important Notes
  
  - The `build/` directory contains the assembled Drupal site
