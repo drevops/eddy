@@ -451,6 +451,18 @@ function selenium_container_running(string $port): bool {
 }
 
 /**
+ * Remove the Selenium container for a port, whether it runs or not.
+ *
+ * Docker's output is discarded, so a missing container is not reported.
+ *
+ * @param string $port
+ *   The WebDriver port the container publishes.
+ */
+function selenium_container_remove(string $port): void {
+  @passthru(sprintf('docker rm -f %s >/dev/null 2>&1', escapeshellarg(selenium_container($port))));
+}
+
+/**
  * List the processes listening on the WebDriver port, split by owner.
  *
  * 'eddy-browser-start' launches chromedriver from the project root. A process

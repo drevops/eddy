@@ -19,16 +19,31 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class BrowserStartTest extends UnitTestCase {
 
+  /**
+   * The '/status' response body of each WebDriver server, keyed by server.
+   *
+   * Modelled on the responses of ChromeDriver 155, Selenium 4.44 and
+   * geckodriver, which stands for a server of neither backend.
+   */
+  protected const array STATUS_BODIES = [
+    'chromedriver' => '{"value":{"build":{"version":"150.0.7871.129"},"message":"ChromeDriver ready for new sessions.","os":{"arch":"arm64","name":"Mac OS X","version":"26.6.2"},"ready":true}}',
+    'selenium' => '{"value": {"nodes": [{"availability": "UP", "version": "4.44.0 (revision da2039bd14*)"}], "ready": true, "message": "Selenium Grid ready."}}',
+    'selenium booting' => '{"value": {"nodes": [], "ready": false, "message": "Selenium Grid not ready."}}',
+    'geckodriver' => '{"value":{"message":"","ready":true}}',
+  ];
+
   protected string $envFileContent = "WEBDRIVER_PORT=4444\n";
 
   protected string $installLogContent = "chromedriver@150.0.7871.129 /cache/chromedriver\n";
 
   /**
-   * @var array<int, bool>
+   * The '/status' response body of each probe, or FALSE for no answer.
+   *
+   * @var array<int, string|false>
    */
-  protected array $readySequence = [FALSE];
+  protected array $statusBodies = [FALSE];
 
-  protected int $readyIndex = 0;
+  protected int $statusIndex = 0;
 
   /**
    * @var array<int, string>
@@ -68,10 +83,10 @@ final class BrowserStartTest extends UnitTestCase {
       }
 
       if (str_starts_with($f, 'http://localhost:')) {
-        $ready = $this->readySequence[$this->readyIndex] ?? end($this->readySequence);
-        $this->readyIndex++;
+        $body = $this->statusBodies[$this->statusIndex] ?? end($this->statusBodies);
+        $this->statusIndex++;
 
-        return $ready ? '{"value": {"ready": true, "message": "ready"}}' : FALSE;
+        return $body;
       }
 
       return FALSE;
@@ -108,7 +123,7 @@ final class BrowserStartTest extends UnitTestCase {
 
   public function testBrowserStartAlreadyRunning(): void {
     $this->mockCommands([]);
-    $this->mockReady([TRUE]);
+    $this->mockStatus(['chromedriver']);
 
     $output = $this->runBrowserStart();
 
@@ -116,10 +131,62 @@ final class BrowserStartTest extends UnitTestCase {
     $this->assertStringContainsString('chromedriver is already running on port 4444', $output);
   }
 
+  /**
+   * Only a server whose '/status' body names the selected backend and reports
+   * that it accepts sessions is reused.
+   *
+   * A server that is not reused does not pass for the backend launched in its
+   * place either, so the launch times out.
+   */
+  #[DataProvider('dataProviderBrowserStartReusesOnlyServerOfBackend')]
+  public function testBrowserStartReusesOnlyServerOfBackend(string $backend, string|false $body, bool $expected_reused): void {
+    $this->envSet('WEBDRIVER_BACKEND', $backend);
+    $this->mockChrome(FALSE);
+    $this->mockCommands(['docker' => '/usr/bin/docker', 'google-chrome' => '/usr/bin/google-chrome', 'chromedriver' => '/usr/local/bin/chromedriver']);
+    $this->mockVersions('Google Chrome 150.0.7871.129', 'ChromeDriver 150.0.7871.129 (abc)');
+    $this->mockStatusBodies([$body]);
+    $commands = [];
+    $this->recordPassthru($commands);
+
+    $output = $this->runBrowserStart($expected_reused ? 0 : 1);
+
+    if ($expected_reused) {
+      $this->assertStringContainsString('already running on port 4444', $output);
+      $this->assertSame([], $commands, 'A reused server must not be stopped, removed or replaced.');
+
+      return;
+    }
+
+    $this->assertStringContainsString('failed to become ready on port 4444 after 30 seconds', $output);
+    $this->assertNotSame([], $commands, 'The selected backend must be launched in place of a server that is not reused.');
+  }
+
+  public static function dataProviderBrowserStartReusesOnlyServerOfBackend(): \Iterator {
+    yield 'chromedriver backend, ChromeDriver' => ['chromedriver', self::STATUS_BODIES['chromedriver'], TRUE];
+    yield 'chromedriver backend, Selenium' => ['chromedriver', self::STATUS_BODIES['selenium'], FALSE];
+    yield 'chromedriver backend, booting Selenium' => ['chromedriver', self::STATUS_BODIES['selenium booting'], FALSE];
+    yield 'chromedriver backend, another WebDriver server' => ['chromedriver', self::STATUS_BODIES['geckodriver'], FALSE];
+    yield 'selenium backend, Selenium' => ['selenium', self::STATUS_BODIES['selenium'], TRUE];
+    yield 'selenium backend, ChromeDriver' => ['selenium', self::STATUS_BODIES['chromedriver'], FALSE];
+    yield 'selenium backend, booting Selenium' => ['selenium', self::STATUS_BODIES['selenium booting'], FALSE];
+    yield 'selenium backend, another WebDriver server' => ['selenium', self::STATUS_BODIES['geckodriver'], FALSE];
+    yield 'ChromeDriver that is not ready' => ['chromedriver', '{"value":{"message":"ChromeDriver ready for new sessions.","ready":false}}', FALSE];
+    yield 'readiness that is not a boolean' => ['chromedriver', '{"value":{"message":"ChromeDriver ready for new sessions.","ready":"true"}}', FALSE];
+    yield 'body without a message' => ['chromedriver', '{"value":{"ready":true}}', FALSE];
+    yield 'message that is not a string' => ['chromedriver', '{"value":{"message":["ChromeDriver"],"ready":true}}', FALSE];
+    yield 'message naming the backend later on' => ['selenium', '{"value":{"message":"Not a Selenium Grid","ready":true}}', FALSE];
+    yield 'body without a value' => ['chromedriver', '{"message":"ChromeDriver ready for new sessions.","ready":true}', FALSE];
+    yield 'value that is not an object' => ['selenium', '{"value":"Selenium Grid ready."}', FALSE];
+    yield 'body that is not JSON' => ['chromedriver', 'ChromeDriver "ready": true', FALSE];
+    yield 'empty body' => ['selenium', '', FALSE];
+    yield 'chromedriver backend, no answer' => ['chromedriver', FALSE, FALSE];
+    yield 'selenium backend, no answer' => ['selenium', FALSE, FALSE];
+  }
+
   public function testBrowserStartReusesOwnChromedriver(): void {
     $this->mockCommands([]);
     $this->mockPortListeners('4444', [1234 => ['/usr/local/bin/chromedriver --port=4444', '/test/project']]);
-    $this->mockReady([TRUE]);
+    $this->mockStatus(['chromedriver']);
     $commands = [];
     $this->recordPassthru($commands);
 
@@ -134,15 +201,47 @@ final class BrowserStartTest extends UnitTestCase {
     $this->mockCommands(['google-chrome' => '/usr/bin/google-chrome', 'chromedriver' => '/usr/local/bin/chromedriver']);
     $this->mockVersions('Google Chrome 150.0.7871.129', 'ChromeDriver 150.0.7871.129 (abc)');
     $this->mockPortListeners('4444', [1234 => ['/usr/local/bin/chromedriver --port=4444', '/test/project']]);
-    $this->mockReady([FALSE, TRUE]);
+    $this->mockStatus([NULL, 'chromedriver']);
     $commands = [];
     $this->recordPassthru($commands);
 
     $output = $this->runBrowserStart();
 
+    $this->assertStringContainsString('Stopping chromedriver on port 4444.', $output);
     $this->assertStringContainsString('chromedriver is ready on port 4444', $output);
     $this->assertSame('kill -9 1234 2>/dev/null', $commands[0] ?? NULL, 'A chromedriver of the project that does not answer must be stopped first.');
     $this->assertStringContainsString('nohup', $commands[1] ?? '', 'A new chromedriver must be launched after the old one is stopped.');
+  }
+
+  /**
+   * The running container of the project publishes the port whether or not it
+   * accepts sessions, so the chromedriver backend removes it first.
+   */
+  #[DataProvider('dataProviderBrowserStartChromedriverReplacesOwnContainer')]
+  public function testBrowserStartChromedriverReplacesOwnContainer(string $project, ?string $status): void {
+    $this->mockChrome(FALSE);
+    $this->mockCommands(['docker' => '/usr/bin/docker', 'google-chrome' => '/usr/bin/google-chrome', 'chromedriver' => '/usr/local/bin/chromedriver']);
+    $this->mockVersions('Google Chrome 150.0.7871.129', 'ChromeDriver 150.0.7871.129 (abc)');
+    $this->mockPortListeners('4444', [9999 => ['/Applications/Docker.app/Contents/MacOS/com.docker.backend', '/']], self::seleniumContainerOutputs('4444', $project));
+    $this->mockStatus([$status, 'chromedriver']);
+    $commands = [];
+    $this->recordPassthru($commands);
+
+    $output = $this->runBrowserStart();
+
+    $this->assertStringContainsString('Removing the Selenium container selenium-4444.', $output);
+    $this->assertStringContainsString('chromedriver is ready on port 4444', $output);
+    $this->assertCount(2, $commands, 'Only the container may be removed before chromedriver is launched.');
+    $this->assertSame("docker rm -f 'selenium-4444' >/dev/null 2>&1", $commands[0], 'The container of the project must be removed first.');
+    $this->assertStringContainsString('nohup', $commands[1], 'chromedriver must be launched once the container is removed.');
+  }
+
+  public static function dataProviderBrowserStartChromedriverReplacesOwnContainer(): \Iterator {
+    yield 'answering container of the project' => ['/test/project', 'selenium'];
+    yield 'answering container without the label' => ['', 'selenium'];
+    yield 'booting container of the project' => ['/test/project', 'selenium booting'];
+    yield 'container of the project that does not answer' => ['/test/project', NULL];
+    yield 'container without the label that does not answer' => ['', NULL];
   }
 
   /**
@@ -158,7 +257,7 @@ final class BrowserStartTest extends UnitTestCase {
     $this->envSet('WEBDRIVER_BACKEND', $backend);
     $this->mockCommands(['docker' => '/usr/bin/docker']);
     $this->mockPortListeners('4444', $listeners, self::seleniumContainerOutputs('4444', $container));
-    $this->mockReady([TRUE]);
+    $this->mockStatus([$backend]);
     $commands = [];
     $this->recordPassthru($commands);
 
@@ -172,10 +271,52 @@ final class BrowserStartTest extends UnitTestCase {
     $driver = [5678 => ['/usr/bin/chromedriver --port=4444', '/www/other']];
     $docker = [9999 => ['/Applications/Docker.app/Contents/MacOS/com.docker.backend', '/']];
 
-    yield 'chromedriver of another project, chromedriver backend' => ['chromedriver', $driver, NULL, 'chromedriver is already running on port 4444'];
-    yield 'chromedriver of another project, selenium backend' => ['selenium', $driver, NULL, 'Selenium is already running on port 4444'];
-    yield 'container of another project, chromedriver backend' => ['chromedriver', $docker, '/www/other', 'chromedriver is already running on port 4444'];
-    yield 'container of another project, selenium backend' => ['selenium', $docker, '/www/other', 'Selenium is already running on port 4444'];
+    yield 'chromedriver of another project' => ['chromedriver', $driver, NULL, 'chromedriver is already running on port 4444'];
+    yield 'container of another project' => ['selenium', $docker, '/www/other', 'Selenium is already running on port 4444'];
+    yield 'container started under another name' => ['selenium', $docker, NULL, 'Selenium is already running on port 4444'];
+  }
+
+  /**
+   * A server that answers on the port but is not of the selected backend is
+   * not reused, and it is named rather than stopped when it is not the
+   * project's own.
+   *
+   * @param array<int, array{0: string, 1: string}> $listeners
+   *   The command line and the working directory of each process listening on
+   *   the port, keyed by process ID.
+   * @param array<int, string> $expected
+   *   Lines the output names the holder with.
+   */
+  #[DataProvider('dataProviderBrowserStartFailsWhenOtherServerAnswersOnPort')]
+  public function testBrowserStartFailsWhenOtherServerAnswersOnPort(string $backend, string $status, array $listeners, ?string $container, array $expected): void {
+    $this->envSet('WEBDRIVER_BACKEND', $backend);
+    $this->mockCommands(['docker' => '/usr/bin/docker']);
+    $this->mockPortListeners('4444', $listeners, self::seleniumContainerOutputs('4444', $container));
+    $this->mockStatus([$status]);
+    $commands = [];
+    $this->recordPassthru($commands);
+
+    $output = $this->runBrowserStart(1);
+
+    foreach ($expected as $line) {
+      $this->assertStringContainsString($line, $output);
+    }
+    $this->assertStringNotContainsString('already running', $output);
+    $this->assertSame([], $commands, 'A server of another project or another process must not be stopped, removed or replaced.');
+  }
+
+  public static function dataProviderBrowserStartFailsWhenOtherServerAnswersOnPort(): \Iterator {
+    $driver = [5678 => ['/usr/bin/chromedriver --port=4444', '/www/other']];
+    $gecko = [5678 => ['/usr/local/bin/geckodriver --port 4444', '/www/other']];
+    $docker = [9999 => ['/Applications/Docker.app/Contents/MacOS/com.docker.backend', '/']];
+    $container_message = 'Port 4444 is in use by the Selenium container of another project. Stop its browser, or set WEBDRIVER_PORT in .env to a free port.';
+    $process_message = 'Port 4444 is in use by another process. Stop it, or set WEBDRIVER_PORT in .env to a free port.';
+
+    yield 'chromedriver backend, container of another project' => ['chromedriver', 'selenium', $docker, '/www/other', [$container_message, 'selenium-4444 /www/other']];
+    yield 'chromedriver backend, container started under another name' => ['chromedriver', 'selenium', $docker, NULL, [$process_message, '9999 /Applications/Docker.app/Contents/MacOS/com.docker.backend']];
+    yield 'selenium backend, chromedriver of another project' => ['selenium', 'chromedriver', $driver, NULL, [$process_message, '5678 /usr/bin/chromedriver --port=4444']];
+    yield 'chromedriver backend, another WebDriver server' => ['chromedriver', 'geckodriver', $gecko, NULL, [$process_message, '5678 /usr/local/bin/geckodriver --port 4444']];
+    yield 'selenium backend, another WebDriver server' => ['selenium', 'geckodriver', $gecko, NULL, [$process_message, '5678 /usr/local/bin/geckodriver --port 4444']];
   }
 
   #[DataProvider('dataProviderBrowserStartFailsWhenAnotherProcessHoldsPort')]
@@ -183,7 +324,7 @@ final class BrowserStartTest extends UnitTestCase {
     $this->envSet('WEBDRIVER_BACKEND', $backend);
     $this->mockCommands(['docker' => '/usr/bin/docker']);
     $this->mockPortListeners('4444', [5678 => ['node server.js --port=4444', $cwd]]);
-    $this->mockReady([FALSE]);
+    $this->mockStatus([NULL]);
     $commands = [];
     $this->recordPassthru($commands);
 
@@ -206,7 +347,7 @@ final class BrowserStartTest extends UnitTestCase {
     $this->envSet('WEBDRIVER_BACKEND', $backend);
     $this->mockCommands(['docker' => '/usr/bin/docker']);
     $this->mockPortListeners('4444', [9999 => ['/Applications/Docker.app/Contents/MacOS/com.docker.backend', '/']], self::seleniumContainerOutputs('4444', '/www/other'));
-    $this->mockReady([FALSE]);
+    $this->mockStatus([NULL]);
     $commands = [];
     $this->recordPassthru($commands);
 
@@ -231,7 +372,7 @@ final class BrowserStartTest extends UnitTestCase {
     $this->envSet('WEBDRIVER_BACKEND', $backend);
     $this->mockCommands(['docker' => '/usr/bin/docker']);
     $this->mockPortListeners('4444', [5678 => ['node /www/other/server.js --port=4444', '/www/other']], self::seleniumContainerOutputs('4444', $container, FALSE));
-    $this->mockReady([FALSE]);
+    $this->mockStatus([NULL]);
     $commands = [];
     $this->recordPassthru($commands);
 
@@ -257,7 +398,7 @@ final class BrowserStartTest extends UnitTestCase {
     $this->mockCommands(['docker' => '/usr/bin/docker', 'google-chrome' => '/usr/bin/google-chrome', 'chromedriver' => '/usr/local/bin/chromedriver']);
     $this->mockVersions('Google Chrome 150.0.7871.129', 'ChromeDriver 150.0.7871.129 (abc)');
     $this->mockPortListeners('4444', [], self::seleniumContainerOutputs('4444', $container, FALSE));
-    $this->mockReady([FALSE, TRUE]);
+    $this->mockStatus([NULL, 'chromedriver']);
     $commands = [];
     $this->recordPassthru($commands);
 
@@ -277,7 +418,7 @@ final class BrowserStartTest extends UnitTestCase {
     $this->mockChrome(FALSE);
     $this->mockCommands(['google-chrome' => '/usr/bin/google-chrome', 'chromedriver' => '/usr/local/bin/chromedriver']);
     $this->mockVersions('Google Chrome 150.0.7871.129', 'ChromeDriver 150.0.7871.129 (abc)');
-    $this->mockReady([FALSE, TRUE]);
+    $this->mockStatus([NULL, 'chromedriver']);
     $commands = [];
     $this->recordPassthru($commands);
 
@@ -300,7 +441,7 @@ final class BrowserStartTest extends UnitTestCase {
     $this->mockChrome(FALSE);
     $this->mockCommands(['google-chrome' => '/usr/bin/google-chrome', 'chromedriver' => '/usr/local/bin/chromedriver', 'npx' => '/usr/bin/npx']);
     $this->mockVersions('Google Chrome 150.0.7871.129', 'ChromeDriver 151.0.7922.34 (abc)');
-    $this->mockReady([FALSE, TRUE]);
+    $this->mockStatus([NULL, 'chromedriver']);
     $commands = [];
     $this->recordPassthru($commands);
 
@@ -316,7 +457,7 @@ final class BrowserStartTest extends UnitTestCase {
     $this->mockChrome(FALSE);
     $this->mockCommands(['google-chrome' => '/usr/bin/google-chrome', 'chromedriver' => '/usr/local/bin/chromedriver', 'npx' => '/usr/bin/npx']);
     $this->mockVersions('Google Chrome 150.0.7871.129', 'ChromeDriver 150.0.7871.129 (abc)', hanging: ['/usr/local/bin/chromedriver']);
-    $this->mockReady([FALSE, TRUE]);
+    $this->mockStatus([NULL, 'chromedriver']);
     $commands = [];
     $this->recordPassthru($commands);
 
@@ -335,7 +476,7 @@ final class BrowserStartTest extends UnitTestCase {
     $this->mockChrome(FALSE);
     $this->mockCommands(['google-chrome' => '/usr/bin/google-chrome', 'chromedriver' => '/usr/local/bin/chromedriver', 'npx' => '/usr/bin/npx']);
     $this->mockVersions('Google Chrome 150.0.7871.129', 'ChromeDriver 150.0.7871.129 (abc)', hanging: ['/usr/bin/google-chrome']);
-    $this->mockReady([FALSE]);
+    $this->mockStatus([NULL]);
     $commands = [];
     $this->recordPassthru($commands);
 
@@ -350,7 +491,7 @@ final class BrowserStartTest extends UnitTestCase {
     $this->mockChrome(TRUE);
     $this->mockCommands(['chromedriver' => '/usr/local/bin/chromedriver']);
     $this->mockVersions('Google Chrome 150.0.7871.129', 'ChromeDriver 150.0.7871.129 (abc)');
-    $this->mockReady([FALSE, TRUE]);
+    $this->mockStatus([NULL, 'chromedriver']);
     $commands = [];
     $this->recordPassthru($commands);
 
@@ -365,7 +506,7 @@ final class BrowserStartTest extends UnitTestCase {
     $this->mockChrome(FALSE);
     $this->mockCommands($available + ['chromedriver' => '/usr/local/bin/chromedriver']);
     $this->mockVersions('Chromium 150.0.7871.129', 'ChromeDriver 150.0.7871.129 (abc)');
-    $this->mockReady([FALSE, TRUE]);
+    $this->mockStatus([NULL, 'chromedriver']);
     $commands = [];
     $this->recordPassthru($commands);
 
@@ -394,7 +535,7 @@ final class BrowserStartTest extends UnitTestCase {
     $this->mockChrome(FALSE);
     $this->mockCommands([]);
     $this->mockVersions('', '');
-    $this->mockReady([FALSE]);
+    $this->mockStatus([NULL]);
 
     $output = $this->runBrowserStart(1);
 
@@ -405,7 +546,7 @@ final class BrowserStartTest extends UnitTestCase {
     $this->mockChrome(FALSE);
     $this->mockCommands(['google-chrome' => '/usr/bin/google-chrome', 'chromedriver' => '/usr/local/bin/chromedriver']);
     $this->mockVersions('Google Chrome 150.0.7871.129', 'ChromeDriver 151.0.7922.34 (abc)');
-    $this->mockReady([FALSE]);
+    $this->mockStatus([NULL]);
 
     $output = $this->runBrowserStart(1);
 
@@ -416,7 +557,7 @@ final class BrowserStartTest extends UnitTestCase {
     $this->mockChrome(FALSE);
     $this->mockCommands(['google-chrome' => '/usr/bin/google-chrome', 'npx' => '/usr/bin/npx']);
     $this->mockVersions('Google Chrome 150.0.7871.129', '');
-    $this->mockReady([FALSE]);
+    $this->mockStatus([NULL]);
     $commands = [];
     $this->recordPassthru($commands, npx_exit: 1);
 
@@ -425,12 +566,17 @@ final class BrowserStartTest extends UnitTestCase {
     $this->assertStringContainsString('Failed to install chromedriver', $output);
   }
 
-  public function testBrowserStartFailsWhenBinaryPathUnresolved(): void {
-    $this->installLogContent = '';
+  /**
+   * @param string $install_log
+   *   The install log of the fetched chromedriver, or '' when it is unreadable.
+   */
+  #[DataProvider('dataProviderBrowserStartFailsWhenBinaryPathUnresolved')]
+  public function testBrowserStartFailsWhenBinaryPathUnresolved(string $install_log): void {
+    $this->installLogContent = $install_log;
     $this->mockChrome(FALSE);
     $this->mockCommands(['google-chrome' => '/usr/bin/google-chrome', 'npx' => '/usr/bin/npx']);
     $this->mockVersions('Google Chrome 150.0.7871.129', '');
-    $this->mockReady([FALSE]);
+    $this->mockStatus([NULL]);
     $commands = [];
     $this->recordPassthru($commands);
 
@@ -439,11 +585,17 @@ final class BrowserStartTest extends UnitTestCase {
     $this->assertStringContainsString('Could not determine the chromedriver binary path', $output);
   }
 
+  public static function dataProviderBrowserStartFailsWhenBinaryPathUnresolved(): \Iterator {
+    yield 'unreadable log' => [''];
+    yield 'log of blank lines' => ["\n\n"];
+    yield 'last line without a path' => ["chromedriver@150.0.7871.129\n"];
+  }
+
   public function testBrowserStartFailsWhenNeverReady(): void {
     $this->mockChrome(FALSE);
     $this->mockCommands(['google-chrome' => '/usr/bin/google-chrome', 'chromedriver' => '/usr/local/bin/chromedriver']);
     $this->mockVersions('Google Chrome 150.0.7871.129', 'ChromeDriver 150.0.7871.129 (abc)');
-    $this->mockReady([FALSE]);
+    $this->mockStatus([NULL]);
     $commands = [];
     $this->recordPassthru($commands);
 
@@ -460,7 +612,7 @@ final class BrowserStartTest extends UnitTestCase {
     $this->mockPortsInUse([4444]);
     $persisted = NULL;
     $this->recordDotenvWrites($persisted);
-    $this->mockReady([FALSE, TRUE]);
+    $this->mockStatus([NULL, 'chromedriver']);
     $commands = [];
     $this->recordPassthru($commands);
 
@@ -475,7 +627,7 @@ final class BrowserStartTest extends UnitTestCase {
   public function testBrowserStartSeleniumAlreadyRunning(): void {
     $this->envSet('WEBDRIVER_BACKEND', 'selenium');
     $this->mockCommands(['docker' => '/usr/bin/docker']);
-    $this->mockReady([TRUE]);
+    $this->mockStatus(['selenium']);
 
     $output = $this->runBrowserStart();
 
@@ -491,7 +643,7 @@ final class BrowserStartTest extends UnitTestCase {
     $this->envSet('WEBDRIVER_BACKEND', 'selenium');
     $this->mockCommands(['docker' => '/usr/bin/docker']);
     $this->mockPortListeners('4444', [9999 => ['/Applications/Docker.app/Contents/MacOS/com.docker.backend', '/']], self::seleniumContainerOutputs('4444', $project));
-    $this->mockReady([TRUE]);
+    $this->mockStatus(['selenium']);
     $commands = [];
     $this->recordPassthru($commands);
 
@@ -507,6 +659,35 @@ final class BrowserStartTest extends UnitTestCase {
   }
 
   /**
+   * The chromedriver of the project holds the port whether or not it accepts
+   * sessions, so the selenium backend stops it first.
+   */
+  #[DataProvider('dataProviderBrowserStartSeleniumReplacesOwnChromedriver')]
+  public function testBrowserStartSeleniumReplacesOwnChromedriver(?string $status, ?string $container): void {
+    $this->envSet('WEBDRIVER_BACKEND', 'selenium');
+    $this->mockCommands(['docker' => '/usr/bin/docker']);
+    $this->mockPortListeners('4444', [1234 => ['/usr/local/bin/chromedriver --port=4444', '/test/project']], self::seleniumContainerOutputs('4444', $container));
+    $this->mockStatus([$status, 'selenium']);
+    $commands = [];
+    $this->recordPassthru($commands);
+
+    $output = $this->runBrowserStart();
+
+    $this->assertStringContainsString('Stopping chromedriver on port 4444.', $output);
+    $this->assertStringContainsString('Selenium is ready on port 4444', $output);
+    $this->assertCount(3, $commands, 'Only chromedriver and the container name may be freed before the container is started.');
+    $this->assertSame('kill -9 1234 2>/dev/null', $commands[0], 'The chromedriver of the project must be stopped first.');
+    $this->assertSame("docker rm -f 'selenium-4444' >/dev/null 2>&1", $commands[1]);
+    $this->assertStringContainsString('docker run', $commands[2]);
+  }
+
+  public static function dataProviderBrowserStartSeleniumReplacesOwnChromedriver(): \Iterator {
+    yield 'answering chromedriver' => ['chromedriver', NULL];
+    yield 'chromedriver that does not answer' => [NULL, NULL];
+    yield 'answering chromedriver beside the container of the project' => ['chromedriver', '/test/project'];
+  }
+
+  /**
    * A stopped container holds the container name but not the port, so it is
    * replaced whichever project it belongs to.
    */
@@ -515,7 +696,7 @@ final class BrowserStartTest extends UnitTestCase {
     $this->envSet('WEBDRIVER_BACKEND', 'selenium');
     $this->mockCommands(['docker' => '/usr/bin/docker']);
     $this->mockPortListeners('4444', [], self::seleniumContainerOutputs('4444', $project, $running));
-    $this->mockReady([FALSE, TRUE]);
+    $this->mockStatus([NULL, 'selenium']);
     $commands = [];
     $this->recordPassthru($commands);
 
@@ -536,7 +717,7 @@ final class BrowserStartTest extends UnitTestCase {
   public function testBrowserStartSeleniumStartsContainer(): void {
     $this->envSet('WEBDRIVER_BACKEND', 'selenium');
     $this->mockCommands(['docker' => '/usr/bin/docker']);
-    $this->mockReady([FALSE, TRUE]);
+    $this->mockStatus([NULL, 'selenium']);
     $commands = [];
     $this->recordPassthru($commands);
 
@@ -560,7 +741,7 @@ final class BrowserStartTest extends UnitTestCase {
     $this->mockPortsInUse([4444]);
     $persisted = NULL;
     $this->recordDotenvWrites($persisted);
-    $this->mockReady([FALSE, TRUE]);
+    $this->mockStatus([NULL, 'selenium']);
     $commands = [];
     $this->recordPassthru($commands);
 
@@ -579,7 +760,7 @@ final class BrowserStartTest extends UnitTestCase {
   public function testBrowserStartSeleniumFailsWithoutDocker(): void {
     $this->envSet('WEBDRIVER_BACKEND', 'selenium');
     $this->mockCommands([]);
-    $this->mockReady([FALSE]);
+    $this->mockStatus([NULL]);
 
     $output = $this->runBrowserStart(1);
 
@@ -589,7 +770,7 @@ final class BrowserStartTest extends UnitTestCase {
   public function testBrowserStartSeleniumFailsWhenDockerRunFails(): void {
     $this->envSet('WEBDRIVER_BACKEND', 'selenium');
     $this->mockCommands(['docker' => '/usr/bin/docker']);
-    $this->mockReady([FALSE]);
+    $this->mockStatus([NULL]);
     $commands = [];
     $this->recordPassthru($commands, docker_run_exit: 1);
 
@@ -601,7 +782,7 @@ final class BrowserStartTest extends UnitTestCase {
   public function testBrowserStartSeleniumFailsWhenNeverReady(): void {
     $this->envSet('WEBDRIVER_BACKEND', 'selenium');
     $this->mockCommands(['docker' => '/usr/bin/docker']);
-    $this->mockReady([FALSE]);
+    $this->mockStatus([NULL]);
     $commands = [];
     $this->recordPassthru($commands);
 
@@ -645,12 +826,22 @@ final class BrowserStartTest extends UnitTestCase {
   }
 
   /**
-   * @param array<int, bool> $sequence
-   *   Readiness result per call; the last value repeats for further calls.
+   * @param array<int, string|null> $servers
+   *   The key in STATUS_BODIES of the server that answers each probe, or NULL
+   *   when nothing answers. The last entry repeats for further probes.
    */
-  protected function mockReady(array $sequence): void {
-    $this->readySequence = $sequence;
-    $this->readyIndex = 0;
+  protected function mockStatus(array $servers): void {
+    $this->mockStatusBodies(array_map(static fn(?string $server): string|false => $server === NULL ? FALSE : self::STATUS_BODIES[$server], $servers));
+  }
+
+  /**
+   * @param array<int, string|false> $bodies
+   *   The '/status' response body of each probe, or FALSE when nothing
+   *   answers. The last entry repeats for further probes.
+   */
+  protected function mockStatusBodies(array $bodies): void {
+    $this->statusBodies = $bodies;
+    $this->statusIndex = 0;
   }
 
   /**

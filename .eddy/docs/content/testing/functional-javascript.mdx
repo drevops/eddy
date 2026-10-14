@@ -61,6 +61,8 @@ vendor/bin/eddy-browser-stop`}
 
 The browser reaches the webserver at `localhost` with the default backend, and at `host.docker.internal` (macOS) or `172.17.0.1` (other systems) from the Selenium container. Set `WEBDRIVER_HOST` to use a different address.
 
+That address depends on the backend, so `browser-start` won't reuse a browser of the other backend. It replaces the project's own browser instead, which means you can switch `WEBDRIVER_BACKEND` between runs without a `browser-stop` first.
+
 ## WebDriver ports
 
 Each project gets its own WebDriver port, whichever backend it uses: a free one is claimed starting at 4444 and saved in `.env`, so several projects can run these tests at the same time. Set `WEBDRIVER_PORT` to pin a specific one.
@@ -69,7 +71,7 @@ Tests reach the claimed port through the base class that the installer generates
 
 ## Sharing a machine with other projects
 
-`browser-start` reuses any browser that already accepts WebDriver sessions on the port, since every session is independent. When something else holds the port, it replaces only the project's own browser, and otherwise fails and names whatever holds it.
+`browser-start` reuses a browser of the selected backend that already accepts WebDriver sessions on the port, whichever project started it, since every session is independent. When anything else holds the port, a browser of the other backend included, it replaces only the project's own browser, and otherwise fails and names whatever holds it.
 
 `browser-stop` and `reset` stop only the project's own browser, so another project's browser on the same port keeps running:
 
