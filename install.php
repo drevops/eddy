@@ -1815,10 +1815,10 @@ function remove_string_content(string $token): void {
 }
 
 /**
- * Remove blocks between token markers from all project files.
+ * Remove blocks between token markers from project files.
  *
  * Removes all content between lines containing "#;< TOKEN" and "#;> TOKEN"
- * markers, inclusive.
+ * markers, inclusive. 'get_marker_files()' lists the files it walks.
  *
  * @param string $token
  *   The token name used in the markers.
@@ -1827,7 +1827,7 @@ function remove_tokens_with_content(string $token): void {
   $start_marker = '#;< ' . $token;
   $end_marker = '#;> ' . $token;
 
-  foreach (get_files() as $file) {
+  foreach (get_marker_files() as $file) {
     $content = file_get_contents($file);
 
     if ($content === FALSE) {
@@ -1940,9 +1940,11 @@ function uncomment_line(string $file, string $start_string): void {
 
 /**
  * Remove all lines containing special comment markers from project files.
+ *
+ * 'get_marker_files()' lists the files it walks.
  */
 function remove_special_comments(): void {
-  foreach (get_files() as $file) {
+  foreach (get_marker_files() as $file) {
     $content = file_get_contents($file);
 
     if ($content === FALSE) {
@@ -2134,6 +2136,21 @@ function get_files(): array {
   }
 
   return $files;
+}
+
+/**
+ * Get the template files that may hold markers.
+ *
+ * The root 'install.php' is left out. Its code spells out the marker syntax,
+ * so stripping marker lines from it would delete code.
+ *
+ * @return array<string>
+ *   Array of file paths.
+ */
+function get_marker_files(): array {
+  $installer = getcwd() . DIRECTORY_SEPARATOR . 'install.php';
+
+  return array_values(array_filter(get_files(), static fn(string $file): bool => $file !== $installer));
 }
 
 /**

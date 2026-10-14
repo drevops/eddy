@@ -51,6 +51,13 @@ final class InstallTest extends FunctionalTestCase {
       'Eddy - Drupal extension scaffold',
     ]);
 
+    // A kept installer must still run.
+    if (is_file(self::$sut . '/install.php')) {
+      $this->processRun(self::$sut . DIRECTORY_SEPARATOR . 'install.php', ['--help']);
+      $this->assertProcessSuccessful();
+      $this->assertProcessOutputContains('Eddy - project installation.');
+    }
+
     $baseline = File::dir(self::$fixtures . '/../' . self::BASELINE_DIR);
     $this->replaceVersions(self::$sut);
 
