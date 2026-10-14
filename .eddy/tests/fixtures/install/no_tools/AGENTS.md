@@ -1,9 +1,11 @@
-@@ -8,22 +8,26 @@
+@@ -8,24 +8,28 @@
  
  ## Development Commands
  
 -**HARD RULE - use the provided command wrappers, never the tool binaries directly.** When `ahoy` exposes a command for a task, use that command; do not call the underlying binary directly. Each wrapper runs the tool where CI runs it, in `build/` for most tools, with the config, plugins, and environment that CI uses, so a raw invocation from the repository root silently diverges from CI - it can pass locally while CI fails (or vice versa), or crash outright when a relative path resolves against the wrong directory. If no wrapped command covers what you need, extend the `ahoy` target rather than making a one-off raw call; if that is not feasible, stop and ask.
 +**HARD RULE - use the provided command wrappers, never the tool binaries directly.** When `make` or `ahoy` exposes a command for a task, use that command; do not call the underlying binary directly. Each wrapper runs the tool where CI runs it, in `build/` for most tools, with the config, plugins, and environment that CI uses, so a raw invocation from the repository root silently diverges from CI - it can pass locally while CI fails (or vice versa), or crash outright when a relative path resolves against the wrong directory. If no wrapped command covers what you need, extend the `make` or `ahoy` target rather than making a one-off raw call; if that is not feasible, stop and ask.
+ 
+ **HARD RULE - never modify `scripts/eddy-tooling`.** It comes from Eddy as-is, and a scaffold update replaces it with the release's copy. To change what a tooling command does, declare a patch for the `drevops/eddy-tooling` package in `composer.dev.json`.
  
 +Run each tool through its `make` wrapper, never the binary directly:
 +
@@ -34,7 +36,7 @@
  **Using Ahoy:**
  - `ahoy build` - Complete build process
  - `ahoy assemble` - Assemble codebase
-@@ -35,33 +39,31 @@
+@@ -37,33 +41,31 @@
  ### Code Quality
  
  **Linting:**
@@ -75,7 +77,7 @@
  - `config/schema/` - Configuration schema definitions
  - `build/` - Assembled Drupal codebase (symlinked extension)
  - `vendor/` - The installed `drevops/eddy-tooling` package, whose commands (`vendor/bin/eddy-*`) assemble, start, provision and deploy the extension. Not committed and not part of the extension
-@@ -72,7 +74,6 @@
+@@ -74,7 +76,6 @@
  
  - **Service-based architecture**: Main functionality in services registered via `*.services.yml`
  - **Configuration-driven**: Uses Drupal configuration system with schema validation
@@ -83,7 +85,7 @@
  - **Form integration**: Admin forms in `src/Form/` for configuration
  
  ## Environment Variables
-@@ -80,9 +81,6 @@
+@@ -82,9 +83,6 @@
  - `DRUPAL_VERSION` - Target Drupal version (e.g., `10`, `11`, `11@alpha`, `12@beta`). Defaults to `extra.eddy.drupal-version` in `composer.dev.json`
  - `WEBSERVER_HOST` - Development server host (default: localhost)
  - `WEBSERVER_PORT` - Development server port. Auto-discovered from range 8000-8099 and written to `.env` if not already set
@@ -93,7 +95,7 @@
  - `WEBSERVER_WAIT_TIMEOUT` - Seconds that `start` waits for the development server to accept connections (default: 5)
  - `DRUPAL_PROFILE` - Install profile that `provision` installs the site from (default: `standard`)
  - `XDEBUG` - Set to `1` to start the development server with XDebug step-debugging
-@@ -93,22 +91,14 @@
+@@ -95,22 +93,14 @@
  
  ## Development Workflow
  
@@ -120,7 +122,7 @@
  ## CI/CD Support
  
  - **GitHub Actions**: `.github/workflows/test.yml` and deployment
-@@ -123,7 +113,6 @@
+@@ -125,7 +115,6 @@
  - Extension files are symlinked from root into `build/web/modules/custom/`
  - SQLite database created in `/tmp/site_force_crystal.sqlite`
  - The PHP and JavaScript quality tools run from within the `build/` directory

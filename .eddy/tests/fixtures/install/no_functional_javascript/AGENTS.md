@@ -1,4 +1,4 @@
-@@ -43,10 +43,7 @@
+@@ -45,10 +45,7 @@
  - `ahoy test-unit` - Run unit tests only
  - `ahoy test-kernel` - Run kernel tests only
  - `ahoy test-functional` - Run functional tests only
@@ -9,7 +9,7 @@
  
  ### Drupal Commands
  
-@@ -55,7 +52,7 @@
+@@ -57,7 +54,7 @@
  
  ### Diagnostics
  
@@ -18,7 +18,7 @@
  
  ## Project Structure
  
-@@ -80,9 +77,6 @@
+@@ -82,9 +79,6 @@
  - `DRUPAL_VERSION` - Target Drupal version (e.g., `10`, `11`, `11@alpha`, `12@beta`). Defaults to `extra.eddy.drupal-version` in `composer.dev.json`
  - `WEBSERVER_HOST` - Development server host (default: localhost)
  - `WEBSERVER_PORT` - Development server port. Auto-discovered from range 8000-8099 and written to `.env` if not already set

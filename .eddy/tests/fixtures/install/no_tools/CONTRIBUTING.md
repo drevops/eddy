@@ -15,7 +15,7 @@
     ahoy build
     ```
  
-@@ -25,6 +28,12 @@
+@@ -27,6 +30,12 @@
  The `build` command is a wrapper for more granular commands:
  
  ```bash
@@ -28,7 +28,7 @@
  ahoy assemble     # Assemble the codebase
  ahoy start        # Start the PHP server
  ahoy provision    # Provision the Drupal website
-@@ -42,6 +51,20 @@
+@@ -44,6 +53,20 @@
  
  ```bash
  # Newest stable Drupal 11 release.
@@ -49,7 +49,7 @@
  DRUPAL_VERSION=11 ahoy build
  
  # Newest Drupal 11.1.x patch release.
-@@ -105,6 +128,11 @@
+@@ -107,6 +130,11 @@
  PHP step-debugging is supported via [XDebug](https://xdebug.org/docs/install). Install the XDebug PHP extension on your host (`php -v` should mention `with Xdebug`), then toggle it on the development server:
  
  ```bash
@@ -61,7 +61,7 @@
  ahoy debug      # restart with XDebug enabled
  ahoy start      # restart without XDebug
  ```
-@@ -120,12 +148,6 @@
+@@ -122,12 +150,6 @@
  ## Coding standards
  
  The codebase is checked using multiple tools:
@@ -74,7 +74,7 @@
  
  The configuration files for these tools are located in the root of the codebase.
  
-@@ -132,6 +154,10 @@
+@@ -134,6 +156,10 @@
  Run all checks with:
  
  ```bash
@@ -85,7 +85,7 @@
  ahoy lint
  ```
  
-@@ -140,6 +166,10 @@
+@@ -142,6 +168,10 @@
  To fix coding standards issues automatically, run the same tools with the `--fix` option (for the tools that support it):
  
  ```bash
@@ -96,7 +96,7 @@
  ahoy lint-fix
  ```
  
-@@ -148,60 +178,9 @@
+@@ -150,60 +180,9 @@
  Run the tests for this extension with:
  
  ```bash

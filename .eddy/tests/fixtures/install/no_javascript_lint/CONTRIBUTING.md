@@ -1,4 +1,4 @@
-@@ -124,8 +124,6 @@
+@@ -126,8 +126,6 @@
  - PHP code static analysis with PHPStan.
  - PHP deprecated code analysis and auto-fixing with Drupal Rector.
  - Twig code analysis with Twig CS Fixer.

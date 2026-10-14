@@ -1,4 +1,4 @@
-@@ -16,10 +16,7 @@
+@@ -18,10 +18,7 @@
  - **PHPStan**: `ahoy lint` - never `vendor/bin/phpstan`.
  - **Rector**: `ahoy lint` (dry-run) / `ahoy lint-fix` - never `vendor/bin/rector`.
  - **Twig CS Fixer**: `ahoy lint` / `ahoy lint-fix` - never `vendor/bin/twig-cs-fixer`.
@@ -9,7 +9,7 @@
  - **Drush**: `ahoy drush <command>` - never `build/vendor/bin/drush` directly.
  
  ### Build and Environment Management
-@@ -44,7 +41,6 @@
+@@ -46,7 +43,6 @@
  - `ahoy test-kernel` - Run kernel tests only
  - `ahoy test-functional` - Run functional tests only
  - `ahoy test-functional-javascript` - Run FunctionalJavascript tests (uses the local Chrome by default; set `WEBDRIVER_BACKEND=selenium` for Docker)
@@ -17,7 +17,7 @@
  - `ahoy browser-start` - Start the browser for FunctionalJavascript tests (local Chrome by default; set `WEBDRIVER_BACKEND=selenium` for Docker)
  - `ahoy browser-stop` - Stop the browser
  
-@@ -101,13 +97,10 @@
+@@ -103,13 +99,10 @@
  
  ## Code Quality Tools
  
@@ -31,7 +31,7 @@
  
  ## CI/CD Support
  
-@@ -123,7 +116,6 @@
+@@ -125,7 +118,6 @@
  - Extension files are symlinked from root into `build/web/modules/custom/`
  - SQLite database created in `/tmp/site_force_crystal.sqlite`
  - The PHP and JavaScript quality tools run from within the `build/` directory

@@ -1,4 +1,4 @@
-@@ -114,7 +114,6 @@
+@@ -116,7 +116,6 @@
  - **GitHub Actions**: `.github/workflows/test.yml` and deployment
  - **Matrix testing**:
    - Drupal 10 on PHP 8.3-8.4

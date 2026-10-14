@@ -6,7 +6,7 @@
     - Install [Ahoy](https://github.com/ahoy-cli/ahoy)
  2. Clone this repository
  3. Build the website:
-@@ -124,8 +123,6 @@
+@@ -126,8 +125,6 @@
  - PHP code static analysis with PHPStan.
  - PHP deprecated code analysis and auto-fixing with Drupal Rector.
  - Twig code analysis with Twig CS Fixer.

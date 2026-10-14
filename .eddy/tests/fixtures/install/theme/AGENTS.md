@@ -7,7 +7,7 @@
  
  ## Development Commands
  
-@@ -120,7 +120,7 @@
+@@ -122,7 +122,7 @@
  ## Important Notes
  
  - The `build/` directory contains the assembled Drupal site

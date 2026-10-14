@@ -1,4 +1,4 @@
-@@ -18,7 +18,6 @@
+@@ -20,7 +20,6 @@
  - **Twig CS Fixer**: `ahoy lint` / `ahoy lint-fix` - never `vendor/bin/twig-cs-fixer`.
  - **ESLint / Stylelint**: `ahoy lint` / `ahoy lint-fix` - never `npx eslint` or `npx stylelint`.
  - **CSpell**: `ahoy lint` - never `npx cspell`.
@@ -6,7 +6,7 @@
  - **Jest**: `ahoy test-javascript` - never `npx jest`.
  - **Drush**: `ahoy drush <command>` - never `build/vendor/bin/drush` directly.
  
-@@ -40,13 +39,7 @@
+@@ -42,13 +41,7 @@
  
  **Testing:**
  - `ahoy test` - Run all tests
@@ -20,7 +20,7 @@
  
  ### Drupal Commands
  
-@@ -55,13 +48,12 @@
+@@ -57,13 +50,12 @@
  
  ### Diagnostics
  
@@ -35,7 +35,7 @@
  - `config/schema/` - Configuration schema definitions
  - `build/` - Assembled Drupal codebase (symlinked extension)
  - `vendor/` - The installed `drevops/eddy-tooling` package, whose commands (`vendor/bin/eddy-*`) assemble, start, provision and deploy the extension. Not committed and not part of the extension
-@@ -72,7 +64,6 @@
+@@ -74,7 +66,6 @@
  
  - **Service-based architecture**: Main functionality in services registered via `*.services.yml`
  - **Configuration-driven**: Uses Drupal configuration system with schema validation
@@ -43,7 +43,7 @@
  - **Form integration**: Admin forms in `src/Form/` for configuration
  
  ## Environment Variables
-@@ -80,9 +71,6 @@
+@@ -82,9 +73,6 @@
  - `DRUPAL_VERSION` - Target Drupal version (e.g., `10`, `11`, `11@alpha`, `12@beta`). Defaults to `extra.eddy.drupal-version` in `composer.dev.json`
  - `WEBSERVER_HOST` - Development server host (default: localhost)
  - `WEBSERVER_PORT` - Development server port. Auto-discovered from range 8000-8099 and written to `.env` if not already set

@@ -1,9 +1,11 @@
-@@ -8,8 +8,20 @@
+@@ -8,10 +8,22 @@
  
  ## Development Commands
  
 -**HARD RULE - use the provided command wrappers, never the tool binaries directly.** When `ahoy` exposes a command for a task, use that command; do not call the underlying binary directly. Each wrapper runs the tool where CI runs it, in `build/` for most tools, with the config, plugins, and environment that CI uses, so a raw invocation from the repository root silently diverges from CI - it can pass locally while CI fails (or vice versa), or crash outright when a relative path resolves against the wrong directory. If no wrapped command covers what you need, extend the `ahoy` target rather than making a one-off raw call; if that is not feasible, stop and ask.
 +**HARD RULE - use the provided command wrappers, never the tool binaries directly.** When `make` or `ahoy` exposes a command for a task, use that command; do not call the underlying binary directly. Each wrapper runs the tool where CI runs it, in `build/` for most tools, with the config, plugins, and environment that CI uses, so a raw invocation from the repository root silently diverges from CI - it can pass locally while CI fails (or vice versa), or crash outright when a relative path resolves against the wrong directory. If no wrapped command covers what you need, extend the `make` or `ahoy` target rather than making a one-off raw call; if that is not feasible, stop and ask.
+ 
+ **HARD RULE - never modify `scripts/eddy-tooling`.** It comes from Eddy as-is, and a scaffold update replaces it with the release's copy. To change what a tooling command does, declare a patch for the `drevops/eddy-tooling` package in `composer.dev.json`.
  
 +Run each tool through its `make` wrapper, never the binary directly:
 +
@@ -20,7 +22,7 @@
  Run each tool through its `ahoy` wrapper, never the binary directly:
  
  - **PHPCS / PHPCBF**: `ahoy lint` / `ahoy lint-fix` - never `vendor/bin/phpcs` or `vendor/bin/phpcbf`.
-@@ -24,6 +36,14 @@
+@@ -26,6 +38,14 @@
  
  ### Build and Environment Management
  
@@ -35,7 +37,7 @@
  **Using Ahoy:**
  - `ahoy build` - Complete build process
  - `ahoy assemble` - Assemble codebase
-@@ -35,10 +55,20 @@
+@@ -37,10 +57,20 @@
  ### Code Quality
  
  **Linting:**
@@ -56,7 +58,7 @@
  - `ahoy test` - Run all tests
  - `ahoy test-unit` - Run unit tests only
  - `ahoy test-kernel` - Run kernel tests only
-@@ -50,11 +80,14 @@
+@@ -52,11 +82,14 @@
  
  ### Drupal Commands
  
@@ -71,7 +73,7 @@
  - `ahoy info` - Print a read-only summary of PHP/Drupal/Composer/Drush/Node/npm versions, webserver host/port (with source), site URL, XDebug state, WebDriver port, build directory, database path, and active profile. (alias: `ahoy describe`)
  
  ## Project Structure
-@@ -93,11 +126,11 @@
+@@ -95,11 +128,11 @@
  
  ## Development Workflow
  
