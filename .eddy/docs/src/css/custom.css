@@ -17,13 +17,14 @@
   --ifm-code-font-size: 95%;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
   --eddy-ink: #192d62;
+  --eddy-blue-on-dark: #5cb8ec;
   --search-local-muted-color: var(--ifm-color-emphasis-700);
 }
 
 /* Dark mode steps from a lighter blue that keeps links readable on the dark
    background. */
 [data-theme='dark'] {
-  --ifm-color-primary: #5cb8ec;
+  --ifm-color-primary: var(--eddy-blue-on-dark);
   --ifm-color-primary-dark: #3fabe9;
   --ifm-color-primary-darker: #30a5e7;
   --ifm-color-primary-darkest: #188cce;
@@ -54,10 +55,10 @@
   --ifm-link-decoration: none;
 }
 
-/* The footer is dark in both color modes, where the light-mode blue is
-   unreadable. */
+/* The footer is dark in both color modes, so its links take the dark-mode
+   blue on hover. */
 .footer--dark {
-  --ifm-footer-link-hover-color: var(--ifm-color-white);
+  --ifm-footer-link-hover-color: var(--eddy-blue-on-dark);
 }
 
 .footer__copyright-link {
