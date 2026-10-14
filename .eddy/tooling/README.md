@@ -45,7 +45,11 @@ Before it touches `build/`, `eddy-assemble` reads the PHP requirement of the Dru
 
 `eddy-start` and `eddy-stop` only stop a webserver that serves the project's own `build/web`, so they leave another project's server running when 2 projects record the same port. `eddy-start` fails and names the process that holds the port instead of stopping it. Once it has launched the server, it waits up to `WEBSERVER_WAIT_TIMEOUT` seconds, a whole number of 1 or more that defaults to 5, for the server to accept connections.
 
-`eddy-browser-stop` treats the WebDriver backend the same way. A chromedriver belongs to the project whose root it runs from, and a Selenium container to the project that its `eddy.project` label names, so `eddy-browser-stop` leaves the backend of another project running, along with any process on the port that isn't a chromedriver. `eddy-browser-start` reuses any backend that already accepts WebDriver sessions on the port, since every session is independent. When the port is held by something that doesn't, it replaces only the project's own backend, and otherwise fails and names the holder. A stopped Selenium container holds no port, so it never blocks `eddy-browser-start`, and the `selenium` backend replaces it whichever project started it.
+`eddy-browser-stop` treats the WebDriver backend the same way. A chromedriver belongs to the project whose root it runs from, and a Selenium container to the project that its `eddy.project` label names, so `eddy-browser-stop` leaves the backend of another project running, along with any process on the port that isn't a chromedriver.
+
+`eddy-browser-start` reuses a backend of the selected type that already accepts WebDriver sessions on the port, whichever project started it, since every session is independent. It reads the type from the `/status` response, whose `message` names ChromeDriver or Selenium Grid. It doesn't reuse a backend of the other type, because the browser reaches the webserver at a different address from each one.
+
+When the port holds anything it doesn't reuse, `eddy-browser-start` replaces only the project's own backend, whichever type that is, so switching `WEBDRIVER_BACKEND` doesn't need an `eddy-browser-stop` first. It fails and names anything else that holds the port, such as another project's backend or another process. A stopped Selenium container holds no port, so it never blocks `eddy-browser-start`, and the `selenium` backend replaces it whichever project started it.
 
 ## Verbose output
 

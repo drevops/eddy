@@ -16,12 +16,17 @@
  * projects can run their own endpoint simultaneously without contending for
  * a single port.
  *
- * A WebDriver server that already accepts sessions on the port is reused,
- * whichever project started it, since every session is independent. When the
- * port is held by something that does not accept sessions, only the project's
- * own backend is replaced: a running Selenium container of another project, or
- * another process, fails the command and is named instead. A stopped Selenium
- * container holds no port and is replaced whichever project started it.
+ * A server of the selected backend that already accepts sessions on the port
+ * is reused, whichever project started it, since every session is
+ * independent. The browser reaches the webserver at a different address from
+ * each backend, so a server of the other backend is not reused.
+ *
+ * Anything else on the port is replaced only when it is the project's own
+ * backend, whichever backend that is. A running Selenium container of another
+ * project, or another process, fails the command and is named instead.
+ *
+ * A stopped Selenium container holds no port and is replaced whichever
+ * project started it.
  */
 
 declare(strict_types=1);
@@ -95,8 +100,8 @@ function webdriver_backend(): string {
 /**
  * Fail when another project's backend or another process holds the port.
  *
- * Called once the port has no WebDriver server that accepts sessions, so the
- * holder is not reusable.
+ * Called once the port has no server of the selected backend that accepts
+ * sessions, so the holder is not reusable.
  *
  * Only a running Selenium container holds the port, since a stopped one
  * publishes none. The project's own running container accounts for the
@@ -135,17 +140,13 @@ function webdriver_fail_when_taken(string $port, string $root): void {
  * Ensure a chromedriver matching the installed Chrome is listening.
  */
 function chromedriver_start(string $port, string $root): void {
-  if (webdriver_ready($port)) {
+  if (webdriver_ready($port, 'chromedriver')) {
     PASS('chromedriver is already running on port %s.', $port);
 
     return;
   }
 
   webdriver_fail_when_taken($port, $root);
-
-  // A chromedriver of this project that stopped answering still holds the
-  // port.
-  kill_processes(array_keys(webdriver_listeners($port, $root)['own']));
 
   $chrome_version = detect_chrome_version();
 
@@ -157,13 +158,23 @@ function chromedriver_start(string $port, string $root): void {
 
   mkdir_or_fail(dirname(CHROMEDRIVER_LOG_FILE));
 
+  // The project's own backend is stopped only once chromedriver can launch,
+  // so a missing prerequisite leaves it running. A running container here is
+  // the project's own: webdriver_fail_when_taken() fails on any other.
+  if (command_path('docker') !== FALSE && selenium_container_running($port)) {
+    TASK('Removing the Selenium container %s.', selenium_container($port));
+    passthru_or_fail(sprintf('docker rm -f %s', escapeshellarg(selenium_container($port))), 'Failed to remove the Selenium container %s.', selenium_container($port));
+  }
+
+  chromedriver_stop($port, $root);
+
   TASK('Starting chromedriver on port %s.', $port);
   @passthru(sprintf('nohup %s --port=%s >%s 2>&1 &', escapeshellarg($binary), escapeshellarg($port), escapeshellarg(CHROMEDRIVER_LOG_FILE)));
 
   NOTE('Waiting for chromedriver to be ready.');
 
   for ($i = 0; $i < 30; $i++) {
-    if (webdriver_ready($port)) {
+    if (webdriver_ready($port, 'chromedriver')) {
       PASS('chromedriver is ready on port %s.', $port);
 
       return;
@@ -176,6 +187,20 @@ function chromedriver_start(string $port, string $root): void {
 }
 
 /**
+ * Stop the chromedriver processes of the project that listen on the port.
+ */
+function chromedriver_stop(string $port, string $root): void {
+  $own = webdriver_listeners($port, $root)['own'];
+
+  if ($own === []) {
+    return;
+  }
+
+  TASK('Stopping chromedriver on port %s.', $port);
+  kill_processes(array_keys($own));
+}
+
+/**
  * Ensure a Selenium container is serving the WebDriver endpoint.
  *
  * The container carries the project root in its SELENIUM_PROJECT_LABEL label,
@@ -183,7 +208,7 @@ function chromedriver_start(string $port, string $root): void {
  * leaves it running.
  */
 function selenium_start(string $port, string $root): void {
-  if (webdriver_ready($port)) {
+  if (webdriver_ready($port, 'selenium')) {
     PASS('Selenium is already running on port %s.', $port);
 
     return;
@@ -194,9 +219,10 @@ function selenium_start(string $port, string $root): void {
   }
 
   webdriver_fail_when_taken($port, $root);
+  chromedriver_stop($port, $root);
 
   TASK('Starting the Selenium container on port %s.', $port);
-  @passthru(sprintf('docker rm -f %s >/dev/null 2>&1', escapeshellarg(selenium_container($port))));
+  selenium_container_remove($port);
 
   // The default 64 MB '/dev/shm' is too small for Chromium and leads to tab
   // crashes mid-test; the Selenium images document 2g as the required size.
@@ -205,7 +231,7 @@ function selenium_start(string $port, string $root): void {
   NOTE('Waiting for Selenium to be ready.');
 
   for ($i = 0; $i < 30; $i++) {
-    if (webdriver_ready($port)) {
+    if (webdriver_ready($port, 'selenium')) {
       PASS('Selenium is ready on port %s.', $port);
 
       return;
@@ -218,19 +244,33 @@ function selenium_start(string $port, string $root): void {
 }
 
 /**
- * Check whether a WebDriver server on the given port accepts sessions.
+ * Check whether a server of the backend accepts sessions on the given port.
  *
  * Both backends report '"ready": true' in the '/status' response body.
  * Selenium serves HTTP 200 before it can accept sessions, so the body is
  * inspected rather than the response status.
  *
+ * The 'message' of the body names the server, such as 'ChromeDriver ready for
+ * new sessions.' or 'Selenium Grid ready.'.
+ *
+ * @param string $port
+ *   The WebDriver port.
+ * @param string $backend
+ *   The backend: 'chromedriver' or 'selenium'.
+ *
+ * @return bool
+ *   TRUE when the server on the port is of the backend and accepts sessions.
+ *
  * @phpstan-impure
  */
-function webdriver_ready(string $port): bool {
+function webdriver_ready(string $port, string $backend): bool {
   $context = stream_context_create(['http' => ['method' => 'GET', 'timeout' => 2, 'ignore_errors' => TRUE]]);
   $body = @file_get_contents(sprintf('http://localhost:%s/status', $port), FALSE, $context);
+  $status = is_string($body) ? json_decode($body, TRUE) : NULL;
+  $value = is_array($status) && is_array($status['value'] ?? NULL) ? $status['value'] : [];
+  $message = is_string($value['message'] ?? NULL) ? $value['message'] : '';
 
-  return is_string($body) && preg_match('/"ready":\s*true/', $body) === 1;
+  return ($value['ready'] ?? FALSE) === TRUE && str_starts_with($message, $backend === 'selenium' ? 'Selenium' : 'ChromeDriver');
 }
 
 /**

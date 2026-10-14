@@ -116,7 +116,7 @@
  ahoy start
  ahoy provision
  ahoy test-functional-javascript
-@@ -180,6 +235,13 @@
+@@ -182,6 +237,13 @@
  To run the browser in a Docker Selenium container instead, set `WEBDRIVER_BACKEND=selenium`. The container cannot reach the host's `localhost`, so start the webserver on all interfaces:
  
  ```bash
@@ -130,7 +130,7 @@
  WEBSERVER_HOST=__VERSION__.0 ahoy start
  ahoy provision
  WEBDRIVER_BACKEND=selenium ahoy test-functional-javascript
-@@ -193,6 +255,14 @@
+@@ -195,6 +257,14 @@
  ### Running specific tests
  
  You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the test commands. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site:
