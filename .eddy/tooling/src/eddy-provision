@@ -137,7 +137,7 @@ if (file_exists('.ahoy.yml')) {
 }
 
 if (file_exists('Makefile')) {
-  echo 'Run `make` to see available commands.' . PHP_EOL;
+  echo 'Run `make help` to see available commands.' . PHP_EOL;
 }
 
 echo PHP_EOL;
