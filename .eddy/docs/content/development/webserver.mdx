@@ -31,9 +31,9 @@ Set `WEBSERVER_HOST` to change the hostname, such as `0.0.0.0` to serve on every
 
 Once the port is in `.env`, `stop`, `provision`, `drush` and `login` reuse it. `make` and Ahoy load `.env` on their own, and git ignores the file. To pick a new port, delete the `WEBSERVER_PORT` line from `.env` and run `start` again.
 
-:::note A saved port wins through a wrapper
+:::note A port from your shell lasts 1 run
 
-`make` and Ahoy load `.env` into the environment of every command, so once `.env` holds a port, a `WEBSERVER_PORT` prefix on `make start` or `ahoy start` has no effect. Edit the line in `.env` instead, or prefix the [tooling command](tooling.mdx#commands) itself, such as `WEBSERVER_PORT=9000 vendor/bin/eddy-start`.
+A `WEBSERVER_PORT` in your shell wins over the one in `.env`, through `make` and Ahoy too, and `start` doesn't save it to `.env`. Commands without the prefix don't know that port, so prefix `stop`, `provision`, `drush` and `login` the same way while that server runs.
 
 :::
 
