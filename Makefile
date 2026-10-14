@@ -38,16 +38,17 @@ define title
 	@echo -e "\n\033[36m$(1)\033[0m"
 endef
 
-.PHONY: assemble build debug debug-off debug-on delete describe destroy drush help info lint lint-fix login provision reset start stop test tooling xdebug xdebug-off xdebug-on
+TARGETS := assemble build debug debug-off debug-on delete describe destroy drush help info lint lint-fix login provision reset start stop test tooling xdebug xdebug-off xdebug-on
 #;< DEV_PHPUNIT
-.PHONY: test-unit test-kernel test-functional
+TARGETS += test-unit test-kernel test-functional
 #;> DEV_PHPUNIT
 #;< DEV_FUNCTIONAL_JAVASCRIPT
-.PHONY: test-functional-javascript browser-start browser-stop
+TARGETS += test-functional-javascript browser-start browser-stop
 #;> DEV_FUNCTIONAL_JAVASCRIPT
 #;< DEV_JEST
-.PHONY: test-javascript test-js
+TARGETS += test-javascript test-js
 #;> DEV_JEST
+.PHONY: $(TARGETS)
 
 help:
 	@echo "COMMANDS"
@@ -139,14 +140,8 @@ describe: info
 # Lando uses `destroy` and DDEV uses `delete` for what our `reset` does.
 delete destroy: reset
 
-# Allow running Drush commands with `make drush <command>`
-ifeq (drush,$(firstword $(MAKECMDGOALS)))
-  DRUSH_RUN_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
-  $(eval $(DRUSH_RUN_ARGS):;@:)
-endif
-
 drush:
-	$(DRUSH) $(DRUSH_RUN_ARGS)
+	$(DRUSH) $(RUN_ARGS)
 
 login:
 	@url="$$($(DRUSH) uli)"; printf '%s\n' "$$url"; if [ -n "$$LOGIN_QRCODE" ]; then vendor/bin/eddy-qrcode "$$url"; fi
@@ -199,9 +194,9 @@ lint-fix:
 	pushd "build" >/dev/null || exit 1 && ([ ! -d node_modules ] || npm run lint-fix) && popd >/dev/null || exit 1
 	@#;> DEV_NODEJS_LINT
 
-# Allow passing extra args to phpunit test targets, mirroring the `drush`
-# arg-capture above. The target list is split across the same DEV_* markers
-# as the `.PHONY` declarations so a stripped feature leaves no dangling entry.
+# The test targets that pass their arguments to PHPUnit. The list is split
+# across the same DEV_* markers as `TARGETS` so a stripped feature leaves no
+# dangling entry.
 TEST_TARGETS := test
 #;< DEV_PHPUNIT
 TEST_TARGETS += test-unit test-kernel test-functional
@@ -209,9 +204,29 @@ TEST_TARGETS += test-unit test-kernel test-functional
 #;< DEV_FUNCTIONAL_JAVASCRIPT
 TEST_TARGETS += test-functional-javascript
 #;> DEV_FUNCTIONAL_JAVASCRIPT
-ifneq (,$(filter $(firstword $(MAKECMDGOALS)),$(TEST_TARGETS)))
-  TEST_RUN_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
-  $(eval $(TEST_RUN_ARGS):;@:)
+
+quote = '$(subst ','\'',$(1))'
+reverse = $(if $(1),$(call reverse,$(wordlist 2,$(words $(1)),$(1))) $(firstword $(1)))
+
+# `make drush` and the test targets pass their arguments to Drush or PHPUnit.
+# Make reads each argument as a goal, or as a variable when it holds `=`.
+RUN_ARGS :=
+ifneq (,$(filter $(firstword $(MAKECMDGOALS)),drush $(TEST_TARGETS)))
+  RUN_GOALS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+  # MAKEOVERRIDES lists the variables in reverse order. A value that holds a
+  # space adds words that name no variable, so the origin check excludes them.
+  RUN_VARIABLES := $(foreach word,$(call reverse,$(MAKEOVERRIDES)),$(firstword $(subst =, ,$(word))))
+  # Only a variable named like an option is an argument, so `DEBUG=1` stays a
+  # make variable.
+  RUN_OPTIONS := $(foreach name,$(filter -%,$(RUN_VARIABLES)),$(if $(filter command line,$(origin $(name))),$(name)))
+  RUN_ARGS := $(foreach goal,$(RUN_GOALS),$(call quote,$(goal))) $(foreach name,$(RUN_OPTIONS),$(call quote,$(name)=$(value $(name))))
+  # Make runs every goal, so an argument that names a target would run it.
+  RUN_CONFLICTS := $(filter-out $(firstword $(MAKECMDGOALS)),$(filter $(TARGETS),$(RUN_GOALS)))
+  ifneq (,$(RUN_CONFLICTS))
+    $(error '$(firstword $(RUN_CONFLICTS))' is a target of this Makefile, so make would run it too. To pass it as an option value, join the option and the value with '=', such as '--filter=$(firstword $(RUN_CONFLICTS))')
+  endif
+  # The arguments have no rule, so make runs this empty recipe for them.
+  .DEFAULT: ; @:
 endif
 
 test:
@@ -222,7 +237,7 @@ test:
 	$(call title,Running PHPUnit)
 	export WEBDRIVER_PORT="$$(vendor/bin/eddy-info webdriver-port)" && \
 	pushd "build" >/dev/null || exit 1 && \
-	php -d pcov.directory=.. vendor/bin/phpunit $(TEST_RUN_ARGS) && \
+	php -d pcov.directory=.. vendor/bin/phpunit $(RUN_ARGS) && \
 	popd >/dev/null || exit 1
 	@#;> DEV_PHPUNIT
 	@#;< DEV_JEST
@@ -233,17 +248,17 @@ test:
 #;< DEV_PHPUNIT
 test-unit:
 	pushd "build" >/dev/null || exit 1 && \
-	php -d pcov.directory=.. vendor/bin/phpunit --testsuite unit $(TEST_RUN_ARGS) && \
+	php -d pcov.directory=.. vendor/bin/phpunit --testsuite unit $(RUN_ARGS) && \
 	popd >/dev/null || exit 1
 
 test-kernel:
 	pushd "build" >/dev/null || exit 1 && \
-	php -d pcov.directory=.. vendor/bin/phpunit --testsuite kernel $(TEST_RUN_ARGS) && \
+	php -d pcov.directory=.. vendor/bin/phpunit --testsuite kernel $(RUN_ARGS) && \
 	popd >/dev/null || exit 1
 
 test-functional:
 	pushd "build" >/dev/null || exit 1 && \
-	php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional $(TEST_RUN_ARGS) && \
+	php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional $(RUN_ARGS) && \
 	popd >/dev/null || exit 1
 #;> DEV_PHPUNIT
 
@@ -252,7 +267,7 @@ test-functional-javascript:
 	$(MAKE) browser-start
 	export WEBDRIVER_PORT="$$(vendor/bin/eddy-info webdriver-port)" && \
 	pushd "build" >/dev/null || exit 1 && \
-	php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional-javascript $(TEST_RUN_ARGS) && \
+	php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional-javascript $(RUN_ARGS) && \
 	popd >/dev/null || exit 1
 #;> DEV_FUNCTIONAL_JAVASCRIPT
 
