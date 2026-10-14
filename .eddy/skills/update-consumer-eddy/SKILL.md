@@ -216,7 +216,7 @@ Otherwise render the installed version into `base` the way Step 4 renders the ne
 gh release download <installed_version> --repo drevops/eddy --archive tar.gz --output .artifacts/tmp/eddy-update/base.tar.gz
 ```
 
-A version from a branch download renders from its commit, not its tag: a render of the tag lacks the commits after it, so the merge would count their changes as the project's own. Download the archive of the commit instead, as Step 4 does:
+For a version from a branch download, render its commit, not its tag: a render of the tag lacks the commits after it, so the merge would count their changes as the project's own. Download the archive of the commit instead, as Step 4 does:
 
 ```bash
 curl -fsSL -o .artifacts/tmp/eddy-update/base.tar.gz https://github.com/drevops/eddy/archive/<commit>.tar.gz
