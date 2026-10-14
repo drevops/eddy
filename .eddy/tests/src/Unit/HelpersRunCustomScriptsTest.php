@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\run_custom_scripts;
+use AlexSkrypnyk\File\File;
 use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\Group;
@@ -77,9 +78,8 @@ final class HelpersRunCustomScriptsTest extends UnitTestCase {
 
   public function testSkipsDirectoriesMatchingPrefix(): void {
     $dir = self::$tmp . '/scripts_' . uniqid();
-    mkdir($dir, 0755, TRUE);
-    mkdir($dir . '/assemble-rogue.sh', 0755, TRUE);
-    file_put_contents($dir . '/assemble-real.sh', 'echo real');
+    File::mkdir($dir . '/assemble-rogue.sh', 0755);
+    File::dump($dir . '/assemble-real.sh', 'echo real');
 
     $this->mockPassthru(['cmd' => escapeshellarg($dir . '/assemble-real.sh'), 'result_code' => 0]);
 
@@ -140,9 +140,9 @@ final class HelpersRunCustomScriptsTest extends UnitTestCase {
 
   protected function createScriptsDir(array $files = []): string {
     $dir = self::$tmp . '/scripts_' . uniqid();
-    mkdir($dir, 0755, TRUE);
+    File::mkdir($dir, 0755);
     foreach ($files as $name => $contents) {
-      file_put_contents($dir . '/' . $name, $contents);
+      File::dump($dir . '/' . $name, $contents);
     }
 
     return $dir;

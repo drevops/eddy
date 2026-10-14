@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use AlexSkrypnyk\File\File;
 use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -281,7 +282,7 @@ final class StartTest extends UnitTestCase {
 
   public function testStartCreatesLogsDirectory(): void {
     $project_dir = self::$tmp . '/start_logs_' . uniqid();
-    mkdir($project_dir, 0755, TRUE);
+    File::mkdir($project_dir, 0755);
     chdir($project_dir);
 
     $this->envSet('WEBSERVER_PORT', '8000');
@@ -315,9 +316,9 @@ final class StartTest extends UnitTestCase {
 
   public function testStartFailsWhenLogsDirectoryCannotBeCreated(): void {
     $project_dir = self::$tmp . '/start_logs_file_' . uniqid();
-    mkdir($project_dir, 0755, TRUE);
+    File::mkdir($project_dir, 0755);
     chdir($project_dir);
-    file_put_contents('.logs', '');
+    File::dump('.logs', '');
 
     $this->envSet('WEBSERVER_PORT', '8000');
 
@@ -685,9 +686,9 @@ final class StartTest extends UnitTestCase {
 
   public function testStartStartsTunnelWhenEnabled(): void {
     $project_dir = self::$tmp . '/start_tunnel_' . uniqid();
-    mkdir($project_dir, 0755, TRUE);
+    File::mkdir($project_dir, 0755);
     chdir($project_dir);
-    file_put_contents('.env', "WEBSERVER_PORT=8000\nCLOUDFLARE_TUNNEL=1\n");
+    File::dump('.env', "WEBSERVER_PORT=8000\nCLOUDFLARE_TUNNEL=1\n");
 
     $cwd = '/test/project';
     $tunnel_url = 'https://seasonal-deck-organisms-sf.trycloudflare.com';
@@ -711,7 +712,7 @@ final class StartTest extends UnitTestCase {
     $launch = "nohup cloudflared tunnel --url 'http://localhost:8000' --no-autoupdate >'.logs/cloudflared.log' 2>&1 & echo \$!";
     $this->mockPortListeners('8000', [], [
       $launch => function () use ($tunnel_url): string {
-        file_put_contents('.logs/cloudflared.log', 'INF |  ' . $tunnel_url . '  |' . PHP_EOL);
+        File::dump('.logs/cloudflared.log', 'INF |  ' . $tunnel_url . '  |' . PHP_EOL);
 
         return "4242\n";
       },
@@ -730,7 +731,7 @@ final class StartTest extends UnitTestCase {
     $this->assertGreaterThan($served, $tunnel, 'The tunnel starts once the server serves content.');
     $this->assertGreaterThan($tunnel, $ready);
     $this->assertStringContainsString('URL       : ' . $tunnel_url, $output);
-    $this->assertSame("WEBSERVER_PORT=8000\nCLOUDFLARE_TUNNEL=1\nTUNNEL_URL=" . $tunnel_url . "\n", file_get_contents('.env'));
+    $this->assertSame("WEBSERVER_PORT=8000\nCLOUDFLARE_TUNNEL=1\nTUNNEL_URL=" . $tunnel_url . "\n", File::read('.env'));
 
     fclose($fp);
   }

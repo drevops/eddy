@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\copy_dir;
+use AlexSkrypnyk\File\File;
 use DrevOps\Eddy\Tests\Traits\DirectoryFixtureTrait;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -44,7 +45,7 @@ final class HelpersCopyDirTest extends UnitTestCase {
       }
       else {
         $this->assertFileExists($full_path, sprintf('File %s should exist', $relative_path));
-        $this->assertSame($expected_content, file_get_contents($full_path), sprintf('File %s should have correct content', $relative_path));
+        $this->assertSame($expected_content, File::read($full_path), sprintf('File %s should have correct content', $relative_path));
       }
     }
   }
@@ -145,15 +146,14 @@ final class HelpersCopyDirTest extends UnitTestCase {
       'new_file.txt' => 'new content',
     ]);
 
-    mkdir($dst, 0755, TRUE);
-    file_put_contents($dst . '/existing.txt', 'existing content');
+    File::dump($dst . '/existing.txt', 'existing content');
 
     copy_dir($src, $dst);
 
     $this->assertFileExists($dst . '/new_file.txt');
-    $this->assertSame('new content', file_get_contents($dst . '/new_file.txt'));
+    $this->assertSame('new content', File::read($dst . '/new_file.txt'));
     $this->assertFileExists($dst . '/existing.txt');
-    $this->assertSame('existing content', file_get_contents($dst . '/existing.txt'));
+    $this->assertSame('existing content', File::read($dst . '/existing.txt'));
   }
 
   public function testCopyDirOverwritesExistingFile(): void {
@@ -164,12 +164,11 @@ final class HelpersCopyDirTest extends UnitTestCase {
       'file.txt' => 'new content',
     ]);
 
-    mkdir($dst, 0755, TRUE);
-    file_put_contents($dst . '/file.txt', 'old content');
+    File::dump($dst . '/file.txt', 'old content');
 
     copy_dir($src, $dst);
 
-    $this->assertSame('new content', file_get_contents($dst . '/file.txt'));
+    $this->assertSame('new content', File::read($dst . '/file.txt'));
   }
 
 }

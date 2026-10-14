@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use AlexSkrypnyk\File\File;
+use AlexSkrypnyk\PhpunitHelpers\Traits\ProcessTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
-use Symfony\Component\Process\Process;
 
 /**
  * Tests how 'make drush' and the 'make test*' targets pass their arguments.
@@ -20,6 +21,8 @@ use Symfony\Component\Process\Process;
  */
 #[Group('p0')]
 final class MakefileArgumentsTest extends UnitTestCase {
+
+  use ProcessTrait;
 
   /**
    * The path of each stub that logs its arguments, keyed by command.
@@ -41,8 +44,8 @@ final class MakefileArgumentsTest extends UnitTestCase {
   protected function setUp(): void {
     parent::setUp();
 
-    copy(self::rootDir() . '/Makefile', self::$sut . '/Makefile');
-    touch(self::$sut . '/your_extension.info.yml');
+    File::copy(self::rootDir() . '/Makefile', self::$sut . '/Makefile');
+    File::dump(self::$sut . '/your_extension.info.yml');
 
     foreach (self::STUBS as $command => $path) {
       self::writeStub($path, sprintf('file_put_contents(%s, json_encode(array_slice($argv, 1)) . PHP_EOL, FILE_APPEND);', var_export(self::callsFile($command), TRUE)));
@@ -57,9 +60,9 @@ final class MakefileArgumentsTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderArguments')]
   public function testArguments(array $arguments, string $command, array $expected): void {
-    $process = $this->runMake($arguments);
+    $this->runMake($arguments);
 
-    $this->assertTrue($process->isSuccessful(), $process->getOutput() . $process->getErrorOutput());
+    $this->assertProcessSuccessful();
     $this->assertSame([$expected], self::readCalls($command));
   }
 
@@ -91,11 +94,10 @@ final class MakefileArgumentsTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderArgumentNamesTarget')]
   public function testArgumentNamesTarget(array $arguments, string $target): void {
-    $process = $this->runMake($arguments);
+    $this->runMake($arguments);
 
-    $this->assertFalse($process->isSuccessful());
-    $this->assertStringContainsString(sprintf("'%s' is a target of this Makefile, so make would run it too.", $target), $process->getErrorOutput());
-    $this->assertStringContainsString(sprintf("such as '--filter=%s'", $target), $process->getErrorOutput());
+    $this->assertProcessFailed();
+    $this->assertProcessErrorOutputContains([sprintf("'%s' is a target of this Makefile, so make would run it too.", $target), sprintf("such as '--filter=%s'", $target)]);
 
     foreach (array_keys(self::STUBS) as $command) {
       $this->assertSame([], self::readCalls($command), sprintf('%s ran.', $command));
@@ -109,14 +111,14 @@ final class MakefileArgumentsTest extends UnitTestCase {
   }
 
   public function testOtherTargetsRejectUnknownGoals(): void {
-    $process = $this->runMake(['help', 'config:get']);
+    $this->runMake(['help', 'config:get']);
 
-    $this->assertFalse($process->isSuccessful());
-    $this->assertStringContainsString('No rule to make target', $process->getErrorOutput());
+    $this->assertProcessFailed();
+    $this->assertProcessErrorOutputContains('No rule to make target');
   }
 
   public function testTargetsListsEveryTarget(): void {
-    $makefile = (string) file_get_contents(self::rootDir() . '/Makefile');
+    $makefile = File::read(self::rootDir() . '/Makefile');
 
     preg_match_all('/^TARGETS [:+]= (.+)$/m', $makefile, $list_matches);
     preg_match_all('/^([a-z][a-z -]*):(?!=)/m', $makefile, $rule_matches);
@@ -136,12 +138,10 @@ final class MakefileArgumentsTest extends UnitTestCase {
    * @param array<int, string> $arguments
    *   The arguments of make.
    */
-  protected function runMake(array $arguments): Process {
+  protected function runMake(array $arguments): void {
+    $this->processCwd = self::$sut;
     // The variables of an outer make would reach MAKEOVERRIDES.
-    $process = new Process(['make', '--no-print-directory', ...$arguments], self::$sut, ['MAKEFLAGS' => FALSE, 'MAKELEVEL' => FALSE]);
-    $process->run();
-
-    return $process;
+    $this->processRun('make', ['--no-print-directory', ...$arguments], [], ['MAKEFLAGS' => FALSE, 'MAKELEVEL' => FALSE]);
   }
 
   /**
@@ -155,11 +155,7 @@ final class MakefileArgumentsTest extends UnitTestCase {
   protected static function writeStub(string $path, string $code): void {
     $file = self::$sut . '/' . $path;
 
-    if (!is_dir(dirname($file))) {
-      mkdir(dirname($file), 0755, TRUE);
-    }
-
-    file_put_contents($file, "#!/usr/bin/env php\n<?php\n" . $code . "\n");
+    File::dump($file, "#!/usr/bin/env php\n<?php\n" . $code . "\n");
     chmod($file, 0755);
   }
 
@@ -172,11 +168,11 @@ final class MakefileArgumentsTest extends UnitTestCase {
   protected static function readCalls(string $command): array {
     $file = self::callsFile($command);
 
-    if (!file_exists($file)) {
+    if (!File::exists($file)) {
       return [];
     }
 
-    $lines = file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+    $lines = preg_split('/\R/', File::read($file), -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
     return array_map(static function (string $line): array {
       $arguments = json_decode($line, TRUE, 512, JSON_THROW_ON_ERROR);

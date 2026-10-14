@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Traits;
 
+use AlexSkrypnyk\File\File;
 use Symfony\Component\Yaml\Yaml;
 
 /**
@@ -29,13 +30,7 @@ trait DeployWorkflowTrait {
    */
   protected static function deployJob(): array {
     $path = self::deployWorkflowPath();
-    $contents = file_get_contents($path);
-
-    if ($contents === FALSE) {
-      self::fail(sprintf('Unable to read %s.', $path));
-    }
-
-    $job = self::child(self::child(Yaml::parse($contents), 'jobs'), 'deploy');
+    $job = self::child(self::child(Yaml::parse(File::read($path)), 'jobs'), 'deploy');
 
     if (!is_array($job)) {
       self::fail(sprintf('%s has no "deploy" job.', basename($path)));

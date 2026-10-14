@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\drush;
+use AlexSkrypnyk\File\File;
 use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -21,7 +22,7 @@ final class HelpersDrushTest extends UnitTestCase {
 
   #[DataProvider('dataProviderDrush')]
   public function testDrush(string $command, string|array|null $args, string $expected_cmd_suffix, string $mock_output, string $expected_output): void {
-    $cwd = getcwd();
+    $cwd = File::cwd();
     $expected_cmd = 'build/vendor/bin/drush -r ' . escapeshellarg($cwd . '/build/web') . ' -y ' . $expected_cmd_suffix;
     $this->mockPassthru(['cmd' => $expected_cmd, 'output' => $mock_output, 'result_code' => 0]);
     $exit_code = 0;
@@ -62,7 +63,7 @@ final class HelpersDrushTest extends UnitTestCase {
   }
 
   public function testDrushFailsWithoutExitCodeRef(): void {
-    $cwd = getcwd();
+    $cwd = File::cwd();
     $expected_cmd = 'build/vendor/bin/drush -r ' . escapeshellarg($cwd . '/build/web') . ' -y bad-command';
     $this->mockPassthru(['cmd' => $expected_cmd, 'output' => '', 'result_code' => 1]);
     $this->mockQuit(1);
@@ -82,7 +83,7 @@ final class HelpersDrushTest extends UnitTestCase {
   }
 
   public function testDrushFailsWithExitCodeRefDoesNotExit(): void {
-    $cwd = getcwd();
+    $cwd = File::cwd();
     $expected_cmd = 'build/vendor/bin/drush -r ' . escapeshellarg($cwd . '/build/web') . ' -y bad-command';
     $this->mockPassthru(['cmd' => $expected_cmd, 'output' => '', 'result_code' => 2]);
     $exit_code = 0;
@@ -93,7 +94,7 @@ final class HelpersDrushTest extends UnitTestCase {
 
   public function testDrushFailurePrintsCapturedOutputInDebugMode(): void {
     $this->envSet('DEBUG', '1');
-    $cwd = getcwd();
+    $cwd = File::cwd();
     $expected_cmd = 'build/vendor/bin/drush -r ' . escapeshellarg($cwd . '/build/web') . ' -y bad-command';
     $this->mockPassthru(['cmd' => $expected_cmd, 'output' => 'Command "bad-command" is not defined.', 'result_code' => 1]);
     $this->mockQuit(1);
@@ -115,7 +116,7 @@ final class HelpersDrushTest extends UnitTestCase {
 
   public function testDrushStreamsLiveInDebugMode(): void {
     $this->envSet('DEBUG', '1');
-    $cwd = getcwd();
+    $cwd = File::cwd();
     $expected_cmd = 'build/vendor/bin/drush -r ' . escapeshellarg($cwd . '/build/web') . ' -y status';
     $this->mockPassthru(['cmd' => $expected_cmd, 'output' => 'Drupal version : 11', 'result_code' => 0]);
     $exit_code = 0;

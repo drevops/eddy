@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use AlexSkrypnyk\File\File;
+use AlexSkrypnyk\PhpunitHelpers\Traits\ProcessTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
-use Symfony\Component\Process\Process;
 use Symfony\Component\Yaml\Yaml;
 
 /**
@@ -22,6 +23,8 @@ use Symfony\Component\Yaml\Yaml;
  */
 #[Group('p0')]
 final class WrapperDotenvTest extends UnitTestCase {
+
+  use ProcessTrait;
 
   /**
    * The variables that each probe prints, one 'NAME=value' line each.
@@ -166,7 +169,7 @@ final class WrapperDotenvTest extends UnitTestCase {
    */
   protected function runMake(string $target, ?string $dotenv, array $env): string {
     self::writeDotenv($dotenv);
-    file_put_contents(self::$sut . '/probe.mk', self::makeProbe());
+    File::dump(self::$sut . '/probe.mk', self::makeProbe());
 
     return $this->runProbe(['make', '--no-print-directory', '-f', self::rootDir() . '/Makefile', '-f', 'probe.mk', $target], $env);
   }
@@ -186,19 +189,16 @@ final class WrapperDotenvTest extends UnitTestCase {
     // Variables inherited from the runner would stand in for shell values.
     $env += ['WEBSERVER_HOST' => FALSE, 'WEBSERVER_PORT' => FALSE, 'DRUPAL_PROFILE' => FALSE, 'SIMPLETEST_BASE_URL' => FALSE];
 
-    $process = new Process($command, self::$sut, $env);
-    $process->run();
+    $this->processCwd = self::$sut;
+    $this->processRun((string) array_shift($command), $command, [], $env);
+    $this->assertProcessSuccessful();
 
-    if (!$process->isSuccessful()) {
-      self::fail(sprintf("The probe failed:\n%s%s", $process->getOutput(), $process->getErrorOutput()));
-    }
-
-    return $process->getOutput();
+    return $this->processGet()->getOutput();
   }
 
   protected static function writeDotenv(?string $dotenv): void {
     if ($dotenv !== NULL) {
-      file_put_contents(self::$sut . '/.env', $dotenv);
+      File::dump(self::$sut . '/.env', $dotenv);
     }
   }
 
@@ -263,7 +263,7 @@ final class WrapperDotenvTest extends UnitTestCase {
    *   The parsed '.ahoy.yml'.
    */
   protected static function ahoyConfig(): array {
-    $config = Yaml::parseFile(self::rootDir() . '/.ahoy.yml');
+    $config = Yaml::parse(File::read(self::rootDir() . '/.ahoy.yml'));
 
     if (!is_array($config)) {
       throw new \RuntimeException('.ahoy.yml holds no configuration.');

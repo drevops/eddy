@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Yaml\Yaml;
@@ -35,10 +36,7 @@ final class VariableNamesTest extends UnitTestCase {
 
   #[DataProvider('dataProviderNoProjectSegment')]
   public function testNoProjectSegment(string $path): void {
-    $contents = file_get_contents($path);
-    $this->assertIsString($contents);
-
-    $names = self::projectNames($contents);
+    $names = self::projectNames(File::read($path));
 
     $this->assertSame([], $names, sprintf('%s names variables after a project: %s', basename($path), implode(', ', $names)));
   }
@@ -106,7 +104,7 @@ final class VariableNamesTest extends UnitTestCase {
 
   #[DataProvider('dataProviderIgnoreFailureToggles')]
   public function testIgnoreFailureToggles(string $path): void {
-    $parsed = Yaml::parse((string) file_get_contents($path));
+    $parsed = Yaml::parse(File::read($path));
     $this->assertIsArray($parsed);
 
     $names = [];
@@ -124,7 +122,7 @@ final class VariableNamesTest extends UnitTestCase {
 
   public static function dataProviderIgnoreFailureToggles(): \Iterator {
     foreach (glob(self::rootDir() . '/.github/workflows/*.yml') ?: [] as $path) {
-      if (str_contains((string) file_get_contents($path), 'continue-on-error:')) {
+      if (str_contains(File::read($path), 'continue-on-error:')) {
         yield basename($path) => ['path' => $path];
       }
     }

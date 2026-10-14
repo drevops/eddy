@@ -6,6 +6,7 @@ namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\chmod_recursive;
 use function DrevOps\Eddy\Tooling\remove_dir;
+use AlexSkrypnyk\File\File;
 use DrevOps\Eddy\Tests\Traits\DirectoryFixtureTrait;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -33,7 +34,7 @@ final class HelpersFilesystemTest extends UnitTestCase {
     $dir = self::$tmp . '/remove_' . uniqid();
     $this->createDirectoryStructure($dir, $structure);
     if ($has_symlink) {
-      file_put_contents($dir . '/target.txt', 'target content');
+      File::dump($dir . '/target.txt', 'target content');
       symlink($dir . '/target.txt', $dir . '/subdir/link.txt');
     }
     $this->assertDirectoryExists($dir);
@@ -113,9 +114,8 @@ final class HelpersFilesystemTest extends UnitTestCase {
   public function testChmodRecursiveSkipsSymlinks(): void {
     $dir = self::$tmp . '/chmod_symlink_' . uniqid();
     $target_dir = self::$tmp . '/chmod_target_' . uniqid();
-    mkdir($dir, 0755, TRUE);
-    mkdir($target_dir, 0755, TRUE);
-    file_put_contents($target_dir . '/target.txt', 'content');
+    File::mkdir($dir, 0755);
+    File::dump($target_dir . '/target.txt', 'content');
     chmod($target_dir . '/target.txt', 0644);
     symlink($target_dir . '/target.txt', $dir . '/link.txt');
     chmod_recursive($dir, 0755);

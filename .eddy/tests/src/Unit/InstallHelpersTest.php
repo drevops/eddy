@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use AlexSkrypnyk\File\File;
 use DrevOps\Eddy\Tests\Traits\CiJobsTrait;
 use DrevOps\Eddy\Tests\Traits\GitTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
-use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Process\Process;
 
 use function add_dependent_tools;
@@ -79,14 +79,14 @@ final class InstallHelpersTest extends UnitTestCase {
   protected string $originalCwd;
 
   public static function setUpBeforeClass(): void {
-    putenv('SCRIPT_RUN_SKIP=1');
+    self::envSet('SCRIPT_RUN_SKIP', '1');
     require_once dirname(__DIR__, 4) . '/install.php';
     parent::setUpBeforeClass();
   }
 
   protected function setUp(): void {
     parent::setUp();
-    $this->originalCwd = getcwd() ?: '/';
+    $this->originalCwd = File::cwd();
   }
 
   protected function tearDown(): void {
@@ -126,7 +126,7 @@ final class InstallHelpersTest extends UnitTestCase {
   #[DataProvider('dataProviderIsBinaryFile')]
   public function testIsBinaryFile(string $content, bool $expected): void {
     $file = self::$sut . '/test_file';
-    file_put_contents($file, $content);
+    File::dump($file, $content);
     $this->assertSame($expected, is_binary_file($file));
   }
 
@@ -203,7 +203,7 @@ final class InstallHelpersTest extends UnitTestCase {
   public function testDrupalVersionShippedBuildDefault(): void {
     $shipped_default = (string) max(array_map(intval(...), drupal_version_default()));
 
-    $config = json_decode((string) file_get_contents(dirname(__DIR__, 4) . '/composer.dev.json'), TRUE);
+    $config = json_decode(File::read(dirname(__DIR__, 4) . '/composer.dev.json'), TRUE);
     $this->assertIsArray($config);
     /** @var array{extra?: array{eddy?: array{'drupal-version'?: string}}} $config */
 
@@ -326,7 +326,7 @@ final class InstallHelpersTest extends UnitTestCase {
    * installer finds them to render for the selected majors.
    */
   public function testPhpBadgesTemplate(): void {
-    $readme = (string) file_get_contents(dirname(__DIR__, 4) . '/README.dist.md');
+    $readme = File::read(dirname(__DIR__, 4) . '/README.dist.md');
     $badges = php_badges(array_keys(drupal_version_options()));
 
     preg_match_all('/^!\[PHP .*$/m', $readme, $matches);
@@ -345,13 +345,13 @@ final class InstallHelpersTest extends UnitTestCase {
     chdir(self::$sut);
 
     foreach ($files as $name => $content) {
-      file_put_contents(self::$sut . '/' . $name, $content);
+      File::dump(self::$sut . '/' . $name, $content);
     }
 
     process_drupal_version_text($majors);
 
     foreach ($expected as $name => $content) {
-      $this->assertSame($content, file_get_contents(self::$sut . '/' . $name), $name . ' content mismatch.');
+      $this->assertSame($content, File::read(self::$sut . '/' . $name), $name . ' content mismatch.');
     }
   }
 
@@ -440,7 +440,7 @@ final class InstallHelpersTest extends UnitTestCase {
     chdir(self::$sut);
 
     foreach ($files as $name => $content) {
-      file_put_contents(self::$sut . '/' . $name, $content);
+      File::dump(self::$sut . '/' . $name, $content);
     }
 
     remove_drupal_versions($majors);
@@ -454,7 +454,7 @@ final class InstallHelpersTest extends UnitTestCase {
         continue;
       }
 
-      $this->assertSame($content, file_get_contents($path), $name . ' content mismatch.');
+      $this->assertSame($content, File::read($path), $name . ' content mismatch.');
     }
   }
 
@@ -489,9 +489,8 @@ final class InstallHelpersTest extends UnitTestCase {
   public function testRemoveExtensionTypes(array $types, array $files, array $expected, array $expected_dirs): void {
     chdir(self::$sut);
 
-    $filesystem = new Filesystem();
     foreach ($files as $name => $content) {
-      $filesystem->dumpFile(self::$sut . '/' . $name, $content);
+      File::dump(self::$sut . '/' . $name, $content);
     }
 
     remove_extension_types($types);
@@ -505,11 +504,11 @@ final class InstallHelpersTest extends UnitTestCase {
         continue;
       }
 
-      $this->assertSame($content, file_get_contents($path), $name . ' content mismatch.');
+      $this->assertSame($content, File::read($path), $name . ' content mismatch.');
     }
 
     foreach ($expected_dirs as $dir => $exists) {
-      $this->assertSame($exists, is_dir(self::$sut . '/' . $dir), $dir . ' presence mismatch.');
+      $this->assertSame($exists, File::exists(self::$sut . '/' . $dir), $dir . ' presence mismatch.');
     }
   }
 
@@ -580,7 +579,7 @@ final class InstallHelpersTest extends UnitTestCase {
       $tested[(int) $job['drupal']][] = $job['php'];
     }
 
-    $agents = (string) file_get_contents(dirname(__DIR__, 4) . '/AGENTS.md');
+    $agents = File::read(dirname(__DIR__, 4) . '/AGENTS.md');
 
     foreach ($php_versions as $major => $versions) {
       $tested_versions = sort_php_versions($tested[$major] ?? []);
@@ -629,11 +628,11 @@ final class InstallHelpersTest extends UnitTestCase {
   #[DataProvider('dataProviderProcessCommandWrapperText')]
   public function testProcessCommandWrapperText(array $command_wrapper, string $expected): void {
     chdir(self::$sut);
-    file_put_contents(self::$sut . '/AGENTS.md', self::wrapperText('`make` or `ahoy`', '`make build` or `ahoy build`', '`make lint` or `ahoy lint`', '`make test` or `ahoy test`', 'The command wrappers and CI run it'));
+    File::dump(self::$sut . '/AGENTS.md', self::wrapperText('`make` or `ahoy`', '`make build` or `ahoy build`', '`make lint` or `ahoy lint`', '`make test` or `ahoy test`', 'The command wrappers and CI run it'));
 
     process_command_wrapper_text($command_wrapper);
 
-    $this->assertSame($expected, file_get_contents(self::$sut . '/AGENTS.md'));
+    $this->assertSame($expected, File::read(self::$sut . '/AGENTS.md'));
   }
 
   public static function dataProviderProcessCommandWrapperText(): \Iterator {
@@ -667,7 +666,7 @@ final class InstallHelpersTest extends UnitTestCase {
     chdir(self::$sut);
 
     if ($contents !== NULL) {
-      file_put_contents('composer.dev.json', $contents);
+      File::dump('composer.dev.json', $contents);
     }
 
     $this->assertSame($expected, read_composer_dev_json());
@@ -685,7 +684,7 @@ final class InstallHelpersTest extends UnitTestCase {
     chdir(self::$sut);
 
     if ($contents !== NULL) {
-      file_put_contents('composer.dev.json', $contents);
+      File::dump('composer.dev.json', $contents);
     }
 
     set_composer_dev_eddy_value($key, $value);
@@ -696,7 +695,7 @@ final class InstallHelpersTest extends UnitTestCase {
       return;
     }
 
-    $this->assertSame($expected, file_get_contents('composer.dev.json'));
+    $this->assertSame($expected, File::read('composer.dev.json'));
   }
 
   public static function dataProviderSetComposerDevEddyValue(): \Iterator {
@@ -753,9 +752,8 @@ final class InstallHelpersTest extends UnitTestCase {
   #[DataProvider('dataProviderTemplateVersionArchive')]
   public function testTemplateVersionArchive(?string $tag, int $commits_after_tag, string $expected_pattern): void {
     $root = dirname(__DIR__, 4);
-    $filesystem = new Filesystem();
-    $filesystem->copy($root . '/install.php', self::$sut . '/install.php');
-    $filesystem->copy($root . '/.gitattributes', self::$sut . '/.gitattributes');
+    File::copy($root . '/install.php', self::$sut . '/install.php');
+    File::copy($root . '/.gitattributes', self::$sut . '/.gitattributes');
 
     $this->git(self::$sut, ['init']);
     $this->git(self::$sut, ['config', 'user.name', 'Test User']);
@@ -776,7 +774,7 @@ final class InstallHelpersTest extends UnitTestCase {
     $process->mustRun();
     $archived = $process->getOutput();
 
-    $source = (string) file_get_contents($root . '/install.php');
+    $source = File::read($root . '/install.php');
     $pattern = "/^const TEMPLATE_VERSION = '(.*)';$/m";
 
     if (preg_match($pattern, $source, $source_match) !== 1) {
@@ -832,7 +830,7 @@ final class InstallHelpersTest extends UnitTestCase {
     chdir(self::$sut);
 
     if ($content !== NULL) {
-      file_put_contents('workflow.yml', $content);
+      File::dump('workflow.yml', $content);
     }
 
     set_workflow_branches('workflow.yml', $branches);
@@ -843,7 +841,7 @@ final class InstallHelpersTest extends UnitTestCase {
       return;
     }
 
-    $this->assertSame($expected, file_get_contents('workflow.yml'));
+    $this->assertSame($expected, File::read('workflow.yml'));
   }
 
   public static function dataProviderSetWorkflowBranches(): \Iterator {
@@ -880,16 +878,14 @@ final class InstallHelpersTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderCommittedWorkflowBranches')]
   public function testCommittedWorkflowBranches(?array $committed, string $directory, array $expected): void {
-    $filesystem = new Filesystem();
-
     if ($committed !== NULL) {
       $this->git(self::$sut, ['init']);
       $this->git(self::$sut, ['config', 'user.name', 'Test User']);
       $this->git(self::$sut, ['config', 'user.email', 'test@example.com']);
-      $filesystem->dumpFile(self::$sut . '/README.md', 'Project');
+      File::dump(self::$sut . '/README.md', 'Project');
 
       foreach ($committed as $path => $content) {
-        $filesystem->dumpFile(self::$sut . '/' . $path, $content);
+        File::dump(self::$sut . '/' . $path, $content);
       }
 
       $this->git(self::$sut, ['add', '--all']);
@@ -897,7 +893,7 @@ final class InstallHelpersTest extends UnitTestCase {
     }
 
     // The working tree holds the template's copy, which the function ignores.
-    $filesystem->dumpFile(self::$sut . '/' . $directory . '/.github/workflows/test.yml', "on:\n  push:\n    branches:\n      - main\n");
+    File::dump(self::$sut . '/' . $directory . '/.github/workflows/test.yml', "on:\n  push:\n    branches:\n      - main\n");
     chdir(self::$sut . '/' . $directory);
 
     $this->assertSame($expected, committed_workflow_branches('.github/workflows/test.yml'));
@@ -960,11 +956,11 @@ final class InstallHelpersTest extends UnitTestCase {
   #[DataProvider('dataProviderRemoveNpm')]
   public function testRemoveNpm(array $package, array $tools_remove, array $expected): void {
     chdir(self::$sut);
-    file_put_contents(self::$sut . '/package.json', json_encode($package, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+    File::dump(self::$sut . '/package.json', json_encode($package, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
 
     remove_npm($tools_remove);
 
-    $this->assertSame($expected, json_decode((string) file_get_contents(self::$sut . '/package.json'), TRUE));
+    $this->assertSame($expected, json_decode(File::read(self::$sut . '/package.json'), TRUE));
   }
 
   public static function dataProviderRemoveNpm(): \Iterator {
@@ -1042,7 +1038,7 @@ final class InstallHelpersTest extends UnitTestCase {
       $this->git(self::$sut, $command);
     }
 
-    (new Filesystem())->mkdir(self::$sut . '/' . $directory);
+    File::mkdir(self::$sut . '/' . $directory);
     chdir(self::$sut . '/' . $directory);
 
     $this->assertSame($expected, origin_github_repository());
@@ -1069,13 +1065,13 @@ final class InstallHelpersTest extends UnitTestCase {
     chdir(self::$sut);
 
     foreach ($files as $name => $content) {
-      file_put_contents(self::$sut . '/' . $name, $content);
+      File::dump(self::$sut . '/' . $name, $content);
     }
 
     process_extension_type_text($type);
 
     foreach ($expected as $name => $content) {
-      $this->assertSame($content, file_get_contents(self::$sut . '/' . $name), $name . ' content mismatch.');
+      $this->assertSame($content, File::read(self::$sut . '/' . $name), $name . ' content mismatch.');
     }
   }
 
@@ -1135,26 +1131,24 @@ final class InstallHelpersTest extends UnitTestCase {
   public static function dataProviderRemoveDir(): \Iterator {
     yield 'empty directory' => [
       function (string $dir): void {
-        mkdir($dir, 0755, TRUE);
+        File::mkdir($dir, 0755);
       },
       'empty_dir',
     ];
 
     yield 'directory with files' => [
       function (string $dir): void {
-        mkdir($dir, 0755, TRUE);
-        file_put_contents($dir . '/file1.txt', 'content1');
-        file_put_contents($dir . '/file2.txt', 'content2');
+        File::dump($dir . '/file1.txt', 'content1');
+        File::dump($dir . '/file2.txt', 'content2');
       },
       'dir_with_files',
     ];
 
     yield 'nested directories' => [
       function (string $dir): void {
-        mkdir($dir . '/sub1/sub2', 0755, TRUE);
-        file_put_contents($dir . '/file.txt', 'content');
-        file_put_contents($dir . '/sub1/file.txt', 'content');
-        file_put_contents($dir . '/sub1/sub2/file.txt', 'content');
+        File::dump($dir . '/file.txt', 'content');
+        File::dump($dir . '/sub1/file.txt', 'content');
+        File::dump($dir . '/sub1/sub2/file.txt', 'content');
       },
       'nested_dir',
     ];
@@ -1174,9 +1168,8 @@ final class InstallHelpersTest extends UnitTestCase {
   public function testRemoveFile(array $files, string $file, array $expected_absent, array $expected_present): void {
     chdir(self::$sut);
 
-    $filesystem = new Filesystem();
     foreach ($files as $name => $content) {
-      $filesystem->dumpFile(self::$sut . '/' . $name, $content);
+      File::dump(self::$sut . '/' . $name, $content);
     }
 
     remove_file($file);
@@ -1217,16 +1210,16 @@ final class InstallHelpersTest extends UnitTestCase {
   public static function dataProviderGetFiles(): \Iterator {
     yield 'text files included' => [
       function (string $dir): void {
-        file_put_contents($dir . '/file1.txt', 'hello');
-        file_put_contents($dir . '/file2.php', '<?php echo 1;');
+        File::dump($dir . '/file1.txt', 'hello');
+        File::dump($dir . '/file2.php', '<?php echo 1;');
       },
       ['file1.txt', 'file2.php'],
     ];
 
     yield 'binary files excluded' => [
       function (string $dir): void {
-        file_put_contents($dir . '/text.txt', 'hello');
-        file_put_contents($dir . '/binary.bin', "hello\0world");
+        File::dump($dir . '/text.txt', 'hello');
+        File::dump($dir . '/binary.bin', "hello\0world");
       },
       ['text.txt'],
       ['binary.bin'],
@@ -1234,17 +1227,12 @@ final class InstallHelpersTest extends UnitTestCase {
 
     yield 'excluded directories' => [
       function (string $dir): void {
-        file_put_contents($dir . '/root.txt', 'root');
-        mkdir($dir . '/.git', 0755, TRUE);
-        file_put_contents($dir . '/.git/config', 'git config');
-        mkdir($dir . '/vendor', 0755, TRUE);
-        file_put_contents($dir . '/vendor/autoload.php', 'vendor');
-        mkdir($dir . '/node_modules', 0755, TRUE);
-        file_put_contents($dir . '/node_modules/pkg.js', 'pkg');
-        mkdir($dir . '/.idea', 0755, TRUE);
-        file_put_contents($dir . '/.idea/workspace.xml', 'idea');
-        mkdir($dir . '/.chromedriver', 0755, TRUE);
-        file_put_contents($dir . '/.chromedriver/chromedriver.log', 'log');
+        File::dump($dir . '/root.txt', 'root');
+        File::dump($dir . '/.git/config', 'git config');
+        File::dump($dir . '/vendor/autoload.php', 'vendor');
+        File::dump($dir . '/node_modules/pkg.js', 'pkg');
+        File::dump($dir . '/.idea/workspace.xml', 'idea');
+        File::dump($dir . '/.chromedriver/chromedriver.log', 'log');
       },
       ['root.txt'],
       ['.git/config', 'vendor/autoload.php', 'node_modules/pkg.js', '.idea/workspace.xml', '.chromedriver/chromedriver.log'],
@@ -1252,20 +1240,17 @@ final class InstallHelpersTest extends UnitTestCase {
 
     yield 'nested text files included' => [
       function (string $dir): void {
-        mkdir($dir . '/src/Sub', 0755, TRUE);
-        file_put_contents($dir . '/src/file.php', 'php');
-        file_put_contents($dir . '/src/Sub/deep.php', 'deep');
+        File::dump($dir . '/src/file.php', 'php');
+        File::dump($dir . '/src/Sub/deep.php', 'deep');
       },
       ['src/file.php', 'src/Sub/deep.php'],
     ];
 
     yield 'nested excluded directories' => [
       function (string $dir): void {
-        mkdir($dir . '/tools/vendor', 0755, TRUE);
-        file_put_contents($dir . '/tools/vendor/autoload.php', 'vendor');
-        mkdir($dir . '/tools/node_modules', 0755, TRUE);
-        file_put_contents($dir . '/tools/node_modules/pkg.js', 'pkg');
-        file_put_contents($dir . '/tools/run.php', 'run');
+        File::dump($dir . '/tools/vendor/autoload.php', 'vendor');
+        File::dump($dir . '/tools/node_modules/pkg.js', 'pkg');
+        File::dump($dir . '/tools/run.php', 'run');
       },
       ['tools/run.php'],
       ['tools/vendor/autoload.php', 'tools/node_modules/pkg.js'],
@@ -1273,13 +1258,11 @@ final class InstallHelpersTest extends UnitTestCase {
 
     yield 'git-ignored paths excluded' => [
       function (string $dir): void {
-        file_put_contents($dir . '/.gitignore', "/build\n/.env\n*.log\n");
-        mkdir($dir . '/build/web/core/modules/system', 0755, TRUE);
-        file_put_contents($dir . '/build/web/core/modules/system/system.info.yml', 'type: module');
-        file_put_contents($dir . '/.env', 'WEBSERVER_PORT=8000');
-        mkdir($dir . '/src', 0755, TRUE);
-        file_put_contents($dir . '/src/debug.log', 'log');
-        file_put_contents($dir . '/src/file.php', 'php');
+        File::dump($dir . '/.gitignore', "/build\n/.env\n*.log\n");
+        File::dump($dir . '/build/web/core/modules/system/system.info.yml', 'type: module');
+        File::dump($dir . '/.env', 'WEBSERVER_PORT=8000');
+        File::dump($dir . '/src/debug.log', 'log');
+        File::dump($dir . '/src/file.php', 'php');
       },
       ['.gitignore', 'src/file.php'],
       ['build/web/core/modules/system/system.info.yml', '.env', 'src/debug.log'],
@@ -1287,12 +1270,10 @@ final class InstallHelpersTest extends UnitTestCase {
 
     yield 'git-ignored paths re-included' => [
       function (string $dir): void {
-        file_put_contents($dir . '/.gitignore', "/logs/*\n!/logs/keep.txt\n/build\n!/build/keep.txt\n");
-        mkdir($dir . '/logs', 0755, TRUE);
-        file_put_contents($dir . '/logs/keep.txt', 'keep');
-        file_put_contents($dir . '/logs/drop.txt', 'drop');
-        mkdir($dir . '/build', 0755, TRUE);
-        file_put_contents($dir . '/build/keep.txt', 'keep');
+        File::dump($dir . '/.gitignore', "/logs/*\n!/logs/keep.txt\n/build\n!/build/keep.txt\n");
+        File::dump($dir . '/logs/keep.txt', 'keep');
+        File::dump($dir . '/logs/drop.txt', 'drop');
+        File::dump($dir . '/build/keep.txt', 'keep');
       },
       ['logs/keep.txt'],
       ['logs/drop.txt', 'build/keep.txt'],
@@ -1300,10 +1281,9 @@ final class InstallHelpersTest extends UnitTestCase {
 
     yield 'claude directory holds only its settings' => [
       function (string $dir): void {
-        mkdir($dir . '/.claude/skills/project-skill', 0755, TRUE);
-        file_put_contents($dir . '/.claude/settings.json', '{}');
-        file_put_contents($dir . '/.claude/settings.local.json', '{}');
-        file_put_contents($dir . '/.claude/skills/project-skill/SKILL.md', 'skill');
+        File::dump($dir . '/.claude/settings.json', '{}');
+        File::dump($dir . '/.claude/settings.local.json', '{}');
+        File::dump($dir . '/.claude/skills/project-skill/SKILL.md', 'skill');
       },
       ['.claude/settings.json'],
       ['.claude/settings.local.json', '.claude/skills/project-skill/SKILL.md'],
@@ -1317,10 +1297,9 @@ final class InstallHelpersTest extends UnitTestCase {
   #[DataProvider('dataProviderGetMarkerFiles')]
   public function testGetMarkerFiles(array $files, array $expected): void {
     chdir(self::$sut);
-    $filesystem = new Filesystem();
 
     foreach ($files as $file) {
-      $filesystem->dumpFile(self::$sut . '/' . $file, 'content');
+      File::dump(self::$sut . '/' . $file, 'content');
     }
 
     $actual = array_map(static fn(string $file): string => str_replace(self::$sut . '/', '', $file), get_marker_files());
@@ -1431,7 +1410,7 @@ final class InstallHelpersTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderIsGitignoredTemplate')]
   public function testIsGitignoredTemplate(string $path, bool $is_dir, bool $expected): void {
-    $rules = gitignore_rules((string) file_get_contents(dirname(__DIR__, 4) . '/.gitignore'));
+    $rules = gitignore_rules(File::read(dirname(__DIR__, 4) . '/.gitignore'));
 
     $this->assertSame($expected, is_gitignored($path, $is_dir, $rules));
   }
@@ -1473,18 +1452,13 @@ final class InstallHelpersTest extends UnitTestCase {
   public function testReplaceStringContent(array $files, string $needle, string $replacement, array $expected_contents): void {
     chdir(self::$sut);
     foreach ($files as $name => $content) {
-      $path = self::$sut . '/' . $name;
-      $dir = dirname($path);
-      if (!is_dir($dir)) {
-        mkdir($dir, 0755, TRUE);
-      }
-      file_put_contents($path, $content);
+      File::dump(self::$sut . '/' . $name, $content);
     }
 
     replace_string_content($needle, $replacement);
 
     foreach ($expected_contents as $name => $expected) {
-      $this->assertSame($expected, file_get_contents(self::$sut . '/' . $name));
+      $this->assertSame($expected, File::read(self::$sut . '/' . $name));
     }
   }
 
@@ -1521,11 +1495,11 @@ final class InstallHelpersTest extends UnitTestCase {
   #[DataProvider('dataProviderRemoveStringContent')]
   public function testRemoveStringContent(string $content, string $token, string $expected): void {
     chdir(self::$sut);
-    file_put_contents(self::$sut . '/file.txt', $content);
+    File::dump(self::$sut . '/file.txt', $content);
 
     remove_string_content($token);
 
-    $this->assertSame($expected, file_get_contents(self::$sut . '/file.txt'));
+    $this->assertSame($expected, File::read(self::$sut . '/file.txt'));
   }
 
   public static function dataProviderRemoveStringContent(): \Iterator {
@@ -1569,11 +1543,11 @@ final class InstallHelpersTest extends UnitTestCase {
   #[DataProvider('dataProviderRemoveTokensWithContent')]
   public function testRemoveTokensWithContent(string $content, string $token, string $expected, string $file = 'file.txt'): void {
     chdir(self::$sut);
-    (new Filesystem())->dumpFile(self::$sut . '/' . $file, $content);
+    File::dump(self::$sut . '/' . $file, $content);
 
     remove_tokens_with_content($token);
 
-    $this->assertSame($expected, file_get_contents(self::$sut . '/' . $file));
+    $this->assertSame($expected, File::read(self::$sut . '/' . $file));
   }
 
   public static function dataProviderRemoveTokensWithContent(): \Iterator {
@@ -1691,11 +1665,11 @@ final class InstallHelpersTest extends UnitTestCase {
   #[DataProvider('dataProviderUncommentLine')]
   public function testUncommentLine(string $content, string $start_string, string $expected): void {
     $file = self::$sut . '/testfile';
-    file_put_contents($file, $content);
+    File::dump($file, $content);
 
     uncomment_line($file, $start_string);
 
-    $this->assertSame($expected, file_get_contents($file));
+    $this->assertSame($expected, File::read($file));
   }
 
   public static function dataProviderUncommentLine(): \Iterator {
@@ -1738,11 +1712,11 @@ final class InstallHelpersTest extends UnitTestCase {
   #[DataProvider('dataProviderRemoveSpecialComments')]
   public function testRemoveSpecialComments(string $content, string $expected, string $file = 'file.txt'): void {
     chdir(self::$sut);
-    (new Filesystem())->dumpFile(self::$sut . '/' . $file, $content);
+    File::dump(self::$sut . '/' . $file, $content);
 
     remove_special_comments();
 
-    $this->assertSame($expected, file_get_contents(self::$sut . '/' . $file));
+    $this->assertSame($expected, File::read(self::$sut . '/' . $file));
   }
 
   public static function dataProviderRemoveSpecialComments(): \Iterator {
@@ -1796,11 +1770,11 @@ final class InstallHelpersTest extends UnitTestCase {
       'words' => ['force_crystal', 'Ahoy', 'force_crystal', 'Force_Crystal', 'yoyodyne', 'ahoy'],
       'ignorePaths' => ['build/'],
     ];
-    file_put_contents(self::$sut . '/.cspell.json', json_encode($input, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    File::dump(self::$sut . '/.cspell.json', json_encode($input, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
 
     normalize_cspell_words();
 
-    $result = json_decode((string) file_get_contents(self::$sut . '/.cspell.json'), TRUE);
+    $result = json_decode(File::read(self::$sut . '/.cspell.json'), TRUE);
     $this->assertIsArray($result);
     /** @var array<string, mixed> $result */
     // Mixed-case duplicates collapse to the first-seen form: 'Ahoy'/'ahoy'
@@ -1820,7 +1794,7 @@ final class InstallHelpersTest extends UnitTestCase {
 
   public function testNormaliseCspellWordsInvalidJson(): void {
     chdir(self::$sut);
-    file_put_contents(self::$sut . '/.cspell.json', '{not valid json');
+    File::dump(self::$sut . '/.cspell.json', '{not valid json');
 
     $this->expectException(\JsonException::class);
     normalize_cspell_words();
@@ -1828,12 +1802,12 @@ final class InstallHelpersTest extends UnitTestCase {
 
   public function testNormaliseCspellWordsMissingWordsKey(): void {
     chdir(self::$sut);
-    $input = ['dictionaries' => ['php']];
-    file_put_contents(self::$sut . '/.cspell.json', json_encode($input));
+    $input = json_encode(['dictionaries' => ['php']], JSON_THROW_ON_ERROR);
+    File::dump(self::$sut . '/.cspell.json', $input);
 
     normalize_cspell_words();
 
-    $this->assertSame(json_encode($input), file_get_contents(self::$sut . '/.cspell.json'));
+    $this->assertSame($input, File::read(self::$sut . '/.cspell.json'));
   }
 
   /**
@@ -1844,18 +1818,18 @@ final class InstallHelpersTest extends UnitTestCase {
     chdir(self::$sut);
 
     if ($cspell !== NULL) {
-      file_put_contents('.cspell.json', $cspell);
+      File::dump('.cspell.json', $cspell);
     }
 
     remove_cspell_eddy_paths();
 
     if ($expected === NULL) {
-      $this->assertSame($cspell, is_file('.cspell.json') ? file_get_contents('.cspell.json') : NULL, '.cspell.json changed.');
+      $this->assertSame($cspell, File::exists('.cspell.json') ? File::read('.cspell.json') : NULL, '.cspell.json changed.');
 
       return;
     }
 
-    $config = json_decode((string) file_get_contents('.cspell.json'), TRUE);
+    $config = json_decode(File::read('.cspell.json'), TRUE);
     $this->assertIsArray($config);
     $this->assertSame($expected, $config['ignorePaths'] ?? NULL);
     $this->assertSame(['**'], $config['files'] ?? NULL);
@@ -1885,22 +1859,22 @@ final class InstallHelpersTest extends UnitTestCase {
     chdir(self::$sut);
 
     if ($cspell !== NULL) {
-      file_put_contents('.cspell.json', $cspell);
+      File::dump('.cspell.json', $cspell);
     }
 
     foreach ($files as $name => $content) {
-      file_put_contents($name, $content);
+      File::dump($name, $content);
     }
 
     remove_unused_cspell_words($words);
 
     if ($expected === NULL) {
-      $this->assertSame($cspell, is_file('.cspell.json') ? file_get_contents('.cspell.json') : NULL, '.cspell.json changed.');
+      $this->assertSame($cspell, File::exists('.cspell.json') ? File::read('.cspell.json') : NULL, '.cspell.json changed.');
 
       return;
     }
 
-    $config = json_decode((string) file_get_contents('.cspell.json'), TRUE);
+    $config = json_decode(File::read('.cspell.json'), TRUE);
     $this->assertIsArray($config);
     $this->assertSame($expected, $config['words'] ?? NULL);
   }
@@ -1982,7 +1956,7 @@ final class InstallHelpersTest extends UnitTestCase {
    * Every word a tool lists is in the 'words' of the template '.cspell.json'.
    */
   public function testToolSpecsCspellWordsAreTemplateWords(): void {
-    $config = json_decode((string) file_get_contents(dirname(__DIR__, 4) . '/.cspell.json'), TRUE);
+    $config = json_decode(File::read(dirname(__DIR__, 4) . '/.cspell.json'), TRUE);
     $this->assertIsArray($config);
     $template_words = $config['words'] ?? NULL;
     $this->assertIsArray($template_words);
@@ -2015,7 +1989,7 @@ final class InstallHelpersTest extends UnitTestCase {
    * '.cspell.json'.
    */
   public function testExtensionTypeSpecsCspellWordsAreTemplateWords(): void {
-    $config = json_decode((string) file_get_contents(dirname(__DIR__, 4) . '/.cspell.json'), TRUE);
+    $config = json_decode(File::read(dirname(__DIR__, 4) . '/.cspell.json'), TRUE);
     $this->assertIsArray($config);
     $template_words = $config['words'] ?? NULL;
     $this->assertIsArray($template_words);

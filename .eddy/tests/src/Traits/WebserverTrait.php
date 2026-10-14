@@ -6,6 +6,7 @@ namespace DrevOps\Eddy\Tests\Traits;
 
 use function DrevOps\Eddy\Tooling\kill_processes;
 use function DrevOps\Eddy\Tooling\webserver_listeners;
+use AlexSkrypnyk\File\File;
 use Symfony\Component\Process\Process;
 
 /**
@@ -23,9 +24,8 @@ trait WebserverTrait {
    *   The project root.
    */
   protected static function webserverCreateDocroot(string $root): void {
-    mkdir($root . '/build/web', 0755, TRUE);
-    file_put_contents($root . '/build/web/.ht.router.php', "<?php return FALSE;\n");
-    file_put_contents($root . '/build/web/index.html', "OK\n");
+    File::dump($root . '/build/web/.ht.router.php', "<?php return FALSE;\n");
+    File::dump($root . '/build/web/index.html', "OK\n");
   }
 
   /**
@@ -154,9 +154,9 @@ trait WebserverTrait {
    *   The port, or NULL when '.env' records none.
    */
   protected static function webserverDotenvPort(string $root, string $name = 'WEBSERVER_PORT'): ?string {
-    $contents = @file_get_contents($root . '/.env');
+    $dotenv = $root . '/.env';
 
-    if ($contents === FALSE || preg_match('/^' . preg_quote($name, '/') . '=(\d+)$/m', $contents, $matches) !== 1) {
+    if (!File::exists($dotenv) || preg_match('/^' . preg_quote($name, '/') . '=(\d+)$/m', File::read($dotenv), $matches) !== 1) {
       return NULL;
     }
 

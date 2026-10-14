@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Functional;
 
+use AlexSkrypnyk\File\File;
 use DrevOps\Eddy\Tests\Traits\WebserverTrait;
 
 /**
@@ -39,7 +40,7 @@ abstract class ToolingTestCase extends FunctionalTestCase {
     sleep(1);
 
     // Give enough permission to clean the build dir.
-    if (is_dir('build')) {
+    if (File::exists('build')) {
       @exec('chmod -Rf 777 build');
     }
 
@@ -61,13 +62,14 @@ abstract class ToolingTestCase extends FunctionalTestCase {
    * in the order the tooling resolves it.
    */
   protected function webserverPort(): string {
-    $port = getenv('WEBSERVER_PORT');
+    $port = self::envGet('WEBSERVER_PORT');
 
     if (is_string($port) && $port !== '') {
       return $port;
     }
 
-    $env = is_file(self::$sut . '/.env') ? parse_ini_file(self::$sut . '/.env') : FALSE;
+    $dotenv = self::$sut . '/.env';
+    $env = File::exists($dotenv) ? parse_ini_string(File::read($dotenv)) : FALSE;
     $value = is_array($env) ? ($env['WEBSERVER_PORT'] ?? NULL) : NULL;
 
     return is_scalar($value) ? (string) $value : '8000';

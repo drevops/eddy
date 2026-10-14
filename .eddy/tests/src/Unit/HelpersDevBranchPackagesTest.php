@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\dev_branch_packages;
+use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -30,10 +31,10 @@ final class HelpersDevBranchPackagesTest extends UnitTestCase {
   #[DataProvider('dataProviderDevBranchPackages')]
   public function testDevBranchPackages(?string $lock, array $expected): void {
     $lock_file = self::$tmp . '/lock_' . uniqid() . '/composer.lock';
-    mkdir(dirname($lock_file), 0755, TRUE);
+    File::mkdir(dirname($lock_file), 0755);
 
     if ($lock !== NULL) {
-      file_put_contents($lock_file, $lock);
+      File::dump($lock_file, $lock);
     }
 
     $this->assertSame($expected, dev_branch_packages($lock_file));

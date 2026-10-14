@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Functional;
 
+use AlexSkrypnyk\File\File;
 use AlexSkrypnyk\PhpunitHelpers\Traits\ProcessTrait;
 use DrevOps\Eddy\Tests\Traits\ComposerHomeTrait;
 use DrevOps\Eddy\Tests\Unit\UnitTestCase;
@@ -35,8 +36,7 @@ final class ToolingInstallerTest extends UnitTestCase {
   protected function setUp(): void {
     parent::setUp();
 
-    mkdir(self::$sut . '/scripts', 0755, TRUE);
-    copy(dirname(__DIR__, 4) . '/scripts/eddy-tooling', self::$sut . '/scripts/eddy-tooling');
+    File::copy(dirname(__DIR__, 4) . '/scripts/eddy-tooling', self::$sut . '/scripts/eddy-tooling');
     chmod(self::$sut . '/scripts/eddy-tooling', 0755);
 
     $this->processCwd = self::$sut;
@@ -85,8 +85,7 @@ final class ToolingInstallerTest extends UnitTestCase {
     // The patch plugin comes from Packagist.
     $this->composerHomeWrite('1.0.0', TRUE);
 
-    mkdir(self::$sut . '/patches', 0755, TRUE);
-    file_put_contents(self::$sut . '/patches/eddy-tooling-add-file.patch', self::PATCH);
+    File::dump(self::$sut . '/patches/eddy-tooling-add-file.patch', self::PATCH);
 
     $this->writeDevManifest([
       'require-dev' => ['drevops/eddy-tooling' => '~1.0.0'],
@@ -98,7 +97,7 @@ final class ToolingInstallerTest extends UnitTestCase {
     $this->assertFileExists(self::$sut . '/vendor/drevops/eddy-tooling/PATCHED.txt', 'The patch is applied, with its path resolved against the project root.');
     $this->assertFileDoesNotExist(self::$sut . '/eddy-tooling-patches.lock.json', 'The patch plugin keeps its lock inside vendor/.');
 
-    file_put_contents(self::$sut . '/patches/eddy-tooling-add-file.patch', str_replace('+patched', '+patched again', self::PATCH));
+    File::dump(self::$sut . '/patches/eddy-tooling-add-file.patch', str_replace('+patched', '+patched again', self::PATCH));
 
     $this->runInstaller();
     $this->assertProcessSuccessful();
@@ -129,7 +128,7 @@ final class ToolingInstallerTest extends UnitTestCase {
   }
 
   protected function writeDevManifest(array $contents): void {
-    file_put_contents(self::$sut . '/composer.dev.json', json_encode($contents, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+    File::dump(self::$sut . '/composer.dev.json', json_encode($contents, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
   }
 
   /**
@@ -139,7 +138,7 @@ final class ToolingInstallerTest extends UnitTestCase {
    *   The command names.
    */
   protected function packageBins(): array {
-    $manifest = json_decode((string) file_get_contents(dirname(__DIR__, 4) . '/.eddy/tooling/composer.json'), TRUE);
+    $manifest = json_decode(File::read(dirname(__DIR__, 4) . '/.eddy/tooling/composer.json'), TRUE);
     $this->assertIsArray($manifest);
 
     $bins = $manifest['bin'] ?? NULL;
@@ -155,7 +154,7 @@ final class ToolingInstallerTest extends UnitTestCase {
   }
 
   protected function lockedVersion(): string {
-    $lock = json_decode((string) file_get_contents(self::$sut . '/vendor/eddy-tooling.lock'), TRUE);
+    $lock = json_decode(File::read(self::$sut . '/vendor/eddy-tooling.lock'), TRUE);
     $this->assertIsArray($lock);
 
     $packages = $lock['packages'] ?? NULL;

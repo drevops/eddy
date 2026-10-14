@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\site_db_file;
+use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -62,7 +63,7 @@ final class ProvisionTest extends UnitTestCase {
     $extension_name = 'test_extension';
     $info_content = $extension_type === 'theme' ? "name: Test\ntype: theme\n" : "name: Test\ntype: module\n";
     $cwd = self::$tmp . '/provision_' . uniqid();
-    mkdir($cwd . '/build/web', 0755, TRUE);
+    File::mkdir($cwd . '/build/web', 0755);
 
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
 
@@ -455,8 +456,7 @@ final class ProvisionTest extends UnitTestCase {
     $extension_name = 'test_extension';
     $cwd = self::$tmp . '/provision_tunnel_' . uniqid();
     $settings_file = $cwd . '/build/web/sites/default/settings.php';
-    mkdir(dirname($settings_file), 0755, TRUE);
-    file_put_contents($settings_file, "<?php\n");
+    File::dump($settings_file, "<?php\n");
     chdir($cwd);
 
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
@@ -498,7 +498,7 @@ final class ProvisionTest extends UnitTestCase {
     $this->assertIsString($output);
     $this->assertStringContainsString('Adding the tunnel settings to build/web/sites/default/settings.php.', $output);
     $this->assertStringContainsString('Tunnel settings added.', $output);
-    $this->assertStringContainsString("# Cloudflare quick tunnel settings.\n\$settings['reverse_proxy'] = TRUE;", (string) file_get_contents($settings_file));
+    $this->assertStringContainsString("# Cloudflare quick tunnel settings.\n\$settings['reverse_proxy'] = TRUE;", File::read($settings_file));
   }
 
 }

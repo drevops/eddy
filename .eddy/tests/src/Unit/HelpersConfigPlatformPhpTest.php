@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\config_platform_php;
+use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -30,7 +31,7 @@ final class HelpersConfigPlatformPhpTest extends UnitTestCase {
 
     foreach ([$first, $second] as $index => $contents) {
       if ($contents !== NULL) {
-        file_put_contents($manifests[$index], $contents);
+        File::dump($manifests[$index], $contents);
       }
     }
 

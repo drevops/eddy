@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
@@ -66,11 +67,9 @@ final class PhpunitWebdriverEndpointTest extends UnitTestCase {
 
   public function testBaseClassRewritesEndpointFromResolvedPort(): void {
     $path = dirname(__DIR__, 4) . '/tests/src/FunctionalJavascript/YourExtensionFunctionalJavascriptTestBase.php';
-    $contents = file_get_contents($path);
 
-    $this->assertIsString($contents);
-    $this->assertStringContainsString('function getMinkDriverArgs()', $contents, 'The base class must override getMinkDriverArgs() to apply the resolved WebDriver port.');
-    $this->assertStringContainsString("getenv('WEBDRIVER_PORT')", $contents, 'The base class must read WEBDRIVER_PORT; without it the endpoint stays pinned to the phpunit.xml literal.');
+    $this->assertFileContainsString($path, 'function getMinkDriverArgs()', 'The base class must override getMinkDriverArgs() to apply the resolved WebDriver port.');
+    $this->assertFileContainsString($path, "getenv('WEBDRIVER_PORT')", 'The base class must read WEBDRIVER_PORT; without it the endpoint stays pinned to the phpunit.xml literal.');
   }
 
   /**
@@ -89,7 +88,7 @@ final class PhpunitWebdriverEndpointTest extends UnitTestCase {
 
   protected static function minkDriverArgsElement(string $path): \DOMElement {
     $document = new \DOMDocument();
-    self::assertTrue($document->load($path), sprintf('Unable to parse %s.', $path));
+    self::assertTrue($document->loadXML(File::read($path)), sprintf('Unable to parse %s.', $path));
 
     $nodes = (new \DOMXPath($document))->query('//php/env[@name="MINK_DRIVER_ARGS_WEBDRIVER"]');
     self::assertInstanceOf(\DOMNodeList::class, $nodes);

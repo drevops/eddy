@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
@@ -21,14 +22,14 @@ final class UpdateAssetsRecordSessionTest extends UnitTestCase {
 
   protected function setUp(): void {
     parent::setUp();
-    putenv('SCRIPT_RUN_SKIP=1');
+    $this->envSet('SCRIPT_RUN_SKIP', '1');
     require_once dirname(__DIR__, 4) . '/.eddy/assets/update-assets.php';
   }
 
   public function testRecordSession(): void {
     $expect_script = self::$sut . '/lint.exp';
     $cast_file = self::$sut . '/lint.cast';
-    touch($expect_script);
+    File::dump($expect_script);
 
     $this->mockAsciinema($cast_file, '{"version":3,"term":{"cols":80,"rows":24}}' . "\n", 0, sprintf('asciinema rec --headless --quiet --return --command=%s --window-size=80x24 --overwrite %s 2>&1', escapeshellarg($expect_script), escapeshellarg($cast_file)));
 
@@ -40,7 +41,7 @@ final class UpdateAssetsRecordSessionTest extends UnitTestCase {
   public function testRecordSessionFailsWithSessionTail(): void {
     $expect_script = self::$sut . '/lint.exp';
     $cast_file = self::$sut . '/lint.cast';
-    touch($expect_script);
+    File::dump($expect_script);
 
     $cast = implode("\n", [
       '{"version":3,"term":{"cols":80,"rows":24}}',
@@ -69,7 +70,7 @@ final class UpdateAssetsRecordSessionTest extends UnitTestCase {
   public function testRecordSessionFailsWithoutAsciinemaOutput(): void {
     $expect_script = self::$sut . '/install.exp';
     $cast_file = self::$sut . '/install.cast';
-    touch($expect_script);
+    File::dump($expect_script);
 
     $this->mockAsciinema($cast_file, '{"version":3,"term":{"cols":80,"rows":24}}' . "\n" . '[0.5,"o","The session ended unexpectedly.\r\n"]' . "\n", 1);
 
@@ -85,7 +86,7 @@ final class UpdateAssetsRecordSessionTest extends UnitTestCase {
   public function testRecordSessionFailsWithoutRecording(): void {
     $expect_script = self::$sut . '/lint.exp';
     $cast_file = self::$sut . '/lint.cast';
-    touch($expect_script);
+    File::dump($expect_script);
 
     $this->mockAsciinema($cast_file, NULL, 1, NULL, ['asciinema: no such file']);
 
@@ -128,7 +129,7 @@ final class UpdateAssetsRecordSessionTest extends UnitTestCase {
       }
 
       if ($cast !== NULL) {
-        file_put_contents($cast_file, $cast);
+        File::dump($cast_file, $cast);
       }
 
       $cmd_output = $output;

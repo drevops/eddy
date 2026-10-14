@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
@@ -72,7 +73,7 @@ final class DeploySshAgentTest extends UnitTestCase {
    *   prefix.
    */
   protected function createKey(): array {
-    mkdir(self::$tmp . '/' . self::HOME . '/.ssh', 0700, TRUE);
+    File::mkdir(self::$tmp . '/' . self::HOME . '/.ssh', 0700);
 
     $generated = self::HOME . '/.ssh/generated';
     $this->command(['ssh-keygen', '-q', '-t', 'ed25519', '-N', '', '-C', 'eddy-deploy-test', '-f', $generated]);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\mkdir_or_fail;
+use AlexSkrypnyk\File\File;
 use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\Group;
@@ -35,8 +36,7 @@ final class HelpersMkdirOrFailTest extends UnitTestCase {
 
   public function testKeepsExistingDirectory(): void {
     $dir = self::$tmp . '/existing';
-    mkdir($dir);
-    file_put_contents($dir . '/file.txt', 'content');
+    File::dump($dir . '/file.txt', 'content');
 
     mkdir_or_fail($dir);
 
@@ -45,7 +45,7 @@ final class HelpersMkdirOrFailTest extends UnitTestCase {
 
   public function testFailsWhenPathIsFile(): void {
     $path = self::$tmp . '/file';
-    file_put_contents($path, 'content');
+    File::dump($path, 'content');
     $this->mockQuit(1);
 
     ob_start();

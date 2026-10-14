@@ -9,6 +9,7 @@ use function DrevOps\Eddy\Tooling\tunnel_kill;
 use function DrevOps\Eddy\Tooling\tunnel_start;
 use function DrevOps\Eddy\Tooling\tunnel_stop;
 use function DrevOps\Eddy\Tooling\tunnel_write_settings;
+use AlexSkrypnyk\File\File;
 use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -57,9 +58,9 @@ final class HelpersTunnelTest extends UnitTestCase {
 
     $this->envUnset('CLOUDFLARE_TUNNEL');
 
-    $this->originalCwd = (string) getcwd();
+    $this->originalCwd = File::cwd();
     $project_dir = self::$tmp . '/tunnel_' . uniqid();
-    mkdir($project_dir, 0755, TRUE);
+    File::mkdir($project_dir, 0755);
     chdir($project_dir);
   }
 
@@ -75,7 +76,7 @@ final class HelpersTunnelTest extends UnitTestCase {
     }
 
     if ($dotenv !== NULL) {
-      file_put_contents('.env', 'CLOUDFLARE_TUNNEL=' . $dotenv . PHP_EOL);
+      File::dump('.env', 'CLOUDFLARE_TUNNEL=' . $dotenv . PHP_EOL);
     }
 
     $this->assertSame($expected, tunnel_enabled());
@@ -120,10 +121,9 @@ final class HelpersTunnelTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderTunnelStartWithoutCloudflaredForgetsTunnel')]
   public function testTunnelStartWithoutCloudflaredForgetsTunnel(string $command, array $kills): void {
-    mkdir('.logs');
-    file_put_contents('.logs/cloudflared.pid', "4242\n");
-    file_put_contents('.logs/cloudflared.log', self::banner(self::URL));
-    file_put_contents('.env', 'TUNNEL_URL=' . self::URL . "\nOTHER=1\n");
+    File::dump('.logs/cloudflared.pid', "4242\n");
+    File::dump('.logs/cloudflared.log', self::banner(self::URL));
+    File::dump('.env', 'TUNNEL_URL=' . self::URL . "\nOTHER=1\n");
     $this->mockCommandAvailable('cloudflared', FALSE);
     $this->mockShellExec([self::PS => $command]);
     $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
@@ -133,7 +133,7 @@ final class HelpersTunnelTest extends UnitTestCase {
 
     $this->assertStringContainsString('cloudflared is not on PATH; skipping the tunnel.', $output);
     $this->assertFileDoesNotExist('.logs/cloudflared.pid');
-    $this->assertSame("OTHER=1\n", file_get_contents('.env'));
+    $this->assertSame("OTHER=1\n", File::read('.env'));
   }
 
   public static function dataProviderTunnelStartWithoutCloudflaredForgetsTunnel(): \Iterator {
@@ -142,9 +142,8 @@ final class HelpersTunnelTest extends UnitTestCase {
   }
 
   public function testTunnelStartWithoutCloudflaredReusesRunningTunnel(): void {
-    mkdir('.logs');
-    file_put_contents('.logs/cloudflared.pid', "4242\n");
-    file_put_contents('.logs/cloudflared.log', self::banner(self::URL));
+    File::dump('.logs/cloudflared.pid', "4242\n");
+    File::dump('.logs/cloudflared.log', self::banner(self::URL));
     // A running tunnel needs no binary to be reused, for example after PATH
     // changed.
     $this->mockCommandAvailable('cloudflared', FALSE);
@@ -156,12 +155,12 @@ final class HelpersTunnelTest extends UnitTestCase {
 
     $this->assertStringContainsString('Reusing the tunnel at ' . self::URL . '.', $output);
     $this->assertStringNotContainsString('not on PATH', $output);
-    $this->assertSame("4242\n", file_get_contents('.logs/cloudflared.pid'));
-    $this->assertSame('TUNNEL_URL=' . self::URL . "\n", file_get_contents('.env'));
+    $this->assertSame("4242\n", File::read('.logs/cloudflared.pid'));
+    $this->assertSame('TUNNEL_URL=' . self::URL . "\n", File::read('.env'));
   }
 
   public function testTunnelStartStartsTunnel(): void {
-    file_put_contents('.env', "WEBSERVER_PORT=8000\n");
+    File::dump('.env', "WEBSERVER_PORT=8000\n");
     $this->mockCommandAvailable('cloudflared', TRUE);
     $this->mockShellExec([self::LAUNCH => "4242\n"], self::banner(self::URL));
     $this->mockPassthruNever();
@@ -173,8 +172,8 @@ final class HelpersTunnelTest extends UnitTestCase {
     $this->assertStringContainsString('Waiting for the tunnel URL.', $output);
     $this->assertStringContainsString('Tunnel started at ' . self::URL . '.', $output);
     $this->assertSame(0, $sleeps);
-    $this->assertSame("4242\n", file_get_contents('.logs/cloudflared.pid'));
-    $this->assertSame("WEBSERVER_PORT=8000\nTUNNEL_URL=" . self::URL . "\n", file_get_contents('.env'));
+    $this->assertSame("4242\n", File::read('.logs/cloudflared.pid'));
+    $this->assertSame("WEBSERVER_PORT=8000\nTUNNEL_URL=" . self::URL . "\n", File::read('.env'));
   }
 
   public function testTunnelStartWaitsForUrl(): void {
@@ -188,12 +187,11 @@ final class HelpersTunnelTest extends UnitTestCase {
 
     $this->assertStringContainsString('Tunnel started at ' . self::URL . '.', $output);
     $this->assertSame(2, $sleeps);
-    $this->assertSame('TUNNEL_URL=' . self::URL . "\n", file_get_contents('.env'));
+    $this->assertSame('TUNNEL_URL=' . self::URL . "\n", File::read('.env'));
   }
 
   public function testTunnelStartEmptiesPreviousLog(): void {
-    mkdir('.logs');
-    file_put_contents('.logs/cloudflared.log', self::banner(self::URL));
+    File::dump('.logs/cloudflared.log', self::banner(self::URL));
     $this->mockCommandAvailable('cloudflared', TRUE);
     $this->mockShellExec([self::LAUNCH => "4242\n"]);
     $this->mockPassthruNever();
@@ -204,12 +202,12 @@ final class HelpersTunnelTest extends UnitTestCase {
 
     $this->assertStringContainsString('Tunnel started at ' . self::NEW_URL . '.', $output);
     $this->assertSame(1, $sleeps);
-    $this->assertSame('TUNNEL_URL=' . self::NEW_URL . "\n", file_get_contents('.env'));
+    $this->assertSame('TUNNEL_URL=' . self::NEW_URL . "\n", File::read('.env'));
   }
 
   #[DataProvider('dataProviderTunnelStartWithoutUrl')]
   public function testTunnelStartWithoutUrl(string $log): void {
-    file_put_contents('.env', "WEBSERVER_PORT=8000\nTUNNEL_URL=" . self::URL . "\n");
+    File::dump('.env', "WEBSERVER_PORT=8000\nTUNNEL_URL=" . self::URL . "\n");
     $this->mockCommandAvailable('cloudflared', TRUE);
     $this->mockShellExec([self::LAUNCH => "4242\n"]);
     $this->mockPassthru(['cmd' => 'kill 4242 >/dev/null 2>&1']);
@@ -222,7 +220,7 @@ final class HelpersTunnelTest extends UnitTestCase {
     $this->assertStringNotContainsString('Tunnel started', $output);
     $this->assertSame(30, $sleeps);
     $this->assertFileDoesNotExist('.logs/cloudflared.pid');
-    $this->assertSame("WEBSERVER_PORT=8000\n", file_get_contents('.env'));
+    $this->assertSame("WEBSERVER_PORT=8000\n", File::read('.env'));
   }
 
   public static function dataProviderTunnelStartWithoutUrl(): \Iterator {
@@ -231,7 +229,7 @@ final class HelpersTunnelTest extends UnitTestCase {
   }
 
   public function testTunnelStartWithoutPid(): void {
-    file_put_contents('.env', 'TUNNEL_URL=' . self::URL . "\n");
+    File::dump('.env', 'TUNNEL_URL=' . self::URL . "\n");
     $this->mockCommandAvailable('cloudflared', TRUE);
     $this->mockShellExec([self::LAUNCH => NULL]);
     // 'kill 0' would signal this process group, so nothing may be killed.
@@ -245,14 +243,13 @@ final class HelpersTunnelTest extends UnitTestCase {
     $this->assertStringNotContainsString('Waiting for the tunnel URL.', $output);
     $this->assertSame(0, $sleeps);
     $this->assertFileDoesNotExist('.logs/cloudflared.pid');
-    $this->assertSame('', file_get_contents('.env'));
+    $this->assertSame('', File::read('.env'));
   }
 
   #[DataProvider('dataProviderTunnelStartChecksRunningTunnel')]
   public function testTunnelStartChecksRunningTunnel(array|false $headers, bool $expect_reused): void {
-    mkdir('.logs');
-    file_put_contents('.logs/cloudflared.pid', "4242\n");
-    file_put_contents('.logs/cloudflared.log', self::banner(self::URL));
+    File::dump('.logs/cloudflared.pid', "4242\n");
+    File::dump('.logs/cloudflared.log', self::banner(self::URL));
     $this->mockCommandAvailable('cloudflared', TRUE);
 
     $requested = NULL;
@@ -280,14 +277,14 @@ final class HelpersTunnelTest extends UnitTestCase {
 
     if ($expect_reused) {
       $this->assertStringContainsString('Reusing the tunnel at ' . self::URL . '.', $output);
-      $this->assertSame("4242\n", file_get_contents('.logs/cloudflared.pid'));
-      $this->assertSame('TUNNEL_URL=' . self::URL . "\n", file_get_contents('.env'));
+      $this->assertSame("4242\n", File::read('.logs/cloudflared.pid'));
+      $this->assertSame('TUNNEL_URL=' . self::URL . "\n", File::read('.env'));
     }
     else {
       $this->assertStringContainsString('The running tunnel cannot be reused; stopping it.', $output);
       $this->assertStringContainsString('Tunnel started at ' . self::NEW_URL . '.', $output);
-      $this->assertSame("5151\n", file_get_contents('.logs/cloudflared.pid'));
-      $this->assertSame('TUNNEL_URL=' . self::NEW_URL . "\n", file_get_contents('.env'));
+      $this->assertSame("5151\n", File::read('.logs/cloudflared.pid'));
+      $this->assertSame('TUNNEL_URL=' . self::NEW_URL . "\n", File::read('.env'));
     }
   }
 
@@ -303,9 +300,8 @@ final class HelpersTunnelTest extends UnitTestCase {
   }
 
   public function testTunnelStartRestartsTunnelWithoutLoggedUrl(): void {
-    mkdir('.logs');
-    file_put_contents('.logs/cloudflared.pid', "4242\n");
-    file_put_contents('.logs/cloudflared.log', self::API_ERROR);
+    File::dump('.logs/cloudflared.pid', "4242\n");
+    File::dump('.logs/cloudflared.log', self::API_ERROR);
     $this->mockCommandAvailable('cloudflared', TRUE);
     $this->mockShellExec([self::PS => "cloudflared tunnel --url http://localhost:8000 --no-autoupdate\n", self::LAUNCH => "5151\n"], self::banner(self::NEW_URL));
     $this->mockPassthru(['cmd' => 'kill 4242 >/dev/null 2>&1']);
@@ -317,14 +313,13 @@ final class HelpersTunnelTest extends UnitTestCase {
 
     $this->assertStringContainsString('The running tunnel cannot be reused; stopping it.', $output);
     $this->assertStringContainsString('Tunnel started at ' . self::NEW_URL . '.', $output);
-    $this->assertSame("5151\n", file_get_contents('.logs/cloudflared.pid'));
+    $this->assertSame("5151\n", File::read('.logs/cloudflared.pid'));
   }
 
   #[DataProvider('dataProviderTunnelStartRestartsTunnelForAnotherPort')]
   public function testTunnelStartRestartsTunnelForAnotherPort(string $command): void {
-    mkdir('.logs');
-    file_put_contents('.logs/cloudflared.pid', "4242\n");
-    file_put_contents('.logs/cloudflared.log', self::banner(self::URL));
+    File::dump('.logs/cloudflared.pid', "4242\n");
+    File::dump('.logs/cloudflared.log', self::banner(self::URL));
     $this->mockCommandAvailable('cloudflared', TRUE);
     $this->mockShellExec([self::PS => $command, self::LAUNCH => "5151\n"], self::banner(self::NEW_URL));
     $this->mockPassthru(['cmd' => 'kill 4242 >/dev/null 2>&1']);
@@ -337,8 +332,8 @@ final class HelpersTunnelTest extends UnitTestCase {
 
     $this->assertStringContainsString('The running tunnel cannot be reused; stopping it.', $output);
     $this->assertStringContainsString('Tunnel started at ' . self::NEW_URL . '.', $output);
-    $this->assertSame("5151\n", file_get_contents('.logs/cloudflared.pid'));
-    $this->assertSame('TUNNEL_URL=' . self::NEW_URL . "\n", file_get_contents('.env'));
+    $this->assertSame("5151\n", File::read('.logs/cloudflared.pid'));
+    $this->assertSame('TUNNEL_URL=' . self::NEW_URL . "\n", File::read('.env'));
   }
 
   public static function dataProviderTunnelStartRestartsTunnelForAnotherPort(): \Iterator {
@@ -347,8 +342,7 @@ final class HelpersTunnelTest extends UnitTestCase {
   }
 
   public function testTunnelStartIgnoresRecycledPid(): void {
-    mkdir('.logs');
-    file_put_contents('.logs/cloudflared.pid', "4242\n");
+    File::dump('.logs/cloudflared.pid', "4242\n");
     $this->mockCommandAvailable('cloudflared', TRUE);
     $this->mockShellExec([self::PS => "php -S localhost:8000 -t build/web\n", self::LAUNCH => "5151\n"], self::banner(self::URL));
     // The process that holds the PID now is not the tunnel, so it is left
@@ -359,18 +353,18 @@ final class HelpersTunnelTest extends UnitTestCase {
 
     $this->assertStringNotContainsString('cannot be reused', $output);
     $this->assertStringContainsString('Tunnel started at ' . self::URL . '.', $output);
-    $this->assertSame("5151\n", file_get_contents('.logs/cloudflared.pid'));
+    $this->assertSame("5151\n", File::read('.logs/cloudflared.pid'));
   }
 
   public function testTunnelStopWithoutTunnel(): void {
-    file_put_contents('.env', "WEBSERVER_PORT=8000\n");
+    File::dump('.env', "WEBSERVER_PORT=8000\n");
     $this->mockShellExec([]);
     $this->mockPassthruNever();
 
     $output = $this->capture(static fn() => tunnel_stop());
 
     $this->assertSame('', $output);
-    $this->assertSame("WEBSERVER_PORT=8000\n", file_get_contents('.env'));
+    $this->assertSame("WEBSERVER_PORT=8000\n", File::read('.env'));
   }
 
   /**
@@ -379,9 +373,8 @@ final class HelpersTunnelTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderTunnelStopStopsTunnel')]
   public function testTunnelStopStopsTunnel(array $exit_codes, int $expected_sleeps): void {
-    mkdir('.logs');
-    file_put_contents('.logs/cloudflared.pid', "4242\n");
-    file_put_contents('.env', "WEBSERVER_PORT=8000\nTUNNEL_URL=" . self::URL . "\n");
+    File::dump('.logs/cloudflared.pid', "4242\n");
+    File::dump('.env', "WEBSERVER_PORT=8000\nTUNNEL_URL=" . self::URL . "\n");
     $this->mockShellExec([self::PS => "cloudflared tunnel --url http://localhost:8000 --no-autoupdate\n"]);
 
     $responses = [['cmd' => 'kill 4242 >/dev/null 2>&1']];
@@ -399,7 +392,7 @@ final class HelpersTunnelTest extends UnitTestCase {
     $this->assertStringContainsString('Tunnel stopped.', $output);
     $this->assertSame($expected_sleeps, $sleeps);
     $this->assertFileDoesNotExist('.logs/cloudflared.pid');
-    $this->assertSame("WEBSERVER_PORT=8000\n", file_get_contents('.env'));
+    $this->assertSame("WEBSERVER_PORT=8000\n", File::read('.env'));
   }
 
   public static function dataProviderTunnelStopStopsTunnel(): \Iterator {
@@ -409,9 +402,8 @@ final class HelpersTunnelTest extends UnitTestCase {
   }
 
   public function testTunnelStopForgetsExitedTunnel(): void {
-    mkdir('.logs');
-    file_put_contents('.logs/cloudflared.pid', "4242\n");
-    file_put_contents('.env', 'TUNNEL_URL=' . self::URL . "\nOTHER=1\n");
+    File::dump('.logs/cloudflared.pid', "4242\n");
+    File::dump('.env', 'TUNNEL_URL=' . self::URL . "\nOTHER=1\n");
     $this->mockShellExec([self::PS => '']);
     $this->mockPassthruNever();
 
@@ -419,13 +411,12 @@ final class HelpersTunnelTest extends UnitTestCase {
 
     $this->assertSame('', $output);
     $this->assertFileDoesNotExist('.logs/cloudflared.pid');
-    $this->assertSame("OTHER=1\n", file_get_contents('.env'));
+    $this->assertSame("OTHER=1\n", File::read('.env'));
   }
 
   #[DataProvider('dataProviderTunnelStopIgnoresInvalidPidFile')]
   public function testTunnelStopIgnoresInvalidPidFile(string $pid): void {
-    mkdir('.logs');
-    file_put_contents('.logs/cloudflared.pid', $pid);
+    File::dump('.logs/cloudflared.pid', $pid);
     $this->mockShellExec([]);
     $this->mockPassthruNever();
 
@@ -444,13 +435,13 @@ final class HelpersTunnelTest extends UnitTestCase {
   }
 
   public function testTunnelStopKeepsUrlOfAnotherTunnel(): void {
-    file_put_contents('.env', "TUNNEL_URL=https://example.ngrok.app\n");
+    File::dump('.env', "TUNNEL_URL=https://example.ngrok.app\n");
     $this->mockShellExec([]);
     $this->mockPassthruNever();
 
     $this->capture(static fn() => tunnel_stop());
 
-    $this->assertSame("TUNNEL_URL=https://example.ngrok.app\n", file_get_contents('.env'));
+    $this->assertSame("TUNNEL_URL=https://example.ngrok.app\n", File::read('.env'));
   }
 
   public function testTunnelWriteSettingsWithoutSettingsFile(): void {
@@ -462,8 +453,7 @@ final class HelpersTunnelTest extends UnitTestCase {
 
   public function testTunnelWriteSettingsAppendsOnce(): void {
     $file = 'build/web/sites/default/settings.php';
-    mkdir(dirname($file), 0755, TRUE);
-    file_put_contents($file, "<?php\n\n\$databases = [];\n");
+    File::dump($file, "<?php\n\n\$databases = [];\n");
     // The installer leaves the file read-only.
     chmod($file, 0444);
 
@@ -486,19 +476,18 @@ PHP;
 
     $this->assertStringContainsString('Adding the tunnel settings to ' . $file . '.', $output);
     $this->assertStringContainsString('Tunnel settings added.', $output);
-    $this->assertSame($expected, file_get_contents($file));
+    $this->assertSame($expected, File::read($file));
     $this->assertSame(0644, fileperms($file) & 0777);
 
     $output = $this->capture(static fn() => tunnel_write_settings($file));
 
     $this->assertSame('', $output);
-    $this->assertSame($expected, file_get_contents($file));
+    $this->assertSame($expected, File::read($file));
   }
 
   public function testTunnelWriteSettingsWriteFailure(): void {
     $file = 'build/web/sites/default/settings.php';
-    mkdir(dirname($file), 0755, TRUE);
-    file_put_contents($file, "<?php\n");
+    File::dump($file, "<?php\n");
     $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
     $this->mockQuit(1);
 
@@ -580,7 +569,7 @@ PHP;
       }
 
       if ($log !== NULL && $command === self::LAUNCH) {
-        file_put_contents('.logs/cloudflared.log', $log);
+        File::dump('.logs/cloudflared.log', $log);
       }
 
       return $outputs[$command];
@@ -601,7 +590,7 @@ PHP;
       $count++;
 
       if (isset($logs[$count])) {
-        file_put_contents('.logs/cloudflared.log', $logs[$count]);
+        File::dump('.logs/cloudflared.log', $logs[$count]);
       }
 
       return 0;

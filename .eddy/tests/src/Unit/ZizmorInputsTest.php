@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Yaml\Yaml;
@@ -53,13 +54,7 @@ final class ZizmorInputsTest extends UnitTestCase {
    */
   protected static function inputs(): array {
     $path = self::rootDir() . '/.github/workflows/eddy-test.yml';
-    $contents = file_get_contents($path);
-
-    if ($contents === FALSE) {
-      self::fail(sprintf('Unable to read %s.', $path));
-    }
-
-    $parsed = Yaml::parse($contents);
+    $parsed = Yaml::parse(File::read($path));
     $jobs = is_array($parsed) && is_array($parsed['jobs'] ?? NULL) ? $parsed['jobs'] : [];
 
     $found = FALSE;

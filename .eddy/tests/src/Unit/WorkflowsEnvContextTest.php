@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Yaml\Yaml;
@@ -22,8 +23,7 @@ final class WorkflowsEnvContextTest extends UnitTestCase {
 
   #[DataProvider('dataProviderEnvReferencesAreDefined')]
   public function testEnvReferencesAreDefined(string $path): void {
-    $contents = file_get_contents($path);
-    $this->assertIsString($contents);
+    $contents = File::read($path);
 
     $parsed = Yaml::parse($contents);
     $this->assertIsArray($parsed);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Functional;
 
+use AlexSkrypnyk\File\File;
 use AlexSkrypnyk\PhpunitHelpers\Traits\ProcessTrait;
 use DrevOps\Eddy\Tests\Traits\WebserverTrait;
 use DrevOps\Eddy\Tests\Unit\UnitTestCase;
@@ -109,8 +110,8 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
     $this->buildMinimalSut($sut);
 
     $preset_port = self::webserverFreePort();
-    file_put_contents($sut . '/.env', 'WEBSERVER_PORT=' . $preset_port . "\n# user comment\n");
-    $original_env = file_get_contents($sut . '/.env');
+    File::dump($sut . '/.env', 'WEBSERVER_PORT=' . $preset_port . "\n# user comment\n");
+    $original_env = File::read($sut . '/.env');
 
     $this->processCwd = $sut;
     $this->processRun('php', [self::TOOLING_DIR . '/eddy-start'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
@@ -118,7 +119,7 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
     $this->startedPorts[] = $preset_port;
     $this->assertProcessAnyOutputContains('http://localhost:' . $preset_port);
 
-    $this->assertSame($original_env, file_get_contents($sut . '/.env'), '.env must not be rewritten when WEBSERVER_PORT is already set.');
+    $this->assertSame($original_env, File::read($sut . '/.env'), '.env must not be rewritten when WEBSERVER_PORT is already set.');
   }
 
   public function testStopLeavesClientsRunning(): void {
@@ -163,8 +164,8 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
     // Both projects recorded the same port, as they do when one of them
     // discovers the port that the other one freed.
     $port = self::webserverFreePort();
-    file_put_contents($this->sut1 . '/.env', 'WEBSERVER_PORT=' . $port . "\n");
-    file_put_contents($this->sut2 . '/.env', 'WEBSERVER_PORT=' . $port . "\n");
+    File::dump($this->sut1 . '/.env', 'WEBSERVER_PORT=' . $port . "\n");
+    File::dump($this->sut2 . '/.env', 'WEBSERVER_PORT=' . $port . "\n");
 
     $this->processCwd = $this->sut2;
     $this->processRun('php', [self::TOOLING_DIR . '/eddy-start'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
@@ -199,7 +200,7 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
     $this->buildMinimalSut($this->sut2);
 
     $port = self::webserverFreePort();
-    file_put_contents($this->sut2 . '/.env', 'WEBSERVER_PORT=' . $port . "\n");
+    File::dump($this->sut2 . '/.env', 'WEBSERVER_PORT=' . $port . "\n");
 
     $this->processCwd = $this->sut2;
     $this->processRun('php', [self::TOOLING_DIR . '/eddy-start'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
@@ -216,11 +217,9 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
   }
 
   protected function buildMinimalSut(string $sut): void {
-    mkdir($sut . '/' . self::TOOLING_DIR, 0755, TRUE);
-
     $source_dir = dirname(__DIR__, 4) . '/.eddy/tooling/src';
     foreach (['helpers.php', 'eddy-start', 'eddy-stop'] as $file) {
-      copy($source_dir . '/' . $file, $sut . '/' . self::TOOLING_DIR . '/' . $file);
+      File::copy($source_dir . '/' . $file, $sut . '/' . self::TOOLING_DIR . '/' . $file);
     }
 
     self::webserverCreateDocroot($sut);
