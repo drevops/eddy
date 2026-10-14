@@ -1,0 +1,109 @@
+---
+title: Drupal versions
+sidebar_position: 3
+description: Build your extension against another Drupal release, and see how Eddy picks the versions of Drupal core and every other dependency.
+---
+
+import CommandTabs from '@site/src/components/CommandTabs';
+
+# Drupal versions
+
+`DRUPAL_VERSION` sets the Drupal version to build. Leave it unset and the build uses your project's default, which is `11`, the newest stable Drupal 11 release, unless you chose otherwise in the installer.
+
+## Building another version
+
+Set `DRUPAL_VERSION` before the build:
+
+<CommandTabs
+  make={`# Newest stable Drupal 11 release.
+DRUPAL_VERSION=11 make build
+
+# Newest Drupal 11.1.x patch release.
+DRUPAL_VERSION=11.1.0 make build
+
+# Newest Drupal 11 beta, release candidate or stable release.
+DRUPAL_VERSION=11@beta make build
+
+# Newest stable Drupal 12 release, or newest pre-release if none.
+DRUPAL_VERSION=12 make build`}
+  ahoy={`# Newest stable Drupal 11 release.
+DRUPAL_VERSION=11 ahoy build
+
+# Newest Drupal 11.1.x patch release.
+DRUPAL_VERSION=11.1.0 ahoy build
+
+# Newest Drupal 11 beta, release candidate or stable release.
+DRUPAL_VERSION=11@beta ahoy build
+
+# Newest stable Drupal 12 release, or newest pre-release if none.
+DRUPAL_VERSION=12 ahoy build`}
+  none={`# Newest stable Drupal 11 release.
+DRUPAL_VERSION=11 vendor/bin/eddy-assemble
+
+# Newest Drupal 11.1.x patch release.
+DRUPAL_VERSION=11.1.0 vendor/bin/eddy-assemble
+
+# Newest Drupal 11 beta, release candidate or stable release.
+DRUPAL_VERSION=11@beta vendor/bin/eddy-assemble
+
+# Newest stable Drupal 12 release, or newest pre-release if none.
+DRUPAL_VERSION=12 vendor/bin/eddy-assemble`}
+/>
+
+The value names a release line rather than an exact release, and the build picks the newest release on it. Every number before the last one is fixed: `11.1.0` builds the newest 11.1.x release, while `11` and `11.1` both build the newest 11.x release.
+
+A stability flag of `@stable`, `@rc`, `@beta` or `@alpha` lets pre-releases down to that stability qualify, as in `11@beta`. A development branch isn't a release, so `@dev` isn't accepted, and the build stops with "No Drupal release matches".
+
+## The default version
+
+The default comes from `extra.eddy.drupal-version` in `composer.dev.json`:
+
+```json
+"extra": {
+    "eddy": {
+        "drupal-version": "11"
+    }
+}
+```
+
+The installer sets it to the highest Drupal major you selected that has a stable release, or to the lowest one you selected when none has. When neither `DRUPAL_VERSION` nor `extra.eddy.drupal-version` is set, the build uses Drupal 11.
+
+## How versions are resolved
+
+The build pins Drupal core to the newest release that matches `DRUPAL_VERSION`, or to the newest pre-release when that version has no stable release yet, and prints the release it picked.
+
+Every other dependency gets its most stable release that fits, because the build uses `minimum-stability: dev` with `prefer-stable: true`. A dependency falls back to a pre-release or a development branch only when no stable release supports the chosen core, and the build output lists every dependency it installed from a development branch. So nothing needs editing as Drupal and its tools publish new releases: the next build picks them up.
+
+### The PHP requirement
+
+Before it touches the `build` directory, the build checks the PHP that runs it against the PHP requirement of the chosen core release, and stops with a message when the release needs a newer PHP. It then sets `config.platform.php` in `build/composer.json` to that PHP, so a `platform` setting in your global Composer configuration doesn't apply.
+
+To resolve for another PHP version on purpose, set `config.platform.php` in `composer.dev.json`, or in your extension's `composer.json`, where `composer.dev.json` wins. The build checks that version against the requirement too.
+
+### What a version resolves to
+
+For example, as of October 2026:
+
+| `DRUPAL_VERSION` | Drupal core                                           | Drush                                      |
+|------------------|-------------------------------------------------------|--------------------------------------------|
+| `11`             | `11.4.9`                                              | `13.8.0`                                   |
+| `11@beta`        | `11.4.9`, then the 11.5 pre-releases once they exist | `13.8.0`                                   |
+| `12`             | `12.0.0-beta1`, then `12.0.0` once it ships           | `14.x-dev`, then `14.0.0` once it's tagged |
+
+## Drupal 12
+
+Drupal 12 has no stable release yet, so `DRUPAL_VERSION=12` builds its newest pre-release for now and moves to `12.0.0` on its own once it ships.
+
+Drupal 12 requires PHP 8.5, so a local Drupal 12 build needs PHP 8.5 too:
+
+<CommandTabs
+  make={`DRUPAL_VERSION=12 make build`}
+  ahoy={`DRUPAL_VERSION=12 ahoy build`}
+  none={`DRUPAL_VERSION=12 vendor/bin/eddy-assemble`}
+/>
+
+On an older PHP, the build stops before it changes anything and says which PHP the release needs.
+
+Drupal 12 builds install Drush from its `14.x` development branch until Drush 14.0.0 is tagged. They install `drupal/core` from source too, because the core packages leave out the test base classes and the PHPUnit bootstrap, so they take a little longer to assemble.
+
+Drupal 12 is opt-in in the installer, where only Drupal 11 starts checked. Selecting it next to Drupal 11 adds its CI jobs and README badge, and leaves the local build on Drupal 11, because the default is the highest selected major with a stable release. [Continuous integration](../continuous-integration/README.mdx#drupal-12) explains how the Drupal 12 jobs follow its releases, and [Upgrading from 4.x](../updating/upgrading-from-4x.mdx#drupal-12) lists the changes your own code needs.

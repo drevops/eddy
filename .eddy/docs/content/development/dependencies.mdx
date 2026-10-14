@@ -1,0 +1,62 @@
+---
+title: Dependencies
+sidebar_position: 4
+description: Patch dependencies, test against other extensions, add frontend packages and get around GitHub API rate limits.
+---
+
+# Dependencies
+
+Your extension's `composer.json` lists what it needs to run, and its `require-dev` lists what its tests need, which Drupal.org's own CI installs too. What only the Eddy build needs, such as the linters, the test tooling and Drush, goes in `composer.dev.json` instead.
+
+The build merges both files into the site, and `composer.dev.json` wins where both set the same key. Neither `require-dev` nor `composer.dev.json` reaches a site that installs your extension.
+
+## Patching dependencies
+
+The build installs [`cweagans/composer-patches`](https://github.com/cweagans/composer-patches) 2.x and applies the patches declared in the `patches` section of `composer.dev.json` or `composer.json`. Each entry maps a description to a local path or a URL:
+
+```json
+"extra": {
+    "patches": {
+        "drupal/core": {
+            "Describe what the patch fixes": "patches/core-fix.patch"
+        }
+    }
+}
+```
+
+A patch that no longer applies fails the build, so a dependency update that conflicts with it can't slip through quietly. Where you declare a patch decides where it applies:
+
+- `composer.dev.json` - the build only, locally and in CI. Use it for patches that only your tests need, and keep their files in the `patches` directory, which the build copies into `build/`.
+- `composer.json` - the build, [Drupal.org GitLab CI](../continuous-integration/drupal-ci.mdx), which reads this format with composer-patches 1.x, and any site that installs your extension with composer-patches 2.x. Refer to these patches by a public URL, since a local `patches/` path doesn't exist on that site.
+
+Patches declared for `drevops/eddy-tooling` itself stay out of the build: `scripts/eddy-tooling` applies them when it installs [the tooling package](tooling.mdx#patching-the-package).
+
+## Optional dependencies
+
+To test your extension together with other extensions, add them to the `suggest` section of `composer.json`:
+
+```json
+"suggest": {
+    "drupal/linkit": "Pick internal and external links in the text editor."
+}
+```
+
+The build adds each suggested dependency to the codebase, unless `require` or `require-dev` already has it, and [provisioning](provisioning.mdx) enables each `drupal/*` one as a module. A site that installs your extension doesn't get them, since Composer only suggests them.
+
+## Frontend dependencies
+
+Add the frontend dependencies your tests need to `package.json`, and commit `package-lock.json` with it. `assemble` then runs `npm ci` and `npm run build` in the `build` directory, after `nvm use` when your project has an `.nvmrc`.
+
+Commit a `.skip_npm_build` file to skip both. It also turns off the JavaScript and CSS linting (ESLint, Stylelint and Prettier) and the Jest tests, since those run from the `node_modules` the build would have installed. CSpell runs from the project root, so it still runs.
+
+When you keep none of ESLint, Stylelint, CSpell and Jest, the installer removes `package.json`, `package-lock.json` and the Node.js steps of the CI lint job. Add a `package.json` of your own if your extension needs frontend dependencies later.
+
+## Providing `GITHUB_TOKEN`
+
+Composer downloads many packages through the GitHub API, which limits how many requests an anonymous client can make. Set `GITHUB_TOKEN` to a personal access token to get around the limit:
+
+```bash
+export GITHUB_TOKEN=<your-token>
+```
+
+The build passes the token to its own Composer commands through `COMPOSER_AUTH`, uses an existing `COMPOSER_AUTH` as it is, and leaves your global Composer configuration alone. CI passes the workflow's own token the same way.

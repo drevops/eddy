@@ -1,0 +1,76 @@
+---
+title: Coding standards
+sidebar_position: 10
+description: The linters that check an Eddy extension, where their configuration lives, and how to fix what they report.
+---
+
+import CommandTabs from '@site/src/components/CommandTabs';
+
+# Coding standards
+
+`lint` checks the codebase with every linter you kept in the installer, and `lint-fix` runs the ones that can fix what they find:
+
+<CommandTabs
+  make={`make lint       # Check coding standards
+make lint-fix   # Fix what the tools can fix`}
+  ahoy={`ahoy lint       # Check coding standards
+ahoy lint-fix   # Fix what the tools can fix`}
+  none={`cd build
+vendor/bin/phpcs
+vendor/bin/phpstan
+vendor/bin/rector --clear-cache --dry-run
+vendor/bin/twig-cs-fixer
+npm run lint
+cd ..
+npm install
+npm run lint-spell`}
+/>
+
+![Checking coding standards](../../../assets/lint.svg)
+
+## The tools
+
+`lint` runs them in the order of this table. Their configuration files sit in the root of the codebase, so you tune a rule in the same place for your machine and for CI.
+
+| Tool                                                            | What it checks                                                                                  | Configuration                         | Fixes |
+|-----------------------------------------------------------------|-------------------------------------------------------------------------------------------------|---------------------------------------|-------|
+| PHPCS                                                           | PHP against the `Drupal`, `DrupalPractice`, `DrevOps` and `PHPCompatibility` standards.          | `phpcs.xml`                           | Yes   |
+| [PHPStan](https://phpstan.org/)                                 | PHP with static analysis, with [PHPStan Drupal](https://github.com/mglaman/phpstan-drupal).    | `phpstan.neon`                        | No    |
+| [Drupal Rector](https://github.com/palantirnet/drupal-rector)   | PHP for deprecated code.                                                                        | `rector.php`                          | Yes   |
+| [Twig CS Fixer](https://github.com/VincentLanglet/Twig-CS-Fixer) | Twig templates.                                                                                | `.twig-cs-fixer.php`                  | Yes   |
+| [ESLint](https://eslint.org/)                                   | JavaScript, with [Prettier](https://prettier.io/) formatting.                                   | `.eslintrc.json`, `.prettierrc.json`  | Yes   |
+| [Stylelint](https://stylelint.io/)                              | CSS.                                                                                            | `.stylelintrc.js`                     | Yes   |
+| [CSpell](https://cspell.org/)                                   | Spelling across the codebase.                                                                   | `.cspell.json`                        | No    |
+
+## Where they run
+
+The PHP and JavaScript tools run from the `build` directory, where the assembled site gives them Drupal core and your dependencies, so [build the site](building.mdx) before you lint. ESLint and Stylelint check the extension through its symlink in the site, and they only run when the build installed the frontend dependencies (see [Frontend dependencies](dependencies.mdx#frontend-dependencies)).
+
+CSpell runs from the project root instead, and installs the root `package.json` dependencies first when `node_modules` is missing. It checks every file that git doesn't ignore, apart from the paths in the `ignorePaths` of `.cspell.json`.
+
+## Fixing what they report
+
+`lint-fix` runs Rector, PHPCBF (the fixer that comes with PHPCS), Twig CS Fixer, ESLint and Stylelint with their fix options:
+
+<CommandTabs
+  make={`make lint-fix`}
+  ahoy={`ahoy lint-fix`}
+  none={`cd build
+vendor/bin/rector --clear-cache
+vendor/bin/phpcbf
+vendor/bin/twig-cs-fixer --no-cache --fix
+npm run lint-fix`}
+/>
+
+Review the changes before you commit them. When an automatic fix is wrong, adjust the tool's configuration to suppress the issue or change the fix.
+
+## Spelling
+
+CSpell checks prose, code and inline code in Markdown, and skips fenced code blocks. An unknown word fails the check, so a new term needs a home:
+
+- Add a word the whole project uses to the `words` of `.cspell.json`.
+- Add a word only 1 file uses to that file, in a comment such as `cspell:ignore laminas` written in the file's own comment syntax.
+
+## In CI
+
+CI runs the same tools in its `lint` jobs, 1 per Drupal major you test. To let a tool fail without failing its job while you work through its findings, set its [ignore-failure variable](../continuous-integration/configuration.mdx#allowing-a-ci-step-to-fail).

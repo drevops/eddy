@@ -1,0 +1,56 @@
+---
+title: Public tunnel
+sidebar_position: 8
+description: Expose the development site through a public HTTPS URL from a remote environment, and open it on a phone with a QR code.
+---
+
+import CommandTabs from '@site/src/components/CommandTabs';
+
+# Public tunnel
+
+A remote development environment, such as Codespaces, DevPod, a remote Docker host or an SSH dev box, can't reach the PHP webserver on `localhost`. The [tooling](tooling.mdx) can expose it through a [Cloudflare quick tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/), a public `*.trycloudflare.com` HTTPS URL that needs no account, DNS or configuration.
+
+:::warning Anyone with the URL can reach the site
+
+While the tunnel is up, the site is on the public internet, and a local Drupal site usually has a known admin account and no firewall. Use disposable test data only, never real or sensitive content, and stop the tunnel with `stop` when you're done.
+
+:::
+
+## Turning it on
+
+Install [`cloudflared`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/) so it's on `PATH`, set `CLOUDFLARE_TUNNEL=1` in your shell or in `.env`, and build:
+
+<CommandTabs
+  make={`export CLOUDFLARE_TUNNEL=1
+make build`}
+  ahoy={`export CLOUDFLARE_TUNNEL=1
+ahoy build`}
+  none={`export CLOUDFLARE_TUNNEL=1
+vendor/bin/eddy-start
+vendor/bin/eddy-provision`}
+/>
+
+An empty value, or `0`, `false`, `no` or `off` in any letter case, keeps the tunnel off.
+
+## What happens
+
+- `start` starts a tunnel, or reuses one whose URL still answers, and writes its URL to `.env` as `TUNNEL_URL`. Without `cloudflared`, it skips the tunnel with a note.
+- `provision` adds the reverse-proxy and trusted-host settings that Drupal needs behind the tunnel to `settings.php`.
+- `start`, `provision`, `info`, `drush` and `login` use the tunnel URL as the site URL.
+- `stop` closes the tunnel and removes its URL from `.env`, even once `CLOUDFLARE_TUNNEL` is unset.
+
+`cloudflared` writes its output to `.logs/cloudflared.log`, which is the place to look when a tunnel doesn't come up.
+
+## Bringing your own tunnel
+
+The commands treat any `TUNNEL_URL` in `.env` as the site URL, whichever tool wrote it. So a different tunnel, such as ngrok, works the same way when a [lifecycle script](lifecycle-scripts.mdx) starts it and writes its URL to `.env`. `stop` only removes a URL it created, and leaves one from another tool alone.
+
+## Opening the site on a phone
+
+`vendor/bin/eddy-qrcode <url>` draws any URL as a QR code in the terminal, which is handy for opening a login link on a phone. It needs [`qrencode`](https://fukuchi.org/works/qrencode/) on `PATH`.
+
+```bash
+vendor/bin/eddy-qrcode "$(vendor/bin/eddy-info site-url)"
+```
+
+Set `LOGIN_QRCODE=1` in `.env` or your shell to have `make login` and `ahoy login` draw the one-time login link as a QR code too (see [Logging in](provisioning.mdx#logging-in)).

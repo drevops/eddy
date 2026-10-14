@@ -1,0 +1,54 @@
+---
+title: Debugging
+sidebar_position: 9
+description: Step-debug the site with XDebug, see the full output of the build, and find the logs of the background processes.
+---
+
+import CommandTabs from '@site/src/components/CommandTabs';
+
+# Debugging
+
+## Step-debugging with XDebug
+
+Install the [XDebug](https://xdebug.org/docs/install) PHP extension on your host (`php -v` should mention `with Xdebug`), then restart the webserver with it on or off:
+
+<CommandTabs
+  make={`make debug      # Restart with XDebug enabled
+make start      # Restart without XDebug`}
+  ahoy={`ahoy debug      # Restart with XDebug enabled
+ahoy start      # Restart without XDebug`}
+  none={`XDEBUG=1 vendor/bin/eddy-start    # Restart with XDebug enabled
+vendor/bin/eddy-start             # Restart without XDebug`}
+/>
+
+`debug` is also available as `debug-on`, `xdebug` and `xdebug-on`, and `start` as `debug-off` and `xdebug-off`. `debug` checks the command line of the running server and skips the restart when XDebug is already on. With XDebug on, every request starts a debug session, because the server runs with `xdebug.mode=debug` and `xdebug.start_with_request=yes`.
+
+When the extension isn't installed, `start` with `XDEBUG=1` stops with a message rather than starting a server without it.
+
+Code coverage stays on [pcov](https://github.com/krakjoe/pcov), because the XDebug settings apply only to the webserver, not to the test commands.
+
+To start and stop debug sessions from the browser, install the Xdebug Helper extension for [Chrome](https://chromewebstore.google.com/detail/xdebug-helper-by-jetbrain/aoelhdemabeimdhedkidlnbkfhnhgnhm) or [Firefox](https://addons.mozilla.org/en-US/firefox/addon/xdebug-helper-by-jetbrains/).
+
+## Command output
+
+The commands print only their own progress, such as `[TASK]` and `[ OK ]` lines, and hide the output of the tools they run, such as Composer, npm and Drush. When a tool fails, its captured output appears, so the failure is still there to read. The output of your project's own commands, `npm run build` and the [lifecycle scripts](lifecycle-scripts.mdx), always shows.
+
+Set `DEBUG=1` to stream the full output of every tool as it runs:
+
+<CommandTabs
+  make={`DEBUG=1 make build`}
+  ahoy={`DEBUG=1 ahoy build`}
+  none={`DEBUG=1 vendor/bin/eddy-assemble`}
+/>
+
+## Logs
+
+The processes that keep running after a command returns write their output to the project's `.logs` directory:
+
+| File                         | Written by                                                       |
+|------------------------------|------------------------------------------------------------------|
+| `.logs/php.log`              | The PHP webserver.                                               |
+| `.logs/chromedriver.log`     | The chromedriver that FunctionalJavascript tests drive.          |
+| `.logs/cloudflared.log`      | The [public tunnel](tunnel.mdx).                                 |
+
+Functional and FunctionalJavascript tests write their HTML pages and screenshots to `.logs/browser_output` (see [Testing](../testing/README.mdx#test-output)). `reset` removes the whole `.logs` directory.

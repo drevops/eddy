@@ -1,0 +1,23 @@
+---
+title: Dependency updates
+sidebar_position: 2
+description: How the bundled Renovate configuration keeps npm packages, GitHub Actions and Docker images up to date.
+---
+
+# Dependency updates
+
+Eddy includes a [Renovate](https://docs.renovatebot.com/) configuration, `renovate.json`, that keeps the npm packages in `package.json`, and the GitHub Actions and Docker images in `.github/workflows/*.yml`, up to date. Install the [Renovate GitHub app](https://github.com/apps/renovate) on your repository to turn it on.
+
+## What it does
+
+- Minor and patch updates share 1 pull request on the `deps/all` branch, and major GitHub Actions updates share another on `deps/major-all`.
+- Pull requests merge on their own when all CI checks pass.
+- GitHub Actions and Docker images are pinned to SHA digests.
+- Version ranges in `package.json` are bumped to the latest version, such as `^1.2` to `^1.3`.
+- A Dependency Dashboard issue tracks pending updates, approval requests and detected problems.
+
+## What it leaves to you
+
+Renovate leaves Composer packages and major npm versions alone. Update the dependencies in `composer.json` by hand, to keep them compatible with Drupal.org packaging, and apply major npm updates by hand too. Every build resolves the `composer.dev.json` ranges to their newest releases anyway (see [How versions are resolved](../development/drupal-versions.mdx#how-versions-are-resolved)).
+
+See the [Renovate documentation](https://docs.renovatebot.com/configuration-options/) for every option.

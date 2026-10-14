@@ -1,0 +1,52 @@
+---
+title: Lifecycle scripts
+sidebar_position: 7
+description: Add your own steps to the assemble, provision, start and stop phases with shell scripts in scripts/.
+---
+
+# Lifecycle scripts
+
+`assemble`, `provision`, `start` and `stop` run your own shell scripts from the `scripts/` directory during their phase. They're the place for project-specific steps, such as importing extra configuration once the site is installed. They're your own files, so a [tooling](tooling.mdx) or [scaffold](../updating/README.mdx) update leaves them alone.
+
+## When each script runs
+
+| Script                      | Runs                                                                                                                      |
+|-----------------------------|---------------------------------------------------------------------------------------------------------------------------|
+| `scripts/assemble-*.sh`     | At the end of `assemble`, after the dependencies are installed and the extension is symlinked into `build/`.              |
+| `scripts/provision-*.sh`    | At the end of `provision`, after the site is installed, the extension is enabled and the caches are warmed.               |
+| `scripts/start-*.sh`        | At the end of `start`, once the webserver is serving.                                                                     |
+| `scripts/stop-*.sh`         | During `stop`, before the webserver stops, while it's still reachable.                                                    |
+
+The scripts of a phase run in lexicographic order from the project root, with the environment of the command that runs them. A script that exits with a non-zero code aborts that command, so a failed step can't go unnoticed.
+
+The command runs each script directly, so give it a shebang line and make it executable:
+
+```bash
+chmod +x scripts/provision-site-name.sh
+```
+
+## An example
+
+This script renames the site after every provision:
+
+```bash title="scripts/provision-site-name.sh"
+#!/usr/bin/env bash
+##
+# Rename the site after it's installed.
+
+set -eu
+
+build/vendor/bin/drush -l "$(vendor/bin/eddy-info site-url)" config:set system.site name "My Extension demo" -y
+```
+
+A `start-*.sh` script that launches something, such as another tunnel, pairs well with a `stop-*.sh` script that tears it down: `stop` runs it while the webserver is still up.
+
+## The example scripts
+
+The installer can keep 4 example scripts, 1 per phase, that print a marker line when their phase runs. Answer yes to "Keep example lifecycle scripts" if you want them as a starting point.
+
+## Good to know
+
+- `.gitattributes` keeps `scripts/` out of the archives published to Drupal.org, so the scripts never reach the sites that install your extension.
+- The directory also holds `scripts/eddy-tooling`, the [tooling installer](tooling.mdx#how-its-installed), which isn't a lifecycle script. Leave it as it is.
+- A lifecycle script adds a step to a phase. To change what a command itself does, [patch the tooling package](tooling.mdx#patching-the-package) instead.

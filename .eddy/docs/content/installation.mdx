@@ -1,0 +1,88 @@
+---
+title: Installation
+sidebar_position: 2
+description: Create a Drupal module or theme from Eddy, from the download to the first deployment to Drupal.org.
+---
+
+import CommandTabs from '@site/src/components/CommandTabs';
+
+# Installation
+
+These steps take you from a download to an extension that builds, passes its checks and deploys to Drupal.org. Each step links to the page with the details, so you can follow the list once and come back to the parts you need.
+
+## Overview
+
+1. Download Eddy: the [latest release](https://github.com/drevops/eddy/releases/latest), or the current code with **Code** → **Download ZIP** in the GitHub UI.
+2. Expand it into a new directory.
+3. [Run the installer](#running-the-installer) there and answer its questions.
+4. If you already have extension code, copy it into the directory.
+5. [Build the site](development/building.mdx) to check that everything works.
+6. [Check coding standards](development/coding-standards.mdx).
+7. [Run the tests](testing/README.mdx).
+8. Create your extension's repository on GitHub, then commit and push.
+9. [Configure branch protection](continuous-integration/branch-protection.mdx).
+10. [Configure deployment](deployment/setup.mdx) to Drupal.org.
+
+:::tip Starting from GitHub instead
+
+Eddy is a GitHub template, so you can also create your repository with **Use this template**, clone it and run the installer in the clone. The README badges then name your repository on their own. A clone doesn't record the Eddy release it came from, though, so the first [update](updating/README.mdx) can't tell your changes from the template's, and every difference comes up for a decision.
+
+:::
+
+## Running the installer
+
+Run the installer from the root of the new directory:
+
+```bash
+php install.php
+```
+
+It asks about your extension, renames and rewrites the template's files to match, and removes what you didn't select. It finishes by deleting itself, unless you answer no to "Remove this script".
+
+![The installer asking its questions](../../assets/install.svg)
+
+| Question                       | What it decides                                                                                                                                                       | Default    |
+|--------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|
+| Extension name                 | The human-readable name, such as `My Extension`.                                                                                                                      | -          |
+| Machine name                   | The machine name, such as `my_extension`, which files, classes and services are renamed after.                                                                       | -          |
+| Extension type                 | Module or theme.                                                                                                                                                      | Module     |
+| Target Drupal versions         | The Drupal majors CI tests: 10, 11 and 12. See [Drupal versions](development/drupal-versions.mdx).                                                                    | 11         |
+| Command wrapper                | Ahoy, Makefile, both or neither. Without a wrapper, you run the [tooling commands](development/tooling.mdx) yourself.                                                  | Neither    |
+| Tools                          | The tools to keep: PHPCS, PHPStan, Rector, Twig CS Fixer, ESLint, Stylelint, CSpell, Jest, PHPUnit, FunctionalJavascript tests and Renovate.                           | All 11     |
+| Keep example lifecycle scripts | 4 example [lifecycle scripts](development/lifecycle-scripts.mdx), 1 per phase, that print a marker line when their phase runs.                                        | No         |
+| Remove this script             | Whether `install.php` deletes itself when it's done.                                                                                                                  | Yes        |
+| Proceed with installation      | A last check before anything changes.                                                                                                                                 | Yes        |
+
+:::tip Installing without the prompts
+
+Every answer can come from an environment variable instead, which is handy in scripts and for AI agents. `php install.php --help` lists them.
+
+:::
+
+## What the installer changes
+
+The installer works on the directory in place:
+
+- It renames the `your_extension.*` files, classes and tests after your machine name and replaces the placeholders inside them. A theme drops the files only a module uses (`.module`, `.install`, the routing, services and menu links files, and the service class) and gets `base theme: false` in its `.info.yml`.
+- It removes what you didn't select: the CI jobs and README badges of a Drupal major, a tool with its configuration and CI steps, or a command wrapper with its file. Dropping PHPUnit drops FunctionalJavascript tests too, since they run on PHPUnit.
+- It turns `README.dist.md` and `CONTRIBUTING.dist.md` into your `README.md` and `CONTRIBUTING.md`, and downloads a placeholder `logo.png` with your extension name on it.
+- It deletes Eddy's own files: `.eddy/`, `MIGRATION.md`, `SECURITY.md`, `LICENSE.txt`, `logo.svg` and the `eddy-*` workflows.
+- It sets the branch filters of the workflows to `1.x`. Run it again in an existing project and it keeps the branches of the committed `.github/workflows/test.yml` instead. [Deployment](deployment/README.mdx) explains how to build and deploy other branches.
+- It records the Eddy release you downloaded as `extra.eddy.version` in `composer.dev.json`, so a later [update](updating/README.mdx) knows where your project started.
+
+The README badges name your GitHub repository when you run the installer in a clone of it, and your machine name for both the owner and the name otherwise, so check them before your first commit.
+
+## Next steps
+
+With the questions answered, [build the site](development/building.mdx):
+
+<CommandTabs
+  make={`make build`}
+  ahoy={`ahoy build`}
+  none={`scripts/eddy-tooling          # Install the tooling
+vendor/bin/eddy-assemble      # Assemble the codebase
+vendor/bin/eddy-start         # Start the PHP server
+vendor/bin/eddy-provision     # Provision the Drupal website`}
+/>
+
+Then work through the rest of the [overview](#overview): coding standards, tests, the GitHub repository, branch protection and deployment.

@@ -1,0 +1,52 @@
+---
+title: Development
+sidebar_position: 3
+description: The local development environment of an Eddy extension and the commands that drive it.
+---
+
+# Development
+
+An Eddy extension develops against a real Drupal site. The build assembles a Drupal codebase in the `build` directory, symlinks your extension into it, serves it with PHP's built-in webserver and installs Drupal on an SQLite database. Nothing runs in a container, so the site uses the PHP and Composer on your machine, and CI builds it the same way.
+
+## Commands at a glance
+
+Each command runs through `make` or Ahoy, whichever wrapper you kept, such as `make build` or `ahoy build`. Without a wrapper, the [tooling commands](tooling.mdx) do the same jobs.
+
+| Command                      | What it does                                                                         | Aliases                           |
+|------------------------------|--------------------------------------------------------------------------------------|-----------------------------------|
+| `build`                      | Stops the webserver, then runs `assemble`, `start` and `provision`.                  |                                   |
+| `assemble`                   | Assembles the codebase in `build` and symlinks the extension into it.                |                                   |
+| `start`                      | Starts the PHP webserver, without XDebug.                                            | `debug-off`, `xdebug-off`         |
+| `stop`                       | Stops the webserver.                                                                 |                                   |
+| `provision`                  | Installs Drupal with the extension enabled.                                          |                                   |
+| `info`                       | Prints a read-only summary of the environment.                                       | `describe`                        |
+| `debug`                      | Restarts the webserver with XDebug.                                                  | `debug-on`, `xdebug`, `xdebug-on` |
+| `drush`                      | Runs a Drush command against the site.                                               |                                   |
+| `login`                      | Prints a one-time login link.                                                        |                                   |
+| `lint`                       | Checks coding standards.                                                             |                                   |
+| `lint-fix`                   | Fixes what the linters can fix.                                                      |                                   |
+| `test`                       | Runs every PHPUnit suite and the Jest tests.                                         |                                   |
+| `test-unit`                  | Runs the PHPUnit Unit suite.                                                         |                                   |
+| `test-kernel`                | Runs the PHPUnit Kernel suite.                                                       |                                   |
+| `test-functional`            | Runs the PHPUnit Functional suite.                                                   |                                   |
+| `test-functional-javascript` | Runs the PHPUnit FunctionalJavascript suite.                                         |                                   |
+| `test-javascript`            | Runs the Jest tests.                                                                 | `test-js`                         |
+| `browser-start`              | Starts the browser for FunctionalJavascript tests.                                   |                                   |
+| `browser-stop`               | Stops that browser.                                                                  |                                   |
+| `reset`                      | Stops the webserver and the browser, and removes `build`, `.logs` and `vendor`.      | `delete`, `destroy`               |
+
+A command for a tool you didn't keep isn't there: without PHPUnit, for example, the test suite commands go with it. `make help` lists the `make` commands, since a bare `make` runs `build` instead, and a bare `ahoy` lists the Ahoy ones.
+
+## In this section
+
+- [Building the site](building.mdx) - what `build` does, step by step, and how to see the full output.
+- [Tooling package](tooling.mdx) - where the commands come from and how to change one.
+- [Drupal versions](drupal-versions.mdx) - building another Drupal release, and how the build picks versions.
+- [Dependencies](dependencies.mdx) - patches, suggested extensions, frontend packages and GitHub rate limits.
+- [Provisioning](provisioning.mdx) - the install profile, the database, Drush and login links.
+- [Webserver](webserver.mdx) - the URL, the port and how projects share a machine.
+- [Lifecycle scripts](lifecycle-scripts.mdx) - your own steps in each phase.
+- [Public tunnel](tunnel.mdx) - reaching the site from outside your machine.
+- [Debugging](debugging.mdx) - XDebug, command output and logs.
+- [Coding standards](coding-standards.mdx) - the linters and how to fix what they report.
+- [Environment variables](environment-variables.mdx) - every variable the commands read.

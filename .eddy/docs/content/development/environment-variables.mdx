@@ -1,0 +1,72 @@
+---
+title: Environment variables
+sidebar_position: 11
+description: Every environment variable that the Eddy commands, tests and workflows read, with its default.
+---
+
+# Environment variables
+
+The commands read these variables from your shell first and from the project's `.env` file second. Git ignores `.env`, so it's the place for values that belong to your machine, such as the ports that `start` and `browser-start` save there.
+
+:::note Through a wrapper, `.env` wins
+
+`make` and Ahoy load `.env` into the environment of every command, so through a wrapper a variable in `.env` wins over the same variable in your shell. To change a value that `.env` holds, edit `.env`, or run the [tooling command](tooling.mdx#commands) directly.
+
+:::
+
+## Building
+
+| Variable         | Default                                                  | What it does                                                                                                      |
+|------------------|----------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------|
+| `DRUPAL_VERSION` | `extra.eddy.drupal-version` in `composer.dev.json`, or `11` | The Drupal version to build, such as `11`, `11.1.0` or `11@beta`. See [Drupal versions](drupal-versions.mdx). |
+| `DRUPAL_PROFILE` | `standard`                                               | The install profile that `provision` installs the site from.                                                      |
+| `GITHUB_TOKEN`   | Unset                                                    | A GitHub token that the build passes to Composer to get around API rate limits.                                   |
+| `COMPOSER_AUTH`  | Built from `GITHUB_TOKEN`                                | Composer credentials. A value you set is used as it is.                                                           |
+| `DEBUG`          | Unset                                                    | `1` streams the full output of Composer, npm and Drush. See [Debugging](debugging.mdx#command-output).            |
+
+## Webserver and site
+
+| Variable                 | Default                                         | What it does                                                                                              |
+|--------------------------|-------------------------------------------------|-----------------------------------------------------------------------------------------------------------|
+| `WEBSERVER_HOST`         | `localhost`                                     | The host the webserver listens on and the site URL names.                                                 |
+| `WEBSERVER_PORT`         | The first free port from 8000, saved to `.env`  | The port of the webserver. See [How the port is picked](webserver.mdx#how-the-port-is-picked).            |
+| `WEBSERVER_WAIT_TIMEOUT` | `5`                                             | Seconds that `start` waits for the webserver to accept connections. A whole number of 1 or more.          |
+| `XDEBUG`                 | Unset                                           | `1` starts the webserver with XDebug step-debugging. `debug` sets it for you.                            |
+| `CLOUDFLARE_TUNNEL`      | Unset                                           | `1` exposes the site through a public Cloudflare quick tunnel. See [Public tunnel](tunnel.mdx).          |
+| `TUNNEL_URL`             | Written to `.env` by `start`                    | The public URL of a tunnel, which the commands use as the site URL.                                      |
+| `LOGIN_QRCODE`           | Unset                                           | When set, `login` also draws the login link as a QR code.                                                 |
+
+## Testing
+
+| Variable                       | Default                                                                    | What it does                                                                                                         |
+|--------------------------------|----------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
+| `WEBDRIVER_BACKEND`            | `chromedriver`                                                             | The browser for FunctionalJavascript tests: `chromedriver` drives your local Chrome, `selenium` a Docker container. |
+| `WEBDRIVER_PORT`               | The first free port from 4444, saved to `.env`                            | The port of the WebDriver endpoint.                                                                                  |
+| `WEBDRIVER_HOST`               | `localhost`, or `host.docker.internal` (macOS) or `172.17.0.1` with `selenium` | The address the browser uses to reach the webserver.                                                           |
+| `SIMPLETEST_BASE_URL`          | Exported by `make` and Ahoy                                                | The site URL that Functional tests request.                                                                          |
+| `SIMPLETEST_DB`                | Exported by `make` and Ahoy                                                | The database that Kernel and Functional tests install into.                                                          |
+| `BROWSERTEST_OUTPUT_DIRECTORY` | Exported by `make` and Ahoy                                                | Where tests write their HTML pages and screenshots: `.logs/browser_output`.                                            |
+| `MINK_DRIVER_ARGS_WEBDRIVER`   | Set in `phpunit.xml`                                                       | The browser and WebDriver endpoint of FunctionalJavascript tests. An exported value wins over the file.              |
+| `SYMFONY_DEPRECATIONS_HELPER`  | Set in `phpunit.xml`                                                       | How tests treat deprecations. See [Deprecated code](../testing/README.mdx#deprecated-code).                          |
+
+## Deployment
+
+CI reads these from the repository's **Settings** → **Secrets and variables** → **Actions**. [Setting up deployment](../deployment/setup.mdx) walks through them.
+
+| Variable                     | Set as     | What it does                                                                                                          |
+|------------------------------|------------|-----------------------------------------------------------------------------------------------------------------------|
+| `DEPLOY_REMOTE`              | Secret     | The git remote to deploy to, such as `git@git.drupal.org:project/myextension.git`. Deployment is skipped until it's set. |
+| `DEPLOY_USER_NAME`           | Secret     | The name of the user who commits to the remote repository.                                                            |
+| `DEPLOY_USER_EMAIL`          | Secret     | The email address of that user.                                                                                       |
+| `DEPLOY_SSH_KEY`             | Secret     | The private SSH key that pushes to the remote.                                                                        |
+| `DEPLOY_PROCEED`             | Secret     | `1` lets the deployment push. Any other value runs the job without pushing.                                           |
+| `DEPLOY_BRANCH`              | Variable   | The branch to push to in the remote repository. Defaults to the branch that triggered the build.                      |
+| `DEPLOY_TAG`                 | Workflow   | The tag to deploy. The `Deploy` workflow sets it for a tag push, and `eddy-deploy` then pushes only that tag.          |
+| `DEPLOY_SSH_KEY_FINGERPRINT` | Optional   | Loads `~/.ssh/id_rsa_<fingerprint>` into the SSH agent before the push, for a CI that installs keys by fingerprint. GitHub Actions doesn't need it. |
+
+## Continuous integration
+
+| Variable                     | Set as     | What it does                                                                                                           |
+|------------------------------|------------|------------------------------------------------------------------------------------------------------------------------|
+| `CODECOV_TOKEN`              | Secret     | Uploads code coverage to [Codecov](https://codecov.io) when it's set.                                                  |
+| `CI_<TOOL>_IGNORE_FAILURE`   | Variable   | `1` lets that lint or test step fail without failing its job. See [Allowing a CI step to fail](../continuous-integration/configuration.mdx#allowing-a-ci-step-to-fail). |
