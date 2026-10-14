@@ -64,7 +64,7 @@ Every answer can come from an environment variable instead, which is handy in sc
 The installer works on the directory in place:
 
 - It renames the `your_extension.*` files, classes and tests after your machine name and replaces the placeholders inside them. A theme drops the files only a module uses (`.module`, `.install`, the routing, services and menu links files, and the service class) and gets `base theme: false` in its `.info.yml`.
-- It removes what you didn't select: the CI jobs and README badge of a Drupal major, a tool with its configuration and CI steps, or a command wrapper with its file. Dropping PHPUnit drops FunctionalJavascript tests too, since they run on PHPUnit. The README keeps a PHP badge for each PHP version your selected majors support, so a Drupal 10 extension doesn't claim PHP 8.5.
+- It removes what you didn't select: the CI jobs and README badge of a Drupal major, a tool with its configuration and CI steps, or a command wrapper with its file. Dropping PHPUnit drops FunctionalJavascript tests too, since they run on PHPUnit. The README keeps a PHP badge for each PHP version your selected majors support, so a Drupal 10-only extension doesn't claim PHP 8.5.
 - It turns `README.dist.md` and `CONTRIBUTING.dist.md` into your `README.md` and `CONTRIBUTING.md`, and downloads a placeholder `logo.png` with your extension name on it.
 - It deletes Eddy's own files: `.eddy/`, `MIGRATION.md`, `SECURITY.md`, `LICENSE.txt`, `logo.svg` and the `eddy-*` workflows.
 - It sets the branch filters of the workflows to `1.x`. Run it again in an existing project and it keeps the branches of the committed `.github/workflows/test.yml` instead. [Deployment](deployment/README.mdx) explains how to build and deploy other branches.
