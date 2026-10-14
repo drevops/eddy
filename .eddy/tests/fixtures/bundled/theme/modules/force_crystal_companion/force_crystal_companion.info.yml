@@ -1,0 +1,5 @@
+name: Force Crystal Companion
+type: module
+description: Ships with the Force Crystal theme.
+package: Testing
+core_version_requirement: ^10 || ^11 || ^12

@@ -5,24 +5,30 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Functional;
 
 use DrevOps\Eddy\Tests\Traits\ComposerHomeTrait;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use Symfony\Component\Filesystem\Filesystem;
 
 /**
- * Tests a theme that 'install.php' generates, through the 'make' wrapper.
+ * Tests the projects that 'install.php' generates, through the 'make' wrapper.
+ *
+ * Each project bundles extensions of the other type: 1 that ships with it and
+ * 1 that only its tests use, laid out as the bundled extensions guide shows.
  *
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p4')]
-final class ThemeTest extends ToolingTestCase {
+final class GeneratedProjectTest extends ToolingTestCase {
 
   use ComposerHomeTrait;
 
-  public function testTheme(): void {
+  #[DataProvider('dataProviderGeneratedProject')]
+  public function testGeneratedProject(string $type, string $bundled_dir, string $bundled_type, string $bundled, int $tests): void {
     $this->processRun(self::$sut . '/install.php', [], [], [
       'INSTALL_NAME' => 'Force Crystal',
       'INSTALL_MACHINE_NAME' => 'force_crystal',
-      'INSTALL_TYPE' => 'theme',
+      'INSTALL_TYPE' => $type,
       'INSTALL_DRUPAL_VERSION' => '11',
       'INSTALL_COMMAND_WRAPPER' => 'makefile',
       'INSTALL_TOOLS' => 'phpcs,phpstan,rector,twigcs,eslint,stylelint,cspell,jest,phpunit,functional_javascript,renovate',
@@ -31,16 +37,24 @@ final class ThemeTest extends ToolingTestCase {
       'INSTALL_PROCEED' => 'true',
     ], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
-    $this->assertFileContainsString(self::$sut . '/force_crystal.info.yml', 'type: theme');
-    $this->assertFileExists(self::$sut . '/tests/src/FunctionalJavascript/ForceCrystalSmokeFunctionalJavascriptTest.php');
-    $this->assertDirectoryDoesNotExist(self::$sut . '/src');
+    $this->assertFileContainsString(self::$sut . '/force_crystal.info.yml', 'type: ' . $type);
+
+    // The bundled extensions, a Kernel test that uses them and a provision
+    // script that enables the one that ships.
+    (new Filesystem())->mirror(dirname(__DIR__, 2) . '/fixtures/bundled/' . $type, self::$sut);
 
     $this->installTooling();
 
     $this->processRun('make', ['assemble'], [], [], $this->longTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
     $this->assertProcessAnyOutputContains('ASSEMBLE COMPLETE');
-    $this->assertDirectoryExists(self::$sut . '/build/web/themes/custom/force_crystal');
+
+    $extension_dir = self::$sut . '/build/web/' . ($type === 'theme' ? 'themes' : 'modules') . '/custom/force_crystal';
+    $other_custom_dir = self::$sut . '/build/web/' . ($type === 'theme' ? 'modules' : 'themes') . '/custom';
+    $this->assertTrue(is_link($extension_dir . '/' . $bundled_dir), 'The directory of the bundled extensions is symlinked into the extension.');
+    $this->assertTrue(is_link($extension_dir . '/tests'), 'The directory of the test-only extensions is symlinked into the extension.');
+    $this->assertFileExists($extension_dir . '/' . $bundled_dir . '/' . $bundled . '/' . $bundled . '.info.yml');
+    $this->assertSame(['.', '..'], scandir($other_custom_dir), 'Nothing is mapped into the custom directory of the other type.');
 
     $this->processRun('make', ['start'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
@@ -50,16 +64,28 @@ final class ThemeTest extends ToolingTestCase {
     $this->assertProcessSuccessful();
     $this->assertProcessAnyOutputContains('PROVISION COMPLETE');
 
+    $this->processRun('make', ['drush', '--', 'pml', '--type', $bundled_type, '--status', 'enabled', '--format', 'json'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->assertProcessSuccessful();
+    $this->assertProcessAnyOutputContains('"' . $bundled . '"');
+
     $this->processRun('make', ['lint'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
 
     $this->processRun('make', ['test'], [], [], $this->longTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
-    $this->assertProcessAnyOutputContains('OK (1 test,');
+    $this->assertProcessAnyOutputContains('OK (' . $tests . ' tests,');
+  }
+
+  public static function dataProviderGeneratedProject(): \Iterator {
+    // The FunctionalJavascript test and the Kernel test of the bundled modules.
+    yield 'theme bundling modules' => ['theme', 'modules', 'module', 'force_crystal_companion', 2];
+    // The 4 Unit, the Kernel, the Functional and the FunctionalJavascript tests,
+    // and the Kernel test of the bundled themes.
+    yield 'module bundling themes' => ['module', 'themes', 'theme', 'force_crystal_admin', 8];
   }
 
   /**
-   * Install the in-tree tooling as the release the theme requires.
+   * Install the in-tree tooling as the release the project requires.
    *
    * 'install.php' removes '.eddy', so the generated project installs the
    * tooling from a release, as every project created from the template does.
