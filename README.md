@@ -23,7 +23,7 @@
 ![Drupal 11](https://img.shields.io/badge/Drupal-11-006AA9.svg)
 ![Drupal 12](https://img.shields.io/badge/Drupal-12-004B7A.svg)
 
-📘 **[Read the documentation](https://drevops.github.io/eddy/)**
+📘 **[Read the documentation](https://eddy.drevops.com/)**
 
 </div>
 
@@ -35,17 +35,17 @@ Eddy isn't for building websites: use [Vortex](https://github.com/drevops/vortex
 
 ## Features
 
-- ⚙️ **[CI on GitHub Actions](https://drevops.github.io/eddy/continuous-integration)** - PHP `8.3`, `8.4` and `8.5`, and Drupal `stable` on 10, 11 and 12, plus `legacy` and `canary` tiers on 11 and 12, with code coverage on [codecov.io](https://codecov.io). The setup works with Drupal.org GitLab CI too.
-- 💻 **[Local development](https://drevops.github.io/eddy/development)** - a Drupal site built on the PHP of your host by the same commands that CI runs, through `make` or [Ahoy](https://github.com/ahoy-cli/ahoy), with your development dependencies, suggested extensions and patches.
-- 🧹 **[Coding standards](https://drevops.github.io/eddy/development/coding-standards)** - PHPCS, PHPStan, Drupal Rector, Twig CS Fixer, ESLint, Stylelint, CSpell and Prettier.
-- 🧪 **[Tests](https://drevops.github.io/eddy/testing)** - PHPUnit Unit, Kernel, Functional and FunctionalJavascript tests, in a local Chrome or a Selenium container, and JavaScript tests with [Jest](https://jestjs.io/).
-- 🚚 **[Deployment](https://drevops.github.io/eddy/deployment)** - mirroring of the code and its tags to Drupal.org, or any other git remote, once CI passes.
-- 🤖 **[Renovate](https://drevops.github.io/eddy/updating/renovate)** - grouped pull requests that keep dependencies up to date.
+- ⚙️ **[CI on GitHub Actions](https://eddy.drevops.com/continuous-integration)** - PHP `8.3`, `8.4` and `8.5`, and Drupal `stable` on 10, 11 and 12, plus `legacy` and `canary` tiers on 11 and 12, with code coverage on [codecov.io](https://codecov.io). The setup works with Drupal.org GitLab CI too.
+- 💻 **[Local development](https://eddy.drevops.com/development)** - a Drupal site built on the PHP of your host by the same commands that CI runs, through `make` or [Ahoy](https://github.com/ahoy-cli/ahoy), with your development dependencies, suggested extensions and patches.
+- 🧹 **[Coding standards](https://eddy.drevops.com/development/coding-standards)** - PHPCS, PHPStan, Drupal Rector, Twig CS Fixer, ESLint, Stylelint, CSpell and Prettier.
+- 🧪 **[Tests](https://eddy.drevops.com/testing)** - PHPUnit Unit, Kernel, Functional and FunctionalJavascript tests, in a local Chrome or a Selenium container, and JavaScript tests with [Jest](https://jestjs.io/).
+- 🚚 **[Deployment](https://eddy.drevops.com/deployment)** - mirroring of the code and its tags to Drupal.org, or any other git remote, once CI passes.
+- 🤖 **[Renovate](https://eddy.drevops.com/updating/renovate)** - grouped pull requests that keep dependencies up to date.
 - 📝 **Docs for your extension** - [README.md](README.dist.md) and [CONTRIBUTING.md](CONTRIBUTING.dist.md) templates.
 
 Eddy tests itself the way it tests a project created from it, and deploys to [drevops/eddy_destination](https://github.com/drevops/eddy_destination) as a working example.
 
-➡️ See the [projects using Eddy](https://drevops.github.io/eddy/#projects-using-eddy).
+➡️ See the [projects using Eddy](https://eddy.drevops.com/#projects-using-eddy).
 
 ## Quick start
 
@@ -55,16 +55,16 @@ Eddy tests itself the way it tests a project created from it, and deploys to [dr
 
 ![Installation process](.eddy/assets/install.svg)
 
-➡️ [Installation](https://drevops.github.io/eddy/installation) walks through every step, from the download to the first deployment to Drupal.org.
+➡️ [Installation](https://eddy.drevops.com/installation) walks through every step, from the download to the first deployment to Drupal.org.
 
 ## Updating
 
 If you use Claude Code, ask Claude to "update scaffold" in your project, and it merges the latest release into your extension through a pull request. You can update by hand too.
 
-➡️ [Updating your extension](https://drevops.github.io/eddy/updating) covers both, and [Upgrading from 4.x](https://drevops.github.io/eddy/updating/upgrading-from-4x) covers the one-off move from a 4.x release.
+➡️ [Updating your extension](https://eddy.drevops.com/updating) covers both, and [Upgrading from 4.x](https://eddy.drevops.com/updating/upgrading-from-4x) covers the one-off move from a 4.x release.
 
 ## Contributing
 
 Contributions are welcome.
 
-➡️ See [Contributing](https://drevops.github.io/eddy/contributing) for how to build and test the scaffold, run its self-tests, and work on the documentation.
+➡️ See [Contributing](https://eddy.drevops.com/contributing) for how to build and test the scaffold, run its self-tests, and work on the documentation.

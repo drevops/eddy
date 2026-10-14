@@ -56,11 +56,11 @@ These builds show "development" as the version in the footer, and search engines
 
 ## Publishing
 
-`.github/workflows/eddy-release-docs.yml` publishes the docs to GitHub Pages:
+`.github/workflows/eddy-release-docs.yml` publishes the docs to [eddy.drevops.com](https://eddy.drevops.com) on GitHub Pages:
 
 - on every release tag, with the tag as the version;
 - on a manual run of the `Release Eddy docs` workflow from **Actions**, with the version you type.
 
 The repository's GitHub Pages source must be **GitHub Actions**, and the `github-pages` environment must let the tag or the branch you run from deploy.
 
-The workflow reads the site URL and base path from the GitHub Pages settings, so the site moves to a custom domain when you set one there, with no change to the code. Only these release builds report to Google Analytics, show the release in the footer and let search engines index the pages.
+The workflow reads the site URL and base path from the GitHub Pages settings, so a custom domain needs no change to the code. The published site links to the address it was built for, so run the workflow again after you change the domain. Only these release builds report to Google Analytics, show the release in the footer and let search engines index the pages.

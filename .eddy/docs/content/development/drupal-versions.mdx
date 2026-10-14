@@ -47,7 +47,11 @@ DRUPAL_VERSION=11.1.0 vendor/bin/eddy-assemble
 DRUPAL_VERSION=11@beta vendor/bin/eddy-assemble
 
 # Newest stable Drupal 12 release, or newest pre-release if none.
-DRUPAL_VERSION=12 vendor/bin/eddy-assemble`}
+DRUPAL_VERSION=12 vendor/bin/eddy-assemble
+
+# After any of them, start the server and install the site.
+vendor/bin/eddy-start
+vendor/bin/eddy-provision`}
 />
 
 The value names a release line rather than an exact release, and the build picks the newest release on it. Every number before the last one is fixed: `11.1.0` builds the newest 11.1.x release, while `11` and `11.1` both build the newest 11.x release.
@@ -99,7 +103,9 @@ Drupal 12 requires PHP 8.5, so a local Drupal 12 build needs PHP 8.5 too:
 <CommandTabs
   make={`DRUPAL_VERSION=12 make build`}
   ahoy={`DRUPAL_VERSION=12 ahoy build`}
-  none={`DRUPAL_VERSION=12 vendor/bin/eddy-assemble`}
+  none={`DRUPAL_VERSION=12 vendor/bin/eddy-assemble
+vendor/bin/eddy-start
+vendor/bin/eddy-provision`}
 />
 
 On an older PHP, the build stops before it changes anything and says which PHP the release needs.

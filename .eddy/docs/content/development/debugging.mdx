@@ -38,7 +38,10 @@ Set `DEBUG=1` to stream the full output of every tool as it runs:
 <CommandTabs
   make={`DEBUG=1 make build`}
   ahoy={`DEBUG=1 ahoy build`}
-  none={`DEBUG=1 vendor/bin/eddy-assemble`}
+  none={`export DEBUG=1
+vendor/bin/eddy-assemble
+vendor/bin/eddy-start
+vendor/bin/eddy-provision`}
 />
 
 ## Logs

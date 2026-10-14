@@ -3,8 +3,8 @@ name: Release Eddy docs
 # Publishes '.eddy/docs' to GitHub Pages on a release tag, or on a manual run
 # with the version to show.
 #
-# The site URL and base path come from the GitHub Pages settings, so the site
-# follows a custom domain set there.
+# The site URL and base path come from the GitHub Pages settings at build
+# time, so a custom domain set there takes effect on the next run.
 
 on:
   push:
