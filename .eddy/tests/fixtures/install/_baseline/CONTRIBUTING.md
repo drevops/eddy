@@ -94,6 +94,8 @@ The `WEBSERVER_PORT` is resolved with the following precedence:
 2. **`WEBSERVER_PORT` line in the project-root `.env` file** - used as-is. The `start` script does not modify `.env` when this entry is already present, so the same port is reused across `start`, `stop`, `provision`, `drush` and `login` commands.
 3. **Neither is set** - the `start` script discovers the first free port in the range `8000-8099` and writes it to `.env` as `WEBSERVER_PORT=NNNN`. Subsequent commands read this value from `.env`.
 
+The command wrapper loads `.env` into the environment of every command, so through the wrapper a `WEBSERVER_PORT` line in `.env` wins over the shell. Edit that line to change a saved port.
+
 To force re-discovery, delete `.env` (or just the `WEBSERVER_PORT` line in it) and re-run the `start` command.
 
 The `start` and `stop` commands only stop the webserver that serves the project's own `build/web`. When another process holds the port, such as the server of another project that recorded the same port, `stop` leaves it running and `start` fails and names it. Stop that process, or set `WEBSERVER_PORT` in `.env` to a free port.

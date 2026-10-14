@@ -119,10 +119,7 @@
         "*.min.*",
         "*.cast",
         "LICENSE.txt",
-        "LICENSE",
-        ".eddy/tests/fixtures/",
-        ".eddy/tests/vendor/",
-        ".eddy/assets/node_modules/"
+        "LICENSE"
     ],
     "useGitignore": true,
     "overrides": [
