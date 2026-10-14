@@ -33,8 +33,8 @@ class YourExtensionSmokeFunctionalJavascriptTest extends YourExtensionFunctional
     $this->drupalGet('<front>');
     $this->createAutoScreenshot();
 
-    // Verify Drupal JavaScript API is available.
-    $this->assertJsCondition('typeof Drupal !== "undefined" && typeof Drupal.behaviors !== "undefined"');
+    // Verify the extension's library is attached.
+    $this->assertJsCondition('typeof Drupal !== "undefined" && typeof Drupal.behaviors.yourExtension !== "undefined"');
   }
 
 }

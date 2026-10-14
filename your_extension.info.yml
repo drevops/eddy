@@ -3,7 +3,15 @@ type: module
 description: Drupal extension scaffold example.
 package: Testing
 core_version_requirement: ^10 || ^11 || ^12
+#;< EXTENSION_THEME
+base theme: false
+
+libraries:
+  - your_extension/global
+#;> EXTENSION_THEME
+#;< EXTENSION_MODULE
 
 dependencies:
   - drupal:config
   - drupal:user
+#;> EXTENSION_MODULE
