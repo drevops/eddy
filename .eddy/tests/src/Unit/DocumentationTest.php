@@ -222,8 +222,9 @@ final class DocumentationTest extends UnitTestCase {
     $page = (string) file_get_contents(self::docsDir() . '/continuous-integration/README.mdx');
 
     $row = '/^\|\s*`' . preg_quote($name, '/') . '`\s*\|\s*`' . preg_quote($php, '/') . '`\s*\|\s*`' . preg_quote($drupal, '/') . '`\s*\|/m';
+    $documented = preg_match($row, $page) === 1;
 
-    $this->assertTrue(preg_match($row, $page) === 1, sprintf('The CI page has no row for `%s` on PHP %s and Drupal %s.', $name, $php, $drupal));
+    $this->assertTrue($documented, sprintf('The CI page has no row for `%s` on PHP %s and Drupal %s.', $name, $php, $drupal));
   }
 
   public static function dataProviderCiJobIsDocumented(): \Iterator {
@@ -236,7 +237,9 @@ final class DocumentationTest extends UnitTestCase {
   public function testRequiredJobIsDocumented(string $name): void {
     $page = (string) file_get_contents(self::docsDir() . '/continuous-integration/branch-protection.mdx');
 
-    $this->assertTrue(str_contains($page, '`' . $name . '`'), sprintf('The branch protection page does not list the `%s` job.', $name));
+    $documented = str_contains($page, '`' . $name . '`');
+
+    $this->assertTrue($documented, sprintf('The branch protection page does not list the `%s` job.', $name));
   }
 
   public static function dataProviderRequiredJobIsDocumented(): \Iterator {
@@ -249,9 +252,9 @@ final class DocumentationTest extends UnitTestCase {
   public function testIgnoreFailureVariableIsDocumented(string $variable): void {
     $page = (string) file_get_contents(self::docsDir() . '/continuous-integration/configuration.mdx');
 
-    $row = '/^\|\s*`' . preg_quote($variable, '/') . '`\s*\|/m';
+    $documented = preg_match('/^\|\s*`' . preg_quote($variable, '/') . '`\s*\|/m', $page) === 1;
 
-    $this->assertTrue(preg_match($row, $page) === 1, sprintf('The CI configuration page has no row for `%s`.', $variable));
+    $this->assertTrue($documented, sprintf('The CI configuration page has no row for `%s`.', $variable));
   }
 
   public static function dataProviderIgnoreFailureVariableIsDocumented(): \Iterator {
@@ -271,9 +274,9 @@ final class DocumentationTest extends UnitTestCase {
   public function testToolingVariableIsDocumented(string $variable): void {
     $page = (string) file_get_contents(self::docsDir() . '/development/environment-variables.mdx');
 
-    $row = '/^\|\s*`' . preg_quote($variable, '/') . '`\s*\|/m';
+    $documented = preg_match('/^\|\s*`' . preg_quote($variable, '/') . '`\s*\|/m', $page) === 1;
 
-    $this->assertTrue(preg_match($row, $page) === 1, sprintf('The environment variables page has no row for `%s`, which the tooling reads.', $variable));
+    $this->assertTrue($documented, sprintf('The environment variables page has no row for `%s`, which the tooling reads.', $variable));
   }
 
   public static function dataProviderToolingVariableIsDocumented(): \Iterator {
@@ -404,21 +407,25 @@ final class DocumentationTest extends UnitTestCase {
     $jobs = [];
 
     foreach (['lint', 'test'] as $job_name) {
-      $include = is_array($workflow) ? ($workflow['jobs'][$job_name]['strategy']['matrix']['include'] ?? NULL) : NULL;
+      $job = is_array($workflow) && is_array($workflow['jobs'] ?? NULL) ? ($workflow['jobs'][$job_name] ?? NULL) : NULL;
+      $strategy = is_array($job) && is_array($job['strategy'] ?? NULL) ? $job['strategy'] : [];
+      $matrix = is_array($strategy['matrix'] ?? NULL) ? $strategy['matrix'] : [];
+      $include = $matrix['include'] ?? NULL;
 
       self::assertIsArray($include, sprintf('test.yml has no matrix for the `%s` job.', $job_name));
 
       foreach ($include as $leg) {
         self::assertIsArray($leg);
-        self::assertIsScalar($leg['name'] ?? NULL);
-        self::assertIsScalar($leg['php-version'] ?? NULL);
-        self::assertIsScalar($leg['drupal-version'] ?? NULL);
 
-        $jobs[] = [
-          'name' => (string) $leg['name'],
-          'php' => (string) $leg['php-version'],
-          'drupal' => (string) $leg['drupal-version'],
-        ];
+        $name = $leg['name'] ?? NULL;
+        $php = $leg['php-version'] ?? NULL;
+        $drupal = $leg['drupal-version'] ?? NULL;
+
+        self::assertIsScalar($name);
+        self::assertIsScalar($php);
+        self::assertIsScalar($drupal);
+
+        $jobs[] = ['name' => (string) $name, 'php' => (string) $php, 'drupal' => (string) $drupal];
       }
     }
 
