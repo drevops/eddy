@@ -2148,7 +2148,7 @@ function get_files(): array {
  *   Array of file paths.
  */
 function get_marker_files(): array {
-  $installer = (string) getcwd() . DIRECTORY_SEPARATOR . 'install.php';
+  $installer = getcwd() . DIRECTORY_SEPARATOR . 'install.php';
 
   return array_values(array_filter(get_files(), static fn(string $file): bool => $file !== $installer));
 }
