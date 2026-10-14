@@ -199,22 +199,9 @@ entrypoint:
   - -c
   - -e
   - |
-    # Ahoy's 'env' option lets .env override the shell, so the entrypoint
-    # loads .env itself. A variable that the shell sets to a non-empty value
-    # keeps it, as in resolve_env_value(). The exports follow the loop, so the
-    # check sees only shell values and a repeated key takes its last value.
-    if [ -f .env ]; then
-      dotenv_assignments=()
-      while read -r dotenv_line || [ -n "$dotenv_line" ]; do
-        dotenv_line="${dotenv_line%$'\r'}"
-        dotenv_key="${dotenv_line%%=*}"
-        case "$dotenv_line" in [A-Za-z_]*=*) ;; *) continue ;; esac
-        case "$dotenv_key" in *[!A-Za-z0-9_]*) continue ;; esac
-        [ -z "${!dotenv_key:-}" ] || continue
-        dotenv_assignments+=("$dotenv_line")
-      done < .env
-      for dotenv_assignment in "${dotenv_assignments[@]}"; do export "$dotenv_assignment"; done
-    fi
+    # Ahoy's 'env' option puts .env over the shell, so .env is loaded here and
+    # the exported shell variables are restored after it.
+    if [ -f .env ]; then shell_env="$(export -p)"; set -a; . ./.env; set +a; eval "$shell_env"; fi
     # Resolve a relative TMPDIR to an absolute path so tools that chdir (pushd
     # build) still find it. No-op when unset or already absolute.
     if [ -n "${TMPDIR:-}" ]; then case "$TMPDIR" in /*) ;; *) TMPDIR="$PWD/$TMPDIR" ;; esac; mkdir -p "$TMPDIR"; export TMPDIR; fi

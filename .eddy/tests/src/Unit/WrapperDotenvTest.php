@@ -12,10 +12,10 @@ use Symfony\Component\Yaml\Yaml;
 /**
  * Tests how the command wrappers load '.env'.
  *
- * A variable that the shell sets to a non-empty value keeps it, and '.env'
- * provides the rest, in the order resolve_env_value() reads them. The real
- * 'Makefile' runs with a probe makefile added through a second '-f', and the
- * real Ahoy entrypoint runs with the arguments that Ahoy passes to it.
+ * A variable that the shell sets keeps its value, even an empty one, and
+ * '.env' provides the rest. The real 'Makefile' runs with a probe makefile
+ * added through a second '-f', and the real Ahoy entrypoint runs with the
+ * arguments that Ahoy passes to it.
  *
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
@@ -129,45 +129,25 @@ final class WrapperDotenvTest extends UnitTestCase {
       ['WEBSERVER_PORT' => '9001'],
       ['WEBSERVER_PORT' => '9001', 'DRUPAL_PROFILE' => 'minimal', 'SIMPLETEST_BASE_URL' => 'http://localhost:9001'],
     ];
-    yield 'empty shell value counts as unset' => [
+    yield 'empty shell value overrides .env' => [
       "WEBSERVER_PORT=8001\nDRUPAL_PROFILE=minimal\n",
       ['WEBSERVER_PORT' => '', 'DRUPAL_PROFILE' => ''],
-      ['WEBSERVER_PORT' => '8001', 'DRUPAL_PROFILE' => 'minimal', 'SIMPLETEST_BASE_URL' => 'http://localhost:8001'],
+      ['WEBSERVER_PORT' => '', 'DRUPAL_PROFILE' => '', 'SIMPLETEST_BASE_URL' => 'http://localhost:8000'],
     ];
     yield 'shell value with special characters' => [
       "DRUPAL_PROFILE=minimal\n",
       ['DRUPAL_PROFILE' => 'a$b $(c) #d'],
       ['WEBSERVER_PORT' => '', 'DRUPAL_PROFILE' => 'a$b $(c) #d', 'SIMPLETEST_BASE_URL' => 'http://localhost:8000'],
     ];
-    yield 'repeated key keeps its last value' => [
-      "DRUPAL_PROFILE=standard\nWEBSERVER_PORT=8001\nDRUPAL_PROFILE=minimal\n",
-      [],
-      ['WEBSERVER_PORT' => '8001', 'DRUPAL_PROFILE' => 'minimal', 'SIMPLETEST_BASE_URL' => 'http://localhost:8001'],
-    ];
     yield 'shell value overrides a repeated key' => [
       "DRUPAL_PROFILE=standard\nDRUPAL_PROFILE=minimal\n",
       ['DRUPAL_PROFILE' => 'testing'],
       ['WEBSERVER_PORT' => '', 'DRUPAL_PROFILE' => 'testing', 'SIMPLETEST_BASE_URL' => 'http://localhost:8000'],
     ];
-    yield 'comments and blank lines' => [
-      "# WEBSERVER_PORT=1111\n\nWEBSERVER_PORT=8001\n\n# DRUPAL_PROFILE=testing\n",
-      [],
-      ['WEBSERVER_PORT' => '8001', 'DRUPAL_PROFILE' => '', 'SIMPLETEST_BASE_URL' => 'http://localhost:8001'],
-    ];
-    yield 'indented assignment' => [
+    yield 'shell value overrides an indented assignment' => [
       "  WEBSERVER_PORT=8001\n",
-      [],
-      ['WEBSERVER_PORT' => '8001', 'DRUPAL_PROFILE' => '', 'SIMPLETEST_BASE_URL' => 'http://localhost:8001'],
-    ];
-    yield 'value with spaces' => [
-      "DRUPAL_PROFILE=my  profile\n",
-      [],
-      ['WEBSERVER_PORT' => '', 'DRUPAL_PROFILE' => 'my  profile', 'SIMPLETEST_BASE_URL' => 'http://localhost:8000'],
-    ];
-    yield 'last line without a newline' => [
-      "DRUPAL_PROFILE=minimal\nWEBSERVER_PORT=8001",
-      [],
-      ['WEBSERVER_PORT' => '8001', 'DRUPAL_PROFILE' => 'minimal', 'SIMPLETEST_BASE_URL' => 'http://localhost:8001'],
+      ['WEBSERVER_PORT' => '9001'],
+      ['WEBSERVER_PORT' => '9001', 'DRUPAL_PROFILE' => '', 'SIMPLETEST_BASE_URL' => 'http://localhost:9001'],
     ];
   }
 

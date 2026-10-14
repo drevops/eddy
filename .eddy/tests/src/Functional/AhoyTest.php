@@ -86,11 +86,6 @@ final class AhoyTest extends ToolingTestCase {
     $this->assertProcessSuccessful();
     $this->assertProcessAnyOutputContains('Webserver port:     9001 (env)');
     $this->assertProcessAnyOutputContains('Drupal profile:     testing');
-
-    $this->processRun('ahoy', ['info'], [], ['WEBSERVER_PORT' => '', 'DRUPAL_PROFILE' => ''], $this->defaultTimeout, $this->defaultIdleTimeout);
-    $this->assertProcessSuccessful();
-    $this->assertProcessAnyOutputContains('Webserver port:     8001 (env)');
-    $this->assertProcessAnyOutputContains('Drupal profile:     minimal');
   }
 
   public function testReset(): void {
