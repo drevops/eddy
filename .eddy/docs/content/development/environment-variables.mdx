@@ -62,7 +62,7 @@ CI reads these from the repository's **Settings** → **Secrets and variables** 
 | `DEPLOY_PROCEED`             | Secret     | `1` lets the deployment push. Any other value runs the job without pushing.                                           |
 | `DEPLOY_BRANCH`              | Variable   | The branch to push to in the remote repository. Defaults to the branch that triggered the build.                      |
 | `DEPLOY_TAG`                 | Workflow   | The tag to deploy. The `Deploy` workflow sets it for a tag push, and `eddy-deploy` then pushes only that tag.          |
-| `DEPLOY_SSH_KEY_FINGERPRINT` | Optional   | Loads `~/.ssh/id_rsa_<fingerprint>` into the SSH agent before the push, for a CI that installs keys by fingerprint. GitHub Actions doesn't need it. |
+| `DEPLOY_SSH_KEY_FINGERPRINT` | Optional   | Loads `~/.ssh/id_rsa_<fingerprint>` into the SSH agent before the push, starting one when `SSH_AGENT_PID` is empty, for a CI that installs keys by fingerprint. GitHub Actions doesn't need it. |
 
 ## Continuous integration
 
