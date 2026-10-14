@@ -693,10 +693,6 @@ final class BrowserStartTest extends UnitTestCase {
     $this->assertStringContainsString('Selenium is already running on port 4444', $output);
   }
 
-  /**
-   * The listener that publishes the port of the project's own container does
-   * not count as another process.
-   */
   #[DataProvider('dataProviderBrowserStartSeleniumReusesOwnContainer')]
   public function testBrowserStartSeleniumReusesOwnContainer(string $project): void {
     $this->envSet('WEBDRIVER_BACKEND', 'selenium');
@@ -713,6 +709,32 @@ final class BrowserStartTest extends UnitTestCase {
   }
 
   public static function dataProviderBrowserStartSeleniumReusesOwnContainer(): \Iterator {
+    yield 'labelled with the project root' => ['/test/project'];
+    yield 'without the label' => [''];
+  }
+
+  /**
+   * The listener that publishes the port of the project's own container does
+   * not count as another process.
+   */
+  #[DataProvider('dataProviderBrowserStartSeleniumReplacesOwnContainerThatDoesNotAnswer')]
+  public function testBrowserStartSeleniumReplacesOwnContainerThatDoesNotAnswer(string $project): void {
+    $this->envSet('WEBDRIVER_BACKEND', 'selenium');
+    $this->mockCommands(['docker' => '/usr/bin/docker']);
+    $this->mockPortListeners('4444', [9999 => ['/Applications/Docker.app/Contents/MacOS/com.docker.backend', '/']], self::seleniumContainerOutputs('4444', $project));
+    $this->mockStatus([NULL, 'selenium']);
+    $commands = [];
+    $this->recordPassthru($commands);
+
+    $output = $this->runBrowserStart();
+
+    $this->assertStringContainsString('Selenium is ready on port 4444', $output);
+    $this->assertCount(2, $commands, 'Only the container may be replaced, not the listener that publishes its port.');
+    $this->assertSame("docker rm -f 'selenium-4444' >/dev/null 2>&1", $commands[0], 'A container of the project that does not answer must be removed first.');
+    $this->assertStringContainsString("--label 'eddy.project=/test/project'", $commands[1], 'The new container must carry the project label.');
+  }
+
+  public static function dataProviderBrowserStartSeleniumReplacesOwnContainerThatDoesNotAnswer(): \Iterator {
     yield 'labelled with the project root' => ['/test/project'];
     yield 'without the label' => [''];
   }
