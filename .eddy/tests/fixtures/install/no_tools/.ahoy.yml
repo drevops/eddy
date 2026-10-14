@@ -1,4 +1,4 @@
-@@ -60,96 +60,25 @@
+@@ -57,96 +57,25 @@
      usage: Check coding standards for violations.
      cmd: |
        pushd "build" >/dev/null || exit 1

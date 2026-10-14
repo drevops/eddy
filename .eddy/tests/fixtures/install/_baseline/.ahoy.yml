@@ -3,9 +3,6 @@
 ---
 ahoyapi: v2
 
-env:
-  - .env
-
 commands:
 
   build:
@@ -166,6 +163,9 @@ entrypoint:
   - -c
   - -e
   - |
+    # Ahoy's 'env' option puts .env over the shell, so .env is loaded here and
+    # the non-empty exported shell variables are restored after it.
+    if [ -f .env ]; then shell_env="$(export -p | sed '/=""$/d')"; set -a; . ./.env; set +a; eval "$shell_env"; fi
     # Resolve a relative TMPDIR to an absolute path so tools that chdir (pushd
     # build) still find it. No-op when unset or already absolute.
     if [ -n "${TMPDIR:-}" ]; then case "$TMPDIR" in /*) ;; *) TMPDIR="$PWD/$TMPDIR" ;; esac; mkdir -p "$TMPDIR"; export TMPDIR; fi

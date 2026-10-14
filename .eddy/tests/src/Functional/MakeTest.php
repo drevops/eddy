@@ -72,6 +72,22 @@ final class MakeTest extends ToolingTestCase {
     $this->assertTrue(self::webserverPortAccepts($port), 'The webserver listens on the discovered port.');
   }
 
+  public function testShellOverridesDotenv(): void {
+    // The tooling reads DRUPAL_PROFILE only from the environment, so 'info'
+    // prints the value that the wrapper exported.
+    file_put_contents(self::$sut . '/.env', "WEBSERVER_PORT=8001\nDRUPAL_PROFILE=minimal\n");
+
+    $this->processRun('make', ['info'], [], ['WEBSERVER_PORT' => FALSE, 'DRUPAL_PROFILE' => FALSE], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->assertProcessSuccessful();
+    $this->assertProcessAnyOutputContains('Webserver port:     8001 (env)');
+    $this->assertProcessAnyOutputContains('Drupal profile:     minimal');
+
+    $this->processRun('make', ['info'], [], ['WEBSERVER_PORT' => '9001', 'DRUPAL_PROFILE' => 'testing'], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->assertProcessSuccessful();
+    $this->assertProcessAnyOutputContains('Webserver port:     9001 (env)');
+    $this->assertProcessAnyOutputContains('Drupal profile:     testing');
+  }
+
   public function testReset(): void {
     self::webserverCreateDocroot(self::$sut);
 
@@ -96,7 +112,8 @@ final class MakeTest extends ToolingTestCase {
       $this->assertTrue(self::webserverPortAccepts($webdriver_port), 'The WebDriver backend of the project is running.');
       $this->assertTrue($other->isRunning(), 'The other PHP process is running.');
 
-      $this->processRun('make', ['reset'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
+      // A WEBDRIVER_PORT in the environment takes precedence over .env.
+      $this->processRun('make', ['reset'], [], ['WEBDRIVER_PORT' => FALSE], $this->defaultTimeout, $this->defaultIdleTimeout);
       $this->assertProcessSuccessful();
 
       $this->assertFalse(self::webserverPortAccepts($port), 'reset stops the webserver of the project.');
@@ -123,16 +140,19 @@ final class MakeTest extends ToolingTestCase {
     $other_browser = self::webserverStartListener($other_root, $webdriver_port);
     file_put_contents(self::$sut . '/.env', sprintf("WEBSERVER_PORT=%s\nWEBDRIVER_PORT=%s\n", $port, $webdriver_port));
 
+    // Ports in the environment take precedence over .env.
+    $env = ['WEBSERVER_PORT' => FALSE, 'WEBDRIVER_PORT' => FALSE];
+
     try {
       $this->assertTrue(self::webserverPortAccepts($port), 'The webserver of the other project is running.');
       $this->assertTrue(self::webserverPortAccepts($webdriver_port), 'The WebDriver backend of the other project is running.');
 
-      $this->processRun('make', ['stop'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
+      $this->processRun('make', ['stop'], [], $env, $this->defaultTimeout, $this->defaultIdleTimeout);
       $this->assertProcessSuccessful();
       $this->assertProcessAnyOutputContains('Port ' . $port . ' is still in use by another process, which was left running:');
       $this->assertTrue(self::webserverPortAccepts($port), 'stop leaves the webserver of another project running.');
 
-      $this->processRun('make', ['reset'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
+      $this->processRun('make', ['reset'], [], $env, $this->defaultTimeout, $this->defaultIdleTimeout);
       $this->assertProcessSuccessful();
       $this->assertTrue(self::webserverPortAccepts($port), 'reset leaves the webserver of another project running.');
       $this->assertTrue(self::webserverPortAccepts($webdriver_port), 'reset leaves the WebDriver backend of another project running.');

@@ -8,9 +8,9 @@ description: Every environment variable that the Eddy commands, tests and workfl
 
 The commands read these variables from your shell first and from the project's `.env` file second. Git ignores `.env`, so it's the place for values that belong to your machine, such as the ports that `start` and `browser-start` save there.
 
-:::note Through a wrapper, `.env` wins
+:::note Your shell wins over `.env`
 
-`make` and Ahoy load `.env` into the environment of every command, so through a wrapper a variable in `.env` wins over the same variable in your shell. To change a value that `.env` holds, edit `.env`, or run the [tooling command](tooling.mdx#commands) directly.
+`make` and Ahoy load a variable from `.env` only when your shell leaves it unset or empty, so a prefix such as `WEBSERVER_PORT=9000` changes a value for 1 command without touching `.env`. A variable you export from your shell profile wins the same way, so it overrides the `.env` of every project.
 
 :::
 

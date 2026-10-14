@@ -2,6 +2,9 @@ SHELL=/bin/bash
 
 # Load variables from .env if present and export them to recipe shells. The
 # leading '-' on -include suppresses errors when the file does not exist.
+# Each .env variable that the shell sets to a non-empty value is made
+# 'override' first, so its .env assignment is ignored.
+$(foreach v,$(shell sed -n 's/^ *\([A-Za-z0-9_]*\)=.*/\1/p' .env 2>/dev/null),$(if $(value $v),$(eval override $v := $$(value $v))))
 -include .env
 export
 
