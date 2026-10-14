@@ -345,7 +345,7 @@ rm -rf .claude/skills/update-consumer-drupal-extension-scaffold
 
 The last directory holds the 4.x update skill, or the 404 page the 4.x `AGENTS.md` saved in its place. 5.x no longer ignores it by name, so a project that commits its own skills would commit it too.
 
-A change the project made in these files needs a new home: a `.devtools/` or Cloudflare hook change becomes a lifecycle script in `scripts/` or a patch for the `drevops/eddy-tooling` package in `composer.dev.json`, and CircleCI's deployment settings become GitHub Actions secrets. [The upgrade guide](https://drevops.github.io/eddy/updating/upgrading-from-4x) explains each. Do not move them here - list the changed files in the pull request description. With a base, Step 8's modify/delete conflicts name them. Without one, this lists the commits that touched them, template updates included:
+A change the project made in these files needs a new home: a `.devtools/` or Cloudflare hook change becomes a lifecycle script in `scripts/` or a patch for the `drevops/eddy-tooling` package in `composer.dev.json`, and CircleCI's deployment settings become GitHub Actions secrets. [The upgrade guide](https://eddy.drevops.com/updating/upgrading-from-4x) explains each. Do not move them here - list the changed files in the pull request description. With a base, Step 8's modify/delete conflicts name them. Without one, this lists the commits that touched them, template updates included:
 
 ```bash
 git log --oneline -- .devtools .circleci 'scripts/*-cloudflared.sh'
@@ -425,7 +425,7 @@ Skip this when Step 4 added no Drupal major. When it did, the merge brought in t
 git ls-files '*.info.yml'
 ```
 
-- For Drupal 12, also make the other changes in the "Drupal 12" section of [the upgrade guide](https://drevops.github.io/eddy/updating/upgrading-from-4x#drupal-12): `string|false` as the return type of every `getMinkDriverArgs()` override, such as the one in the FunctionalJavascript base class the template generated, and the PHPUnit attributes that the note at the end of Step 13 describes.
+- For Drupal 12, also make the other changes in the "Drupal 12" section of [the upgrade guide](https://eddy.drevops.com/updating/upgrading-from-4x#drupal-12): `string|false` as the return type of every `getMinkDriverArgs()` override, such as the one in the FunctionalJavascript base class the template generated, and the PHPUnit attributes that the note at the end of Step 13 describes.
 
 A dropped major needs no change for the build, so leave `core_version_requirement` as it is and mention the choice in the pull request.
 
@@ -485,7 +485,7 @@ DRUPAL_VERSION=<major> ahoy build
 
 Then run `ahoy lint` and `ahoy test` again. Without a wrapper, put `DRUPAL_VERSION=<major>` in front of `php vendor/bin/eddy-assemble`.
 
-Drupal 12 requires PHP 8.5. On an older PHP, the build stops before it changes anything and says which PHP the release needs. Don't work around it: tell the user, and leave that major to the pull request's CI. Failures that only the new major shows usually come from the breaks in the "Drupal 12" section of [the upgrade guide](https://drevops.github.io/eddy/updating/upgrading-from-4x#drupal-12), such as an update path test that names a database dump Drupal 12 no longer ships.
+Drupal 12 requires PHP 8.5. On an older PHP, the build stops before it changes anything and says which PHP the release needs. Don't work around it: tell the user, and leave that major to the pull request's CI. Failures that only the new major shows usually come from the breaks in the "Drupal 12" section of [the upgrade guide](https://eddy.drevops.com/updating/upgrading-from-4x#drupal-12), such as an update path test that names a database dump Drupal 12 no longer ships.
 
 ### PHPUnit doc-comment deprecations
 
