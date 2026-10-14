@@ -14,7 +14,7 @@
          "hookspec",
          "icanon",
          "initialisation",
-@@ -53,7 +51,6 @@
+@@ -54,7 +52,6 @@
          "langcode",
          "langid",
          "linkit",
@@ -22,7 +22,7 @@
          "mglaman",
          "mikey",
          "multisite",
-@@ -94,7 +91,6 @@
+@@ -95,7 +92,6 @@
          "updatedb",
          "vfsstream",
          "vincentlanglet",
