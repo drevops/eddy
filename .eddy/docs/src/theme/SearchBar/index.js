@@ -2,9 +2,9 @@ import React, { useEffect, useRef } from 'react';
 import SearchBar from '@theme-original/SearchBar';
 
 // The search plugin's autocomplete widget follows the ARIA 1.1 combobox
-// pattern, puts its "See all results" link straight inside the listbox and
-// names its clear button "✕". It redraws on every query, so the gaps are
-// filled again after each change.
+// pattern, puts its "See all results" link and its "No results" message
+// straight inside the listbox and names its clear button "✕". It redraws on
+// every query, so the gaps are filled again after each change.
 export const patchSearchMarkup = (root) => {
   root.querySelectorAll('[role="combobox"][aria-owns]:not([aria-controls])').forEach((input) => {
     input.setAttribute('aria-controls', input.getAttribute('aria-owns'));
@@ -12,6 +12,11 @@ export const patchSearchMarkup = (root) => {
 
   root.querySelectorAll('[role="listbox"] a[href]:not([role])').forEach((link) => {
     link.setAttribute('role', 'option');
+  });
+
+  root.querySelectorAll('[role="listbox"] [class*="noResults_"]:not([role])').forEach((message) => {
+    message.setAttribute('role', 'option');
+    message.setAttribute('aria-disabled', 'true');
   });
 
   root.querySelectorAll('[class*="searchClearButton"]:not([aria-label])').forEach((button) => {

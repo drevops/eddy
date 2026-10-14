@@ -49,11 +49,25 @@ describe('SearchBar', () => {
 });
 
 describe('patchSearchMarkup', () => {
+  test('marks the no-results message as a disabled option', () => {
+    const root = document.createElement('div');
+
+    root.innerHTML = '<span role="listbox"><span class="noResults_l6Q3"><span class="noResultsIcon_EBY5"></span><span>No results</span></span></span>';
+    patchSearchMarkup(root);
+
+    const message = root.querySelector('.noResults_l6Q3');
+
+    expect(message).toHaveAttribute('role', 'option');
+    expect(message).toHaveAttribute('aria-disabled', 'true');
+    expect(root.querySelector('.noResultsIcon_EBY5')).not.toHaveAttribute('role');
+  });
+
   test.each([
     { name: 'keeps an existing aria-controls', html: '<input role="combobox" aria-owns="a" aria-controls="b">', selector: 'input', attribute: 'aria-controls', expected: 'b' },
     { name: 'skips a combobox without a listbox', html: '<input role="combobox">', selector: 'input', attribute: 'aria-controls', expected: null },
     { name: 'keeps the role of a link that has one', html: '<div role="listbox"><a href="/" role="button">x</a></div>', selector: 'a', attribute: 'role', expected: 'button' },
     { name: 'skips a link outside a listbox', html: '<a href="/">x</a>', selector: 'a', attribute: 'role', expected: null },
+    { name: 'skips a no-results message outside a listbox', html: '<span class="noResults_l6Q3">No results</span>', selector: 'span', attribute: 'role', expected: null },
     { name: 'keeps an existing clear button label', html: '<button class="searchClearButton_qk4g" aria-label="Reset">✕</button>', selector: 'button', attribute: 'aria-label', expected: 'Reset' },
     { name: 'skips other buttons', html: '<button class="searchHint">K</button>', selector: 'button', attribute: 'aria-label', expected: null },
   ])('$name', ({ html, selector, attribute, expected }) => {

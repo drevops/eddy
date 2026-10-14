@@ -15,6 +15,16 @@ test.describe('search', () => {
       expect(await scan(page, '.navbar')).toEqual([]);
     });
 
+    test(`dropdown without results in ${colorMode} mode`, async ({ page }) => {
+      await open(page, '/', colorMode);
+
+      await page.locator('.navbar__search-input').click();
+      await page.keyboard.type('zzqxv');
+      await expect(page.getByText('No results')).toBeVisible();
+
+      expect(await scan(page, '.navbar')).toEqual([]);
+    });
+
     test(`highlighted result in ${colorMode} mode`, async ({ page }) => {
       await open(page, '/development/webserver?_highlight=webserver', colorMode);
       await expect(page.locator('article mark').first()).toBeVisible();
