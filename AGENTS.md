@@ -198,11 +198,19 @@ Run the linters and the tests with the commands that `CONTRIBUTING.md` lists.
 ## Project Structure
 
 **Key Directories:**
+<!-- #;< EXTENSION_MODULE -->
 - `src/` - Extension source code (services, forms, etc.)
 <!-- #;< DEV_PHPUNIT -->
 - `tests/src/` - PHPUnit tests (Unit/, Kernel/, Functional/)
 <!-- #;> DEV_PHPUNIT -->
 - `config/schema/` - Configuration schema definitions
+<!-- #;> EXTENSION_MODULE -->
+<!-- #;< EXTENSION_THEME -->
+- `css/` and `js/` - Stylesheets and JavaScript behaviors of the theme's global library
+<!-- #;< DEV_FUNCTIONAL_JAVASCRIPT -->
+- `tests/src/` - PHPUnit tests (FunctionalJavascript/)
+<!-- #;> DEV_FUNCTIONAL_JAVASCRIPT -->
+<!-- #;> EXTENSION_THEME -->
 - `build/` - Assembled Drupal codebase (symlinked extension)
 - `vendor/` - The installed `drevops/eddy-tooling` package, whose commands (`vendor/bin/eddy-*`) assemble, start, provision and deploy the extension. Not committed and not part of the extension
 - `scripts/eddy-tooling` - Installs the tooling package into `vendor/` from the constraint in `composer.dev.json`. The command wrappers and CI run it before the tooling commands
@@ -216,12 +224,22 @@ Run the linters and the tests with the commands that `CONTRIBUTING.md` lists.
 <!-- #;> META -->
 ## Architecture
 
+<!-- #;< EXTENSION_MODULE -->
 - **Service-based architecture**: Main functionality in services registered via `*.services.yml`
 - **Configuration-driven**: Uses Drupal configuration system with schema validation
 <!-- #;< DEV_PHPUNIT -->
 - **Test coverage**: Unit, kernel, and functional test examples provided
 <!-- #;> DEV_PHPUNIT -->
 - **Form integration**: Admin forms in `src/Form/` for configuration
+<!-- #;> EXTENSION_MODULE -->
+<!-- #;< EXTENSION_THEME -->
+- **No base theme**: `base theme: false`, so Drupal's default templates render every page until the theme overrides them in `templates/`
+- **Theme hooks**: `your_extension.theme` adds a `div[data-your-extension-time]` element to every page, which `js/your_extension.js` fills with the page load time
+- **Global library**: The `libraries` key in `your_extension.info.yml` attaches the `global` library from `your_extension.libraries.yml` to every page
+<!-- #;< DEV_FUNCTIONAL_JAVASCRIPT -->
+- **Test coverage**: FunctionalJavascript smoke test example provided, with the theme installed as the default theme
+<!-- #;> DEV_FUNCTIONAL_JAVASCRIPT -->
+<!-- #;> EXTENSION_THEME -->
 
 ## Environment Variables
 
@@ -255,7 +273,12 @@ Run `php install.php` once, in a fresh copy of the template, to turn it into you
 <!-- #;< DEV_NO_COMMAND_WRAPPER -->
 1. Build environment: `scripts/eddy-tooling`, then `vendor/bin/eddy-assemble`, `vendor/bin/eddy-start` and `vendor/bin/eddy-provision`
 <!-- #;> DEV_NO_COMMAND_WRAPPER -->
+<!-- #;< EXTENSION_MODULE -->
 2. Develop your extension code in `src/`
+<!-- #;> EXTENSION_MODULE -->
+<!-- #;< EXTENSION_THEME -->
+2. Develop your theme: Twig templates in `templates/`, hooks in `your_extension.theme`, styles in `css/` and behaviors in `js/`
+<!-- #;> EXTENSION_THEME -->
 <!-- #;< DEV_COMMAND_WRAPPER -->
 3. Check standards: `make lint` or `ahoy lint`
 4. Run tests: `make test` or `ahoy test`

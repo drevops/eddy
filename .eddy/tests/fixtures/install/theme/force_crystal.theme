@@ -1,0 +1,26 @@
+<?php
+
+/**
+ * @file
+ * Code for force_crystal theme.
+ *
+ * Adds a div[data-force_crystal-time] element to every page, which
+ * js/force_crystal.js fills with the page load time. The 'libraries' key of
+ * the theme's '.info.yml' attaches the force_crystal/global library to every
+ * page.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_preprocess_HOOK() for html.html.twig.
+ */
+function force_crystal_preprocess_html(array &$variables): void {
+  $variables['page_bottom']['force_crystal_time'] = [
+    '#type' => 'html_tag',
+    '#tag' => 'div',
+    '#attributes' => [
+      'data-force_crystal-time' => TRUE,
+    ],
+  ];
+}

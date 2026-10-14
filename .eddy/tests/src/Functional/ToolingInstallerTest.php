@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Functional;
 
 use AlexSkrypnyk\PhpunitHelpers\Traits\ProcessTrait;
+use DrevOps\Eddy\Tests\Traits\ComposerHomeTrait;
 use DrevOps\Eddy\Tests\Unit\UnitTestCase;
 use PHPUnit\Framework\Attributes\Group;
 
@@ -22,6 +23,7 @@ use PHPUnit\Framework\Attributes\Group;
 #[Group('p2')]
 final class ToolingInstallerTest extends UnitTestCase {
 
+  use ComposerHomeTrait;
   use ProcessTrait;
 
   protected int $defaultTimeout = 300;
@@ -47,7 +49,7 @@ final class ToolingInstallerTest extends UnitTestCase {
   }
 
   public function testInstall(): void {
-    $this->writeComposerHome('1.0.0', FALSE);
+    $this->composerHomeWrite('1.0.0', FALSE);
     $this->writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
 
     $this->runInstaller();
@@ -70,7 +72,7 @@ final class ToolingInstallerTest extends UnitTestCase {
     $this->assertProcessSuccessful();
     $this->assertSame('', $this->processGet()->getOutput(), 'A current install prints nothing.');
 
-    $this->writeComposerHome('1.1.0', FALSE);
+    $this->composerHomeWrite('1.1.0', FALSE);
     $this->writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.1.0']]);
 
     $this->runInstaller();
@@ -81,7 +83,7 @@ final class ToolingInstallerTest extends UnitTestCase {
 
   public function testPatches(): void {
     // The patch plugin comes from Packagist.
-    $this->writeComposerHome('1.0.0', TRUE);
+    $this->composerHomeWrite('1.0.0', TRUE);
 
     mkdir(self::$sut . '/patches', 0755, TRUE);
     file_put_contents(self::$sut . '/patches/eddy-tooling-add-file.patch', self::PATCH);
@@ -112,7 +114,7 @@ final class ToolingInstallerTest extends UnitTestCase {
   }
 
   public function testFailure(): void {
-    $this->writeComposerHome('1.0.0', FALSE);
+    $this->composerHomeWrite('1.0.0', FALSE);
     $this->writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~2.0.0']]);
 
     $this->runInstaller();
@@ -123,35 +125,7 @@ final class ToolingInstallerTest extends UnitTestCase {
   }
 
   protected function runInstaller(): void {
-    $this->processRun('./scripts/eddy-tooling', [], [], ['COMPOSER_HOME' => self::$tmp . '/composer-home'], $this->defaultTimeout, $this->defaultIdleTimeout);
-  }
-
-  /**
-   * Write a Composer home that serves the in-tree package as a release.
-   *
-   * @param string $version
-   *   The version the package is served as.
-   * @param bool $packagist
-   *   Whether Packagist stays available for other packages.
-   */
-  protected function writeComposerHome(string $version, bool $packagist): void {
-    $repositories = [
-      [
-        'type' => 'path',
-        'url' => dirname(__DIR__, 4) . '/.eddy/tooling',
-        'options' => ['symlink' => FALSE, 'versions' => ['drevops/eddy-tooling' => $version]],
-      ],
-    ];
-
-    if (!$packagist) {
-      $repositories[] = ['packagist.org' => FALSE];
-    }
-
-    if (!is_dir(self::$tmp . '/composer-home')) {
-      mkdir(self::$tmp . '/composer-home', 0755, TRUE);
-    }
-
-    file_put_contents(self::$tmp . '/composer-home/config.json', json_encode(['repositories' => $repositories], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+    $this->processRun('./scripts/eddy-tooling', [], [], ['COMPOSER_HOME' => self::composerHomeDir()], $this->defaultTimeout, $this->defaultIdleTimeout);
   }
 
   protected function writeDevManifest(array $contents): void {

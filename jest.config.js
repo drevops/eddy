@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-// Discover js/ directories in custom modules and themes.
+// Discover the js/ directory of each custom extension.
 const dirs = ['web/modules/custom', 'web/themes/custom'];
 const roots = [];
 

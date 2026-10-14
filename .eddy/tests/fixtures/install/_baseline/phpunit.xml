@@ -85,20 +85,16 @@
     <testsuites>
         <testsuite name="unit">
             <directory>web/modules/custom/*/tests/src/Unit</directory>
-            <directory>web/themes/custom/*/tests/src/Unit</directory>
         </testsuite>
         <testsuite name="kernel">
             <directory>web/modules/custom/*/tests/src/Kernel</directory>
-            <directory>web/themes/custom/*/tests/src/Kernel</directory>
         </testsuite>
         <testsuite name="functional">
             <directory>web/modules/custom/*/tests/src/Functional</directory>
-            <directory>web/themes/custom/*/tests/src/Functional</directory>
         </testsuite>
 
         <testsuite name="functional-javascript">
             <directory>web/modules/custom/*/tests/src/FunctionalJavascript</directory>
-            <directory>web/themes/custom/*/tests/src/FunctionalJavascript</directory>
         </testsuite>
     </testsuites>
 
@@ -119,14 +115,11 @@
     <source>
         <include>
             <directory>web/modules/custom</directory>
-            <directory>web/themes/custom</directory>
         </include>
 
         <exclude>
             <directory>web/modules/custom/*/tests</directory>
-            <directory>web/themes/custom/*/tests</directory>
             <file>web/modules/custom/force_crystal/rector.php</file>
-            <file>web/themes/custom/force_crystal/rector.php</file>
             <directory>**/node_modules/**</directory>
         </exclude>
     </source>

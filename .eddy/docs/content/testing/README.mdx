@@ -24,7 +24,7 @@ npm test`}
 
 ![Running the tests](../../../assets/test.svg)
 
-The PHPUnit tests live in `tests/src`, in a directory per suite, and the installer gives you a working example of each. `phpunit.xml` configures PHPUnit, and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both bootstrap Drupal with core's `web/core/tests/bootstrap.php`, and both fail a run on a PHPUnit warning. The installer removes `phpunit.d10.xml` when you don't select Drupal 10, since no other build reads it.
+The PHPUnit tests live in `tests/src`, in a directory per suite, and the installer gives a module a working example of each. A theme gets the FunctionalJavascript one, which renders pages with the theme as the default theme, since the others test the example module's service and settings form. To run the tests of an extension you bundle with yours, see [Bundled extensions](../development/bundled-extensions.mdx#what-the-tooling-covers). `phpunit.xml` configures PHPUnit, and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both bootstrap Drupal with core's `web/core/tests/bootstrap.php`, and both fail a run on a PHPUnit warning. The installer removes `phpunit.d10.xml` when you don't select Drupal 10, since no other build reads it.
 
 ## Running 1 suite
 

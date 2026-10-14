@@ -1,0 +1,6 @@
+name: Force Crystal Admin
+type: theme
+description: Ships with the Force Crystal module.
+package: Testing
+core_version_requirement: ^10 || ^11 || ^12
+base theme: false

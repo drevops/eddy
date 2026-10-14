@@ -23,6 +23,8 @@ use function drupal_version_options;
 use function drupal_version_php_versions;
 use function drupal_version_specs;
 use function eddy_skills;
+use function extension_type_cspell_words;
+use function extension_type_specs;
 use function get_files;
 use function get_marker_files;
 use function github_repository_from_url;
@@ -46,6 +48,8 @@ use function read_composer_dev_json;
 use function remove_cspell_eddy_paths;
 use function remove_dir;
 use function remove_drupal_versions;
+use function remove_extension_types;
+use function remove_file;
 use function remove_lines;
 use function remove_npm;
 use function remove_special_comments;
@@ -476,6 +480,76 @@ final class InstallHelpersTest extends UnitTestCase {
   }
 
   /**
+   * @param array<string> $types
+   * @param array<string, string> $files
+   * @param array<string, string|null> $expected
+   * @param array<string, bool> $expected_dirs
+   */
+  #[DataProvider('dataProviderRemoveExtensionTypes')]
+  public function testRemoveExtensionTypes(array $types, array $files, array $expected, array $expected_dirs): void {
+    chdir(self::$sut);
+
+    $filesystem = new Filesystem();
+    foreach ($files as $name => $content) {
+      $filesystem->dumpFile(self::$sut . '/' . $name, $content);
+    }
+
+    remove_extension_types($types);
+
+    foreach ($expected as $name => $content) {
+      $path = self::$sut . '/' . $name;
+
+      if ($content === NULL) {
+        $this->assertFileDoesNotExist($path);
+
+        continue;
+      }
+
+      $this->assertSame($content, file_get_contents($path), $name . ' content mismatch.');
+    }
+
+    foreach ($expected_dirs as $dir => $exists) {
+      $this->assertSame($exists, is_dir(self::$sut . '/' . $dir), $dir . ' presence mismatch.');
+    }
+  }
+
+  public static function dataProviderRemoveExtensionTypes(): \Iterator {
+    $theme_block = "#;< EXTENSION_THEME\nbase theme: false\n#;> EXTENSION_THEME\n";
+    $module_block = "#;< EXTENSION_MODULE\ndependencies: {}\n#;> EXTENSION_MODULE\n";
+    $template = [
+      'your_extension.info.yml' => "type: module\n" . $theme_block . $module_block,
+      'your_extension.module' => "<?php\n",
+      'your_extension.theme' => "<?php\n",
+      'src/Form/YourExtensionForm.php' => "<?php\n",
+      'src/YourExtensionService.php' => "<?php\n",
+      'tests/src/Unit/YourExtensionServiceUnitTest.php' => "<?php\n",
+      'tests/src/FunctionalJavascript/YourExtensionSmokeFunctionalJavascriptTest.php' => "<?php\n",
+    ];
+    $without_module = [
+      'your_extension.info.yml' => "type: module\n" . $theme_block,
+      'your_extension.module' => NULL,
+      'src/Form/YourExtensionForm.php' => NULL,
+      'src/YourExtensionService.php' => NULL,
+      'tests/src/Unit/YourExtensionServiceUnitTest.php' => NULL,
+    ] + $template;
+    $without_theme = [
+      'your_extension.info.yml' => "type: module\n" . $module_block,
+      'your_extension.theme' => NULL,
+    ] + $template;
+
+    yield 'no type' => [[], $template, $template, ['src/Form' => TRUE, 'tests/src/Unit' => TRUE]];
+    yield 'theme' => [['theme'], $template, $without_theme, ['src/Form' => TRUE, 'tests/src/Unit' => TRUE]];
+    yield 'module' => [['module'], $template, $without_module, ['src' => FALSE, 'tests/src/Unit' => FALSE, 'tests/src' => TRUE]];
+    yield 'module, with a project file beside its files' => [
+      ['module'],
+      $template + ['src/ProjectHelper.php' => "<?php\n"],
+      $without_module + ['src/ProjectHelper.php' => "<?php\n"],
+      ['src/Form' => FALSE, 'src' => TRUE],
+    ];
+    yield 'unknown type' => [['profile'], $template, $template, ['src/Form' => TRUE, 'tests/src/Unit' => TRUE]];
+  }
+
+  /**
    * Every major in 'drupal_version_specs()' is supported, and every file it
    * lists is in the template.
    */
@@ -515,6 +589,19 @@ final class InstallHelpersTest extends UnitTestCase {
       $this->assertSame([], array_diff($tested_versions, $versions), sprintf('test.yml tests Drupal %s on a PHP version it does not list.', $major));
       $this->assertSame(self::phpVersionRange($tested_versions), self::phpVersionRange($versions), sprintf('The PHP versions of Drupal %s do not span the PHP versions of its test jobs.', $major));
       $this->assertStringContainsString("\n  - Drupal " . $major . ' on PHP ' . self::phpVersionRange($versions) . "\n", $agents, sprintf('AGENTS.md does not state the PHP range of Drupal %s.', $major));
+    }
+  }
+
+  /**
+   * Every file in 'extension_type_specs()' is in the template.
+   */
+  public function testExtensionTypeSpecsNameTemplateFiles(): void {
+    $this->assertSame(['module', 'theme'], array_keys(extension_type_specs()));
+
+    foreach (extension_type_specs() as $type => $spec) {
+      foreach ($spec['files'] as $file) {
+        $this->assertFileExists(dirname(__DIR__, 4) . '/' . $file, sprintf('The %s type lists "%s", which the template does not have.', $type, $file));
+      }
     }
   }
 
@@ -996,10 +1083,17 @@ final class InstallHelpersTest extends UnitTestCase {
     $contributing = static fn(string $note, string $dir): string => "a test path starts at the extension's symlink in the assembled site" . $note . ":\n\nmake test-unit web/" . $dir . "/custom/your_extension/tests/src/Unit/MyUnitTest.php\n";
     $agents = static fn(string $dirs): string => '- Extension files are symlinked from root into ' . $dirs . "\n";
     $config = "<file>web/modules/custom/your_extension/rector.php</file>\n<file>web/themes/custom/your_extension/rector.php</file>\n";
+    $test_base = static fn(string $setup): string => "abstract class TestBase extends WebDriverTestBase {\n\n  /**\n   * {@inheritdoc}\n   */\n" . $setup . "\n  /**\n   * {@inheritdoc}\n   */\n  protected function setUp(): void {\n  }\n\n}\n";
+    $module_setup = "  protected \$defaultTheme = 'stark';\n\n  /**\n   * {@inheritdoc}\n   */\n  protected static \$modules = ['your_extension'];\n";
+    $package = static fn(string $js, string $css): string => sprintf("\"lint-js\": \"eslint %s --ext .js\",\n\"lint-css\": \"stylelint --allow-empty-input %s\"\n", $js, $css);
+    $jest = static fn(string $dirs): string => sprintf("const dirs = [%s];\n", $dirs);
     $template = [
       'CONTRIBUTING.md' => $contributing(' (`web/themes/custom/` for a theme)', 'modules'),
       'AGENTS.md' => $agents('`build/web/modules/custom/` (module) or `build/web/themes/custom/` (theme)'),
       'phpunit.xml' => $config,
+      'TestBase.php' => $test_base($module_setup),
+      'package.json' => $package('web/modules/custom web/themes/custom', '\"web/modules/custom/**/*.css\" \"web/themes/custom/**/*.css\"'),
+      'jest.config.js' => $jest("'web/modules/custom', 'web/themes/custom'"),
     ];
 
     yield 'module' => [
@@ -1009,6 +1103,9 @@ final class InstallHelpersTest extends UnitTestCase {
         'CONTRIBUTING.md' => $contributing('', 'modules'),
         'AGENTS.md' => $agents('`build/web/modules/custom/`'),
         'phpunit.xml' => $config,
+        'TestBase.php' => $test_base($module_setup),
+        'package.json' => $package('web/modules/custom', '\"web/modules/custom/**/*.css\"'),
+        'jest.config.js' => $jest("'web/modules/custom'"),
       ],
     ];
 
@@ -1019,6 +1116,9 @@ final class InstallHelpersTest extends UnitTestCase {
         'CONTRIBUTING.md' => $contributing('', 'themes'),
         'AGENTS.md' => $agents('`build/web/themes/custom/`'),
         'phpunit.xml' => $config,
+        'TestBase.php' => $test_base("  protected \$defaultTheme = 'your_extension';\n"),
+        'package.json' => $package('web/themes/custom', '\"web/themes/custom/**/*.css\"'),
+        'jest.config.js' => $jest("'web/themes/custom'"),
       ],
     ];
   }
@@ -1063,6 +1163,40 @@ final class InstallHelpersTest extends UnitTestCase {
   public function testRemoveDirMissing(): void {
     remove_dir(self::$sut . '/nonexistent');
     $this->addToAssertionCount(1);
+  }
+
+  /**
+   * @param array<string, string> $files
+   * @param array<string> $expected_absent
+   * @param array<string> $expected_present
+   */
+  #[DataProvider('dataProviderRemoveFile')]
+  public function testRemoveFile(array $files, string $file, array $expected_absent, array $expected_present): void {
+    chdir(self::$sut);
+
+    $filesystem = new Filesystem();
+    foreach ($files as $name => $content) {
+      $filesystem->dumpFile(self::$sut . '/' . $name, $content);
+    }
+
+    remove_file($file);
+
+    foreach ($expected_absent as $path) {
+      $this->assertFileDoesNotExist(self::$sut . '/' . $path);
+    }
+
+    foreach ($expected_present as $path) {
+      $this->assertFileExists(self::$sut . '/' . $path);
+    }
+  }
+
+  public static function dataProviderRemoveFile(): \Iterator {
+    yield 'file in the root' => [['a.txt' => 'a', 'b.txt' => 'b'], 'a.txt', ['a.txt'], ['b.txt']];
+    yield 'empty parents' => [['a/b/c.txt' => 'c', 'd.txt' => 'd'], 'a/b/c.txt', ['a/b/c.txt', 'a/b', 'a'], ['d.txt']];
+    yield 'parent with a file' => [['a/b/c.txt' => 'c', 'a/d.txt' => 'd'], 'a/b/c.txt', ['a/b/c.txt', 'a/b'], ['a/d.txt']];
+    yield 'parent with a directory' => [['a/b/c.txt' => 'c', 'a/e/f.txt' => 'f'], 'a/b/c.txt', ['a/b/c.txt', 'a/b'], ['a/e/f.txt']];
+    yield 'sibling in the directory' => [['a/b/c.txt' => 'c', 'a/b/g.txt' => 'g'], 'a/b/c.txt', ['a/b/c.txt'], ['a/b/g.txt']];
+    yield 'missing file' => [['a/d.txt' => 'd'], 'a/b/c.txt', ['a/b'], ['a/d.txt']];
   }
 
   #[DataProvider('dataProviderGetFiles')]
@@ -1861,6 +1995,39 @@ final class InstallHelpersTest extends UnitTestCase {
   }
 
   /**
+   * @param array<string> $types
+   * @param array<string> $expected
+   */
+  #[DataProvider('dataProviderExtensionTypeCspellWords')]
+  public function testExtensionTypeCspellWords(array $types, array $expected): void {
+    $this->assertSame($expected, extension_type_cspell_words($types));
+  }
+
+  public static function dataProviderExtensionTypeCspellWords(): \Iterator {
+    yield 'no type' => [[], []];
+    yield 'type without words' => [['theme'], []];
+    yield 'type with words' => [['module'], ['noscript']];
+    yield 'unknown type' => [['profile'], []];
+  }
+
+  /**
+   * Every word an extension type lists is in the 'words' of the template
+   * '.cspell.json'.
+   */
+  public function testExtensionTypeSpecsCspellWordsAreTemplateWords(): void {
+    $config = json_decode((string) file_get_contents(dirname(__DIR__, 4) . '/.cspell.json'), TRUE);
+    $this->assertIsArray($config);
+    $template_words = $config['words'] ?? NULL;
+    $this->assertIsArray($template_words);
+
+    foreach (extension_type_specs() as $type => $spec) {
+      foreach ($spec['cspell_words'] as $word) {
+        $this->assertContains($word, $template_words, sprintf('The CSpell word "%s" of the %s type is not in .cspell.json.', $word, $type));
+      }
+    }
+  }
+
+  /**
    * @param array<string> $drupal_versions
    * @param array<string> $wrapper
    */
@@ -1879,6 +2046,7 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'machine name starting with digit' => ['Name', '1name', 'module', ['10', '11'], ['ahoy'], 'Machine name must start with a lowercase letter'];
     yield 'machine name with special char' => ['Name', 'name!', 'module', ['10', '11'], ['ahoy'], 'Machine name must start with a lowercase letter'];
     yield 'empty type' => ['Name', 'machine', '', ['10', '11'], ['ahoy'], 'Type is required.'];
+    yield 'unsupported type' => ['Name', 'machine', 'profile', ['10', '11'], ['ahoy'], 'Unsupported extension type: profile.'];
     yield 'empty drupal versions' => ['Name', 'machine', 'module', [], ['ahoy'], 'At least one Drupal version is required.'];
     yield 'unsupported drupal version' => ['Name', 'machine', 'module', ['11', '9'], ['ahoy'], 'Unsupported Drupal version: 9.'];
     yield 'unsupported drupal versions' => ['Name', 'machine', 'module', ['9', '13'], ['ahoy'], 'Unsupported Drupal version: 9, 13.'];

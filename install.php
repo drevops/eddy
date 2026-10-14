@@ -298,6 +298,50 @@ function drupal_version_php_versions(): array {
 }
 
 /**
+ * Define the removal footprint of each extension type beyond its blocks.
+ *
+ * An 'EXTENSION_<TYPE>' block holds the lines that only that type has. 'files'
+ * lists the template files that only that type uses, and 'cspell_words' the
+ * words they bring into the CSpell 'words' of '.cspell.json'.
+ *
+ * The example extension is a module, so the files of its service, its settings
+ * form and their tests are the module's. A theme's own file is its '.theme'
+ * file.
+ *
+ * '.eddy/CLAUDE.md' describes what a theme keeps.
+ *
+ * @return array<string, array{
+ *   files: list<string>,
+ *   cspell_words: list<string>,
+ *   }>
+ *   Map of extension type to its removal specification.
+ */
+function extension_type_specs(): array {
+  return [
+    'module' => [
+      'files' => [
+        'your_extension.install',
+        'your_extension.links.menu.yml',
+        'your_extension.module',
+        'your_extension.routing.yml',
+        'your_extension.services.yml',
+        'config/schema/your_extension.schema.yml',
+        'src/Form/YourExtensionForm.php',
+        'src/YourExtensionService.php',
+        'tests/src/Functional/YourExtensionFunctionalTest.php',
+        'tests/src/Kernel/YourExtensionServiceKernelTest.php',
+        'tests/src/Unit/YourExtensionServiceUnitTest.php',
+      ],
+      'cspell_words' => ['noscript'],
+    ],
+    'theme' => [
+      'files' => ['your_extension.theme'],
+      'cspell_words' => [],
+    ],
+  ];
+}
+
+/**
  * Print help.
  */
 function print_help(): void {
@@ -391,6 +435,10 @@ function process(string $extension_name, string $extension_machine_name, string 
     throw new \Exception('Type is required.');
   }
 
+  if (!array_key_exists($extension_type, extension_type_specs())) {
+    throw new \Exception(sprintf('Unsupported extension type: %s.', $extension_type));
+  }
+
   if ($drupal_versions === []) {
     throw new \Exception('At least one Drupal version is required.');
   }
@@ -448,6 +496,11 @@ function process(string $extension_name, string $extension_machine_name, string 
 
   process_readme($extension_name);
 
+  // 'extension_type_specs()' names the template files, so they go before
+  // 'process_internal()' renames them.
+  $types_remove = array_values(array_diff(array_keys(extension_type_specs()), [$extension_type]));
+  remove_extension_types($types_remove);
+
   process_extension_type_text($extension_type);
 
   process_internal($extension_name, $extension_machine_name, $extension_type, $repository ?? origin_github_repository());
@@ -472,7 +525,7 @@ function process(string $extension_name, string $extension_machine_name, string 
 
   // This runs after every other change, so the words in use come from the
   // files the project ships.
-  remove_unused_cspell_words(tool_cspell_words($tools_remove));
+  remove_unused_cspell_words([...tool_cspell_words($tools_remove), ...extension_type_cspell_words($types_remove)]);
 }
 
 /**
@@ -531,6 +584,31 @@ function remove_drupal_versions(array $majors): void {
 }
 
 /**
+ * Remove the unselected extension types from the project.
+ *
+ * Removing a type strips its '#;< EXTENSION_<TYPE> ... #;> EXTENSION_<TYPE>'
+ * blocks from every project file. Markers for the kept type are stripped later
+ * by 'remove_special_comments()'.
+ *
+ * It also removes the type's files listed in 'extension_type_specs()', with
+ * each directory that the removal leaves empty.
+ *
+ * @param array<string> $types
+ *   The extension types to remove.
+ */
+function remove_extension_types(array $types): void {
+  $specs = extension_type_specs();
+
+  foreach ($types as $type) {
+    remove_tokens_with_content('EXTENSION_' . strtoupper($type));
+
+    foreach ($specs[$type]['files'] ?? [] as $file) {
+      remove_file($file);
+    }
+  }
+}
+
+/**
  * Render the text that names the selected command wrappers.
  *
  * The template names both wrappers in phrases such as "`make build` or
@@ -557,10 +635,16 @@ function process_command_wrapper_text(array $command_wrapper): void {
 }
 
 /**
- * Render the text that names where the extension sits in the site build.
+ * Render the text that follows the extension type.
  *
- * The template names the directories of both extension types. Each mention
- * is replaced with the directory of the extension's type.
+ * The template names the directories of both extension types, in the docs and
+ * on the lines of 'package.json' and 'jest.config.js' that list both, where no
+ * marker block fits. Each mention is replaced with the directory of the
+ * extension's type.
+ *
+ * The FunctionalJavascript base class enables the extension as a module, with
+ * Stark as the default theme. A theme cannot be enabled as a module, so its
+ * base class installs it as the default theme instead.
  *
  * @param string $extension_type
  *   The extension type: 'module' or 'theme'.
@@ -571,6 +655,22 @@ function process_extension_type_text(string $extension_type): void {
   replace_string_content(' (`web/themes/custom/` for a theme)', '');
   replace_string_content('`build/web/modules/custom/` (module) or `build/web/themes/custom/` (theme)', '`build/web/' . $dir . '/custom/`');
   replace_string_content('web/modules/custom/your_extension/tests/', 'web/' . $dir . '/custom/your_extension/tests/');
+  replace_string_content('web/modules/custom web/themes/custom', 'web/' . $dir . '/custom');
+  replace_string_content('\"web/modules/custom/**/*.css\" \"web/themes/custom/**/*.css\"', '\"web/' . $dir . '/custom/**/*.css\"');
+  replace_string_content("['web/modules/custom', 'web/themes/custom']", "['web/" . $dir . "/custom']");
+
+  if ($extension_type === 'theme') {
+    $module_setup = implode("\n", [
+      "  protected \$defaultTheme = 'stark';",
+      '',
+      '  /**',
+      '   * {@inheritdoc}',
+      '   */',
+      "  protected static \$modules = ['your_extension'];",
+    ]);
+
+    replace_string_content($module_setup, "  protected \$defaultTheme = 'your_extension';");
+  }
 }
 
 /**
@@ -902,6 +1002,7 @@ function process_internal(string $extension_name, string $extension_machine_name
   @rename('your_extension.module', $extension_machine_name . '.module');
   @rename('your_extension.routing.yml', $extension_machine_name . '.routing.yml');
   @rename('your_extension.services.yml', $extension_machine_name . '.services.yml');
+  @rename('your_extension.theme', $extension_machine_name . '.theme');
   @rename('config/schema/your_extension.schema.yml', 'config/schema/' . $extension_machine_name . '.schema.yml');
   @rename('src/Form/YourExtensionForm.php', 'src/Form/' . $extension_machine_name_class . 'Form.php');
   @rename('src/YourExtensionService.php', 'src/' . $extension_machine_name_class . 'Service.php');
@@ -942,16 +1043,6 @@ function process_internal(string $extension_name, string $extension_machine_name
 
   remove_cspell_eddy_paths();
   normalize_cspell_words();
-
-  if ($extension_type === 'theme') {
-    @unlink($extension_machine_name . '.install');
-    @unlink($extension_machine_name . '.module');
-    @unlink($extension_machine_name . '.routing.yml');
-    @unlink($extension_machine_name . '.services.yml');
-    @unlink($extension_machine_name . '.links.menu.yml');
-    @unlink('src/' . $extension_machine_name_class . 'Service.php');
-    file_put_contents($extension_machine_name . '.info.yml', 'base theme: false' . PHP_EOL, FILE_APPEND);
-  }
 }
 
 /**
@@ -2101,6 +2192,26 @@ function tool_cspell_words(array $tools_remove): array {
 }
 
 /**
+ * List the CSpell words of the extension types to remove.
+ *
+ * @param array<string> $types
+ *   The extension types to remove.
+ *
+ * @return list<string>
+ *   The 'cspell_words' of the types.
+ */
+function extension_type_cspell_words(array $types): array {
+  $specs = extension_type_specs();
+  $words = [];
+
+  foreach ($types as $type) {
+    $words = [...$words, ...($specs[$type]['cspell_words'] ?? [])];
+  }
+
+  return $words;
+}
+
+/**
  * Remove words from the CSpell 'words' of '.cspell.json' that no file uses.
  *
  * A word stays while a project file still uses it, such as a word in the
@@ -2450,6 +2561,23 @@ function remove_dir(string $dir): void {
   }
 
   rmdir($dir);
+}
+
+/**
+ * Remove a file and each parent directory that the removal leaves empty.
+ *
+ * @param string $file
+ *   The file path, relative to the current directory.
+ */
+function remove_file(string $file): void {
+  @unlink($file);
+
+  $dir = dirname($file);
+
+  while ($dir !== '.' && is_dir($dir) && scandir($dir) === ['.', '..']) {
+    rmdir($dir);
+    $dir = dirname($dir);
+  }
 }
 
 // Entrypoint.

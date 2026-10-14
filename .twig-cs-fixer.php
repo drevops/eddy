@@ -10,8 +10,12 @@ $finder = new TwigCsFixer\File\Finder();
 // including templates/, is a symlink), so the Finder must follow symlinks to
 // discover the templates it needs to lint.
 $finder->followLinks();
+// #;< EXTENSION_MODULE
 $finder->in(__DIR__ . '/web/modules/custom');
+// #;> EXTENSION_MODULE
+// #;< EXTENSION_THEME
 $finder->in(__DIR__ . '/web/themes/custom');
+// #;> EXTENSION_THEME
 
 $config = new TwigCsFixer\Config\Config();
 $config->setRuleset($ruleset);

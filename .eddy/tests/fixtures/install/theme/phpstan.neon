@@ -1,0 +1,9 @@
+@@ -19,7 +19,7 @@
+   tmpDir: .phpstan
+ 
+   paths:
+-    - web/modules/custom
++    - web/themes/custom
+ 
+   excludePaths:
+     - vendor/*

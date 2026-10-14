@@ -66,7 +66,7 @@ final class InstallProcessTest extends UnitTestCase {
    * @param array<string> $expected_claude_allow
    */
   #[DataProvider('dataProviderProcess')]
-  public function testProcess(string $name, string $machine_name, string $type, array $command_wrapper, array $expected_exists, array $expected_not_exists, array $expected_claude_allow, bool $info_yml_has_base_theme): void {
+  public function testProcess(string $name, string $machine_name, string $type, array $command_wrapper, array $expected_exists, array $expected_not_exists, array $expected_claude_allow): void {
     process($name, $machine_name, $type, ['10', '11'], $command_wrapper, [], FALSE, FALSE);
 
     foreach ($expected_exists as $path) {
@@ -82,13 +82,6 @@ final class InstallProcessTest extends UnitTestCase {
     $this->assertNotFalse($claude_content);
     $decoded = json_decode($claude_content, TRUE);
     $this->assertSame(['permissions' => ['allow' => $expected_claude_allow, 'deny' => []]], $decoded);
-
-    if ($info_yml_has_base_theme) {
-      $info_path = self::$sut . '/' . $machine_name . '.info.yml';
-      $info = file_get_contents($info_path);
-      $this->assertNotFalse($info);
-      $this->assertStringEndsWith('base theme: false' . PHP_EOL, $info);
-    }
 
     $info_path = self::$sut . '/' . $machine_name . '.info.yml';
     $info = (string) file_get_contents($info_path);
@@ -126,6 +119,8 @@ final class InstallProcessTest extends UnitTestCase {
     ];
 
     $module_not_exists = [
+      'my_extension.theme',
+      'your_extension.theme',
       'your_extension.info.yml',
       'your_extension.install',
       'your_extension.module',
@@ -146,7 +141,6 @@ final class InstallProcessTest extends UnitTestCase {
       array_merge($module_exists, ['.github/workflows', '.ahoy.yml']),
       array_merge($module_not_exists, ['.circleci', 'Makefile']),
       ['Bash(ahoy:*)', 'Bash(composer:*)'],
-      FALSE,
     ];
 
     yield 'theme' => [
@@ -154,6 +148,12 @@ final class InstallProcessTest extends UnitTestCase {
       [
         'my_theme.info.yml',
         'my_theme.libraries.yml',
+        'my_theme.theme',
+        'tests/src/FunctionalJavascript/MyThemeFunctionalJavascriptTestBase.php',
+        'tests/src/FunctionalJavascript/MyThemeSmokeFunctionalJavascriptTest.php',
+        'css/my_theme.css',
+        'js/my_theme.js',
+        'js/my_theme.test.js',
         'README.md',
         'CONTRIBUTING.md',
         '.github/workflows',
@@ -166,12 +166,17 @@ final class InstallProcessTest extends UnitTestCase {
         'my_theme.routing.yml',
         'my_theme.services.yml',
         'my_theme.links.menu.yml',
-        'src/MyThemeService.php',
+        'src',
+        'config',
+        'tests/src/Unit',
+        'tests/src/Kernel',
+        'tests/src/Functional',
+        'your_extension.install',
+        'your_extension.module',
         '.circleci',
         'Makefile',
       ],
       ['Bash(ahoy:*)', 'Bash(composer:*)'],
-      TRUE,
     ];
 
     yield 'module, gha, makefile only' => [
@@ -179,7 +184,6 @@ final class InstallProcessTest extends UnitTestCase {
       array_merge($module_exists, ['.github/workflows', 'Makefile']),
       array_merge($module_not_exists, ['.circleci', '.ahoy.yml']),
       ['Bash(composer:*)', 'Bash(make:*)'],
-      FALSE,
     ];
 
     yield 'module, gha, both wrappers' => [
@@ -187,7 +191,6 @@ final class InstallProcessTest extends UnitTestCase {
       array_merge($module_exists, ['.github/workflows', '.ahoy.yml', 'Makefile']),
       array_merge($module_not_exists, ['.circleci']),
       ['Bash(ahoy:*)', 'Bash(composer:*)', 'Bash(make:*)'],
-      FALSE,
     ];
 
     yield 'module, gha, no wrappers' => [
@@ -195,8 +198,164 @@ final class InstallProcessTest extends UnitTestCase {
       array_merge($module_exists, ['.github/workflows']),
       array_merge($module_not_exists, ['.circleci', '.ahoy.yml', 'Makefile']),
       ['Bash(composer:*)'],
-      FALSE,
     ];
+  }
+
+  /**
+   * The '.info.yml' holds the keys of the extension type only.
+   *
+   * @param array<string, mixed> $expected
+   */
+  #[DataProvider('dataProviderProcessRendersInfoFile')]
+  public function testProcessRendersInfoFile(string $name, string $machine_name, string $type, array $expected): void {
+    process($name, $machine_name, $type, ['10', '11'], ['ahoy'], [], FALSE, FALSE);
+
+    $this->assertSame($expected, Yaml::parseFile(self::$sut . '/' . $machine_name . '.info.yml'));
+  }
+
+  public static function dataProviderProcessRendersInfoFile(): \Iterator {
+    yield 'module' => [
+      'My Extension', 'my_extension', 'module',
+      [
+        'name' => 'My Extension',
+        'type' => 'module',
+        'description' => 'My Extension example.',
+        'package' => 'Testing',
+        'core_version_requirement' => '^10 || ^11',
+        'dependencies' => ['drupal:config', 'drupal:user'],
+      ],
+    ];
+
+    yield 'theme' => [
+      'My Theme', 'my_theme', 'theme',
+      [
+        'name' => 'My Theme',
+        'type' => 'theme',
+        'description' => 'My Theme example.',
+        'package' => 'Testing',
+        'core_version_requirement' => '^10 || ^11',
+        'base theme' => FALSE,
+        'libraries' => ['my_theme/global'],
+      ],
+    ];
+  }
+
+  /**
+   * The FunctionalJavascript base class installs a theme as the default theme
+   * and enables a module.
+   *
+   * @param array<string> $expected_present
+   * @param array<string> $expected_absent
+   */
+  #[DataProvider('dataProviderProcessRendersFunctionalJavascriptBase')]
+  public function testProcessRendersFunctionalJavascriptBase(string $type, string $machine_name, string $class_name, array $expected_present, array $expected_absent): void {
+    process('My Extension', $machine_name, $type, ['10', '11'], ['ahoy'], [], FALSE, FALSE);
+
+    $base = (string) file_get_contents(self::$sut . '/tests/src/FunctionalJavascript/' . $class_name . 'FunctionalJavascriptTestBase.php');
+
+    foreach ($expected_present as $needle) {
+      $this->assertStringContainsString($needle, $base);
+    }
+
+    foreach ($expected_absent as $needle) {
+      $this->assertStringNotContainsString($needle, $base);
+    }
+  }
+
+  public static function dataProviderProcessRendersFunctionalJavascriptBase(): \Iterator {
+    yield 'module' => ['module', 'my_extension', 'MyExtension', ["  protected \$defaultTheme = 'stark';\n", "  protected static \$modules = ['my_extension'];\n"], []];
+    yield 'theme' => ['theme', 'my_theme', 'MyTheme', ["  protected \$defaultTheme = 'my_theme';\n\n  /**\n   * {@inheritdoc}\n   */\n  protected function setUp(): void {\n"], ['stark', '$modules']];
+  }
+
+  /**
+   * The 'AGENTS.md' notes describe the extension type only.
+   *
+   * @param array<string> $tools_remove
+   * @param array<string> $expected_present
+   * @param array<string> $expected_absent
+   */
+  #[DataProvider('dataProviderProcessRendersExtensionTypeNotes')]
+  public function testProcessRendersExtensionTypeNotes(string $type, string $machine_name, array $tools_remove, array $expected_present, array $expected_absent): void {
+    process('My Extension', $machine_name, $type, ['10', '11'], ['ahoy'], $tools_remove, FALSE, FALSE);
+
+    $agents = (string) file_get_contents(self::$sut . '/AGENTS.md');
+
+    foreach ($expected_present as $line) {
+      $this->assertMatchesRegularExpression('/^' . preg_quote($line, '/') . '/m', $agents, 'AGENTS.md misses the line: ' . $line);
+    }
+
+    foreach ($expected_absent as $line) {
+      $this->assertStringNotContainsString($line, $agents);
+    }
+  }
+
+  public static function dataProviderProcessRendersExtensionTypeNotes(): \Iterator {
+    $module = [
+      '- `src/` - Extension source code (services, forms, etc.)',
+      '- `config/schema/` - Configuration schema definitions',
+      '- **Service-based architecture**: Main functionality in services registered via `*.services.yml`',
+      '- **Form integration**: Admin forms in `src/Form/` for configuration',
+      '2. Develop My Extension code in `src/`',
+    ];
+    $module_tests = [
+      '- `tests/src/` - PHPUnit tests (Unit/, Kernel/, Functional/)',
+      '- **Test coverage**: Unit, kernel, and functional test examples provided',
+    ];
+    $theme = [
+      "- `css/` and `js/` - Stylesheets and JavaScript behaviors of the theme's global library",
+      '- **No base theme**: `base theme: false`',
+      '- **Theme hooks**: `my_theme.theme` adds a `div[data-my_theme-time]` element to every page, which `js/my_theme.js` fills with the page load time',
+      '- **Global library**: The `libraries` key in `my_theme.info.yml` attaches the `global` library from `my_theme.libraries.yml` to every page',
+      '2. Develop your theme: Twig templates in `templates/`, hooks in `my_theme.theme`',
+    ];
+    $theme_tests = [
+      '- `tests/src/` - PHPUnit tests (FunctionalJavascript/)',
+      '- **Test coverage**: FunctionalJavascript smoke test example provided',
+    ];
+
+    yield 'module' => ['module', 'my_extension', [], [...$module, ...$module_tests], [...$theme, ...$theme_tests]];
+    yield 'theme' => ['theme', 'my_theme', [], [...$theme, ...$theme_tests], [...$module, ...$module_tests]];
+    yield 'theme without FunctionalJavascript' => ['theme', 'my_theme', ['functional_javascript'], $theme, [...$module, ...$module_tests, ...$theme_tests]];
+  }
+
+  /**
+   * A theme drops the module's directories, and keeps a directory that still
+   * holds a project file.
+   *
+   * @param array<string> $tools_remove
+   * @param array<string> $project_files
+   * @param array<string> $expected_dirs
+   * @param array<string> $expected_no_dirs
+   */
+  #[DataProvider('dataProviderProcessPrunesThemeDirectories')]
+  public function testProcessPrunesThemeDirectories(array $tools_remove, array $project_files, array $expected_dirs, array $expected_no_dirs): void {
+    $filesystem = new Filesystem();
+    foreach ($project_files as $path) {
+      $filesystem->dumpFile(self::$sut . '/' . $path, "<?php\n");
+    }
+
+    process('My Theme', 'my_theme', 'theme', ['10', '11'], ['ahoy'], $tools_remove, FALSE, FALSE);
+
+    foreach ($expected_dirs as $dir) {
+      $this->assertDirectoryExists(self::$sut . '/' . $dir);
+    }
+
+    foreach ($expected_no_dirs as $dir) {
+      $this->assertDirectoryDoesNotExist(self::$sut . '/' . $dir);
+    }
+
+    foreach ($project_files as $path) {
+      $this->assertFileExists(self::$sut . '/' . $path);
+    }
+  }
+
+  public static function dataProviderProcessPrunesThemeDirectories(): \Iterator {
+    $module_dirs = ['src', 'config', 'tests/src/Unit', 'tests/src/Kernel', 'tests/src/Functional'];
+
+    yield 'every tool' => [[], [], ['tests/src/FunctionalJavascript', 'css', 'js'], $module_dirs];
+    yield 'no FunctionalJavascript' => [['functional_javascript'], [], ['css', 'js'], [...$module_dirs, 'tests']];
+    yield 'no PHPUnit' => [['phpunit'], [], ['css', 'js'], [...$module_dirs, 'tests']];
+    yield 'project files' => [[], ['src/Helper.php', 'tests/src/Unit/HelperUnitTest.php'], ['src', 'tests/src/Unit'], ['src/Form', 'config', 'tests/src/Kernel', 'tests/src/Functional']];
   }
 
   /**
@@ -388,20 +547,21 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   /**
-   * Removing a tool removes exactly the CSpell words no file uses any more.
+   * Removing a tool or an extension type removes exactly the CSpell words no
+   * file uses any more.
    *
    * @param array<string> $tools_remove
    * @param array<string> $expected
    */
   #[DataProvider('dataProviderProcessRemovesCspellWords')]
-  public function testProcessRemovesCspellWords(array $tools_remove, array $expected, string $name = 'My Extension', bool $keep_script = FALSE): void {
+  public function testProcessRemovesCspellWords(array $tools_remove, array $expected, string $name = 'My Extension', bool $keep_script = FALSE, string $type = 'module'): void {
     if (!$keep_script) {
       unlink(self::$sut . '/install.php');
     }
 
     $before = self::cspellWords();
 
-    process($name, strtolower(str_replace(' ', '_', $name)), 'module', ['10', '11', '12'], ['ahoy', 'makefile'], $tools_remove, FALSE, FALSE);
+    process($name, strtolower(str_replace(' ', '_', $name)), $type, ['10', '11', '12'], ['ahoy', 'makefile'], $tools_remove, FALSE, FALSE);
 
     // The rename of the extension rewrites these placeholders.
     $removed = array_values(array_diff($before, self::cspellWords(), ['alexskrypnyk', 'yournamespace', 'yourproject']));
@@ -433,6 +593,9 @@ final class InstallProcessTest extends UnitTestCase {
     yield 'every tool but CSpell' => [$every_tool_but_cspell, [...$phpcs, ...$phpstan, ...$rector, ...$twigcs, ...$phpunit, ...$functional_javascript, ...$renovate]];
     yield 'word in the extension name' => [['phpunit'], [...array_diff($phpunit, ['behat']), ...$functional_javascript], 'Behat Tools'];
     yield 'kept install.php' => [['phpunit'], [], 'My Extension', TRUE];
+    yield 'theme' => [[], ['noscript'], 'My Theme', FALSE, 'theme'];
+    yield 'theme without PHPUnit' => [['phpunit'], [...$phpunit, ...$functional_javascript, 'noscript'], 'My Theme', FALSE, 'theme'];
+    yield 'theme, kept install.php' => [[], [], 'My Theme', TRUE, 'theme'];
   }
 
   /**
@@ -843,8 +1006,8 @@ final class InstallProcessTest extends UnitTestCase {
    * @param array<string> $tools_remove
    */
   #[DataProvider('dataProviderProcessLeavesNoDoubleBlankLines')]
-  public function testProcessLeavesNoDoubleBlankLines(array $drupal_versions, array $command_wrapper, array $tools_remove): void {
-    process('My Extension', 'my_extension', 'module', $drupal_versions, $command_wrapper, $tools_remove, FALSE, FALSE);
+  public function testProcessLeavesNoDoubleBlankLines(array $drupal_versions, array $command_wrapper, array $tools_remove, string $type = 'module'): void {
+    process('My Extension', 'my_extension', $type, $drupal_versions, $command_wrapper, $tools_remove, FALSE, FALSE);
 
     $files = get_files();
     $this->assertNotSame([], $files, 'The project holds no file.');
@@ -878,6 +1041,9 @@ final class InstallProcessTest extends UnitTestCase {
     yield 'no npm tools' => [['10', '11'], ['ahoy', 'makefile'], ['eslint', 'stylelint', 'cspell', 'jest']];
     yield 'no tools' => [['10', '11'], ['ahoy', 'makefile'], $tools];
     yield 'no tools, no wrappers' => [['10', '11'], [], $tools];
+    yield 'theme' => [['10', '11'], ['ahoy', 'makefile'], [], 'theme'];
+    yield 'theme, no FunctionalJavascript' => [['10', '11'], ['ahoy', 'makefile'], ['functional_javascript'], 'theme'];
+    yield 'theme, no tools, no wrappers' => [['10', '11'], [], $tools, 'theme'];
   }
 
   /**
@@ -1264,6 +1430,49 @@ final class InstallProcessTest extends UnitTestCase {
   public static function dataProviderProcessRendersExtensionTypeText(): \Iterator {
     yield 'module' => ['module', 'my_extension', 'modules'];
     yield 'theme' => ['theme', 'my_theme', 'themes'];
+  }
+
+  /**
+   * A project names only the custom directory of its own extension type.
+   *
+   * @param array<string> $tools_remove
+   * @param array<string> $expected
+   */
+  #[DataProvider('dataProviderProcessNamesOwnCustomDirectory')]
+  public function testProcessNamesOwnCustomDirectory(string $type, array $tools_remove, array $expected): void {
+    // The copy of 'install.php' names both directories.
+    unlink(self::$sut . '/install.php');
+
+    process('My Extension', 'my_extension', $type, ['10', '11'], ['ahoy', 'makefile'], $tools_remove, FALSE, FALSE);
+
+    $own = $type === 'theme' ? 'web/themes/custom' : 'web/modules/custom';
+    $other = $type === 'theme' ? 'web/modules/custom' : 'web/themes/custom';
+    $naming_own = [];
+
+    foreach (get_files() as $file) {
+      $content = (string) file_get_contents($file);
+      $path = substr($file, strlen((string) getcwd()) + 1);
+
+      $this->assertStringNotContainsString($other, $content, $path . ' names the custom directory of the other extension type.');
+
+      if (str_contains($content, $own)) {
+        $naming_own[] = $path;
+      }
+    }
+
+    sort($naming_own);
+
+    $this->assertSame($expected, $naming_own);
+  }
+
+  public static function dataProviderProcessNamesOwnCustomDirectory(): \Iterator {
+    $configs = ['.twig-cs-fixer.php', 'AGENTS.md', 'CONTRIBUTING.md', 'jest.config.js', 'package.json', 'phpcs.xml', 'phpstan.neon', 'phpunit.d10.xml', 'phpunit.xml', 'rector.php'];
+    $tools = ['phpcs', 'phpstan', 'rector', 'twigcs', 'eslint', 'stylelint', 'cspell', 'jest', 'phpunit', 'functional_javascript', 'renovate'];
+
+    yield 'module' => ['module', [], $configs];
+    yield 'theme' => ['theme', [], $configs];
+    yield 'module, no tools' => ['module', $tools, ['AGENTS.md']];
+    yield 'theme, no tools' => ['theme', $tools, ['AGENTS.md']];
   }
 
   /**

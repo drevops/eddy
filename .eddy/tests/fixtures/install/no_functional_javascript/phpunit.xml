@@ -13,13 +13,12 @@
      </php>
      <extensions>
          <!-- Functional tests HTML output logging. -->
-@@ -96,10 +88,6 @@
-             <directory>web/themes/custom/*/tests/src/Functional</directory>
+@@ -93,9 +85,6 @@
+             <directory>web/modules/custom/*/tests/src/Functional</directory>
          </testsuite>
  
 -        <testsuite name="functional-javascript">
 -            <directory>web/modules/custom/*/tests/src/FunctionalJavascript</directory>
--            <directory>web/themes/custom/*/tests/src/FunctionalJavascript</directory>
 -        </testsuite>
      </testsuites>
  

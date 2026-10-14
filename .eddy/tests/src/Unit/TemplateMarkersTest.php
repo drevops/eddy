@@ -8,6 +8,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
 use function drupal_version_options;
+use function extension_type_specs;
 use function tool_specs;
 
 /**
@@ -27,7 +28,8 @@ final class TemplateMarkersTest extends UnitTestCase {
   /**
    * The tokens 'install.php' strips by name.
    *
-   * The 'DRUPAL_<major>' tokens follow 'drupal_version_options()' and the tool
+   * The 'DRUPAL_<major>' tokens follow 'drupal_version_options()', the
+   * 'EXTENSION_<TYPE>' tokens follow 'extension_type_specs()' and the tool
    * tokens follow 'tool_specs()'.
    */
   protected const array NAMED_TOKENS = ['DEV_AHOY', 'DEV_MAKEFILE', 'DEV_COMMAND_WRAPPER', 'DEV_NO_COMMAND_WRAPPER', 'DEV_NODEJS_LINT', 'DEV_NPM', 'META'];
@@ -338,8 +340,9 @@ final class TemplateMarkersTest extends UnitTestCase {
    */
   protected static function strippedTokens(): array {
     $majors = array_map(static fn(int $major): string => 'DRUPAL_' . $major, array_keys(drupal_version_options()));
+    $types = array_map(static fn(string $type): string => 'EXTENSION_' . strtoupper($type), array_keys(extension_type_specs()));
 
-    return [...self::NAMED_TOKENS, ...$majors, ...array_column(tool_specs(), 'token')];
+    return [...self::NAMED_TOKENS, ...$majors, ...$types, ...array_column(tool_specs(), 'token')];
   }
 
   /**

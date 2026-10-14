@@ -1,0 +1,5 @@
+name: Force Crystal Test
+type: module
+description: Supports the tests of the Force Crystal theme.
+package: Testing
+core_version_requirement: ^10 || ^11 || ^12

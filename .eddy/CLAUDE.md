@@ -15,7 +15,7 @@ This file documents how `install.php` prunes the template, how to regenerate the
 
 ## Template markers
 
-Besides renaming files and replacing placeholders, `install.php` deletes whatever the answers to its prompts rule out: a Drupal major you didn't select, a tool you unchecked, a command wrapper you dropped. Whole files go by name, such as `phpstan.neon` when PHPStan goes. Lines inside the files that stay go through marker blocks.
+Besides renaming files and replacing placeholders, `install.php` deletes whatever the answers to its prompts rule out: a Drupal major you didn't select, a tool you unchecked, a command wrapper you dropped, the example module's own files in a theme. Whole files go by name, such as `phpstan.neon` when PHPStan goes. Lines inside the files that stay go through marker blocks.
 
 A block opens with a line holding `#;< TOKEN` and closes with a line holding `#;> TOKEN`, and each marker line uses whatever comment syntax keeps its file valid:
 
@@ -37,6 +37,7 @@ Neither leaves a run of blank lines behind. When the lines they delete sit betwe
 | Token                                               | Stripped when                                |
 |-----------------------------------------------------|----------------------------------------------|
 | `DRUPAL_<major>`, such as `DRUPAL_11`               | The major isn't selected                     |
+| `EXTENSION_MODULE`, `EXTENSION_THEME`               | The extension is of the other type           |
 | `DEV_<TOOL>`, the `token` of a `tool_specs()` entry | The tool isn't selected                      |
 | `DEV_NODEJS_LINT`                                   | Neither ESLint nor Stylelint is selected     |
 | `DEV_NPM`                                           | No tool from `npm_specs()` is selected       |
@@ -48,6 +49,15 @@ Neither leaves a run of blank lines behind. When the lines they delete sit betwe
 Dropping PHPUnit drops FunctionalJavascript with it, since those tests run on PHPUnit. Functional tests run on Mink and its BrowserKit driver too, so those packages belong to PHPUnit, and dropping FunctionalJavascript removes only the Selenium driver. Dropping every tool in `npm_specs()` (ESLint, Stylelint, CSpell and Jest) also deletes `package.json` and `package-lock.json`, since nothing runs npm any more.
 
 A file with a `DRUPAL_<major>` block holds one for every major, so a file that only 1 major has goes in the `files` of that major's entry in `drupal_version_specs()` instead, and `remove_drupal_versions()` deletes it when the major isn't selected. That's how a project without Drupal 10 loses `phpunit.d10.xml`, which `eddy-assemble` uses in place of `phpunit.xml` only in a Drupal 10 build.
+
+The example extension is a module, and a theme keeps only what isn't specific to a module. A line that only one type has sits in an `EXTENSION_MODULE` or `EXTENSION_THEME` block: the `dependencies` of `your_extension.info.yml` are the module's, its `base theme` and `libraries` keys are the theme's, and so are their notes in `AGENTS.md`. A file that only one type uses goes in the `files` of that type's entry in `extension_type_specs()`, and `remove_extension_types()` deletes it from the other type by its template name, before `process_internal()` renames the files, along with each directory that leaves empty:
+
+- The module's are the `.module`, `.install`, routing, services and menu links files, the service class, the settings form, its configuration schema and the Unit, Kernel and Functional tests that cover them. Its `cspell_words` drop `noscript`, which only those files use.
+- The theme's is `your_extension.theme`, which adds the load time element that the module adds from `hook_page_bottom()`. It's also what gives the PHPUnit coverage source a file in a theme: PHPUnit writes no coverage report when the source matches nothing, so `phpunit.xml` and `phpunit.d10.xml` include the `.theme` files of `web/themes/custom`.
+
+A theme keeps the CSS, JavaScript and Jest test, and the FunctionalJavascript base class and smoke test, which `process_extension_type_text()` points at the theme (see [Text rendered from the answers](#text-rendered-from-the-answers)).
+
+Every tool configuration names only the custom directory of the extension's type. Each line that names `web/modules/custom` or `web/themes/custom` sits in the matching `EXTENSION_<TYPE>` block, in `phpcs.xml`, `phpstan.neon`, `rector.php`, `.twig-cs-fixer.php`, `phpunit.xml` and `phpunit.d10.xml`, and `process_extension_type_text()` renders the lines of `package.json` and `jest.config.js` that list both. So the build's other custom directory, which `eddy-assemble` still creates, never reaches a linter or a test suite, and a custom extension of the other type that `suggest` installs there is neither linted nor tested. An extension that a project bundles inside its own, such as a module in a theme's `modules/`, is linted with it, since it sits under the extension's directory. Running its tests and enabling it on the site are manual steps, which `.eddy/docs/content/development/bundled-extensions.mdx` documents and `GeneratedProjectTest` exercises.
 
 JSON holds no markers, so the words a tool adds to the `words` of `.cspell.json` are listed in its `cspell_words` in `tool_specs()`. Once every other change is done, `remove_unused_cspell_words()` removes the listed words of each dropped tool that no project file uses. A word that the extension name or a kept `install.php` uses stays, and so do generic words such as `webroot`, which no tool lists.
 
@@ -73,7 +83,7 @@ A block removes whole lines, so it can't trim a line that names several options.
 - `phpunit_config_comment()` renders the comment that opens `phpunit.xml`. It leaves out a major with a `phpunit.d<major>.xml` of its own, which `eddy-assemble` uses for that major instead, so with Drupal 10 and 11 selected it names Drupal 11 only.
 - `php_badges()` renders the PHP badges in `README.dist.md`, 1 for each PHP version that a selected major supports in `drupal_version_php_versions()`. Drupal 10 alone drops the PHP 8.5 badge, and Drupal 12 alone keeps only that one.
 - `command_wrapper_text()` renders "`make` or `ahoy`", and "`make build` or `ahoy build`" for the `build`, `info`, `lint` and `test` commands. Ahoy alone turns them into "`ahoy`" and "`ahoy build`". Without a wrapper, these phrases sit in `DEV_COMMAND_WRAPPER` blocks, and "The command wrappers and CI run it" in `AGENTS.md` becomes "CI runs it".
-- `process_extension_type_text()` renders where the extension sits in the build. A module's `CONTRIBUTING.md` drops the "(`web/themes/custom/` for a theme)" note, a theme's shows its example test paths under `web/themes/custom/`, and the symlink note in `AGENTS.md` names only the directory of the extension's type.
+- `process_extension_type_text()` renders where the extension sits in the build. A module's `CONTRIBUTING.md` drops the "(`web/themes/custom/` for a theme)" note, a theme's shows its example test paths under `web/themes/custom/`, and the symlink note in `AGENTS.md` names only the directory of the extension's type. So do the ESLint and Stylelint scripts of `package.json` and the `dirs` of `jest.config.js`, which list both directories on 1 line. A theme can't be enabled as a module, so in its FunctionalJavascript base class the `$defaultTheme = 'stark'` and `$modules` declarations become a `$defaultTheme` that names the theme.
 - A tool's `replacements` in `tool_specs()` map text that a block can't remove to the same text without the tool, and `remove_tools()` applies them when the tool goes. Without FunctionalJavascript, the `info` lines in `AGENTS.md` stop naming the WebDriver port, and the `test` recipe in the `Makefile` stops exporting it. The export opens a backslash-continued recipe line there, so a closing marker after it would become part of the shell command.
 - A major's `replacements` in `drupal_version_specs()` do the same for text that only that major has, and `remove_drupal_versions()` applies them when the major goes. Without Drupal 10, `.gitattributes` loses its `phpunit.d10.xml` line and `CONTRIBUTING.md` stops naming the file.
 
@@ -141,7 +151,7 @@ PHPUnit tests are tagged with `#[Group('p0'..'p5')]` so CI can shard them across
 - `p1` - `InstallTest` (snapshot comparison of `install.php` output).
 - `p2` - `AssembleTest` (Drupal codebase assembly) and `ToolingInstallerTest` (the tooling installer driving a real Composer).
 - `p3` - `AhoyTest` (Ahoy command wrapper), plus `AutoPortDiscoveryTest` and `WaitForPortTest`, which run real webservers and sockets without a wrapper.
-- `p4` - `MakeTest` (Makefile command wrapper).
+- `p4` - `MakeTest` (Makefile command wrapper), plus `GeneratedProjectTest`, which generates a theme and a module with `install.php`, each bundling an extension of the other type, then builds, provisions, lints and tests them through `make`.
 - `p5` - `XdebugTest` (XDebug step-debugging toggle). This is the only group whose CI runner installs the xdebug PHP extension via `coverage: xdebug` instead of pcov - the test exercises the real extension end to end, so coverage is not collected for this group.
 
 **Do not DRY the per-wrapper tests.** `AhoyTest` (p3) and `MakeTest` (p4) are intentionally kept as separate, near-parallel test classes - one per command wrapper. Never merge or parameterize them into a single shared class: each wrapper (`ahoy`, `make`) must be exercised by its own independent test so a regression in one runner can never be masked by the other. `XdebugTest`'s single parameterized `assertToggle()` is a deliberate exception for one feature toggled through both wrappers, not a pattern to extend across the whole command surface.

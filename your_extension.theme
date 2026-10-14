@@ -1,0 +1,26 @@
+<?php
+
+/**
+ * @file
+ * Code for your_extension theme.
+ *
+ * Adds a div[data-your-extension-time] element to every page, which
+ * js/your_extension.js fills with the page load time. The 'libraries' key of
+ * the theme's '.info.yml' attaches the your_extension/global library to every
+ * page.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_preprocess_HOOK() for html.html.twig.
+ */
+function your_extension_preprocess_html(array &$variables): void {
+  $variables['page_bottom']['your_extension_time'] = [
+    '#type' => 'html_tag',
+    '#tag' => 'div',
+    '#attributes' => [
+      'data-your-extension-time' => TRUE,
+    ],
+  ];
+}

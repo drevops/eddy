@@ -101,11 +101,11 @@ return RectorConfig::configure()
   ])
   // Paths to the extension's source. Each top-level item of the extension is
   // symlinked individually into the build and Rector's finder does not follow
-  // symlinked directories, so the module children are matched directly (each is
-  // passed to the finder as its own root, which a symlinked root resolves).
+  // symlinked directories, so the extension's children are matched directly
+  // (each is passed to the finder as its own root, which a symlinked root
+  // resolves).
   ->withPaths([
     __DIR__ . '/web/modules/custom/*/*',
-    __DIR__ . '/web/themes/custom/*/*',
   ])
   // Configure Drupal autoloading.
   ->withAutoloadPaths((function (): array {

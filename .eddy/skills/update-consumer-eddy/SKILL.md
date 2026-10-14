@@ -258,7 +258,7 @@ The scaffold ships a complete example extension - sample service, form, tests, a
 ':!src' ':!tests' ':!config' ':!css' ':!js' ':!composer.json' ':!logo.png' ':!<machine_name>.*' ':!scripts/*-example.sh'
 ```
 
-The merge then never touches the project's code, none of the examples reach the project, and nothing has to be deleted from the renders. `<machine_name>.*` covers the renamed `.info.yml`, `.module`, `.install`, `.libraries.yml`, `.links.menu.yml`, `.routing.yml` and `.services.yml` files. `composer.json` holds the project's own dependencies, and `logo.png` is a placeholder the installer downloads.
+The merge then never touches the project's code, none of the examples reach the project, and nothing has to be deleted from the renders. `<machine_name>.*` covers the renamed `.info.yml`, `.module`, `.install`, `.libraries.yml`, `.links.menu.yml`, `.routing.yml`, `.services.yml` and `.theme` files. `composer.json` holds the project's own dependencies, and `logo.png` is a placeholder the installer downloads.
 
 ## Step 7: Merge the release into the project
 

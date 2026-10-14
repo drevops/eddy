@@ -2,8 +2,12 @@
 <ruleset name="custom">
     <description>Custom PHPCS Standard, based on Drupal standards.</description>
 
+    <!-- #;< EXTENSION_MODULE -->
     <file>web/modules/custom</file>
+    <!-- #;> EXTENSION_MODULE -->
+    <!-- #;< EXTENSION_THEME -->
     <file>web/themes/custom</file>
+    <!-- #;> EXTENSION_THEME -->
 
     <rule ref="Drupal"/>
     <rule ref="DrupalPractice"/>
