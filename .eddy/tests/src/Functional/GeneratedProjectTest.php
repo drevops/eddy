@@ -79,8 +79,8 @@ final class GeneratedProjectTest extends ToolingTestCase {
   public static function dataProviderGeneratedProject(): \Iterator {
     // The FunctionalJavascript test and the Kernel test of the bundled modules.
     yield 'theme bundling modules' => ['theme', 'modules', 'module', 'force_crystal_companion', 2];
-    // The 4 Unit, the Kernel, the Functional and the FunctionalJavascript tests,
-    // and the Kernel test of the bundled themes.
+    // The 4 Unit, the Kernel, the Functional and the FunctionalJavascript
+    // tests, and the Kernel test of the bundled themes.
     yield 'module bundling themes' => ['module', 'themes', 'theme', 'force_crystal_admin', 8];
   }
 
