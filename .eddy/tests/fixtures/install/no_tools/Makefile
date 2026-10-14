@@ -2,17 +2,11 @@ SHELL=/bin/bash
 
 # Load variables from .env if present and export them to recipe shells. The
 # leading '-' on -include suppresses errors when the file does not exist.
-#
-# An .env assignment overrides the environment, so the shell value of each
-# variable that .env sets is saved before the include and restored after.
-# An empty shell value counts as unset, as in resolve_env_value().
-ENV_FILE_VARS := $(shell sed -n 's/^[[:space:]]*\([A-Za-z_][A-Za-z0-9_]*\)[[:space:]]*=.*/\1/p' .env 2>/dev/null)
-SHELL_ENV_VARS := $(sort $(foreach var,$(ENV_FILE_VARS),$(if $(value $(var)),$(var))))
-$(foreach var,$(SHELL_ENV_VARS),$(eval SHELL_ENV_VALUE_$(var) := $$(value $(var))))
+# Each .env variable that the shell sets is made 'override' first, so its
+# .env assignment is ignored and the shell value wins.
+$(foreach v,$(shell sed -n 's/^ *\([A-Za-z0-9_]*\)=.*/\1/p' .env 2>/dev/null),$(if $(filter environment,$(origin $v)),$(eval override $v := $$(value $v))))
 -include .env
-$(foreach var,$(SHELL_ENV_VARS),$(eval $(var) := $$(SHELL_ENV_VALUE_$(var))))
 export
-unexport ENV_FILE_VARS SHELL_ENV_VARS $(foreach var,$(SHELL_ENV_VARS),SHELL_ENV_VALUE_$(var))
 
 # Resolve a relative TMPDIR to an absolute path so build/-dir tools (which
 # chdir into build) can still find it. No-op when unset or already absolute.
