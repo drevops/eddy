@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use DrevOps\Eddy\Tests\Traits\CiJobsTrait;
 use DrevOps\Eddy\Tests\Traits\GitTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -19,6 +20,7 @@ use function cspell_text_words;
 use function drupal_version_build_default;
 use function drupal_version_default;
 use function drupal_version_options;
+use function drupal_version_php_versions;
 use function drupal_version_specs;
 use function eddy_skills;
 use function get_files;
@@ -33,6 +35,7 @@ use function normalize_cspell_words;
 use function origin_github_repository;
 use function parse_branch_list;
 use function parse_github_repository;
+use function php_badges;
 use function phpunit_config_comment;
 use function print_help;
 use function process;
@@ -53,6 +56,7 @@ use function replace_string_content;
 use function set_composer_dev_eddy_value;
 use function set_workflow_branches;
 use function sort_drupal_majors;
+use function sort_php_versions;
 use function template_version;
 use function tool_cspell_words;
 use function tool_specs;
@@ -65,6 +69,7 @@ use function workflow_push_branches;
 #[Group('p0')]
 final class InstallHelpersTest extends UnitTestCase {
 
+  use CiJobsTrait;
   use GitTrait;
 
   protected string $originalCwd;
@@ -240,6 +245,23 @@ final class InstallHelpersTest extends UnitTestCase {
   }
 
   /**
+   * @param array<string> $versions
+   * @param array<int, string> $expected
+   */
+  #[DataProvider('dataProviderSortPhpVersions')]
+  public function testSortPhpVersions(array $versions, array $expected): void {
+    $this->assertSame($expected, sort_php_versions($versions));
+  }
+
+  public static function dataProviderSortPhpVersions(): \Iterator {
+    yield 'none' => [[], []];
+    yield 'sorted' => [['8.3', '8.4'], ['8.3', '8.4']];
+    yield 'version order' => [['8.10', '9.0', '8.9'], ['8.9', '8.10', '9.0']];
+    yield 'duplicates' => [['8.5', '8.3', '8.5'], ['8.3', '8.5']];
+    yield 'keyed versions' => [[3 => '8.4', 7 => '8.3'], ['8.3', '8.4']];
+  }
+
+  /**
    * @param array<int|string> $majors
    */
   #[DataProvider('dataProviderCoreVersionRequirement')]
@@ -271,6 +293,45 @@ final class InstallHelpersTest extends UnitTestCase {
   }
 
   /**
+   * @param array<int|string> $majors
+   */
+  #[DataProvider('dataProviderPhpBadges')]
+  public function testPhpBadges(array $majors, string $expected): void {
+    $this->assertSame($expected, php_badges($majors));
+  }
+
+  public static function dataProviderPhpBadges(): \Iterator {
+    $php83 = '![PHP 8.3](https://img.shields.io/badge/PHP-8.3-777BB4.svg)';
+    $php84 = '![PHP 8.4](https://img.shields.io/badge/PHP-8.4-777BB4.svg)';
+    $php85 = '![PHP 8.5](https://img.shields.io/badge/PHP-8.5-777BB4.svg)';
+
+    yield 'no major' => [[], ''];
+    yield 'Drupal 10' => [['10'], implode("\n", [$php83, $php84])];
+    yield 'Drupal 11' => [['11'], implode("\n", [$php83, $php84, $php85])];
+    yield 'Drupal 12' => [['12'], $php85];
+    yield 'majors sharing versions' => [['10', '11'], implode("\n", [$php83, $php84, $php85])];
+    yield 'majors sharing no version' => [['10', '12'], implode("\n", [$php83, $php84, $php85])];
+    yield 'every major' => [['10', '11', '12'], implode("\n", [$php83, $php84, $php85])];
+    yield 'unordered' => [['12', '10'], implode("\n", [$php83, $php84, $php85])];
+    yield 'integers' => [[12, 11], implode("\n", [$php83, $php84, $php85])];
+    yield 'unknown major' => [['9', '12'], $php85];
+  }
+
+  /**
+   * The template README holds the PHP badges of every supported major, so the
+   * installer finds them to render for the selected majors.
+   */
+  public function testPhpBadgesTemplate(): void {
+    $readme = (string) file_get_contents(dirname(__DIR__, 4) . '/README.dist.md');
+    $badges = php_badges(array_keys(drupal_version_options()));
+
+    preg_match_all('/^!\[PHP .*$/m', $readme, $matches);
+
+    $this->assertSame($badges, implode("\n", $matches[0]), 'README.dist.md does not hold the PHP badges of every supported major.');
+    $this->assertStringContainsString("\n" . $badges . "\n", $readme, 'The PHP badges in README.dist.md are not on consecutive lines.');
+  }
+
+  /**
    * @param array<string> $majors
    * @param array<string, string> $files
    * @param array<string, string> $expected
@@ -293,10 +354,12 @@ final class InstallHelpersTest extends UnitTestCase {
   public static function dataProviderProcessDrupalVersionText(): \Iterator {
     $info = static fn(string $constraint): string => "name: Test\ncore_version_requirement: " . $constraint . "\n";
     $phpunit = static fn(string $comment): string => "<?xml version=\"1.0\"?>\n" . $comment . "\n<phpunit/>\n";
+    $readme = static fn(string ...$versions): string => "<div>\n" . implode('', array_map(static fn(string $version): string => '![PHP ' . $version . '](https://img.shields.io/badge/PHP-' . $version . "-777BB4.svg)\n", $versions)) . "</div>\n";
     $template = [
       'test.info.yml' => $info('^10 || ^11 || ^12'),
       'phpunit.xml' => $phpunit('<!-- Drupal 11 and 12 PHPUnit configuration. -->'),
       'phpunit.d10.xml' => $phpunit('<!-- Drupal 10 PHPUnit configuration. -->'),
+      'README.md' => $readme('8.3', '8.4', '8.5'),
     ];
 
     yield 'every major' => [['10', '11', '12'], $template, $template];
@@ -308,6 +371,7 @@ final class InstallHelpersTest extends UnitTestCase {
         'test.info.yml' => $info('^10 || ^11'),
         'phpunit.xml' => $phpunit('<!-- Drupal 11 PHPUnit configuration. -->'),
         'phpunit.d10.xml' => $phpunit('<!-- Drupal 10 PHPUnit configuration. -->'),
+        'README.md' => $readme('8.3', '8.4', '8.5'),
       ],
     ];
 
@@ -317,6 +381,17 @@ final class InstallHelpersTest extends UnitTestCase {
       [
         'test.info.yml' => $info('^10'),
         'phpunit.xml' => $phpunit('<!-- PHPUnit configuration. -->'),
+        'README.md' => $readme('8.3', '8.4'),
+      ],
+    ];
+
+    yield 'only a major without the older PHP versions' => [
+      ['12'],
+      $template,
+      [
+        'test.info.yml' => $info('^12'),
+        'phpunit.xml' => $phpunit('<!-- Drupal 12 PHPUnit configuration. -->'),
+        'README.md' => $readme('8.5'),
       ],
     ];
 
@@ -325,10 +400,12 @@ final class InstallHelpersTest extends UnitTestCase {
       [
         'test.info.yml' => $info('^10 || ^11 || ^12'),
         'phpunit.xml' => $phpunit('<!-- Drupal 10, 11 and 12 PHPUnit configuration. -->'),
+        'README.md' => $readme('8.3', '8.4', '8.5'),
       ],
       [
         'test.info.yml' => $info('^10 || ^12'),
         'phpunit.xml' => $phpunit('<!-- Drupal 10 and 12 PHPUnit configuration. -->'),
+        'README.md' => $readme('8.3', '8.4', '8.5'),
       ],
     ];
 
@@ -338,13 +415,14 @@ final class InstallHelpersTest extends UnitTestCase {
       [
         'test.info.yml' => $info('^11 || ^12'),
         'phpunit.xml' => $phpunit('<!-- Drupal 11 and 12 PHPUnit configuration. -->'),
+        'README.md' => $readme('8.3', '8.4', '8.5'),
       ],
     ];
 
     yield 'text for other majors stays' => [
       ['11'],
-      ['test.info.yml' => $info('^10 || ^11'), 'phpunit.xml' => $phpunit('<!-- Drupal 11 PHPUnit configuration. -->')],
-      ['test.info.yml' => $info('^10 || ^11'), 'phpunit.xml' => $phpunit('<!-- Drupal 11 PHPUnit configuration. -->')],
+      ['test.info.yml' => $info('^10 || ^11'), 'phpunit.xml' => $phpunit('<!-- Drupal 11 PHPUnit configuration. -->'), 'README.md' => $readme('8.3', '8.4')],
+      ['test.info.yml' => $info('^10 || ^11'), 'phpunit.xml' => $phpunit('<!-- Drupal 11 PHPUnit configuration. -->'), 'README.md' => $readme('8.3', '8.4')],
     ];
   }
 
@@ -410,6 +488,33 @@ final class InstallHelpersTest extends UnitTestCase {
       foreach ($spec['files'] as $file) {
         $this->assertFileExists(dirname(__DIR__, 4) . '/' . $file, sprintf('Drupal %s lists "%s", which the template does not have.', $major, $file));
       }
+    }
+  }
+
+  /**
+   * The PHP versions of every supported major span the PHP versions of its CI
+   * test jobs, and 'AGENTS.md' states the same range.
+   */
+  public function testDrupalVersionPhpVersions(): void {
+    $php_versions = drupal_version_php_versions();
+
+    $this->assertSame(array_keys(drupal_version_options()), array_keys($php_versions), 'The PHP versions do not list every supported major.');
+
+    $tested = [];
+
+    foreach (self::ciJobs(['test']) as $job) {
+      $tested[(int) $job['drupal']][] = $job['php'];
+    }
+
+    $agents = (string) file_get_contents(dirname(__DIR__, 4) . '/AGENTS.md');
+
+    foreach ($php_versions as $major => $versions) {
+      $tested_versions = sort_php_versions($tested[$major] ?? []);
+
+      $this->assertSame(sort_php_versions($versions), $versions, sprintf('The PHP versions of Drupal %s are not unique and in ascending order.', $major));
+      $this->assertSame([], array_diff($tested_versions, $versions), sprintf('test.yml tests Drupal %s on a PHP version it does not list.', $major));
+      $this->assertSame(self::phpVersionRange($tested_versions), self::phpVersionRange($versions), sprintf('The PHP versions of Drupal %s do not span the PHP versions of its test jobs.', $major));
+      $this->assertStringContainsString("\n  - Drupal " . $major . ' on PHP ' . self::phpVersionRange($versions) . "\n", $agents, sprintf('AGENTS.md does not state the PHP range of Drupal %s.', $major));
     }
   }
 
@@ -1798,6 +1903,29 @@ final class InstallHelpersTest extends UnitTestCase {
    */
   protected static function wrapperText(string $binaries, string $build, string $lint, string $test, string $tooling): string {
     return 'When ' . $binaries . " exposes a command.\n1. Build: " . $build . "\n3. Lint: " . $lint . "\n4. Test: " . $test . "\n" . $tooling . " before the tooling commands.\n";
+  }
+
+  /**
+   * Render PHP versions as a range the way 'AGENTS.md' does.
+   *
+   * @param array<int, string> $versions
+   *   The PHP versions, in ascending order.
+   *
+   * @return string
+   *   The range, such as '8.3-8.5', the version alone when there is 1, or an
+   *   empty string when there are none.
+   */
+  protected static function phpVersionRange(array $versions): string {
+    $versions = array_values($versions);
+
+    if ($versions === []) {
+      return '';
+    }
+
+    $lowest = $versions[0];
+    $highest = $versions[count($versions) - 1];
+
+    return $lowest === $highest ? $lowest : $lowest . '-' . $highest;
   }
 
 }

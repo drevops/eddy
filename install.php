@@ -280,6 +280,24 @@ function drupal_version_specs(): array {
 }
 
 /**
+ * Define the PHP versions that each Drupal major supports.
+ *
+ * The 'test' matrix of '.github/workflows/test.yml' runs each major on the
+ * lowest and the highest of its versions.
+ *
+ * @return non-empty-array<int, non-empty-list<string>>
+ *   Map of Drupal major to its PHP versions, in ascending order. PHP casts the
+ *   numeric-string keys to integers.
+ */
+function drupal_version_php_versions(): array {
+  return [
+    '10' => ['8.3', '8.4'],
+    '11' => ['8.3', '8.4', '8.5'],
+    '12' => ['8.5'],
+  ];
+}
+
+/**
  * Print help.
  */
 function print_help(): void {
@@ -458,11 +476,12 @@ function process(string $extension_name, string $extension_machine_name, string 
 }
 
 /**
- * Render the text that names the targeted Drupal majors.
+ * Render the text that follows from the targeted Drupal majors.
  *
  * The template names every supported major in the 'core_version_requirement'
- * of the extension and in the comment that opens 'phpunit.xml'. Each is
- * replaced with the same text for the selected majors.
+ * of the extension and in the comment that opens 'phpunit.xml', and its
+ * README shows a badge for every PHP version they support. Each is replaced
+ * with the same text for the selected majors.
  *
  * @param array<string> $majors
  *   The selected Drupal majors.
@@ -471,6 +490,7 @@ function process_drupal_version_text(array $majors): void {
   $supported = array_map(strval(...), array_keys(drupal_version_options()));
 
   replace_string_content(core_version_requirement($supported), core_version_requirement($majors));
+  replace_string_content(php_badges($supported), php_badges($majors));
 
   // A 'phpunit.d<major>.xml' replaces 'phpunit.xml' in the build of its major.
   $own_config_majors = array_filter($supported, static fn(string $major): bool => file_exists('phpunit.d' . $major . '.xml'));
@@ -589,6 +609,29 @@ function phpunit_config_comment(array $majors): string {
 }
 
 /**
+ * Render the README badges of the PHP versions that Drupal majors support.
+ *
+ * @param array<int|string> $majors
+ *   The Drupal majors, in any order.
+ *
+ * @return string
+ *   The badge lines, 1 per PHP version in ascending order, or an empty string
+ *   for no majors.
+ */
+function php_badges(array $majors): string {
+  $php_versions = drupal_version_php_versions();
+  $versions = [];
+
+  foreach ($majors as $major) {
+    $versions = array_merge($versions, $php_versions[(int) $major] ?? []);
+  }
+
+  $badges = array_map(static fn(string $version): string => '![PHP ' . $version . '](https://img.shields.io/badge/PHP-' . $version . '-777BB4.svg)', sort_php_versions($versions));
+
+  return implode("\n", $badges);
+}
+
+/**
  * Sort Drupal majors in numeric order and drop duplicates.
  *
  * @param array<int|string> $majors
@@ -602,6 +645,22 @@ function sort_drupal_majors(array $majors): array {
   sort($majors);
 
   return array_map(strval(...), $majors);
+}
+
+/**
+ * Sort PHP versions in ascending order and drop duplicates.
+ *
+ * @param array<string> $versions
+ *   The PHP versions, such as '8.3'.
+ *
+ * @return list<string>
+ *   The sorted versions.
+ */
+function sort_php_versions(array $versions): array {
+  $versions = array_unique($versions);
+  usort($versions, static fn(string $a, string $b): int => version_compare($a, $b));
+
+  return $versions;
 }
 
 /**

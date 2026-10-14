@@ -1023,34 +1023,32 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   /**
-   * Deselecting a Drupal major drops its README badge.
+   * The README shows a badge for every selected Drupal major and for every
+   * PHP version they support.
    *
    * @param array<string> $drupal_versions
-   * @param array<string> $expected_present
-   * @param array<string> $expected_absent
+   * @param array<string> $expected
    */
-  #[DataProvider('dataProviderProcessPrunesDrupalBadges')]
-  public function testProcessPrunesDrupalBadges(array $drupal_versions, array $expected_present, array $expected_absent): void {
+  #[DataProvider('dataProviderProcessRendersBadges')]
+  public function testProcessRendersBadges(array $drupal_versions, array $expected): void {
     process('My Extension', 'my_extension', 'module', $drupal_versions, ['ahoy'], [], FALSE, FALSE);
 
     $readme = (string) file_get_contents(self::$sut . '/README.md');
 
-    foreach ($expected_present as $badge) {
-      $this->assertStringContainsString('![' . $badge . '](', $readme, 'README.md should contain badge: ' . $badge);
-    }
+    preg_match_all('/^!\[((?:PHP|Drupal) [^\]]+)\]\(/m', $readme, $matches);
 
-    foreach ($expected_absent as $badge) {
-      $this->assertStringNotContainsString('![' . $badge . '](', $readme, 'README.md should not contain badge: ' . $badge);
-    }
-
+    $this->assertSame($expected, $matches[1], 'README.md badges mismatch.');
     $this->assertStringNotContainsString('#;', $readme, 'README.md should not retain special-comment markers.');
   }
 
-  public static function dataProviderProcessPrunesDrupalBadges(): \Iterator {
-    yield 'all majors' => [['10', '11', '12'], ['Drupal 10', 'Drupal 11', 'Drupal 12'], []];
-    yield 'd10 and d11' => [['10', '11'], ['Drupal 10', 'Drupal 11'], ['Drupal 12']];
-    yield 'd11 only' => [['11'], ['Drupal 11'], ['Drupal 10', 'Drupal 12']];
-    yield 'd12 only' => [['12'], ['Drupal 12'], ['Drupal 10', 'Drupal 11']];
+  public static function dataProviderProcessRendersBadges(): \Iterator {
+    yield 'all majors' => [['10', '11', '12'], ['PHP 8.3', 'PHP 8.4', 'PHP 8.5', 'Drupal 10', 'Drupal 11', 'Drupal 12']];
+    yield 'd10 and d11' => [['10', '11'], ['PHP 8.3', 'PHP 8.4', 'PHP 8.5', 'Drupal 10', 'Drupal 11']];
+    yield 'd10 and d12' => [['10', '12'], ['PHP 8.3', 'PHP 8.4', 'PHP 8.5', 'Drupal 10', 'Drupal 12']];
+    yield 'd11 and d12' => [['11', '12'], ['PHP 8.3', 'PHP 8.4', 'PHP 8.5', 'Drupal 11', 'Drupal 12']];
+    yield 'd10 only' => [['10'], ['PHP 8.3', 'PHP 8.4', 'Drupal 10']];
+    yield 'd11 only' => [['11'], ['PHP 8.3', 'PHP 8.4', 'PHP 8.5', 'Drupal 11']];
+    yield 'd12 only' => [['12'], ['PHP 8.5', 'Drupal 12']];
   }
 
   /**

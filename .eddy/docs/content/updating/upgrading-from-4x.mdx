@@ -176,7 +176,7 @@ What to do:
 
 5.x can test your extension on Drupal 12 next to Drupal 10 and 11. It's opt-in: the upgrade keeps the Drupal majors your CI tests today. To add Drupal 12, select `12` when `install.php` asks for the Drupal versions, or ask for it when you run the update skill, such as `/update-consumer-eddy add Drupal 12`. Once you're on 5.x, the skill can add it later the same way, even when there's no newer release to update to.
 
-Drupal 12 brings 5 CI jobs (`lint-d12`, `test-php-min-d12-stable`, `test-php-max-d12-stable`, `test-php-min-d12-legacy` and `test-php-max-d12-canary`) and a README badge. It also needs 3 changes in your own code, which no template merge makes. When you add Drupal 12 with the update skill, the skill makes them after the merge, each in a commit of its own, so review them in the pull request. Otherwise make them yourself:
+Drupal 12 brings 5 CI jobs (`lint-d12`, `test-php-min-d12-stable`, `test-php-max-d12-stable`, `test-php-min-d12-legacy` and `test-php-max-d12-canary`) and a README badge, plus a PHP 8.5 badge if you don't test Drupal 11. It also needs 3 changes in your own code, which no template merge makes. When you add Drupal 12 with the update skill, the skill makes them after the merge, each in a commit of its own, so review them in the pull request. Otherwise make them yourself:
 
 - Add `^12` to `core_version_requirement` in every `*.info.yml` your project has, not only the main one. A submodule your tests enable, such as an example module, needs it too: without it, every Drupal 12 Functional and FunctionalJavascript test that enables the submodule fails at install.
 - If your FunctionalJavascript tests extend the base class the template generated, declare `string|false` as the return type of its `getMinkDriverArgs()`. Drupal 12 declares that type on the parent method, so an override without it is a fatal error, and Drupal 10 and 11 accept the typed override too. The upgrade never touches `tests/`, so bring 2 more things in that class in line with the 5.x copy while you're there, whether or not you add Drupal 12: drop the `CIRCLECI` check in `setUp()` but keep the base URL setup inside it, and, from 4.18.0, change `.devtools/browser` to `eddy-browser-start` in a comment.
@@ -206,7 +206,7 @@ The rest of the template moved on as well, and an upgrade merges these files lik
 - `.cspell.json` adds the word `cweagans`, which `composer.dev.json` now contains, drops `killall` and `pkill`, which nothing uses any more, drops the `ignorePaths` that pointed into `.scaffold/`, and drops the words of the tools you don't keep, such as `lullabot` without FunctionalJavascript tests. It also swaps `autologout` for `linkit`, the example module the template's `composer.json` suggests, so keep `autologout` if your project still uses that word. Merge it with your own words.
 - `AGENTS.md` describes the tooling commands, `vendor/` and `scripts/eddy-tooling` in place of `.devtools/`, drops CircleCI, and carries the new "Updating the scaffold" section.
 - `CONTRIBUTING.md` documents only the command wrappers you keep, or the `vendor/bin/eddy-*` commands when you keep neither. Carry your own notes over from the old copy.
-- `README.md` drops the CircleCI badge, shows Drupal badges only for the majors you test, and credits Eddy.
+- `README.md` drops the CircleCI badge, shows Drupal badges only for the majors you test and PHP badges only for the PHP versions they support, and credits Eddy.
 - `.gitattributes` drops its `.circleci` and `.devtools` lines.
 
 ## After the upgrade

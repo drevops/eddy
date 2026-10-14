@@ -45,7 +45,7 @@ A few details are worth knowing:
 
 - **Which release.** Without a tag, the skill updates to the release with the highest version that isn't a draft or marked as a pre-release on GitHub. To update to a particular release, name its tag: `/update-consumer-eddy <tag>`.
 - **Which release you're on.** The skill reads it from `extra.eddy.version` in `composer.dev.json`, which the installer and every update record, or from your last scaffold update commit. Without either, every difference between your files and the new release's comes up for a decision.
-- **Adding a Drupal major.** Ask for it in the same request, such as `/update-consumer-eddy add Drupal 12`. The skill adds the major's CI jobs and badge, and makes the code changes the major needs, each in a commit of its own, even when there's no newer release to update to.
+- **Adding a Drupal major.** Ask for it in the same request, such as `/update-consumer-eddy add Drupal 12`. The skill adds the major's CI jobs and badges, and makes the code changes the major needs, each in a commit of its own, even when there's no newer release to update to.
 - **Permissions.** On its first run, the skill may add a few command permissions to `.claude/settings.local.json` and ask you to restart Claude Code. Run it again after the restart.
 
 ## Updating by hand

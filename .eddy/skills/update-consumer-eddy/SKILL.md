@@ -93,7 +93,7 @@ Then read the project to determine the answers for the installation script:
 gh repo view --json nameWithOwner --jq .nameWithOwner
 ```
 
-These answers describe the project as it is now, and Step 5 renders the installed version with them unchanged. When the user asks to add a Drupal major, such as "include Drupal 12", or to drop one, change the Drupal versions for Step 4 only. Step 7 applies the difference between the 2 renders, so the project gains or loses the major's CI jobs, badge and docs only when the 2 renders disagree on it. For Drupal 10 that includes `phpunit.d10.xml`, so dropping Drupal 10 removes the file.
+These answers describe the project as it is now, and Step 5 renders the installed version with them unchanged. When the user asks to add a Drupal major, such as "include Drupal 12", or to drop one, change the Drupal versions for Step 4 only. Step 7 applies the difference between the 2 renders, so the project gains or loses the major's CI jobs, badges and docs only when the 2 renders disagree on it. For Drupal 10 that includes `phpunit.d10.xml`, so dropping Drupal 10 removes the file.
 
 Also detect the **installed version** - the Eddy release the project was created from or last updated to, which Step 5 renders as the base of the merge. Take `extra.eddy.version` from `composer.dev.json` when it is set. Otherwise list the commits that updated the scaffold, newest first:
 
@@ -383,7 +383,7 @@ The merge keeps the project's own content in both files and applies the release'
 
 1. `README.md` follows the release's `README.md`, with the project's values: badge URLs (GitHub org/repo), logo, and the project title and description (from `*.info.yml` and the existing README).
 2. The project's own sections (e.g., "Use case", "How it works", "Installation") sit between the header and the "Contributing" section.
-3. Badges appear only for the tools the project uses.
+3. Badges appear only for the tools the project uses, the Drupal majors it tests and the PHP versions those majors support.
 4. The Eddy link at the bottom points to the Eddy repo, not the project repo.
 5. `CONTRIBUTING.md` holds the release's development sections (Local development, Building website, Drupal versions, Coding standards, Testing) and keeps the project-specific notes from the previous version (`git show HEAD:CONTRIBUTING.md`).
 
