@@ -126,6 +126,10 @@ DRUPAL_VERSION=11@beta vendor/bin/eddy-assemble
 
 # Newest stable Drupal 12 release, or newest pre-release if none.
 DRUPAL_VERSION=12 vendor/bin/eddy-assemble
+
+# After any of them, start the server and install the site.
+vendor/bin/eddy-start
+vendor/bin/eddy-provision
 ```
 <!-- #;> DEV_NO_COMMAND_WRAPPER -->
 

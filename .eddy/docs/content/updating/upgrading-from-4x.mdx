@@ -213,7 +213,7 @@ The rest of the template moved on as well, and an upgrade merges these files lik
 
 Before you merge the upgrade:
 
-1. Build, lint and test the project with `ahoy build`, `ahoy lint` and `ahoy test`, or the same `make` commands. The build installs the tooling into `vendor/` first.
+1. Build, lint and test the project with `ahoy build`, `ahoy lint` and `ahoy test`, or the same `make` commands, which install the tooling into `vendor/` first. Without a wrapper, run `scripts/eddy-tooling`, then the commands that [Building the site](../development/building.mdx), [Coding standards](../development/coding-standards.mdx) and [Testing](../testing/README.mdx) show under **No wrapper**.
 2. Check that every CI job passes on the pull request.
 3. Check that the branch filters in `.github/workflows/test.yml` and `.github/workflows/draft-release-notes.yml` list the branches you build from.
 4. Check that your branch protection rules, or the ruleset that protects your default branch, require the jobs in [Branch protection](../continuous-integration/branch-protection.mdx) for the Drupal majors you test, and no `ci/circleci: <job>` checks.

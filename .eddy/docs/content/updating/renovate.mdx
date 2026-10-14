@@ -11,7 +11,7 @@ Eddy includes a [Renovate](https://docs.renovatebot.com/) configuration, `renova
 ## What it does
 
 - Minor and patch updates share 1 pull request on the `deps/all` branch, and major GitHub Actions updates share another on `deps/major-all`.
-- Pull requests merge on their own when all CI checks pass.
+- Pull requests merge on their own once their checks pass. Renovate hands the merge to GitHub's auto-merge, which waits only for the checks that [branch protection](../continuous-integration/branch-protection.mdx) requires, so set that up before you rely on it.
 - GitHub Actions and Docker images are pinned to SHA digests.
 - Version ranges in `package.json` are bumped to the latest version, such as `^1.2` to `^1.3`.
 - A Dependency Dashboard issue tracks pending updates, approval requests and detected problems.

@@ -95,7 +95,10 @@ The build hides the output of Composer, npm and Drush unless a command fails, so
 <CommandTabs
   make={`DEBUG=1 make build`}
   ahoy={`DEBUG=1 ahoy build`}
-  none={`DEBUG=1 vendor/bin/eddy-assemble`}
+  none={`export DEBUG=1
+vendor/bin/eddy-assemble
+vendor/bin/eddy-start
+vendor/bin/eddy-provision`}
 />
 
 [Debugging](debugging.mdx) covers the logs of the processes that keep running after a command returns.
