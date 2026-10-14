@@ -11,7 +11,6 @@ $finder = new TwigCsFixer\File\Finder();
 // discover the templates it needs to lint.
 $finder->followLinks();
 $finder->in(__DIR__ . '/web/modules/custom');
-$finder->in(__DIR__ . '/web/themes/custom');
 
 $config = new TwigCsFixer\Config\Config();
 $config->setRuleset($ruleset);
