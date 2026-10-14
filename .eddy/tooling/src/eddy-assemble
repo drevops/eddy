@@ -358,7 +358,7 @@ PASS("Extension's code symlinked.");
 if (file_exists($build_dir . '/package-lock.json') && !file_exists('.skip_npm_build')) {
   TASK('Processing front-end dependencies.');
 
-  $nvm = file_exists('.nvmrc') ? 'nvm use && ' : '';
+  $nvm = nvm_prefix();
 
   // Suppress the dependency install noise, but show the build output - the
   // build is the project's own and its output is meaningful.
