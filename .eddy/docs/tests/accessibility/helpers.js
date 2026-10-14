@@ -5,6 +5,8 @@ import AxeBuilder from '@axe-core/playwright';
 
 const BUILD_DIR = path.join(__dirname, '..', '..', 'build');
 
+const CONTENT_DIR = path.join(__dirname, '..', '..', 'content');
+
 // WCAG 2.0, 2.1 and 2.2 at levels A and AA.
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 
@@ -25,6 +27,17 @@ export const builtPages = () => {
     .sort();
 };
 
+// Mermaid draws a diagram after hydration and leaves no placeholder before
+// it, so the page source gives the number of diagrams to wait for. A page
+// lives at 'content/<path>.mdx', or at 'content/<path>/README.mdx' when it
+// indexes a folder.
+const diagramCount = (url) => {
+  const base = path.join(CONTENT_DIR, url.split(/[?#]/)[0]);
+  const source = [`${base}.mdx`, path.join(base, 'README.mdx')].find((file) => fs.existsSync(file));
+
+  return source ? (fs.readFileSync(source, 'utf8').match(/^\s*```mermaid\b/gm) || []).length : 0;
+};
+
 // Opens a page in a color mode and waits until it is fully drawn.
 export const open = async (page, url, colorMode) => {
   const separator = url.includes('?') ? '&' : '?';
@@ -33,9 +46,7 @@ export const open = async (page, url, colorMode) => {
 
   await expect(page.locator('html')).toHaveAttribute('data-has-hydrated', 'true');
   await expect(page.locator('html')).toHaveAttribute('data-theme', colorMode);
-
-  // Mermaid draws its diagrams after hydration.
-  await expect(page.locator('.docusaurus-mermaid-container:not(:has(svg))')).toHaveCount(0);
+  await expect(page.locator('.docusaurus-mermaid-container > svg')).toHaveCount(diagramCount(url));
 };
 
 // Returns 1 line per failing element, so a failed assertion shows the rule,
