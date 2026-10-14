@@ -339,7 +339,9 @@ final class DeployTest extends UnitTestCase {
 
     $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $file === $key_file);
 
+    // The running agent is reused, so 'ssh-agent' never runs.
     $this->envSet('SSH_AGENT_PID', '12345');
+    $this->mockShellExecOutputs([]);
 
     $this->mockPassthruMultiple([
       ['cmd' => 'ssh-add -D'],
@@ -504,12 +506,23 @@ final class DeployTest extends UnitTestCase {
     $this->assertContains('/home/testuser/.ssh', $mkdir_calls);
   }
 
-  public function testDeploySshAgentNotRunning(): void {
+  #[DataProvider('dataProviderDeploySshAgentStarted')]
+  public function testDeploySshAgentStarted(?string $agent_pid): void {
     $this->envSet('DEPLOY_USER_NAME', 'Test User');
     $this->envSet('DEPLOY_USER_EMAIL', 'test@example.com');
     $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
     $this->envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd');
     $this->envSet('HOME', '/home/testuser');
+    // The socket of an agent the script did not start, such as a forwarded
+    // one, which 'ssh-add -D' would clear.
+    $this->envSet('SSH_AUTH_SOCK', '/home/testuser/.ssh/agent/s.other');
+
+    if ($agent_pid === NULL) {
+      $this->envUnset('SSH_AGENT_PID');
+    }
+    else {
+      $this->envSet('SSH_AGENT_PID', $agent_pid);
+    }
 
     $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
     $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): int => 100);
@@ -517,8 +530,9 @@ final class DeployTest extends UnitTestCase {
     $key_file = '/home/testuser/.ssh/id_rsa_aabbccdd';
     $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $file === $key_file);
 
+    $this->mockShellExecOutputs(['ssh-agent -s' => "SSH_AUTH_SOCK=/home/testuser/.ssh/agent/s.started; export SSH_AUTH_SOCK;\nSSH_AGENT_PID=4242; export SSH_AGENT_PID;\necho Agent pid 4242;\n"]);
+
     $this->mockPassthruMultiple([
-      ['cmd' => 'eval "$(ssh-agent)"'],
       ['cmd' => 'ssh-add -D'],
       ['cmd' => sprintf('ssh-add %s', escapeshellarg($key_file))],
       ['cmd' => 'ssh-add -l'],
@@ -536,8 +550,55 @@ final class DeployTest extends UnitTestCase {
     finally {
       $output = ob_get_clean();
       $this->assertIsString($output);
-      $this->assertStringContainsString('Setting up SSH.', $output);
+      $this->assertStringContainsString('Started an SSH agent with PID 4242.', $output);
+      $this->assertStringContainsString('SSH key ' . $key_file . ' added.', $output);
     }
+
+    $this->assertSame('/home/testuser/.ssh/agent/s.started', getenv('SSH_AUTH_SOCK'));
+    $this->assertSame('4242', getenv('SSH_AGENT_PID'));
+  }
+
+  public static function dataProviderDeploySshAgentStarted(): \Iterator {
+    yield 'SSH_AGENT_PID unset' => [NULL];
+    yield 'SSH_AGENT_PID empty' => [''];
+  }
+
+  #[DataProvider('dataProviderDeploySshAgentStartFailure')]
+  public function testDeploySshAgentStartFailure(string $agent_output): void {
+    $this->envSet('DEPLOY_USER_NAME', 'Test User');
+    $this->envSet('DEPLOY_USER_EMAIL', 'test@example.com');
+    $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
+    $this->envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd');
+    $this->envSet('HOME', '/home/testuser');
+    $this->envUnset('SSH_AGENT_PID');
+
+    $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
+    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): int => 100);
+    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
+
+    $this->mockShellExecOutputs(['ssh-agent -s' => $agent_output]);
+    $this->mockPassthruNever();
+    $this->mockQuit(1);
+
+    ob_start();
+    try {
+      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
+      $this->fail('Expected QuitErrorException to be thrown.');
+    }
+    catch (QuitErrorException $e) {
+      $this->assertSame(1, $e->getCode());
+    }
+    finally {
+      $output = ob_get_clean();
+      $this->assertIsString($output);
+      $this->assertStringContainsString('Unable to start the SSH agent.', $output);
+    }
+  }
+
+  public static function dataProviderDeploySshAgentStartFailure(): \Iterator {
+    yield 'no output' => [''];
+    yield 'no socket' => ["SSH_AGENT_PID=4242; export SSH_AGENT_PID;\necho Agent pid 4242;\n"];
+    yield 'no process ID' => ["SSH_AUTH_SOCK=/home/testuser/.ssh/agent/s.started; export SSH_AUTH_SOCK;\n"];
   }
 
   public function testDeploySshSha256NoMatch(): void {
@@ -645,41 +706,6 @@ final class DeployTest extends UnitTestCase {
       $output = ob_get_clean();
       $this->assertIsString($output);
       $this->assertStringContainsString('Unable to find SSH key file', $output);
-    }
-  }
-
-  public function testDeploySshAgentPidEmpty(): void {
-    $this->envSet('DEPLOY_USER_NAME', 'Test User');
-    $this->envSet('DEPLOY_USER_EMAIL', 'test@example.com');
-    $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    $this->envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd');
-    $this->envSet('HOME', '/home/testuser');
-    $this->envSet('SSH_AGENT_PID', '');
-
-    $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): int => 100);
-
-    $key_file = '/home/testuser/.ssh/id_rsa_aabbccdd';
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $file === $key_file);
-
-    $this->mockPassthruMultiple([
-      ['cmd' => 'eval "$(ssh-agent)"'],
-      ['cmd' => 'ssh-add -D'],
-      ['cmd' => sprintf('ssh-add %s', escapeshellarg($key_file))],
-      ['cmd' => 'ssh-add -l'],
-    ]);
-
-    $this->mockQuit(0);
-
-    ob_start();
-    try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
-      $this->fail('Expected QuitSuccessException to be thrown');
-    }
-    catch (QuitSuccessException) {
-    }
-    finally {
-      ob_get_clean();
     }
   }
 

@@ -102,7 +102,19 @@ if ($deploy_ssh_key_fingerprint !== '') {
   }
 
   if (getenv_default('SSH_AGENT_PID', '') === '') {
-    passthru('eval "$(ssh-agent)"');
+    $agent = (string) shell_exec('ssh-agent -s');
+    $agent_socket = preg_match('/^SSH_AUTH_SOCK=([^;]+);/m', $agent, $matches) === 1 ? $matches[1] : '';
+    $agent_pid = preg_match('/^SSH_AGENT_PID=(\d+);/m', $agent, $matches) === 1 ? $matches[1] : '';
+
+    if ($agent_socket === '' || $agent_pid === '') {
+      FAIL('Unable to start the SSH agent.');
+    }
+
+    // Each command below runs in a shell of its own, so the variables that
+    // connect to the agent are set in this process for them to inherit.
+    putenv('SSH_AUTH_SOCK=' . $agent_socket);
+    putenv('SSH_AGENT_PID=' . $agent_pid);
+    INFO('Started an SSH agent with PID %s.', $agent_pid);
   }
 
   passthru('ssh-add -D');
