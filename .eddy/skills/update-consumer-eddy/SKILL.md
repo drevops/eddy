@@ -93,7 +93,7 @@ Then read the project to determine the answers for the installation script:
 gh repo view --json nameWithOwner --jq .nameWithOwner
 ```
 
-These answers describe the project as it is now, and Step 5 renders the installed version with them unchanged. When the user asks to add a Drupal major, such as "include Drupal 12", or to drop one, change the Drupal versions for Step 4 only. Step 7 applies the difference between the 2 renders, so the project gains or loses the major's CI jobs, badge and docs only when the 2 renders disagree on it.
+These answers describe the project as it is now, and Step 5 renders the installed version with them unchanged. When the user asks to add a Drupal major, such as "include Drupal 12", or to drop one, change the Drupal versions for Step 4 only. Step 7 applies the difference between the 2 renders, so the project gains or loses the major's CI jobs, badge and docs only when the 2 renders disagree on it. For Drupal 10 that includes `phpunit.d10.xml`, so dropping Drupal 10 removes the file.
 
 Also detect the **installed version** - the Eddy release the project was created from or last updated to, which Step 5 renders as the base of the merge. Take `extra.eddy.version` from `composer.dev.json` when it is set. Otherwise list the commits that updated the scaffold, newest first:
 
