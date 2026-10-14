@@ -22,6 +22,7 @@ use function drupal_version_options;
 use function drupal_version_specs;
 use function eddy_skills;
 use function get_files;
+use function get_marker_files;
 use function github_repository_from_url;
 use function gitignore_rules;
 use function is_binary_file;
@@ -1070,6 +1071,31 @@ final class InstallHelpersTest extends UnitTestCase {
     ];
   }
 
+  /**
+   * @param array<string> $files
+   * @param array<string> $expected
+   */
+  #[DataProvider('dataProviderGetMarkerFiles')]
+  public function testGetMarkerFiles(array $files, array $expected): void {
+    chdir(self::$sut);
+    $filesystem = new Filesystem();
+
+    foreach ($files as $file) {
+      $filesystem->dumpFile(self::$sut . '/' . $file, 'content');
+    }
+
+    $actual = array_map(static fn(string $file): string => str_replace(self::$sut . '/', '', $file), get_marker_files());
+    sort($actual);
+
+    $this->assertSame($expected, $actual);
+  }
+
+  public static function dataProviderGetMarkerFiles(): \Iterator {
+    yield 'template files' => [['file.txt', 'src/file.php'], ['file.txt', 'src/file.php']];
+    yield 'installer' => [['file.txt', 'install.php'], ['file.txt']];
+    yield 'installer below the root' => [['install.php', 'src/install.php'], ['src/install.php']];
+  }
+
   #[DataProvider('dataProviderIsTemplatePath')]
   public function testIsTemplatePath(string $path, bool $is_dir, bool $expected): void {
     $rules = gitignore_rules("/build\n/.env\n");
@@ -1302,13 +1328,13 @@ final class InstallHelpersTest extends UnitTestCase {
   }
 
   #[DataProvider('dataProviderRemoveTokensWithContent')]
-  public function testRemoveTokensWithContent(string $content, string $token, string $expected): void {
+  public function testRemoveTokensWithContent(string $content, string $token, string $expected, string $file = 'file.txt'): void {
     chdir(self::$sut);
-    file_put_contents(self::$sut . '/file.txt', $content);
+    (new Filesystem())->dumpFile(self::$sut . '/' . $file, $content);
 
     remove_tokens_with_content($token);
 
-    $this->assertSame($expected, file_get_contents(self::$sut . '/file.txt'));
+    $this->assertSame($expected, file_get_contents(self::$sut . '/' . $file));
   }
 
   public static function dataProviderRemoveTokensWithContent(): \Iterator {
@@ -1382,6 +1408,20 @@ final class InstallHelpersTest extends UnitTestCase {
       "before\n\n#;< META\nremoved\n#;> META\n#;< OTHER\nkept\n#;> OTHER\n\nafter\n",
       'META',
       "before\n\n#;< OTHER\nkept\n#;> OTHER\n\nafter\n",
+    ];
+
+    yield 'installer left as it is' => [
+      "before\n#;< META\ncode('#;');\n#;> META\nafter\n",
+      'META',
+      "before\n#;< META\ncode('#;');\n#;> META\nafter\n",
+      'install.php',
+    ];
+
+    yield 'installer below the root' => [
+      "before\n#;< META\ncode('#;');\n#;> META\nafter\n",
+      'META',
+      "before\nafter\n",
+      'src/install.php',
     ];
   }
 
@@ -1457,13 +1497,13 @@ final class InstallHelpersTest extends UnitTestCase {
   }
 
   #[DataProvider('dataProviderRemoveSpecialComments')]
-  public function testRemoveSpecialComments(string $content, string $expected): void {
+  public function testRemoveSpecialComments(string $content, string $expected, string $file = 'file.txt'): void {
     chdir(self::$sut);
-    file_put_contents(self::$sut . '/file.txt', $content);
+    (new Filesystem())->dumpFile(self::$sut . '/' . $file, $content);
 
     remove_special_comments();
 
-    $this->assertSame($expected, file_get_contents(self::$sut . '/file.txt'));
+    $this->assertSame($expected, file_get_contents(self::$sut . '/' . $file));
   }
 
   public static function dataProviderRemoveSpecialComments(): \Iterator {
@@ -1495,6 +1535,18 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'marker lines between blank lines' => [
       "before\n\n#;< META\n#;> META\n\nafter\n",
       "before\n\nafter\n",
+    ];
+
+    yield 'installer left as it is' => [
+      "before\n#;< META\ncode('#;');\n#;> META\nafter\n",
+      "before\n#;< META\ncode('#;');\n#;> META\nafter\n",
+      'install.php',
+    ];
+
+    yield 'installer below the root' => [
+      "before\n#;< META\ncode('#;');\n#;> META\nafter\n",
+      "before\nafter\n",
+      'src/install.php',
     ];
   }
 

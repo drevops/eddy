@@ -8,6 +8,7 @@ use DrevOps\Eddy\Tests\Traits\GitTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Process\Process;
 use Symfony\Component\Yaml\Yaml;
 
 use function eddy_skills;
@@ -879,6 +880,35 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   /**
+   * A kept 'install.php' keeps its marker syntax and stays valid PHP.
+   *
+   * @param array<string> $drupal_versions
+   * @param array<string> $command_wrapper
+   * @param array<string> $tools_remove
+   */
+  #[DataProvider('dataProviderProcessKeepsInstaller')]
+  public function testProcessKeepsInstaller(string $type, array $drupal_versions, array $command_wrapper, array $tools_remove): void {
+    $expected = self::installerMarkerLines();
+    $this->assertNotSame([], $expected, 'install.php holds no "#;" line.');
+
+    process('My Extension', 'my_extension', $type, $drupal_versions, $command_wrapper, $tools_remove, FALSE, FALSE);
+
+    $this->assertSame($expected, self::installerMarkerLines(), 'install.php lost a line that holds "#;".');
+
+    $lint = new Process([PHP_BINARY, '-l', 'install.php'], self::$sut);
+    $lint->run();
+    $this->assertTrue($lint->isSuccessful(), 'install.php is not valid PHP: ' . $lint->getOutput() . $lint->getErrorOutput());
+  }
+
+  public static function dataProviderProcessKeepsInstaller(): \Iterator {
+    $tools = ['phpcs', 'phpstan', 'rector', 'twigcs', 'eslint', 'stylelint', 'cspell', 'jest', 'phpunit', 'functional_javascript', 'renovate'];
+
+    yield 'module, all majors, both wrappers, every tool' => ['module', ['10', '11', '12'], ['ahoy', 'makefile'], []];
+    yield 'module, Drupal 12, no wrapper, no tools' => ['module', ['12'], [], $tools];
+    yield 'theme, Drupal 11, Makefile' => ['theme', ['11'], ['makefile'], []];
+  }
+
+  /**
    * @param array<string> $tools_remove
    * @param array<string> $expected_absent
    */
@@ -1356,6 +1386,18 @@ final class InstallProcessTest extends UnitTestCase {
     self::assertIsArray($words);
 
     return array_values(array_map(strtolower(...), array_filter($words, is_string(...))));
+  }
+
+  /**
+   * Read the lines of the SUT 'install.php' that hold '#;'.
+   *
+   * @return array<int, string>
+   *   The lines, in order.
+   */
+  protected static function installerMarkerLines(): array {
+    $lines = explode("\n", (string) file_get_contents(self::$sut . '/install.php'));
+
+    return array_values(preg_grep('/#;/', $lines) ?: []);
   }
 
   /**
