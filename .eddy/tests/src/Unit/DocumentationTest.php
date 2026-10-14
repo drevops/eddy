@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use DrevOps\Eddy\Tests\Traits\CiJobsTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
-use Symfony\Component\Yaml\Yaml;
 
 /**
  * Tests that documentation stays consistent with the files it describes.
@@ -34,6 +34,8 @@ use Symfony\Component\Yaml\Yaml;
  */
 #[Group('p0')]
 final class DocumentationTest extends UnitTestCase {
+
+  use CiJobsTrait;
 
   /**
    * Variables that the shell or the SSH agent set, not the project.
@@ -394,42 +396,6 @@ final class DocumentationTest extends UnitTestCase {
     self::assertNotSame([], $matches[1], 'The update skill sets no INSTALL_ variables.');
 
     return array_values(array_unique($matches[1]));
-  }
-
-  /**
-   * List the jobs of the 'lint' and 'test' matrices of the 'test.yml' workflow.
-   *
-   * @return array<int, array{name: string, php: string, drupal: string}>
-   *   The jobs in workflow order, each with its PHP and Drupal versions.
-   */
-  protected static function ciJobs(): array {
-    $workflow = Yaml::parse((string) file_get_contents(self::rootDir() . '/.github/workflows/test.yml'));
-    $jobs = [];
-
-    foreach (['lint', 'test'] as $job_name) {
-      $job = is_array($workflow) && is_array($workflow['jobs'] ?? NULL) ? ($workflow['jobs'][$job_name] ?? NULL) : NULL;
-      $strategy = is_array($job) && is_array($job['strategy'] ?? NULL) ? $job['strategy'] : [];
-      $matrix = is_array($strategy['matrix'] ?? NULL) ? $strategy['matrix'] : [];
-      $include = $matrix['include'] ?? NULL;
-
-      self::assertIsArray($include, sprintf('test.yml has no matrix for the `%s` job.', $job_name));
-
-      foreach ($include as $leg) {
-        self::assertIsArray($leg);
-
-        $name = $leg['name'] ?? NULL;
-        $php = $leg['php-version'] ?? NULL;
-        $drupal = $leg['drupal-version'] ?? NULL;
-
-        self::assertIsScalar($name);
-        self::assertIsScalar($php);
-        self::assertIsScalar($drupal);
-
-        $jobs[] = ['name' => (string) $name, 'php' => (string) $php, 'drupal' => (string) $drupal];
-      }
-    }
-
-    return $jobs;
   }
 
   protected static function updateSkillPath(): string {
