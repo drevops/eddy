@@ -202,12 +202,6 @@ To let a lint or test step in [`.github/workflows/test.yml`](.github/workflows/t
 | `CI_NODEJS_TEST_IGNORE_FAILURE` | Jest |
 | `CI_TEST_IGNORE_FAILURE` | PHPUnit |
 
-### Caching Composer downloads in CI
-
-Each CI job caches the package archives that Composer downloads, so its next run unpacks them instead of fetching them again. The cache key holds the job's name, the current month (UTC) and a hash of `composer.json` and `composer.dev.json`. Builds resolve without a lock file, so the month makes each job save a fresh cache at least once a month as newer releases arrive. Drupal 12 builds still clone core on every run, because the repository is bigger than all the archives combined.
-
-To start a job's cache over, delete its `Linux-composer-<job name>-*` entries under **Actions** -> **Caches**.
-
 ### Patching dependencies
 
 The build installs [`cweagans/composer-patches`](https://github.com/cweagans/composer-patches) 2.x and applies the patches declared in the `patches` section of `composer.dev.json` or `composer.json`. Each entry maps a description to a local path or a URL:
