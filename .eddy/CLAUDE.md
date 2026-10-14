@@ -121,6 +121,8 @@ The badges in `README.dist.md` name the GitHub repository as `YourNamespace/your
 
 The repository goes in after the generic replacements, which would rewrite an owner or a name spelled like a placeholder, such as `alexskrypnyk`. The update skill renders in a scratch directory inside the project's repository, which the root check rules out, so it passes `INSTALL_GITHUB_REPOSITORY` to both renders.
 
+The license badge names no repository: it states GPL-2.0-or-later. GitHub detects a license only from a license file, and a generated project has none, because Drupal.org adds `LICENSE.txt` to every release it packages and asks projects not to commit one. The deployment pushes the project's commits as they are, so it can't leave a committed license file out either.
+
 ## Template version
 
 `install.php` records the Eddy release a project came from as `extra.eddy.version` in its `composer.dev.json`, so the update skill can render that release as the base of its 3-way merge.
