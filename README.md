@@ -51,7 +51,7 @@ Eddy tests itself the way it tests a project created from it, and deploys to [dr
 
 1. Download the [latest release](https://github.com/drevops/eddy/releases/latest) and expand it into a new directory.
 2. Run `php install.php` there and answer its questions.
-3. Build the site with `make build` or `ahoy build`, then check it with `lint` and `test` through the same wrapper.
+3. Build the site with `make build` or `ahoy build`, then check it with `lint` and `test` through the same wrapper. Without a wrapper, the generated `CONTRIBUTING.md` lists the `scripts/eddy-tooling` and `vendor/bin/eddy-*` commands that do the same jobs.
 
 ![Installation process](.eddy/assets/install.svg)
 
