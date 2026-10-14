@@ -234,6 +234,7 @@ Run the linters and the tests with the commands that `CONTRIBUTING.md` lists.
 <!-- #;> EXTENSION_MODULE -->
 <!-- #;< EXTENSION_THEME -->
 - **No base theme**: `base theme: false`, so Drupal's default templates render every page until the theme overrides them in `templates/`
+- **Theme hooks**: `your_extension.theme` adds a `div[data-your-extension-time]` element to every page, which `js/your_extension.js` fills with the page load time
 - **Global library**: The `libraries` key in `your_extension.info.yml` attaches the `global` library from `your_extension.libraries.yml` to every page
 <!-- #;< DEV_FUNCTIONAL_JAVASCRIPT -->
 - **Test coverage**: FunctionalJavascript smoke test example provided, with the theme installed as the default theme
@@ -276,7 +277,7 @@ Run `php install.php` once, in a fresh copy of the template, to turn it into you
 2. Develop your extension code in `src/`
 <!-- #;> EXTENSION_MODULE -->
 <!-- #;< EXTENSION_THEME -->
-2. Develop your theme: Twig templates in `templates/`, styles in `css/` and behaviors in `js/`
+2. Develop your theme: Twig templates in `templates/`, hooks in `your_extension.theme`, styles in `css/` and behaviors in `js/`
 <!-- #;> EXTENSION_THEME -->
 <!-- #;< DEV_COMMAND_WRAPPER -->
 3. Check standards: `make lint` or `ahoy lint`

@@ -119,6 +119,8 @@ final class InstallProcessTest extends UnitTestCase {
     ];
 
     $module_not_exists = [
+      'my_extension.theme',
+      'your_extension.theme',
       'your_extension.info.yml',
       'your_extension.install',
       'your_extension.module',
@@ -146,6 +148,7 @@ final class InstallProcessTest extends UnitTestCase {
       [
         'my_theme.info.yml',
         'my_theme.libraries.yml',
+        'my_theme.theme',
         'tests/src/FunctionalJavascript/MyThemeFunctionalJavascriptTestBase.php',
         'tests/src/FunctionalJavascript/MyThemeSmokeFunctionalJavascriptTest.php',
         'css/my_theme.css',
@@ -301,8 +304,9 @@ final class InstallProcessTest extends UnitTestCase {
     $theme = [
       "- `css/` and `js/` - Stylesheets and JavaScript behaviors of the theme's global library",
       '- **No base theme**: `base theme: false`',
+      '- **Theme hooks**: `my_theme.theme` adds a `div[data-my_theme-time]` element to every page, which `js/my_theme.js` fills with the page load time',
       '- **Global library**: The `libraries` key in `my_theme.info.yml` attaches the `global` library from `my_theme.libraries.yml` to every page',
-      '2. Develop your theme: Twig templates in `templates/`',
+      '2. Develop your theme: Twig templates in `templates/`, hooks in `my_theme.theme`',
     ];
     $theme_tests = [
       '- `tests/src/` - PHPUnit tests (FunctionalJavascript/)',

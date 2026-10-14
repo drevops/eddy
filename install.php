@@ -305,7 +305,8 @@ function drupal_version_php_versions(): array {
  * words they bring into the CSpell 'words' of '.cspell.json'.
  *
  * The example extension is a module, so the files of its service, its settings
- * form and their tests are the module's. A theme has no files of its own.
+ * form and their tests are the module's. A theme's own file is its '.theme'
+ * file.
  *
  * '.eddy/CLAUDE.md' describes what a theme keeps.
  *
@@ -334,7 +335,7 @@ function extension_type_specs(): array {
       'cspell_words' => ['noscript'],
     ],
     'theme' => [
-      'files' => [],
+      'files' => ['your_extension.theme'],
       'cspell_words' => [],
     ],
   ];
@@ -996,6 +997,7 @@ function process_internal(string $extension_name, string $extension_machine_name
   @rename('your_extension.module', $extension_machine_name . '.module');
   @rename('your_extension.routing.yml', $extension_machine_name . '.routing.yml');
   @rename('your_extension.services.yml', $extension_machine_name . '.services.yml');
+  @rename('your_extension.theme', $extension_machine_name . '.theme');
   @rename('config/schema/your_extension.schema.yml', 'config/schema/' . $extension_machine_name . '.schema.yml');
   @rename('src/Form/YourExtensionForm.php', 'src/Form/' . $extension_machine_name_class . 'Form.php');
   @rename('src/YourExtensionService.php', 'src/' . $extension_machine_name_class . 'Service.php');

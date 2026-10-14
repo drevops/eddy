@@ -108,6 +108,8 @@
         <include>
             <directory>web/modules/custom</directory>
             <directory>web/themes/custom</directory>
+            <!-- A theme holds its PHP in its '.theme' file. -->
+            <directory suffix=".theme">web/themes/custom</directory>
         </include>
 
         <exclude>

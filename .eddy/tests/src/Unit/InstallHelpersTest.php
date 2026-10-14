@@ -519,6 +519,7 @@ final class InstallHelpersTest extends UnitTestCase {
     $template = [
       'your_extension.info.yml' => "type: module\n" . $theme_block . $module_block,
       'your_extension.module' => "<?php\n",
+      'your_extension.theme' => "<?php\n",
       'src/Form/YourExtensionForm.php' => "<?php\n",
       'src/YourExtensionService.php' => "<?php\n",
       'tests/src/Unit/YourExtensionServiceUnitTest.php' => "<?php\n",
@@ -530,11 +531,14 @@ final class InstallHelpersTest extends UnitTestCase {
       'src/Form/YourExtensionForm.php' => NULL,
       'src/YourExtensionService.php' => NULL,
       'tests/src/Unit/YourExtensionServiceUnitTest.php' => NULL,
-      'tests/src/FunctionalJavascript/YourExtensionSmokeFunctionalJavascriptTest.php' => "<?php\n",
-    ];
+    ] + $template;
+    $without_theme = [
+      'your_extension.info.yml' => "type: module\n" . $module_block,
+      'your_extension.theme' => NULL,
+    ] + $template;
 
     yield 'no type' => [[], $template, $template, ['src/Form' => TRUE, 'tests/src/Unit' => TRUE]];
-    yield 'theme' => [['theme'], $template, ['your_extension.info.yml' => "type: module\n" . $module_block] + $template, ['src/Form' => TRUE, 'tests/src/Unit' => TRUE]];
+    yield 'theme' => [['theme'], $template, $without_theme, ['src/Form' => TRUE, 'tests/src/Unit' => TRUE]];
     yield 'module' => [['module'], $template, $without_module, ['src' => FALSE, 'tests/src/Unit' => FALSE, 'tests/src' => TRUE]];
     yield 'module, with a project file beside its files' => [
       ['module'],
