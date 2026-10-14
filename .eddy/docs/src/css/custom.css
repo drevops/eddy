@@ -18,6 +18,7 @@
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
   --eddy-ink: #192d62;
   --eddy-blue-on-dark: #5cb8ec;
+  --ifm-navbar-search-input-placeholder-color: var(--ifm-color-emphasis-700);
   --search-local-muted-color: var(--ifm-color-emphasis-700);
 }
 
