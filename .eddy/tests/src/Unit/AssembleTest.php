@@ -428,7 +428,7 @@ final class AssembleTest extends UnitTestCase {
     }
 
     if ($config['has_package_lock'] && !($config['has_skip_npm_build'] ?? FALSE) && $config['has_nvmrc']) {
-      $expected_note = $config['has_nvm'] ? 'Using the Node.js version in .nvmrc with nvm from %s.' : 'nvm is not installed in %s; running npm with the Node.js on PATH, not the version in .nvmrc.';
+      $expected_note = $config['has_nvm'] ? 'Using the Node.js version in .nvmrc with nvm from %s.' : 'nvm is not installed in %s; using the Node.js on PATH, not the version in .nvmrc.';
       $this->assertStringContainsString(sprintf($expected_note, $config['nvm_dir']), $output);
       $this->assertSame($config['has_nvm'], in_array('NVM_DIR=' . $config['nvm_dir'], $this->putenvCalls, TRUE), 'NVM_DIR is exported only when nvm is installed.');
     }

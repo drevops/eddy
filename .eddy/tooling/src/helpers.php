@@ -1547,7 +1547,7 @@ function nvm_prefix(): string {
   $nvm_dir = nvm_dir();
 
   if (!is_file($nvm_dir . '/nvm.sh')) {
-    NOTE('nvm is not installed in %s; running npm with the Node.js on PATH, not the version in .nvmrc.', $nvm_dir);
+    NOTE('nvm is not installed in %s; using the Node.js on PATH, not the version in .nvmrc.', $nvm_dir);
 
     return '';
   }

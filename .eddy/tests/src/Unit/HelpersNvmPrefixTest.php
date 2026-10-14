@@ -75,7 +75,7 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
   public static function dataProviderNvmPrefix(): \Iterator {
     yield 'no .nvmrc' => [FALSE, TRUE, '', ''];
     yield 'no .nvmrc and no nvm' => [FALSE, FALSE, '', ''];
-    yield '.nvmrc without nvm' => [TRUE, FALSE, '', 'nvm is not installed in %s; running npm with the Node.js on PATH, not the version in .nvmrc.'];
+    yield '.nvmrc without nvm' => [TRUE, FALSE, '', 'nvm is not installed in %s; using the Node.js on PATH, not the version in .nvmrc.'];
     yield '.nvmrc with nvm' => [TRUE, TRUE, self::PREFIX, 'Using the Node.js version in .nvmrc with nvm from %s.'];
   }
 
