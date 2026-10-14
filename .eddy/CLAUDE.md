@@ -173,6 +173,44 @@ All commands run from the repository root. Install dependencies once with `compo
 
 `phpunit.xml` stops the run at the first error, failure, warning or risky test, so a run that ends early can still print an "OK, but there were issues!" footer. Compare the test count with the expected total.
 
+## Writing tests
+
+Tests in `.eddy/tests/src` read, write, copy and remove files through `AlexSkrypnyk\File\File` from `alexskrypnyk/file`, and take the rest of their plumbing from the traits of `alexskrypnyk/phpunit-helpers`. `UnitTestCase` already uses `LocationsTrait`, `EnvTrait`, `ReflectionTrait` and `SerializableClosureTrait` from the helpers, and `FileAssertionsTrait` and `DirectoryAssertionsTrait` from `alexskrypnyk/file`. `FunctionalTestCase` adds `ProcessTrait` and `TuiTrait`.
+
+| Instead of                                                               | Use                                                                 |
+|--------------------------------------------------------------------------|---------------------------------------------------------------------|
+| `file_get_contents()`                                                    | `File::read()`                                                      |
+| `file()`, `parse_ini_file()`, `Yaml::parseFile()`, `DOMDocument::load()` | `File::read()`, then split or parse the string                      |
+| `file_put_contents()`, `touch()` of a new file                           | `File::dump()`                                                      |
+| `file_put_contents()` with `FILE_APPEND`                                 | `File::append()`, when the file exists                              |
+| `mkdir()`                                                                | `File::mkdir()`                                                     |
+| `copy()`, Symfony `Filesystem::mirror()`                                 | `File::copy()`                                                      |
+| `unlink()`, `rmdir()`                                                    | `File::remove()`, `File::rmdir()`, `File::rmdirIfEmpty()`           |
+| `file_exists()`, `is_file()`, `is_dir()`                                 | `File::exists()`, when the test only asks whether the path is there |
+| `scandir()`, `RecursiveDirectoryIterator`                                | `File::scandir()`, `File::dirIsEmpty()`                             |
+| `getcwd()`                                                               | `File::cwd()`                                                       |
+| Any other Symfony `Filesystem` method                                    | Its `File` counterpart                                              |
+| `sys_get_temp_dir()`, `tempnam()`                                        | The `LocationsTrait` directories, such as `self::$tmp`              |
+| `realpath()`                                                             | `self::locationsRealpath()`                                         |
+| `putenv()` of a variable the test introduces                             | `self::envSet()`                                                    |
+| `getenv()`                                                               | `self::envGet()`                                                    |
+| A Symfony `Process` that runs the command a test asserts on              | `processRun()` and the `assertProcess*()` methods of `ProcessTrait` |
+
+`File::dump()` and `File::copy()` create the parent directories, so a test calls `File::mkdir()` only for a directory it needs on its own, such as an empty one or one it changes into. `File::read()` returns a string and throws for a missing file, so it needs no `(string)` cast or `FALSE` check, and a file that may be missing is read with `File::exists($path) ? File::read($path) : ''`. `File::rmdirIfEmpty()` keeps the behavior of an `rmdir()` that only removes an empty directory.
+
+`assertFileContainsString()` and the other assertions of the 2 traits read a needle that parses as a regular expression, such as `/home/us`, as one, and their "not contains" forms pass for a missing file. Where either matters, assert on `File::read()` with `assertStringContainsString()`.
+
+Plain PHP stays where `File` has no method, or where the native behavior is what the test needs:
+
+- `chmod()`, `fileperms()`, `is_executable()`, `symlink()`, `readlink()`, `is_link()` and `rename()`.
+- `glob()`. `File::scandir()` walks every directory below the one it lists, which a pattern such as `phpunit*.xml` in the repository root doesn't need.
+- The `RecursiveDirectoryIterator` in `TemplateMarkersTest`, which skips directories by name. `File::scandir()` skips paths by substring, so skipping `/build/` would also skip a checkout that sits under a `build` directory.
+- `chdir()`, streams such as `php://memory` and sockets, and `file_get_contents()` of a URL.
+- `putenv()` and `getenv()` that save and restore a variable the environment already holds, such as `HOME` in `UpdateAssetsTest`. `envReset()` unsets every variable set through `EnvTrait` instead of restoring its earlier value.
+- Symfony `Process` for a command run through `PHP_BINARY`, a process started in the background, and helper commands such as `git` and `tar`. `processRun()` accepts only letters, digits, `.`, `-`, `_` and `/` in the command name, and a Homebrew `PHP_BINARY` such as `/opt/homebrew/Cellar/php@8.4/8.4.17/bin/php` holds an `@`.
+- PHP that a test writes into a file as a string, such as the stub commands of `MakefileArgumentsTest`, since it runs without the packages.
+- The functions that a mock stands in for: the names passed to `registerMock()` and `getFunctionMock()`, and the native call that a mock falls back to, such as `\file_get_contents()` in `ProvisionTest`. The code under test expects the native return values, such as `FALSE` for a missing file. A mock intercepts only the calls from its namespace, such as `DrevOps\Eddy\Tooling`, so the `File` calls of a test never reach it.
+
 ## Regenerating snapshot fixtures
 
 **HARD RULE - never edit fixtures directly.** Files under `.eddy/tests/fixtures/install/` are generated artifacts, apart from the `.ignorecontent` rule files, which are edited by hand and kept as they are when the fixtures are regenerated. They must always be regenerated with the `update-snapshots` Composer script - run from inside `.eddy/tests` (see below) - after any source change that affects `install.php` output. Hand-editing a fixture risks drift between what the generator would produce and what is checked in - subsequent regenerations would then overwrite the manual edit and the failure mode would only surface in CI.
