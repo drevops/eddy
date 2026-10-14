@@ -2,8 +2,17 @@ SHELL=/bin/bash
 
 # Load variables from .env if present and export them to recipe shells. The
 # leading '-' on -include suppresses errors when the file does not exist.
+#
+# An .env assignment overrides the environment, so the shell value of each
+# variable that .env sets is saved before the include and restored after.
+# An empty shell value counts as unset, as in resolve_env_value().
+DOTENV_VARS := $(shell sed -n 's/^[[:space:]]*\([A-Za-z_][A-Za-z0-9_]*\)[[:space:]]*=.*/\1/p' .env 2>/dev/null)
+DOTENV_SHELL_VARS := $(sort $(foreach var,$(DOTENV_VARS),$(if $(value $(var)),$(var))))
+$(foreach var,$(DOTENV_SHELL_VARS),$(eval DOTENV_SHELL_$(var) := $$(value $(var))))
 -include .env
+$(foreach var,$(DOTENV_SHELL_VARS),$(eval $(var) := $$(DOTENV_SHELL_$(var))))
 export
+unexport DOTENV_VARS DOTENV_SHELL_VARS $(foreach var,$(DOTENV_SHELL_VARS),DOTENV_SHELL_$(var))
 
 # Resolve a relative TMPDIR to an absolute path so build/-dir tools (which
 # chdir into build) can still find it. No-op when unset or already absolute.
