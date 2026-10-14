@@ -20,7 +20,7 @@ import CommandTabs from '@site/src/components/CommandTabs';
 
 1. It installs Drupal from the `standard` profile into a fresh SQLite database, with an `admin` account and without the Update Status module. Set `DRUPAL_PROFILE` to install from another profile.
 2. It enables your extension, as a module or as a theme.
-3. It enables each `drupal/*` extension in the `suggest` section of your `composer.json` as a module (see [Optional dependencies](dependencies.mdx#optional-dependencies)).
+3. It enables each `drupal/*` extension in the `suggest` section of your `composer.json`, as a module or as a theme (see [Optional dependencies](dependencies.mdx#optional-dependencies)).
 4. It requests the front page once, so the caches are warm before you open the site.
 5. It links Drupal's browser test output into `.logs/browser_output`, next to the other test artifacts.
 6. It adds the reverse-proxy and trusted-host settings that a [public tunnel](tunnel.mdx) needs, when the tunnel is on.
