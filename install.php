@@ -260,7 +260,10 @@ function drupal_version_build_default(array $majors): string {
  *
  * '.eddy/CLAUDE.md' lists the steps for adding a Drupal major.
  *
- * @return array<int, array{files: list<string>, replacements: array<string, string>}>
+ * @return array<int, array{
+ *   files: list<string>,
+ *   replacements: array<string, string>,
+ *   }>
  *   Map of Drupal major to its removal specification. PHP casts the
  *   numeric-string keys to integers.
  */
