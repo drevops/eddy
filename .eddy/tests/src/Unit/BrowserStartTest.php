@@ -232,7 +232,7 @@ final class BrowserStartTest extends UnitTestCase {
     $this->assertStringContainsString('Removing the Selenium container selenium-4444.', $output);
     $this->assertStringContainsString('chromedriver is ready on port 4444', $output);
     $this->assertCount(2, $commands, 'Only the container may be removed before chromedriver is launched.');
-    $this->assertSame("docker rm -f 'selenium-4444' >/dev/null 2>&1", $commands[0], 'The container of the project must be removed first.');
+    $this->assertStringContainsString("docker rm -f 'selenium-4444'", $commands[0], 'The container of the project must be removed first.');
     $this->assertStringContainsString('nohup', $commands[1], 'chromedriver must be launched once the container is removed.');
   }
 
@@ -242,6 +242,22 @@ final class BrowserStartTest extends UnitTestCase {
     yield 'booting container of the project' => ['/test/project', 'selenium booting'];
     yield 'container of the project that does not answer' => ['/test/project', NULL];
     yield 'container without the label that does not answer' => ['', NULL];
+  }
+
+  public function testBrowserStartChromedriverFailsWhenOwnContainerIsNotRemoved(): void {
+    $this->mockChrome(FALSE);
+    $this->mockCommands(['docker' => '/usr/bin/docker', 'google-chrome' => '/usr/bin/google-chrome', 'chromedriver' => '/usr/local/bin/chromedriver']);
+    $this->mockVersions('Google Chrome 150.0.7871.129', 'ChromeDriver 150.0.7871.129 (abc)');
+    $this->mockPortListeners('4444', [9999 => ['/Applications/Docker.app/Contents/MacOS/com.docker.backend', '/']], self::seleniumContainerOutputs('4444', '/test/project'));
+    $this->mockStatus(['selenium']);
+    $commands = [];
+    $this->recordPassthru($commands, docker_rm_exit: 1);
+
+    $output = $this->runBrowserStart(1);
+
+    $this->assertStringContainsString('Failed to remove the Selenium container selenium-4444.', $output);
+    $this->assertCount(1, $commands, 'chromedriver must not be launched while the container holds the port.');
+    $this->assertStringContainsString("docker rm -f 'selenium-4444'", $commands[0]);
   }
 
   /**
@@ -974,14 +990,17 @@ final class BrowserStartTest extends UnitTestCase {
    * @param array<int, string> $commands
    *   Populated by reference with every passthru() command line.
    */
-  protected function recordPassthru(array &$commands, int $npx_exit = 0, int $docker_run_exit = 0): void {
-    $this->registerMock('passthru', 'DrevOps\\Eddy\\Tooling', function (string $cmd, &$result_code = NULL) use (&$commands, $npx_exit, $docker_run_exit): void {
+  protected function recordPassthru(array &$commands, int $npx_exit = 0, int $docker_run_exit = 0, int $docker_rm_exit = 0): void {
+    $this->registerMock('passthru', 'DrevOps\\Eddy\\Tooling', function (string $cmd, &$result_code = NULL) use (&$commands, $npx_exit, $docker_run_exit, $docker_rm_exit): void {
       $commands[] = $cmd;
       if (str_contains($cmd, 'npx')) {
         $result_code = $npx_exit;
       }
       if (str_contains($cmd, 'docker run')) {
         $result_code = $docker_run_exit;
+      }
+      if (str_contains($cmd, 'docker rm')) {
+        $result_code = $docker_rm_exit;
       }
     });
   }

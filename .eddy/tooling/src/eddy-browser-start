@@ -163,7 +163,7 @@ function chromedriver_start(string $port, string $root): void {
   // the project's own: webdriver_fail_when_taken() fails on any other.
   if (command_path('docker') !== FALSE && selenium_container_running($port)) {
     TASK('Removing the Selenium container %s.', selenium_container($port));
-    selenium_container_remove($port);
+    passthru_or_fail(sprintf('docker rm -f %s', escapeshellarg(selenium_container($port))), 'Failed to remove the Selenium container %s.', selenium_container($port));
   }
 
   chromedriver_stop($port, $root);
