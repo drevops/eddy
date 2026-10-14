@@ -14,9 +14,8 @@ use Symfony\Component\Process\Process;
  * Tests what the deploy workflow passes to the deploy script.
  *
  * A tag push reports the tag name as the head branch, so the workflow deploys
- * that tag instead of a branch. Git allows a tag to share a branch's name, so
- * the run counts as a tag push only when that tag points at the triggering
- * commit.
+ * that tag instead of a branch. A tag can share a branch's name, so the run
+ * counts as a tag push only when that tag points at the triggering commit.
  *
  * A branch push deploys only while its commit is the branch tip on 'origin'.
  * Runs finish out of order and can be re-run, and deploying an older commit
@@ -27,8 +26,8 @@ use Symfony\Component\Process\Process;
  * the token itself.
  *
  * The step's shell is read out of the workflow and executed in a clone of a
- * purpose-built repository, so these assertions cover that script, not a
- * re-implementation.
+ * purpose-built repository. These assertions therefore cover that script,
+ * not a re-implementation.
  *
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort

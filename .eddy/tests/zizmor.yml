@@ -1,7 +1,5 @@
 # Zizmor configuration for auditing the scaffold template's own GitHub Actions
-# workflows. Consumed by the 'eddy-test-actions' job in
-# '.github/workflows/eddy-test.yml' (a maintenance-only workflow that is not
-# shipped to projects created from this scaffold).
+# workflows.
 #
 # Every entry below documents an intentional, accepted finding. Genuine issues
 # are fixed in the workflows themselves rather than ignored here.
@@ -31,6 +29,7 @@ rules:
     # Actions are pinned by commit SHA, which is the security control enforced
     # by the 'unpinned-uses' audit. The trailing version comment is
     # informational and managed by Renovate, which may lag the moving major tag.
+    #
     # This is also an online audit that resolves inconsistently across runs, so
     # it is disabled entirely to keep a stable baseline.
     disable: true

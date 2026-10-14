@@ -356,7 +356,6 @@ final class DeployTest extends UnitTestCase {
       $this->fail('Expected QuitSuccessException to be thrown');
     }
     catch (QuitSuccessException) {
-      // Expected.
     }
     finally {
       $output = ob_get_clean();
@@ -423,7 +422,6 @@ final class DeployTest extends UnitTestCase {
       $this->fail('Expected QuitSuccessException to be thrown');
     }
     catch (QuitSuccessException) {
-      // Expected.
     }
     finally {
       $output = ob_get_clean();
@@ -497,7 +495,6 @@ final class DeployTest extends UnitTestCase {
       $this->fail('Expected QuitSuccessException to be thrown');
     }
     catch (QuitSuccessException) {
-      // Expected.
     }
     finally {
       $output = ob_get_clean();
@@ -535,7 +532,6 @@ final class DeployTest extends UnitTestCase {
       $this->fail('Expected QuitSuccessException to be thrown');
     }
     catch (QuitSuccessException) {
-      // Expected.
     }
     finally {
       $output = ob_get_clean();
@@ -681,7 +677,6 @@ final class DeployTest extends UnitTestCase {
       $this->fail('Expected QuitSuccessException to be thrown');
     }
     catch (QuitSuccessException) {
-      // Expected.
     }
     finally {
       ob_get_clean();

@@ -5,6 +5,12 @@ This document explains how to set up a local development environment, build the 
 ## Local development
 
 1. Install PHP with SQLite support and Composer
+<!-- #;< DEV_NPM -->
+   - Install Node.js with npm, which the build and the linters use
+<!-- #;> DEV_NPM -->
+<!-- #;< DEV_AHOY -->
+   - Install [Ahoy](https://github.com/ahoy-cli/ahoy)
+<!-- #;> DEV_AHOY -->
 2. Clone this repository
 3. Build the website:
 <!-- #;< DEV_MAKEFILE -->
@@ -33,7 +39,9 @@ This document explains how to set up a local development environment, build the 
 
 Building the website assembles the codebase, starts the PHP server and provisions the Drupal website with this extension enabled. These operations are run by the commands of the [`drevops/eddy-tooling`](https://github.com/drevops/eddy-tooling) package, which `scripts/eddy-tooling` installs into `vendor/`. CI uses the same commands to build and test this extension.
 
-The package version is set in `composer.dev.json`. The installer runs Composer only when that version, the patches declared for the package or the contents of a local patch file change, so a newer patch release reaches a local checkout once `vendor/` is removed.
+Never modify `scripts/eddy-tooling`, by hand or with AI: it comes from Eddy as-is, and a scaffold update replaces it with the release's copy. To change what a tooling command does, declare a patch for the package (see [Patching dependencies](#patching-dependencies)).
+
+The package version is set in `composer.dev.json`. The installer runs Composer only when that version, the patches declared for the package or the contents of a local patch file change, or when one of its commands is missing from `vendor/bin`, so a newer patch release reaches a local checkout once `vendor/` is removed.
 
 The resulting codebase is then placed in the `build` directory. The extension files are symlinked into the Drupal site structure.
 <!-- #;< DEV_COMMAND_WRAPPER -->
@@ -58,6 +66,14 @@ ahoy provision    # Provision the Drupal website
 <!-- #;> DEV_AHOY -->
 
 The `provision` command is useful for re-installing the Drupal website without re-assembling the codebase.
+<!-- #;< DEV_COMMAND_WRAPPER -->
+
+The `info` command prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path. The `reset` command stops the development server and removes the `build`, `.logs` and `vendor` directories.
+<!-- #;> DEV_COMMAND_WRAPPER -->
+<!-- #;< DEV_NO_COMMAND_WRAPPER -->
+
+`vendor/bin/eddy-info` prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path.
+<!-- #;> DEV_NO_COMMAND_WRAPPER -->
 
 ### Drupal versions
 
@@ -115,7 +131,7 @@ DRUPAL_VERSION=12 vendor/bin/eddy-assemble
 
 The build pins Drupal core to the newest release matching `DRUPAL_VERSION` and prints it. A version with no stable release yet resolves to its newest pre-release. When that release requires a newer PHP than the one running the build, the build stops before it changes anything and says which PHP the release needs.
 
-Every other dependency installs its most stable release that supports that core and the PHP running the build, even when the global Composer configuration sets `config.platform.php`. A dependency falls back to a pre-release or a development branch only when no stable release fits, and the build output lists every dependency installed from a development branch.
+Every other dependency installs its most stable release that supports that core and the PHP running the build, or the `config.platform.php` that `composer.dev.json` or `composer.json` sets, even when the global Composer configuration sets its own. A dependency falls back to a pre-release or a development branch only when no stable release fits, and the build output lists every dependency installed from a development branch.
 
 ### Patching dependencies
 
@@ -141,7 +157,7 @@ To overcome GitHub API rate limits, you may provide a `GITHUB_TOKEN` environment
 
 ### Provisioning the website
 
-The `provision` command installs the Drupal website from the `standard` profile with the extension (and any `suggest`'ed extensions) enabled. The profile can be changed by setting the `DRUPAL_PROFILE` environment variable.
+The `provision` command installs the Drupal website from the `standard` profile with the extension (and any `drupal/*` modules in `suggest`) enabled. The profile can be changed by setting the `DRUPAL_PROFILE` environment variable.
 
 The website is served at `http://localhost:8000`, or at the first free port up to 8099 when another process uses 8000, as described below, and the `start` command prints the URL. The hostname can be changed by setting the `WEBSERVER_HOST` environment variable.
 
@@ -198,7 +214,7 @@ To start and stop debug sessions from the browser, install the Xdebug Helper ext
 
 The codebase is checked using multiple tools:
 <!-- #;< DEV_PHPCS -->
-- PHP code standards checking against `Drupal` and `DrupalPractice` standards.
+- PHP code standards checking against `Drupal`, `DrupalPractice`, `DrevOps` and `PHPCompatibility` standards.
 <!-- #;> DEV_PHPCS -->
 <!-- #;< DEV_PHPSTAN -->
 - PHP code static analysis with PHPStan.
@@ -314,6 +330,10 @@ ahoy test
 vendor/bin/eddy-browser-start
 export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
 #;> DEV_FUNCTIONAL_JAVASCRIPT
+#;< DEV_PHPUNIT
+export WEBSERVER_PORT="$(vendor/bin/eddy-info webserver-port)"
+export SIMPLETEST_BASE_URL="http://localhost:${WEBSERVER_PORT}"
+#;> DEV_PHPUNIT
 cd build
 #;< DEV_PHPUNIT
 php -d pcov.directory=.. vendor/bin/phpunit
@@ -325,7 +345,7 @@ npm test
 <!-- #;> DEV_NO_COMMAND_WRAPPER -->
 <!-- #;< DEV_PHPUNIT -->
 
-The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests. It uses Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
+The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests, and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both use Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
 
 Each test suite can also be run on its own:
 <!-- #;< DEV_MAKEFILE -->
@@ -353,6 +373,8 @@ ahoy test-functional-javascript   # Run FunctionalJavascript tests
 <!-- #;< DEV_NO_COMMAND_WRAPPER -->
 
 ```bash
+export WEBSERVER_PORT="$(vendor/bin/eddy-info webserver-port)"
+export SIMPLETEST_BASE_URL="http://localhost:${WEBSERVER_PORT}"
 cd build
 php -d pcov.directory=.. vendor/bin/phpunit --testsuite unit
 php -d pcov.directory=.. vendor/bin/phpunit --testsuite kernel
@@ -390,6 +412,8 @@ vendor/bin/eddy-start
 vendor/bin/eddy-provision
 vendor/bin/eddy-browser-start
 export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
+export WEBSERVER_PORT="$(vendor/bin/eddy-info webserver-port)"
+export SIMPLETEST_BASE_URL="http://localhost:${WEBSERVER_PORT}"
 cd build
 php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional-javascript
 cd ..
@@ -427,6 +451,8 @@ WEBSERVER_HOST=0.0.0.0 vendor/bin/eddy-start
 vendor/bin/eddy-provision
 WEBDRIVER_BACKEND=selenium vendor/bin/eddy-browser-start
 export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
+export WEBSERVER_PORT="$(vendor/bin/eddy-info webserver-port)"
+export SIMPLETEST_BASE_URL="http://localhost:${WEBSERVER_PORT}"
 cd build
 WEBDRIVER_BACKEND=selenium php -d pcov.directory=.. vendor/bin/phpunit \
   --testsuite functional-javascript
@@ -437,7 +463,7 @@ vendor/bin/eddy-browser-stop
 
 The browser reaches the webserver at `localhost` with the default backend, and at `host.docker.internal` (macOS) or `172.17.0.1` (other systems) from the Selenium container. Set `WEBDRIVER_HOST` to use a different address.
 
-Either backend gets its own WebDriver port: a free one is claimed starting at 4444 and stored in `.env`, so several projects can run FunctionalJavascript tests at the same time. Set `WEBDRIVER_PORT` to pin a specific one. Tests reach the claimed port because the base class applies it to the WebDriver endpoint, so extend `YourExtensionFunctionalJavascriptTestBase` rather than `WebDriverTestBase` directly - a test that bypasses it keeps the default endpoint from `phpunit.xml` unless it exports its own `MINK_DRIVER_ARGS_WEBDRIVER`.
+Each project gets its own WebDriver port, whichever backend it uses: a free one is claimed starting at 4444 and stored in `.env`, so several projects can run FunctionalJavascript tests at the same time. Set `WEBDRIVER_PORT` to pin a specific one. Tests reach the claimed port because the base class applies it to the WebDriver endpoint, so extend `YourExtensionFunctionalJavascriptTestBase` rather than `WebDriverTestBase` directly - a test that bypasses it keeps the default endpoint from `phpunit.xml` unless it exports its own `MINK_DRIVER_ARGS_WEBDRIVER`.
 
 <!-- #;> DEV_FUNCTIONAL_JAVASCRIPT -->
 <!-- #;< DEV_PHPUNIT -->
@@ -448,14 +474,16 @@ You can run specific tests by passing a path to the test file or PHPUnit CLI opt
 
 ```bash
 make test-unit web/modules/custom/your_extension/tests/src/Unit/MyUnitTest.php
-make test-unit -- --group=wip
+make test-unit -- --group wip
 ```
+
+`make` reads an argument that holds `=` as a variable and fails on one that holds `:`, so separate an option from its value with a space, and pass `--filter` a class or method name rather than `Class::method`.
 <!-- #;> DEV_MAKEFILE -->
 <!-- #;< DEV_AHOY -->
 
 ```bash
 ahoy test-unit web/modules/custom/your_extension/tests/src/Unit/MyUnitTest.php
-ahoy test-unit -- --group=wip
+ahoy test-unit -- --group wip
 ```
 <!-- #;> DEV_AHOY -->
 <!-- #;< DEV_COMMAND_WRAPPER -->

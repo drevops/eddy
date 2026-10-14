@@ -101,7 +101,6 @@ final class StartTest extends UnitTestCase {
     $this->envSet('WEBSERVER_PORT', '8000');
     $this->envSet('WEBSERVER_WAIT_TIMEOUT', $timeout);
 
-    // Nothing is looked up, killed or launched.
     $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(string $command): never => throw new \RuntimeException(sprintf('shell_exec() called with unexpected command "%s".', $command)));
     $this->mockPassthruNever();
     $this->mockQuit(1);
@@ -245,7 +244,6 @@ final class StartTest extends UnitTestCase {
 
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => '/test/project');
 
-    // Nothing is killed, and no server is launched.
     $this->mockPortListeners('8000', $listeners);
     $this->mockPassthruNever();
     $this->mockQuit(1);
@@ -291,8 +289,6 @@ final class StartTest extends UnitTestCase {
 
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
 
-    // The server output is redirected into '.logs', so the directory must
-    // exist before the server is launched.
     $this->mockPortListeners('8000');
     $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000', $cwd)]);
 
@@ -646,8 +642,6 @@ final class StartTest extends UnitTestCase {
     $this->assertStringContainsString('http://localhost:8001', $output);
     $this->assertSame('.env', $persisted_file);
     $this->assertSame('8001', $persisted_port);
-    // The probe runs twice: localhost:8000 is in use and localhost:8001 is
-    // free.
     $this->assertSame(2, $port_attempts);
 
     fclose($fp);

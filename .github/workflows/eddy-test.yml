@@ -34,9 +34,8 @@ jobs:
       fail-fast: false
 
       matrix:
-        # Job names include these values and are required status checks, so
-        # renaming a value blocks merges until the ruleset is updated:
-        # https://github.com/drevops/eddy/rules/8469831
+        # Job names include these values, so check the ruleset before renaming
+        # one: https://github.com/drevops/eddy/rules/8469831
         os: [ubuntu-latest, macos-latest]
         group: ['p0', 'p1', 'p2', 'p3', 'p4', 'p5']
         # Only the FunctionalJavascript groups (p3/p4) use a WebDriver

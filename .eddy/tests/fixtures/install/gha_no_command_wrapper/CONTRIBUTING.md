@@ -1,4 +1,9 @@
-@@ -9,7 +9,10 @@
+@@ -6,12 +6,14 @@
+ 
+ 1. Install PHP with SQLite support and Composer
+    - Install Node.js with npm, which the build and the linters use
+-   - Install [Ahoy](https://github.com/ahoy-cli/ahoy)
+ 2. Clone this repository
  3. Build the website:
  
     ```bash
@@ -10,7 +15,7 @@
     ```
  
  ## Building website
-@@ -20,14 +23,6 @@
+@@ -24,17 +26,9 @@
  
  The resulting codebase is then placed in the `build` directory. The extension files are symlinked into the Drupal site structure.
  
@@ -24,8 +29,12 @@
 -
  The `provision` command is useful for re-installing the Drupal website without re-assembling the codebase.
  
+-The `info` command prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path. The `reset` command stops the development server and removes the `build`, `.logs` and `vendor` directories.
++`vendor/bin/eddy-info` prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path.
+ 
  ### Drupal versions
-@@ -38,16 +33,16 @@
+ 
+@@ -44,16 +38,16 @@
  
  ```bash
  # Newest stable Drupal 11 release.
@@ -46,7 +55,7 @@
  ```
  
  The build pins Drupal core to the newest release matching `DRUPAL_VERSION` and prints it. A version with no stable release yet resolves to its newest pre-release. When that release requires a newer PHP than the one running the build, the build stops before it changes anything and says which PHP the release needs.
-@@ -101,14 +96,10 @@
+@@ -107,14 +101,10 @@
  PHP step-debugging is supported via [XDebug](https://xdebug.org/docs/install). Install the XDebug PHP extension on your host (`php -v` should mention `with Xdebug`), then toggle it on the development server:
  
  ```bash
@@ -63,7 +72,7 @@
  Code coverage stays on [pcov](https://github.com/krakjoe/pcov) because the XDebug settings apply only to the development server, not to the test commands.
  
  To start and stop debug sessions from the browser, install the Xdebug Helper extension: [Chrome](https://chromewebstore.google.com/detail/xdebug-helper-by-jetbrain/aoelhdemabeimdhedkidlnbkfhnhgnhm) / [Firefox](https://addons.mozilla.org/en-US/firefox/addon/xdebug-helper-by-jetbrains/).
-@@ -128,7 +119,15 @@
+@@ -134,7 +124,15 @@
  Run all checks with:
  
  ```bash
@@ -80,7 +89,7 @@
  ```
  
  ### Fixing coding standards issues
-@@ -136,7 +135,11 @@
+@@ -142,7 +140,11 @@
  To fix coding standards issues automatically, run the same tools with the `--fix` option (for the tools that support it):
  
  ```bash
@@ -93,20 +102,22 @@
  ```
  
  ## Testing
-@@ -144,7 +147,11 @@
+@@ -150,7 +152,13 @@
  Run the tests for this extension with:
  
  ```bash
 -ahoy test
 +vendor/bin/eddy-browser-start
 +export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
++export WEBSERVER_PORT="$(vendor/bin/eddy-info webserver-port)"
++export SIMPLETEST_BASE_URL="http://localhost:${WEBSERVER_PORT}"
 +cd build
 +php -d pcov.directory=.. vendor/bin/phpunit
 +npm test
  ```
  
- The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests. It uses Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
-@@ -152,10 +159,10 @@
+ The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests, and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both use Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
+@@ -158,10 +166,12 @@
  Each test suite can also be run on its own:
  
  ```bash
@@ -114,6 +125,8 @@
 -ahoy test-kernel                  # Run Kernel tests
 -ahoy test-functional              # Run Functional tests
 -ahoy test-functional-javascript   # Run FunctionalJavascript tests
++export WEBSERVER_PORT="$(vendor/bin/eddy-info webserver-port)"
++export SIMPLETEST_BASE_URL="http://localhost:${WEBSERVER_PORT}"
 +cd build
 +php -d pcov.directory=.. vendor/bin/phpunit --testsuite unit
 +php -d pcov.directory=.. vendor/bin/phpunit --testsuite kernel
@@ -121,7 +134,7 @@
  ```
  
  ### Running FunctionalJavascript tests
-@@ -163,21 +170,28 @@
+@@ -169,21 +179,32 @@
  FunctionalJavascript tests need a real browser driven via WebDriver. By default they use the Google Chrome already installed on your machine - a matching `chromedriver` is downloaded automatically on first run, so no Docker is required:
  
  ```bash
@@ -133,6 +146,8 @@
 +vendor/bin/eddy-provision
 +vendor/bin/eddy-browser-start
 +export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
++export WEBSERVER_PORT="$(vendor/bin/eddy-info webserver-port)"
++export SIMPLETEST_BASE_URL="http://localhost:${WEBSERVER_PORT}"
 +cd build
 +php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional-javascript
 +cd ..
@@ -152,6 +167,8 @@
 +vendor/bin/eddy-provision
 +WEBDRIVER_BACKEND=selenium vendor/bin/eddy-browser-start
 +export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
++export WEBSERVER_PORT="$(vendor/bin/eddy-info webserver-port)"
++export SIMPLETEST_BASE_URL="http://localhost:${WEBSERVER_PORT}"
 +cd build
 +WEBDRIVER_BACKEND=selenium php -d pcov.directory=.. vendor/bin/phpunit \
 +  --testsuite functional-javascript
@@ -160,14 +177,14 @@
  ```
  
  The browser reaches the webserver at `localhost` with the default backend, and at `host.docker.internal` (macOS) or `__VERSION__.1` (other systems) from the Selenium container. Set `WEBDRIVER_HOST` to use a different address.
-@@ -187,13 +201,6 @@
+@@ -193,13 +214,6 @@
  ### Running specific tests
  
  You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the test commands. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site:
 -
 -```bash
 -ahoy test-unit web/modules/custom/force_crystal/tests/src/Unit/MyUnitTest.php
--ahoy test-unit -- --group=wip
+-ahoy test-unit -- --group wip
 -```
 -
 -You may also run tests using the `phpunit` command directly:

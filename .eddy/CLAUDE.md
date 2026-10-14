@@ -76,20 +76,21 @@ A replacement finds nothing once the template text drifts from the every-option 
 
 1. In `install.php`, add the major to `drupal_version_options()` and to the `INSTALL_DRUPAL_VERSION` entry of `print_help()`.
 2. Add a `DRUPAL_<major>` block wherever the existing majors have one. `git grep -n '#;< DRUPAL_'` lists them: today that's the `lint` and `test` matrices in `.github/workflows/test.yml`, the badges in `README.dist.md` and the matrix list in `AGENTS.md`.
-3. Add the major to `core_version_requirement` in `your_extension.info.yml`, and to the comment that opens `phpunit.xml` unless the major gets a `phpunit.d<major>.xml` of its own (see [Text rendered from the answers](#text-rendered-from-the-answers)).
+3. Add the major to `core_version_requirement` in `your_extension.info.yml`, and to the comment that opens `phpunit.xml` unless the major gets a `phpunit.d<major>.xml` of its own (see [Text rendered from the answers](#text-rendered-from-the-answers)). A new `phpunit.d<major>.xml` needs the same wiring as `phpunit.d10.xml`: an entry in the PHPUnit `files` of `tool_specs()`, a `.gitattributes` line with its `uncomment_line()` call in `process_internal()`, and an entry in the PHPUnit config list of `InstallProcessTest`.
 4. To have the major start checked, add it to `drupal_version_default()` and update the defaults that `print_help()` and `README.md` name. Then set `extra.eddy.drupal-version` in `composer.dev.json` to the highest major `drupal_version_default()` returns: `InstallHelpersTest` fails until they agree. That major also caps the build default of a generated project, because `drupal_version_build_default()` picks the highest selected major up to it. Add a major to `drupal_version_default()` only once it has a stable release.
 5. Review `.eddy/tooling/src/eddy-assemble`. It picks the PHPUnit, `symfony/phpunit-bridge` and Rector constraints by major, and it uses `phpunit.d<major>.xml` in place of `phpunit.xml` when that file exists.
-6. Update `README.md` where it lists the majors: the badges, the CI job table and the branch protection table.
+6. Update `README.md` where it lists the majors: the badges, the Drupal version matrix in the feature list, the CI job table and the job count above it, and the branch protection table.
 7. Update the expected majors in `InstallHelpersTest` and the Drupal data providers in `InstallProcessTest`, add a `d<major>_only` dataset to `InstallTest`, then regenerate the snapshot fixtures.
 
 ### Adding a development tool
 
 1. In `install.php`, add the tool to `$tool_options` in `main()` and to the `INSTALL_TOOLS` entry of `print_help()`.
 2. Give it a `tool_specs()` entry: its `DEV_<TOOL>` token plus the files, directories and `composer.dev.json` entries that go with it. List only the packages nothing else needs: Mink, which Functional tests use too, sits with PHPUnit rather than FunctionalJavascript. Text that names the tool among other items goes in its `replacements`. The words it adds to `.cspell.json`, such as the vendors of its packages, go in its `cspell_words` when no other file uses them. Its npm packages and scripts, if it has any, go in `npm_specs()`.
-3. Wrap every line you add for the tool in a `DEV_<TOOL>` block, wherever it lands: the command wrappers, `.github/workflows/test.yml`, configuration files such as `.gitattributes` and `.editorconfig`, and the docs in `AGENTS.md`, `README.dist.md` and `CONTRIBUTING.dist.md`. A `CI_IS_<TOOL>_RUNNER` flag in `test.yml` belongs inside the block too, and `CiRunnerVariablesTest` checks it's there.
+3. Wrap every line you add for the tool in a `DEV_<TOOL>` block, wherever it lands: the command wrappers, `.github/workflows/test.yml`, configuration files such as `.gitattributes` and `.editorconfig`, and the docs in `AGENTS.md`, `README.dist.md` and `CONTRIBUTING.dist.md`. A `CI_IS_<TOOL>_RUNNER` flag in `test.yml` belongs inside the block too, and `CiRunnerVariablesTest` checks it's there. A commented-out `export-ignore` line in `.gitattributes` also needs an `uncomment_line()` call in `process_internal()`, or it ships commented out.
 4. If the tool runs through the shared `npm run lint` step, add it to the condition in `remove_tools()` that strips `DEV_NODEJS_LINT`, and add its sub-scripts to the `rebuild_npm_chain()` calls in `remove_npm()`.
 5. Document it in `README.md`: the feature list, and the ignore-failure table when its CI step has a `CI_<TOOL>_IGNORE_FAILURE` variable.
-6. Add the tool to `dataProviderProcessRemovesTools()` and `dataProviderProcessRemovesGitattributes()` in `InstallProcessTest`. In `InstallTest`, add it to every `tools` answer and add a `no_<tool>` dataset, then regenerate the snapshot fixtures.
+6. Add the tool to the Tools list in `.eddy/skills/update-consumer-eddy/SKILL.md`, followed by the file that marks it, such as `` `phpcs` (`phpcs.xml`) ``. `DocumentationTest` fails until it's there, because the update skill would otherwise remove the tool from every project it updates.
+7. Add the tool to `dataProviderProcessRemovesTools()` and `dataProviderProcessRemovesGitattributes()` in `InstallProcessTest`. In `InstallTest`, add it to `defaultAnswers()` and to every `tools` answer other than the empty one of `no_tools`, and add a `no_<tool>` dataset, then regenerate the snapshot fixtures.
 
 ## Workflow branches
 
@@ -149,11 +150,13 @@ All commands run from the repository root. Install dependencies once with `compo
 | Lint (phpcs, phpstan, rector) | `composer --working-dir=.eddy/tests lint`                         |
 | Lint autofix                  | `composer --working-dir=.eddy/tests lint-fix`                     |
 
-`p2`-`p5` exercise the full build pipeline and need a Drupal-friendly PHP setup; `p3` and `p4` also need a WebDriver backend: a Selenium container or a local Chrome driven by chromedriver. These are the same jobs the GitHub Actions matrix runs (`.github/workflows/eddy-test.yml`).
+`p2`-`p5` exercise the full build pipeline and need a Drupal-friendly PHP setup; `p3` and `p4` also need a WebDriver backend: a Selenium container or a local Chrome driven by chromedriver. `p3` and `p5` run Ahoy, `p4` and `p5` run `make`, and `p5` needs the xdebug extension loaded with `xdebug.mode=off`. These are the same jobs the GitHub Actions matrix runs (`.github/workflows/eddy-test.yml`).
+
+`phpunit.xml` stops the run at the first error, failure, warning or risky test, so a run that ends early can still print an "OK, but there were issues!" footer. Compare the test count with the expected total.
 
 ## Regenerating snapshot fixtures
 
-**HARD RULE - never edit fixtures directly.** Files under `.eddy/tests/fixtures/install/` are generated artifacts. They must always be regenerated with the `update-snapshots` Composer script - run from inside `.eddy/tests` (see below) - after any source change that affects `install.php` output. Hand-editing a fixture risks drift between what the generator would produce and what is checked in - subsequent regenerations would then overwrite the manual edit and the failure mode would only surface in CI.
+**HARD RULE - never edit fixtures directly.** Files under `.eddy/tests/fixtures/install/` are generated artifacts, apart from the `.ignorecontent` rule files, which are edited by hand and kept as they are when the fixtures are regenerated. They must always be regenerated with the `update-snapshots` Composer script - run from inside `.eddy/tests` (see below) - after any source change that affects `install.php` output. Hand-editing a fixture risks drift between what the generator would produce and what is checked in - subsequent regenerations would then overwrite the manual edit and the failure mode would only surface in CI.
 
 `InstallTest` runs `install.php` end-to-end and diffs the output against `fixtures/install/_baseline/` plus one fixture directory per dataset (`gha_makefile/`, `theme/`, etc. - see `InstallTest::dataProviderInstall()`).
 
@@ -175,12 +178,12 @@ Committing the source first matters because `update-snapshots` stages, commits, 
 This wraps `vendor/bin/update-snapshots` from `alexskrypnyk/snapshot`. It:
 
 1. Runs the baseline dataset first and commits any baseline diff as its own commit.
-2. Runs the remaining datasets and amends the baseline commit with each fixture diff.
-3. Exits non-zero on the first run because the original tests failed against the stale snapshots - that is expected; the snapshots are now correct.
+2. Runs the remaining datasets, then commits all their fixture diffs at once: into the baseline commit when step 1 made one, or as a commit of its own otherwise.
+3. Exits 0 when every dataset passed or had its fixtures rewritten. A non-zero exit means a dataset failed for another reason or timed out.
 
 After it finishes, `git show --stat` the resulting commit to confirm it touches only the files your change should have affected, then run `composer test -- --filter=InstallTest` from inside `.eddy/tests` to confirm everything is green before pushing.
 
-The trait that drives the diff-and-update behavior is `SnapshotTrait` (see `tearDown()` in `InstallTest`); it calls `snapshotUpdateOnFailure()` so a normal `test` run will also rewrite fixtures if you have not used the dedicated `update-snapshots` command.
+The trait that drives the diff-and-update behavior is `SnapshotTrait` (see `tearDown()` in `InstallTest`). Its `snapshotUpdateOnFailure()` rewrites the fixtures of a failed dataset only when `UPDATE_SNAPSHOTS` is set, which `update-snapshots` does for each dataset, so a normal `test` run never rewrites fixtures.
 
 ## Regenerating animated SVG assets
 
@@ -206,11 +209,11 @@ The recordings still show what the recording machine has installed (PHP, PHPUnit
 
 Pass asset names to render only those, for example `php .eddy/assets/update-assets.php lint`. Every recording up to the last named one still runs, because each one prepares the workspace for the next.
 
-Required tools: `asciinema` 3, `expect`, `node`, `npm`. The script checks for these and aborts if any are missing.
+Required tools: `asciinema` 3, `expect`, `node`, `npm` and `ahoy`, plus what `ahoy build` and `ahoy test` need, such as Composer and a local Chrome. The script checks for the first 4 and aborts if any are missing.
 
 Set `SCRIPT_QUIET=1` to suppress verbose progress messages. The recordings go to `.artifacts/tmp/asciinema`: they're removed after a successful run unless `SCRIPT_KEEP_CASTS=1` is set, and kept after a failed one.
 
-`UpdateAssetsTest` replays 2 real recordings of each session from `.eddy/tests/fixtures/assets/first/` and `.../second/` and expects them to render identically. They're plain copies of `.artifacts/tmp/asciinema/*.cast` from 2 back-to-back runs with `SCRIPT_KEEP_CASTS=1`, with the header reduced to `{"version":3,"term":{"cols":80,"rows":24}}`, the workspace path replaced with `/var/folders/aa/T/eddy-assets-111111111111` (first) or `/var/folders/aa/T/eddy-assets-222222222222` (second), and `$HOME` replaced with `/Users/maintainer`. Refresh them the same way when a change to the recordings makes the old ones unrepresentative.
+`UpdateAssetsTest` replays 2 real recordings of each session from `.eddy/tests/fixtures/assets/first/` and `.../second/` and expects them to render identically. They're plain copies of the raw `<asset>.cast` recordings in `.artifacts/tmp/asciinema/`, not the `.canonical.cast` files, from 2 back-to-back runs with `SCRIPT_KEEP_CASTS=1`, with the header reduced to `{"version":3,"term":{"cols":80,"rows":24}}`, the workspace path replaced with `/var/folders/aa/T/eddy-assets-111111111111` (first) or `/var/folders/aa/T/eddy-assets-222222222222` (second), and `$HOME` replaced with `/Users/maintainer`. Refresh them the same way when a change to the recordings makes the old ones unrepresentative.
 
 ## Regenerating the social preview
 
@@ -228,10 +231,12 @@ GitHub has no API for the social preview, so upload the new PNG by hand in the r
 
 ## CI
 
-`.github/workflows/eddy-test.yml` runs the suite across the `p0`-`p5` groups on Ubuntu and macOS, runs `p3` and `p4` once per WebDriver backend (Selenium on Ubuntu only, chromedriver on both), and validates `composer.json` and the tooling package's `composer.json` (validate + normalize) plus the PHP lint step in `p0`. A second job (`eddy-test-actions`) lints the workflow YAML with `yamllint` and `actionlint` and checks it for security issues with Zizmor.
+`.github/workflows/eddy-test.yml` runs the suite across the `p0`-`p5` groups on Ubuntu and macOS, runs `p3` and `p4` once per WebDriver backend (Selenium on Ubuntu only, chromedriver on both), and validates `.eddy/tests/composer.json` and the tooling package's `composer.json` (validate + normalize) plus the PHP lint step in `p0`. A second job (`eddy-test-actions`) lints the workflow YAML with `yamllint` and `actionlint` and checks it for security issues with Zizmor.
 
 `.github/workflows/eddy-publish-tooling.yml` publishes `.eddy/tooling/` to the same-named branch of `drevops/eddy-tooling` on every push to `main` and to a branch whose name contains `eddy-tooling`.
 
 `.github/workflows/deploy.yml` deploys `main` and release tags to [`drevops/eddy_destination`](https://github.com/drevops/eddy_destination) the way it deploys a generated project to Drupal.org. The `DEPLOY_BRANCH` repository variable sends `main` to `5.x` there, and the `DEPLOY_PROCEED` secret set to `1` lets the push through.
 
 `install.php` deletes every `.github/workflows/eddy-*.yml` from a generated project, so a maintenance-only workflow takes the `eddy-` prefix and a workflow that ships to projects never does.
+
+<!-- cspell:ignore ignorecontent -->

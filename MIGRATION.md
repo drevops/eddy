@@ -4,7 +4,7 @@ This guide upgrades a Drupal module or theme created from a 4.x release of this 
 
 5.x is a bigger step than a usual update. Since `4.19.0`, the last 4.x release, the template became Eddy and moved to [`drevops/eddy`](https://github.com/drevops/eddy), the scripts in `.devtools/` turned into the `drevops/eddy-tooling` Composer package, and CircleCI support went away. The upgrade rewrites most of your build and CI files in one go, and a few of the changes need decisions only you can make.
 
-There's a more immediate catch, too: a 4.x project can't update itself anymore. Its `AGENTS.md` fetches the update skill from the `.scaffold/` directory of the old repository, and that URL returns 404 now that the skill lives in `.eddy/`. The steps below get you past it.
+There's a more immediate catch, too: a 4.x project can't update itself anymore. From 4.15.0, its `AGENTS.md` fetches the update skill from the `.scaffold/` directory of the old repository, and that URL returns 404 now that the skill lives in `.eddy/`. The steps below get you past it.
 
 - [Before you start](#before-you-start)
 - [Upgrade with Claude Code](#upgrade-with-claude-code)
@@ -26,7 +26,7 @@ The `update-consumer-eddy` skill does most of the work. It renders the latest re
 
 What it can't do is fetch itself into a 4.x project, so you do that part once, from the project root:
 
-1. Delete the old skill directory. The 4.x `AGENTS.md` downloads the skill with `curl -sSL`, which doesn't fail on an HTTP error, so the directory holds the 404 page instead of a skill.
+1. Delete the old skill directory. The `AGENTS.md` of 4.15.0 to 4.19.0 downloads the skill with `curl -sSL`, which doesn't fail on an HTTP error, so the directory holds the 404 page instead of a skill.
 
    ```bash
    rm -rf .claude/skills/update-consumer-drupal-extension-scaffold
@@ -59,7 +59,7 @@ The upgrade rewrites `AGENTS.md`, so from then on "update Eddy" works the way it
 
 Follow the manual steps in [Updating your extension](README.md#updating-your-extension), with these differences for a 4.x project:
 
-- The installer is `install.php`, not `init.php`. It no longer asks for a CI provider or about the Cloudflare hooks, and it reads pre-filled answers from `INSTALL_*` variables instead of `DEX_*` (4.19.0) or `PROMPTY_*` (earlier releases). `php install.php --help` lists them.
+- The installer is `install.php`, not `init.php` (`init.sh` before 4.12.0). It no longer asks for a CI provider or about the Cloudflare hooks, and it reads pre-filled answers from `INSTALL_*` variables instead of `DEX_*` (4.19.0) or `PROMPTY_*` (4.14.0 to 4.18.0). Earlier releases took them as positional arguments. `php install.php --help` lists the variables.
 - Before you copy the new files in, delete whichever of these your project has: `.devtools/`, `.circleci/`, `scripts/provision-cloudflared.sh`, `scripts/start-cloudflared.sh`, `scripts/stop-cloudflared.sh` and `.claude/skills/update-consumer-drupal-extension-scaffold/`.
 - `scripts/` holds your own hooks, but take `scripts/eddy-tooling` from the release. It's the installer of the tooling package, and it's new in 5.x.
 - Merge `composer.dev.json` rather than overwriting it, so your own dependencies and patches survive. [`.devtools/` is a package now](#devtools-is-a-package-now) lists the entries 5.x adds.
@@ -73,7 +73,7 @@ Each change below covers what it was in 4.x, what it is in 5.x, and what your pr
 
 ### Name and repository
 
-In 4.x, the template was the Drupal Extension Scaffold at `AlexSkrypnyk/drupal_extension_scaffold`. It kept its own files in `.scaffold/`, and your `AGENTS.md` fetched the `update-consumer-drupal-extension-scaffold` skill from there, on the `1.x` branch.
+In 4.x, the template was the Drupal Extension Scaffold at `AlexSkrypnyk/drupal_extension_scaffold`. It kept its own files in `.scaffold/`, and from 4.15.0 your `AGENTS.md` fetched the `update-consumer-drupal-extension-scaffold` skill from there, on the `1.x` branch.
 
 In 5.x, it's Eddy at [`drevops/eddy`](https://github.com/drevops/eddy), on the `main` branch. Its own files live in `.eddy/`, which never reaches your project. The update skill is `update-consumer-eddy`, and the installer is `install.php`.
 
@@ -92,7 +92,7 @@ In 4.x, every project carried its own copy of the build, run and deploy scripts 
 
 In 5.x, the scripts ship as the [`drevops/eddy-tooling`](https://github.com/drevops/eddy-tooling) Composer package, so fixes arrive through its version constraint instead. The package requires PHP 8.3 or newer (see [Before you start](#before-you-start)). `scripts/eddy-tooling` installs the package into `vendor/`, and each script becomes a command in `vendor/bin/`: `.devtools/assemble` is `vendor/bin/eddy-assemble`, and `.devtools/browser start` and `stop` are `eddy-browser-start` and `eddy-browser-stop`.
 
-`ahoy` and `make` run the installer before their commands, and CI runs it as a step of its own. The installer skips Composer while nothing it depends on has changed, so running it every time costs next to nothing. [The tooling package](README.md#the-tooling-package) has the details.
+`ahoy` and `make` run the installer before the commands that need it, and CI runs it as a step of its own. The installer skips Composer while nothing it depends on has changed, so running it every time costs next to nothing. [The tooling package](README.md#the-tooling-package) has the details.
 
 What to do:
 
@@ -102,6 +102,8 @@ What to do:
   - `cweagans/composer-patches` in `config.allow-plugins`.
   - `extra.eddy.drupal-version`, set to the newest Drupal major you build that has a stable release, such as `"11"`. A local build uses it when `DRUPAL_VERSION` isn't set, and Drupal 11 when neither is.
   - The release's `drush/drush` constraint, which adds Drush 14 for Drupal 12.
+  - `extra.eddy.version`, set to the release you upgrade to, such as `"5.0.0"`. The update skill reads it to find the release your project is on.
+  - Without FunctionalJavascript tests, the Mink packages that Functional tests need in `require-dev`: `behat/mink`, `behat/mink-browserkit-driver`, `symfony/browser-kit`, `symfony/css-selector` and `symfony/dom-crawler`. From 4.16.3, 4.x removed them along with those tests.
 - Move each edit you made to `.devtools/`:
   - A project-specific step, such as importing extra configuration once the site is installed, becomes a [custom lifecycle script](README.md#custom-lifecycle-scripts): `scripts/assemble-*.sh`, `scripts/provision-*.sh`, `scripts/start-*.sh` or `scripts/stop-*.sh`.
   - A change to what a command itself does becomes a patch for `drevops/eddy-tooling` in `composer.dev.json`, as the [package README](.eddy/tooling/README.md#patching-the-package) describes. The commands live in the package's `src/` directory, such as `src/eddy-assemble`, and they've changed a lot since 4.x, so write the patch against the current source instead of reusing an old diff. This is the trickiest part of the upgrade.
@@ -143,14 +145,14 @@ What to do, if your project ran on CircleCI:
   - `CODECOV_TOKEN`, if you upload coverage to Codecov, becomes a secret.
   - Each `CI_*_IGNORE_FAILURE` toggle you set becomes a repository variable (see [Allowing a CI step to fail](README.md#allowing-a-ci-step-to-fail)).
 - Check which branches deploy. GitHub Actions deploys release tags and pushes to the branches in the `push` filter of `test.yml`, which is `1.x` unless you change it, so a branch outside that list stops deploying.
-- In your branch protection rules, or the ruleset that protects your default branch, swap each `ci/circleci: <job>` check for the GitHub Actions job of the same name. [Branch protection](README.md#branch-protection) lists them.
+- In your branch protection rules, or the ruleset that protects your default branch, swap the `ci/circleci: <job>` checks for the GitHub Actions jobs that [Branch protection](README.md#branch-protection) lists for your Drupal majors. From 4.18.0, each CircleCI job has a GitHub Actions job of the same name.
 - Stop building the project in CircleCI. Otherwise every push gets a failing "CircleCI Pipeline" check that can't find a configuration.
 
 A project on GitHub Actions has nothing to do here.
 
 ### Deployment
 
-In 4.x, a release tag also force-pushed the tagged commit to a branch of your Drupal.org repository, so a tag behind that branch's tip rewound it. A test run that finished late, or that you re-ran, could rewind a branch the same way. The first deployment of a new branch failed, and the `Deploy` workflow failed on every run until you set up deployment. From 4.15.0 to 4.18.0, a pull request's successful test run deployed too, pushing your default branch to a branch of your Drupal.org repository named after the pull request's branch. In 4.18.0, a `DEPLOY_BRANCH` repository variable, when set, names the branch instead.
+In 4.19.0, and on CircleCI, a release tag also force-pushed the tagged commit to a branch of your Drupal.org repository, so a tag behind that branch's tip rewound it. A test run that finished late, or that you re-ran, could rewind a branch the same way. Earlier releases' GitHub Actions `Deploy` workflow pushed whatever your default branch held when it ran, and from 4.15.0 to 4.17.0 a release tag pushed it to a branch named after the tag. The first deployment of a new branch failed, and the `Deploy` workflow failed on every run until you set up deployment. From 4.15.0 to 4.18.0, a pull request's successful test run deployed too, pushing your default branch to a branch of your Drupal.org repository named after the pull request's branch. In 4.18.0, a `DEPLOY_BRANCH` repository variable, when set, names the branch instead.
 
 In 5.x:
 
@@ -165,6 +167,7 @@ What to do:
 
 - If your release process relied on a tag push to update a branch, push the branch as well.
 - On a release from 4.15.0 to 4.18.0, the upgrade pull request still deploys the 4.x way described above. GitHub runs a `workflow_run` workflow, such as `Deploy`, from the copy on your default branch, so the 4.x `deploy.yml` stays in charge until you merge. To skip that, set the `DEPLOY_PROCEED` secret to `0` before the pull request opens, and back to `1` just before you merge. Otherwise, once you've merged, delete every branch named after a pull request from your Drupal.org repository, such as with `git push <remote> --delete <branch>`, including any that earlier pull requests left there.
+- On a release from 4.15.0 to 4.17.0, also delete every branch named after a release tag from your Drupal.org repository. Those releases created one for each tag they deployed.
 
 [Deployment](README.md#deployment) describes the new behavior in full.
 
@@ -199,7 +202,7 @@ The rest of the template moved on as well, and an upgrade merges these files lik
 - `.github/workflows/test.yml` installs the tooling and calls `vendor/bin/eddy-*`. Its Composer cache works now: the 4.x cache step pointed at a directory Composer never wrote to, so it never stored anything.
 - `.github/workflows/deploy.yml` installs the tooling and calls `vendor/bin/eddy-deploy` (see [Deployment](#deployment)).
 - Since 4.18.0, `phpunit.xml`, `phpunit.d10.xml`, `phpcs.xml`, `phpstan.neon` and `jest.config.js` changed only in their comments, and `rector.php` didn't change at all, so keep any settings you added to them. The exceptions are the `MINK_DRIVER_ARGS_WEBDRIVER` entries in both PHPUnit files. 4.19.0 dropped their `force="true"`: in a project on 4.18.0 or earlier, a value you export now overrides the one in the file instead of the other way round. A project without FunctionalJavascript tests loses the entries altogether, since only those tests read them.
-- `.cspell.json` adds the word `cweagans`, which `composer.dev.json` now contains, drops `killall` and `pkill`, which nothing uses any more, and drops the words of the tools you don't keep, such as `lullabot` without FunctionalJavascript tests. Merge it with your own words.
+- `.cspell.json` adds the word `cweagans`, which `composer.dev.json` now contains, drops `killall` and `pkill`, which nothing uses any more, points its `ignorePaths` at `.eddy/` instead of `.scaffold/`, and drops the words of the tools you don't keep, such as `lullabot` without FunctionalJavascript tests. It also swaps `autologout` for `linkit`, the example module the template's `composer.json` suggests, so keep `autologout` if your project still uses that word. Merge it with your own words.
 - `AGENTS.md` describes the tooling commands, `vendor/` and `scripts/eddy-tooling` in place of `.devtools/`, drops CircleCI, and carries the new "Updating the scaffold" section.
 - `CONTRIBUTING.md` documents only the command wrappers you keep, or the `vendor/bin/eddy-*` commands when you keep neither. Carry your own notes over from the old copy.
 - `README.md` drops the CircleCI badge, shows Drupal badges only for the majors you test, and credits Eddy.
@@ -215,6 +218,6 @@ Before you merge the upgrade:
 4. Check that your branch protection rules, or the ruleset that protects your default branch, require the jobs in [Branch protection](README.md#branch-protection) for the Drupal majors you test, and no `ci/circleci: <job>` checks.
 5. If you set the `DEPLOY_PROCEED` secret to `0` for the upgrade, set it back to `1`.
 
-After you merge it, check that the next `Deploy` run reaches your Drupal.org repository, or reports a notice that says why it didn't. If your project was on a release from 4.15.0 to 4.18.0, also delete the branches that pull requests left in your Drupal.org repository (see [Deployment](#deployment)).
+After you merge it, check that the next `Deploy` run reaches your Drupal.org repository, or reports a notice that says why it didn't. If your project was on a release from 4.15.0 to 4.18.0, also delete the branches that pull requests left in your Drupal.org repository, and from 4.15.0 to 4.17.0 the branches named after release tags (see [Deployment](#deployment)).
 
-<!-- cspell:ignore killall pkill -->
+<!-- cspell:ignore autologout killall pkill -->

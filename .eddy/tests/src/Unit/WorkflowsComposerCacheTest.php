@@ -11,8 +11,8 @@ use Symfony\Component\Yaml\Yaml;
 /**
  * Tests the Composer cache of the test workflow.
  *
- * A cache path that Composer never writes to, or a key that hashes files a
- * fresh checkout lacks, makes the cache restore and save nothing.
+ * A cache path that Composer never writes to, or a key hashing files a fresh
+ * checkout lacks, makes the cache restore and save nothing.
  *
  * A step output read before the step that sets it resolves to an empty
  * string. The job passes in each case, so neither a linter nor a run reports

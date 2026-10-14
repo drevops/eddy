@@ -54,8 +54,6 @@ final class BrowserStopTest extends UnitTestCase {
 
     $this->mockCommandAvailable('docker', $docker);
 
-    // The container and the chromedriver of this project on the resolved
-    // port.
     $this->mockPortListeners($expected_port, [1234 => ['/usr/local/bin/chromedriver --port=' . $expected_port, self::ROOT]], $docker ? self::seleniumContainerOutputs($expected_port, self::ROOT) : []);
 
     $commands = [];

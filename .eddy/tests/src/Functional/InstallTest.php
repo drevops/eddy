@@ -38,7 +38,6 @@ final class InstallTest extends FunctionalTestCase {
 
     $answers = array_replace(self::defaultAnswers(), $answers);
 
-    // Build env vars to pre-fill all prompts.
     $env = [];
     foreach ($answers as $key => $value) {
       $env['INSTALL_' . strtoupper((string) $key)] = $value;

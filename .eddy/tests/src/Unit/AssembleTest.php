@@ -411,9 +411,6 @@ final class AssembleTest extends UnitTestCase {
       $this->assertStringContainsString('Front-end dependencies processed', $output);
     }
 
-    // Suggested packages already present in require / require-dev must be
-    // skipped - composer require on an existing package prompts interactively
-    // and would hang the build.
     $extension_require = $config['extension_require'] ?? [];
     $extension_require_dev = $config['extension_require_dev'] ?? [];
     foreach (array_keys($config['suggestions'] ?? []) as $suggest) {

@@ -1,4 +1,10 @@
-@@ -9,6 +9,10 @@
+@@ -5,12 +5,15 @@
+ ## Local development
+ 
+ 1. Install PHP with SQLite support and Composer
+-   - Install Node.js with npm, which the build and the linters use
+    - Install [Ahoy](https://github.com/ahoy-cli/ahoy)
+ 2. Clone this repository
  3. Build the website:
  
     ```bash
@@ -9,7 +15,7 @@
     ahoy build
     ```
  
-@@ -23,6 +27,12 @@
+@@ -27,6 +30,12 @@
  The `build` command is a wrapper for more granular commands:
  
  ```bash
@@ -22,7 +28,7 @@
  ahoy assemble     # Assemble the codebase
  ahoy start        # Start the PHP server
  ahoy provision    # Provision the Drupal website
-@@ -38,6 +48,20 @@
+@@ -44,6 +53,20 @@
  
  ```bash
  # Newest stable Drupal 11 release.
@@ -43,7 +49,7 @@
  DRUPAL_VERSION=11 ahoy build
  
  # Newest Drupal 11.1.x patch release.
-@@ -101,6 +125,11 @@
+@@ -107,6 +130,11 @@
  PHP step-debugging is supported via [XDebug](https://xdebug.org/docs/install). Install the XDebug PHP extension on your host (`php -v` should mention `with Xdebug`), then toggle it on the development server:
  
  ```bash
@@ -55,11 +61,11 @@
  ahoy debug      # restart with XDebug enabled
  ahoy start      # restart without XDebug
  ```
-@@ -116,12 +145,6 @@
+@@ -122,12 +150,6 @@
  ## Coding standards
  
  The codebase is checked using multiple tools:
--- PHP code standards checking against `Drupal` and `DrupalPractice` standards.
+-- PHP code standards checking against `Drupal`, `DrupalPractice`, `DrevOps` and `PHPCompatibility` standards.
 -- PHP code static analysis with PHPStan.
 -- PHP deprecated code analysis and auto-fixing with Drupal Rector.
 -- Twig code analysis with Twig CS Fixer.
@@ -68,7 +74,7 @@
  
  The configuration files for these tools are located in the root of the codebase.
  
-@@ -128,6 +151,10 @@
+@@ -134,6 +156,10 @@
  Run all checks with:
  
  ```bash
@@ -79,7 +85,7 @@
  ahoy lint
  ```
  
-@@ -136,6 +163,10 @@
+@@ -142,6 +168,10 @@
  To fix coding standards issues automatically, run the same tools with the `--fix` option (for the tools that support it):
  
  ```bash
@@ -90,7 +96,7 @@
  ahoy lint-fix
  ```
  
-@@ -144,60 +175,9 @@
+@@ -150,60 +180,9 @@
  Run the tests for this extension with:
  
  ```bash
@@ -98,7 +104,7 @@
 +make test
  ```
  
--The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests. It uses Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
+-The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests, and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both use Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
 -
 -Each test suite can also be run on its own:
 -
@@ -133,7 +139,7 @@
 -
 -The browser reaches the webserver at `localhost` with the default backend, and at `host.docker.internal` (macOS) or `__VERSION__.1` (other systems) from the Selenium container. Set `WEBDRIVER_HOST` to use a different address.
 -
--Either backend gets its own WebDriver port: a free one is claimed starting at 4444 and stored in `.env`, so several projects can run FunctionalJavascript tests at the same time. Set `WEBDRIVER_PORT` to pin a specific one. Tests reach the claimed port because the base class applies it to the WebDriver endpoint, so extend `ForceCrystalFunctionalJavascriptTestBase` rather than `WebDriverTestBase` directly - a test that bypasses it keeps the default endpoint from `phpunit.xml` unless it exports its own `MINK_DRIVER_ARGS_WEBDRIVER`.
+-Each project gets its own WebDriver port, whichever backend it uses: a free one is claimed starting at 4444 and stored in `.env`, so several projects can run FunctionalJavascript tests at the same time. Set `WEBDRIVER_PORT` to pin a specific one. Tests reach the claimed port because the base class applies it to the WebDriver endpoint, so extend `ForceCrystalFunctionalJavascriptTestBase` rather than `WebDriverTestBase` directly - a test that bypasses it keeps the default endpoint from `phpunit.xml` unless it exports its own `MINK_DRIVER_ARGS_WEBDRIVER`.
 -
 -### Running specific tests
 -
@@ -141,7 +147,7 @@
 -
 -```bash
 -ahoy test-unit web/modules/custom/force_crystal/tests/src/Unit/MyUnitTest.php
--ahoy test-unit -- --group=wip
+-ahoy test-unit -- --group wip
 -```
 -
 -You may also run tests using the `phpunit` command directly:

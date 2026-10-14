@@ -607,7 +607,7 @@ final class InstallProcessTest extends UnitTestCase {
 
   public static function dataProviderProcessKeepsProjectFiles(): \Iterator {
     yield 'every tool' => [[]];
-    // Without FunctionalJavascript, '.gitignore' no longer lists
+    // Without FunctionalJavascript, '.gitignore' does not list
     // '.chromedriver'.
     yield 'no FunctionalJavascript' => [['functional_javascript']];
   }
@@ -1197,7 +1197,7 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   /**
-   * The template version lands next to the build default when it is known.
+   * The template version, when known, is recorded next to the build default.
    */
   #[DataProvider('dataProviderProcessRecordsVersion')]
   public function testProcessRecordsVersion(?string $version): void {

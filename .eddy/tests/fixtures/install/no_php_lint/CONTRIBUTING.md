@@ -1,8 +1,8 @@
-@@ -116,10 +116,6 @@
+@@ -122,10 +122,6 @@
  ## Coding standards
  
  The codebase is checked using multiple tools:
--- PHP code standards checking against `Drupal` and `DrupalPractice` standards.
+-- PHP code standards checking against `Drupal`, `DrupalPractice`, `DrevOps` and `PHPCompatibility` standards.
 -- PHP code static analysis with PHPStan.
 -- PHP deprecated code analysis and auto-fixing with Drupal Rector.
 -- Twig code analysis with Twig CS Fixer.

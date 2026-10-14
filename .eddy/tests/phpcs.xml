@@ -27,14 +27,12 @@
     <file>../../install.php</file>
     <file>../../scripts/eddy-tooling</file>
 
-    <!-- Allow long array lines in tests. -->
     <rule ref="Drupal.Arrays.Array.LongLineDeclaration">
         <exclude-pattern>*.Test\.php</exclude-pattern>
         <exclude-pattern>*.TestCase\.php</exclude-pattern>
         <exclude-pattern>*.test</exclude-pattern>
     </rule>
 
-    <!-- Allow missing comments in tests. -->
     <rule ref="Drupal.Commenting">
         <exclude-pattern>*.Test\.php</exclude-pattern>
         <exclude-pattern>*.TestCase\.php</exclude-pattern>

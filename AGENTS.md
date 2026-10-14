@@ -13,12 +13,14 @@ Your Extension (`your_extension`) is a Drupal module. The project provides a com
 ## Development Commands
 <!-- #;< DEV_COMMAND_WRAPPER -->
 
-**HARD RULE - use the provided command wrappers, never the tool binaries directly.** When `make` or `ahoy` exposes a command for a task, use that command; do not call the underlying binary directly. Each wrapper `chdir`s into `build/` and runs the tool with the config, plugins, and environment that CI uses, so a raw invocation from the repository root silently diverges from CI - it can pass locally while CI fails (or vice versa), or crash outright when a relative path resolves against the wrong directory. If no wrapped command covers what you need, extend the `make` or `ahoy` target rather than making a one-off raw call; if that is not feasible, stop and ask.
+**HARD RULE - use the provided command wrappers, never the tool binaries directly.** When `make` or `ahoy` exposes a command for a task, use that command; do not call the underlying binary directly. Each wrapper runs the tool where CI runs it, in `build/` for most tools, with the config, plugins, and environment that CI uses, so a raw invocation from the repository root silently diverges from CI - it can pass locally while CI fails (or vice versa), or crash outright when a relative path resolves against the wrong directory. If no wrapped command covers what you need, extend the `make` or `ahoy` target rather than making a one-off raw call; if that is not feasible, stop and ask.
 <!-- #;> DEV_COMMAND_WRAPPER -->
 <!-- #;< DEV_NO_COMMAND_WRAPPER -->
 
 **HARD RULE - run each tool exactly as `CONTRIBUTING.md` shows.** This project has no command wrapper, so the commands below run directly. Most tools run from `build/`, which holds the config, plugins, and environment that CI uses, so a raw invocation from the repository root silently diverges from CI - it can pass locally while CI fails (or vice versa), or crash outright when a relative path resolves against the wrong directory.
 <!-- #;> DEV_NO_COMMAND_WRAPPER -->
+
+**HARD RULE - never modify `scripts/eddy-tooling`.** It comes from Eddy as-is, and a scaffold update replaces it with the release's copy. To change what a tooling command does, declare a patch for the `drevops/eddy-tooling` package in `composer.dev.json`.
 <!-- #;< DEV_MAKEFILE -->
 
 Run each tool through its `make` wrapper, never the binary directly:
@@ -169,7 +171,7 @@ Run the linters and the tests with the commands that `CONTRIBUTING.md` lists.
 ### Drupal Commands
 
 <!-- #;< DEV_MAKEFILE -->
-- `make drush <command>` - Run Drush commands
+- `make drush <command>` - Run Drush commands. Put `--` before options and separate an option from its value with a space, such as `make drush -- status --format json`, because `make` reads an argument that holds `=` as a variable. An argument that holds `:` fails, so use the command's alias, such as `cr` for `cache:rebuild`
 - `make login` - Get one-time login link
 <!-- #;> DEV_MAKEFILE -->
 <!-- #;< DEV_AHOY -->
@@ -216,7 +218,9 @@ Run the linters and the tests with the commands that `CONTRIBUTING.md` lists.
 
 - **Service-based architecture**: Main functionality in services registered via `*.services.yml`
 - **Configuration-driven**: Uses Drupal configuration system with schema validation
+<!-- #;< DEV_PHPUNIT -->
 - **Test coverage**: Unit, kernel, and functional test examples provided
+<!-- #;> DEV_PHPUNIT -->
 - **Form integration**: Admin forms in `src/Form/` for configuration
 
 ## Environment Variables
@@ -229,13 +233,20 @@ Run the linters and the tests with the commands that `CONTRIBUTING.md` lists.
 - `WEBDRIVER_PORT` - Port for the WebDriver endpoint (both backends). Auto-discovered from 4444 and written to `.env` if not already set, so several projects can run FunctionalJavascript tests simultaneously. The endpoint in `phpunit.xml` is the default for port 4444; tests reach the resolved port because the FunctionalJavascript base class rewrites the port in `MINK_DRIVER_ARGS_WEBDRIVER` from this variable, so FunctionalJavascript tests must extend that base class (or export their own `MINK_DRIVER_ARGS_WEBDRIVER`)
 - `WEBDRIVER_HOST` - Address the FunctionalJavascript browser uses to reach the PHP webserver. Defaults to `localhost` with `chromedriver`, and to `host.docker.internal` (macOS) or `172.17.0.1` (other systems) with `selenium`
 <!-- #;> DEV_FUNCTIONAL_JAVASCRIPT -->
+- `WEBSERVER_WAIT_TIMEOUT` - Seconds that `start` waits for the development server to accept connections (default: 5)
+- `DRUPAL_PROFILE` - Install profile that `provision` installs the site from (default: `standard`)
+- `XDEBUG` - Set to `1` to start the development server with XDebug step-debugging
+- `CLOUDFLARE_TUNNEL` - Set to `1` to expose the development server through a public Cloudflare quick tunnel. `start` writes the tunnel URL to `.env` as `TUNNEL_URL`
+<!-- #;< DEV_COMMAND_WRAPPER -->
+- `LOGIN_QRCODE` - Set to `1` to also render the `login` link as a terminal QR code (needs `qrencode`)
+<!-- #;> DEV_COMMAND_WRAPPER -->
 - `GITHUB_TOKEN` - GitHub API token to avoid rate limits
 - `DEBUG` - Set to `1` to stream the full output of the underlying commands (Composer, npm, Drush). By default this output is suppressed and shown only when a command fails
 
 ## Development Workflow
 
 <!-- #;< META -->
-Run `php install.php` once, in a fresh copy of the template, to turn it into your extension. The script deletes itself when it finishes. Then:
+Run `php install.php` once, in a fresh copy of the template, to turn it into your extension. The script deletes itself when it finishes, unless you answer no to "Remove this script". Then:
 
 <!-- #;> META -->
 <!-- #;< DEV_COMMAND_WRAPPER -->
@@ -262,7 +273,7 @@ Run `php install.php` once, in a fresh copy of the template, to turn it into you
 - **CSpell**: Spell checking across the codebase (config at `.cspell.json`)
 <!-- #;> DEV_CSPELL -->
 <!-- #;< DEV_PHPCS -->
-- **PHPCS**: Drupal and DrupalPractice standards
+- **PHPCS**: Drupal, DrupalPractice, DrevOps and PHPCompatibility standards
 <!-- #;> DEV_PHPCS -->
 <!-- #;< DEV_PHPSTAN -->
 - **PHPStan**: Static analysis with Drupal extensions
@@ -273,6 +284,12 @@ Run `php install.php` once, in a fresh copy of the template, to turn it into you
 <!-- #;< DEV_TWIGCS -->
 - **Twig CS Fixer**: Twig template formatting
 <!-- #;> DEV_TWIGCS -->
+<!-- #;< DEV_ESLINT -->
+- **ESLint**: JavaScript linting with Prettier formatting (config at `.eslintrc.json`)
+<!-- #;> DEV_ESLINT -->
+<!-- #;< DEV_STYLELINT -->
+- **Stylelint**: CSS linting (config at `.stylelintrc.js`)
+<!-- #;> DEV_STYLELINT -->
 
 ## CI/CD Support
 
@@ -294,7 +311,10 @@ Run `php install.php` once, in a fresh copy of the template, to turn it into you
 - The `build/` directory contains the assembled Drupal site
 - Extension files are symlinked from root into `build/web/modules/custom/` (module) or `build/web/themes/custom/` (theme)
 - SQLite database created in `/tmp/site_[EXTENSION_NAME].sqlite`
-- All quality tools run from within `build/` directory
+- The PHP and JavaScript quality tools run from within the `build/` directory
+<!-- #;< DEV_CSPELL -->
+- CSpell runs from the project root
+<!-- #;> DEV_CSPELL -->
 
 ## Updating the scaffold
 
