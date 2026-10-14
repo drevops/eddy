@@ -13,15 +13,18 @@ These docs live in `.eddy/docs`, a [Docusaurus](https://docusaurus.io/) site wit
 The site is an npm project of its own. Run these from `.eddy/docs`:
 
 ```bash
-npm install          # Install the dependencies
-npm start            # Serve the site locally, reloading on every change
-npm run build        # Build the static site into build/
-npm run serve        # Serve the built site
-npm test             # Run the component tests and the spell check
-npm run spellcheck   # Run only the spell check
+npm install                  # Install the dependencies
+npm start                    # Serve the site locally, reloading on every change
+npm run build                # Build the static site into build/
+npm run serve                # Serve the built site
+npm test                     # Run the component tests and the spell check
+npm run spellcheck           # Run only the spell check
+npm run test:accessibility   # Check the built site for accessibility issues
 ```
 
 `npm start` and `npm run build` first copy the social preview card from `.eddy/assets` into `static/img`, where git ignores it.
+
+`npm run test:accessibility` checks the site in `build/`, so run `npm run build` first. It drives a browser through [Playwright](https://playwright.dev/), which needs its own copy of Chromium: `npx playwright install chromium` downloads it once.
 
 ## Writing pages
 
@@ -44,9 +47,27 @@ npm run spellcheck   # Run only the spell check
 - **Diagrams.** A `mermaid` code block renders as a [Mermaid](https://mermaid.js.org/) diagram.
 - **Spelling.** CSpell checks the pages in US English with the words in `cspell.json`. Add a word the docs use in several places there, and a word only 1 page uses to that page, as `{/* cspell:ignore word */}`.
 
+## Accessibility
+
+The site aims for [WCAG 2.2](https://www.w3.org/TR/WCAG22/) level AA in both color modes. `npm run test:accessibility` runs [axe](https://github.com/dequelabs/axe-core) on every page of the build, in light and dark mode, at a desktop width and a phone width, against the WCAG A and AA rules. It also opens the search dropdown, the mobile menu and an animated demo, and checks how they behave from the keyboard. Automated checks catch a good share of problems, not all of them, so the writing still needs the care described below.
+
+Some of it is handled for you, so a page needs no extra markup:
+
+- Links in page text are underlined, because color alone doesn't set a link apart from the text around it.
+- Text colors reach at least 4.5:1 against their background. The light-mode blue is `#006c99`, a darker shade of the `#009cde` logo blue, which only reaches about 3:1 on white. The code block colors live in `src/codeThemes.js`, and a unit test checks every token color of both themes.
+- An animated SVG added with Markdown image syntax gets a **Pause animation** button, and it starts paused when the reader's system asks for reduced motion.
+- A table wider than the page takes keyboard focus, so it scrolls with <kbd>←</kbd> and <kbd>→</kbd>.
+- The mobile menu keeps keyboard focus inside while it's open and closes on <kbd>Esc</kbd>, and the search box gets the ARIA attributes that its autocomplete widget leaves out. Both fixes live in `src/theme/`, so check them when Docusaurus or the search plugin changes its markup.
+
+The rest is down to the writing:
+
+- Give every image alt text that says what it shows.
+- Keep heading levels in order, without skipping one.
+- Make link text say where it goes, such as [Webserver](../development/webserver.mdx) rather than "here".
+
 ## Checks on every pull request
 
-The `eddy-test-docs` job of the `Test Eddy` workflow installs the dependencies, builds the site and runs `npm test`. A broken link or anchor, a failing component test or an unknown word fails the job.
+The `eddy-test-docs` job of the `Test Eddy` workflow installs the dependencies, builds the site, runs `npm test` and then `npm run test:accessibility`. A broken link or anchor, a failing component test, an unknown word or an accessibility violation fails the job, and a failed check skips the Netlify deployment below.
 
 ## The development site and previews
 
