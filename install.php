@@ -658,7 +658,7 @@ function sort_drupal_majors(array $majors): array {
  */
 function sort_php_versions(array $versions): array {
   $versions = array_unique($versions);
-  usort($versions, static fn(string $a, string $b): int => version_compare($a, $b));
+  sort($versions, SORT_NATURAL);
 
   return $versions;
 }
