@@ -117,4 +117,56 @@ describe('MobileSidebar', () => {
 
     expect(document.querySelectorAll('[inert]')).toHaveLength(0);
   });
+
+  describe('while the sidebar is still hidden', () => {
+    let frames;
+
+    beforeEach(() => {
+      frames = [];
+      jest.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => frames.push(callback));
+      jest.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
+      document.querySelector('.navbar-sidebar').style.visibility = 'hidden';
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    const runNextFrame = () => frames.shift()();
+
+    test('moves focus into it once it turns visible', () => {
+      renderSidebar(true);
+      runNextFrame();
+
+      expect(document.activeElement).toBe(document.body);
+
+      document.querySelector('.navbar-sidebar').style.visibility = 'visible';
+      runNextFrame();
+
+      expect(document.activeElement).toBe(document.getElementById('logo'));
+      expect(frames).toHaveLength(0);
+    });
+
+    test('stops waiting after 60 frames', () => {
+      renderSidebar(true);
+
+      let count = 0;
+
+      while (frames.length > 0) {
+        runNextFrame();
+        count++;
+      }
+
+      expect(count).toBe(60);
+      expect(document.activeElement).toBe(document.body);
+    });
+
+    test('stops waiting once closed', () => {
+      const { rerender } = renderSidebar(true);
+
+      closeSidebar(rerender);
+
+      expect(window.cancelAnimationFrame).toHaveBeenCalledWith(1);
+    });
+  });
 });

@@ -4,6 +4,9 @@ import { useNavbarMobileSidebar } from '@docusaurus/theme-common/internal';
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+// About 1 second at 60 frames per second, well past the sidebar transition.
+const FOCUS_FRAMES = 60;
+
 // Makes everything outside the sidebar inert, so it works as a modal dialog,
 // and returns a function that undoes it. The backdrop stays clickable,
 // because a click on it closes the sidebar.
@@ -33,16 +36,29 @@ const MobileSidebarWrapper = (props) => {
     }
 
     const restore = makeOutsideInert(sidebar);
+    let frame = null;
+
+    // The sidebar turns visible partway through its CSS transition, and a
+    // hidden element can't take focus.
+    const focusWhenVisible = (framesLeft) => {
+      if (getComputedStyle(sidebar).visibility === 'visible') {
+        sidebar.querySelector(FOCUSABLE)?.focus();
+      } else if (framesLeft > 0) {
+        frame = requestAnimationFrame(() => focusWhenVisible(framesLeft - 1));
+      }
+    };
+
     const closeOnEscape = (event) => {
       if (event.key === 'Escape') {
         toggle();
       }
     };
 
-    sidebar.querySelector(FOCUSABLE)?.focus();
+    focusWhenVisible(FOCUS_FRAMES);
     document.addEventListener('keydown', closeOnEscape);
 
     return () => {
+      cancelAnimationFrame(frame);
       document.removeEventListener('keydown', closeOnEscape);
       restore();
 

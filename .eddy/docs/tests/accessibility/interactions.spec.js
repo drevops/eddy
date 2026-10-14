@@ -27,25 +27,37 @@ test.describe('search', () => {
 test.describe('mobile menu', () => {
   test.use({ viewport: MOBILE });
 
-  test('keeps keyboard focus inside and closes on Escape', async ({ page }) => {
+  test('moves keyboard focus inside, keeps it there and closes on Escape', async ({ page }) => {
     await open(page, '/', 'light');
 
     const toggle = page.getByRole('button', { name: 'Toggle navigation bar' });
     const sidebar = page.locator('.navbar-sidebar');
+    const focusIn = () => page.evaluate(() => {
+      if (document.activeElement === document.body) {
+        return 'body';
+      }
+
+      return document.activeElement.closest('.navbar-sidebar') ? 'menu' : 'outside';
+    });
 
     await toggle.focus();
     await page.keyboard.press('Enter');
-    await expect(sidebar).toBeVisible();
 
-    // More presses than the menu has controls, so focus wraps around at
-    // least once.
-    for (let press = 0; press < 20; press++) {
-      const outside = await page.evaluate(() => document.activeElement !== document.body && !document.activeElement.closest('.navbar-sidebar'));
+    await expect.poll(focusIn).toBe('menu');
 
-      expect(outside, `Tab press ${press} left focus outside the menu`).toBe(false);
+    const controls = await sidebar.evaluate((element) => Array.from(element.querySelectorAll('a[href], button:not([disabled]), input:not([disabled])')).filter((control) => !control.closest('[inert]') && control.checkVisibility({ visibilityProperty: true })).length);
+    const stops = [];
 
+    // 2 presses more than the menu has controls, so focus wraps around.
+    for (let press = 0; press < controls + 2; press++) {
       await page.keyboard.press('Tab');
+      stops.push(await focusIn());
     }
+
+    // Tab past the last control leaves the page for 1 press before it wraps.
+    expect(stops).not.toContain('outside');
+    expect(stops.filter((stop) => stop === 'body').length).toBeLessThanOrEqual(1);
+    expect(stops.slice(-2)).not.toContain('body');
 
     await page.keyboard.press('Escape');
 
