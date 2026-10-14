@@ -6,7 +6,7 @@
  * Provision a website using existing codebase.
  *
  * - Installs Drupal using SQLite database.
- * - Enables modules.
+ * - Enables the extension and its suggested modules and themes.
  * - Serves site and generates one-time login link.
  */
 
@@ -75,23 +75,31 @@ TASK('Clearing caches.');
 drush('cr');
 PASS('Caches cleared.');
 
-TASK('Enabling suggested modules, if any.');
+TASK('Enabling suggested extensions, if any.');
 $ext_json = (array) json_decode((string) file_get_contents('composer.json'), TRUE);
 
 if (isset($ext_json['suggest']) && is_array($ext_json['suggest'])) {
+  $package_types = locked_packages('build/composer.lock', 'type');
+
   foreach (array_keys($ext_json['suggest']) as $suggest) {
     if (!str_starts_with((string) $suggest, 'drupal/')) {
       continue;
     }
 
-    // Remove "drupal/" prefix and anything after ":".
-    $module_name = preg_replace('/^drupal\//', '', (string) $suggest);
-    $module_name = explode(':', (string) $module_name)[0];
-    drush('pm:enable %s', [$module_name]);
+    // A key can carry a version constraint, such as 'drupal/token:^2.0'.
+    $package = explode(':', (string) $suggest)[0];
+    $suggested_name = substr($package, strlen('drupal/'));
+
+    if (in_array($package_types[$package] ?? '', ['drupal-theme', 'drupal-custom-theme'], TRUE)) {
+      drush('theme:enable %s', [$suggested_name]);
+    }
+    else {
+      drush('pm:enable %s', [$suggested_name]);
+    }
   }
 }
 
-PASS('Suggested modules enabled.');
+PASS('Suggested extensions enabled.');
 
 TASK('Pre-warming caches.');
 @file_get_contents(sprintf('http://%s:%s', $webserver_host, $webserver_port));

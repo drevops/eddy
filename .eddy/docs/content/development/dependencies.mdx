@@ -41,7 +41,9 @@ To test your extension together with other extensions, add them to the `suggest`
 }
 ```
 
-The build adds each suggested dependency to the codebase, unless `require` or `require-dev` already has it, and [provisioning](provisioning.mdx) enables each `drupal/*` one as a module. A site that installs your extension doesn't get them, since Composer only suggests them.
+The build adds each suggested dependency to the codebase, unless `require` or `require-dev` already has it, and [provisioning](provisioning.mdx) enables each `drupal/*` one. A site that installs your extension doesn't get them, since Composer only suggests them.
+
+Provisioning enables a suggested package as a theme when its Composer `type` is `drupal-theme` or `drupal-custom-theme`, and as a module otherwise. Enabling a theme doesn't make it the default or the admin theme. To set either, add a [`provision-*.sh` lifecycle script](lifecycle-scripts.mdx#an-example) that sets `default` or `admin` in the `system.theme` configuration, the way the example there sets the site name.
 
 ## Frontend dependencies
 

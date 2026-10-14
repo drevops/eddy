@@ -40,7 +40,7 @@ final class ProvisionTest extends UnitTestCase {
   }
 
   #[DataProvider('dataProviderProvisionSuccess')]
-  public function testProvisionSuccess(array $env, string $extension_type, string $db_status, array $suggested, bool $has_ahoy, bool $has_makefile): void {
+  public function testProvisionSuccess(array $env, string $extension_type, string $db_status, array $suggested, ?array $locked_types, array $expected_enabled, bool $has_ahoy, bool $has_makefile): void {
     foreach ($env as $name => $value) {
       $this->envSet($name, $value);
     }
@@ -59,14 +59,18 @@ final class ProvisionTest extends UnitTestCase {
     $this->registerMock('glob', 'DrevOps\\Eddy\\Tooling', fn(): array => [$extension_name . '.info.yml']);
 
     $composer_json = json_encode(['suggest' => $suggested], JSON_THROW_ON_ERROR);
+    $composer_lock = $locked_types === NULL ? '' : json_encode(['packages' => array_map(static fn(string $name, string $type): array => ['name' => $name, 'type' => $type], array_keys($locked_types), $locked_types)], JSON_THROW_ON_ERROR);
     $file_get_contents_calls = 0;
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', function (string $file) use (&$file_get_contents_calls, $info_content, $composer_json): string {
+    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', function (string $file) use (&$file_get_contents_calls, $info_content, $composer_json, $composer_lock): string {
       $file_get_contents_calls++;
       if (str_ends_with($file, '.info.yml')) {
         return $info_content;
       }
       if ($file === 'composer.json') {
         return $composer_json;
+      }
+      if ($file === 'build/composer.lock') {
+        return $composer_lock;
       }
       // The cache pre-warm fetches the site over HTTP.
       if (str_starts_with($file, 'http://')) {
@@ -108,14 +112,8 @@ final class ProvisionTest extends UnitTestCase {
 
     $passthru_responses[] = ['cmd' => $prefix . 'cr'];
 
-    $drupal_suggestions = [];
-    foreach (array_keys($suggested) as $suggest) {
-      if (str_starts_with((string) $suggest, 'drupal/')) {
-        $module_name = preg_replace('/^drupal\//', '', (string) $suggest);
-        $module_name = explode(':', (string) $module_name)[0];
-        $drupal_suggestions[] = $module_name;
-        $passthru_responses[] = ['cmd' => $prefix . 'pm:enable ' . escapeshellarg($module_name)];
-      }
+    foreach ($expected_enabled as $name => $drush_command) {
+      $passthru_responses[] = ['cmd' => $prefix . $drush_command . ' ' . escapeshellarg($name)];
     }
 
     $site_url = sprintf('http://%s:%s', $expected_host, $expected_port);
@@ -137,8 +135,8 @@ final class ProvisionTest extends UnitTestCase {
       '[ OK ] Extension enabled.',
       '[TASK] Clearing caches.',
       '[ OK ] Caches cleared.',
-      '[TASK] Enabling suggested modules, if any.',
-      '[ OK ] Suggested modules enabled.',
+      '[TASK] Enabling suggested extensions, if any.',
+      '[ OK ] Suggested extensions enabled.',
       '[TASK] Pre-warming caches.',
       '[ OK ] Caches pre-warmed.',
       '[TASK] Linking browser test output into .logs/browser_output.',
@@ -173,6 +171,8 @@ final class ProvisionTest extends UnitTestCase {
       'extension_type' => 'module',
       'db_status' => '',
       'suggested' => [],
+      'locked_types' => NULL,
+      'expected_enabled' => [],
       'has_ahoy' => FALSE,
       'has_makefile' => FALSE,
     ];
@@ -181,6 +181,8 @@ final class ProvisionTest extends UnitTestCase {
       'extension_type' => 'module',
       'db_status' => 'Connected',
       'suggested' => ['drupal/token' => 'Provides token support', 'drupal/pathauto' => 'Provides path aliases'],
+      'locked_types' => ['drupal/token' => 'drupal-module', 'drupal/pathauto' => 'drupal-module'],
+      'expected_enabled' => ['token' => 'pm:enable', 'pathauto' => 'pm:enable'],
       'has_ahoy' => TRUE,
       'has_makefile' => TRUE,
     ];
@@ -189,6 +191,8 @@ final class ProvisionTest extends UnitTestCase {
       'extension_type' => 'theme',
       'db_status' => '',
       'suggested' => [],
+      'locked_types' => NULL,
+      'expected_enabled' => [],
       'has_ahoy' => TRUE,
       'has_makefile' => FALSE,
     ];
@@ -197,6 +201,8 @@ final class ProvisionTest extends UnitTestCase {
       'extension_type' => 'module',
       'db_status' => '',
       'suggested' => [],
+      'locked_types' => NULL,
+      'expected_enabled' => [],
       'has_ahoy' => FALSE,
       'has_makefile' => TRUE,
     ];
@@ -205,6 +211,8 @@ final class ProvisionTest extends UnitTestCase {
       'extension_type' => 'module',
       'db_status' => '',
       'suggested' => ['drupal/token' => 'Token support', 'ext-json' => 'JSON extension', 'drupal/views_bulk_operations' => 'VBO'],
+      'locked_types' => ['drupal/token' => 'drupal-module', 'drupal/views_bulk_operations' => 'drupal-module'],
+      'expected_enabled' => ['token' => 'pm:enable', 'views_bulk_operations' => 'pm:enable'],
       'has_ahoy' => FALSE,
       'has_makefile' => FALSE,
     ];
@@ -213,6 +221,68 @@ final class ProvisionTest extends UnitTestCase {
       'extension_type' => 'module',
       'db_status' => '',
       'suggested' => ['drupal/token:^2.0' => 'Token support with version constraint'],
+      'locked_types' => ['drupal/token' => 'drupal-module'],
+      'expected_enabled' => ['token' => 'pm:enable'],
+      'has_ahoy' => FALSE,
+      'has_makefile' => FALSE,
+    ];
+    yield 'module with a suggested theme and module' => [
+      'env' => [],
+      'extension_type' => 'module',
+      'db_status' => '',
+      'suggested' => ['drupal/gin' => 'Admin theme', 'drupal/token' => 'Token support'],
+      'locked_types' => ['drupal/gin' => 'drupal-theme', 'drupal/gin_toolbar' => 'drupal-module', 'drupal/token' => 'drupal-module'],
+      'expected_enabled' => ['gin' => 'theme:enable', 'token' => 'pm:enable'],
+      'has_ahoy' => FALSE,
+      'has_makefile' => FALSE,
+    ];
+    yield 'theme with a suggested theme' => [
+      'env' => [],
+      'extension_type' => 'theme',
+      'db_status' => '',
+      'suggested' => ['drupal/bootstrap5' => 'Base theme'],
+      'locked_types' => ['drupal/bootstrap5' => 'drupal-theme'],
+      'expected_enabled' => ['bootstrap5' => 'theme:enable'],
+      'has_ahoy' => FALSE,
+      'has_makefile' => FALSE,
+    ];
+    yield 'module with a suggested theme containing colon' => [
+      'env' => [],
+      'extension_type' => 'module',
+      'db_status' => '',
+      'suggested' => ['drupal/bootstrap5:^4' => 'Theme with version constraint'],
+      'locked_types' => ['drupal/bootstrap5' => 'drupal-theme'],
+      'expected_enabled' => ['bootstrap5' => 'theme:enable'],
+      'has_ahoy' => FALSE,
+      'has_makefile' => FALSE,
+    ];
+    yield 'module with a suggested custom theme' => [
+      'env' => [],
+      'extension_type' => 'module',
+      'db_status' => '',
+      'suggested' => ['drupal/custom_theme' => 'Custom theme from a VCS repository'],
+      'locked_types' => ['drupal/custom_theme' => 'drupal-custom-theme'],
+      'expected_enabled' => ['custom_theme' => 'theme:enable'],
+      'has_ahoy' => FALSE,
+      'has_makefile' => FALSE,
+    ];
+    yield 'module with a suggestion missing from the lock file' => [
+      'env' => [],
+      'extension_type' => 'module',
+      'db_status' => '',
+      'suggested' => ['drupal/token' => 'Token support'],
+      'locked_types' => ['drupal/pathauto' => 'drupal-module'],
+      'expected_enabled' => ['token' => 'pm:enable'],
+      'has_ahoy' => FALSE,
+      'has_makefile' => FALSE,
+    ];
+    yield 'module with suggestions and no lock file' => [
+      'env' => [],
+      'extension_type' => 'module',
+      'db_status' => '',
+      'suggested' => ['drupal/token' => 'Token support', 'drupal/gin' => 'Admin theme'],
+      'locked_types' => NULL,
+      'expected_enabled' => ['token' => 'pm:enable', 'gin' => 'pm:enable'],
       'has_ahoy' => FALSE,
       'has_makefile' => FALSE,
     ];

@@ -161,7 +161,7 @@ To overcome GitHub API rate limits, you may provide a `GITHUB_TOKEN` environment
 
 ### Provisioning the website
 
-The `provision` command installs the Drupal website from the `standard` profile with the extension (and any `drupal/*` modules in `suggest`) enabled. The profile can be changed by setting the `DRUPAL_PROFILE` environment variable.
+The `provision` command installs the Drupal website from the `standard` profile with the extension (and any `drupal/*` modules and themes in `suggest`) enabled. The profile can be changed by setting the `DRUPAL_PROFILE` environment variable.
 
 The website is served at `http://localhost:8000`, or at the first free port up to 8099 when another process uses 8000, as described below, and the `start` command prints the URL. The hostname can be changed by setting the `WEBSERVER_HOST` environment variable.
 
