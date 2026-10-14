@@ -58,14 +58,16 @@ final class AssembleTest extends UnitTestCase {
    *   extension_require_dev, extension_extra, extension_config,
    *   dev_composer_json,
    *   has_deprecations_disabled, has_package_lock, has_skip_npm_build,
-   *   has_nvmrc, has_node_modules, tool_files, has_version_specific_phpunit,
-   *   has_polyfill_bootstrap, create_project_result_code,
-   *   installed_packages, php_requirement, expect_php_failure. A NULL
-   *   drupal_release expects the release resolution to fail, and a NULL
-   *   php_requirement makes the core lookup fail.
+   *   has_nvmrc, has_nvm, has_node_modules, tool_files,
+   *   has_version_specific_phpunit, has_polyfill_bootstrap,
+   *   create_project_result_code, installed_packages, php_requirement,
+   *   expect_php_failure. A NULL drupal_release expects the release
+   *   resolution to fail, and a NULL php_requirement makes the core lookup
+   *   fail.
    *
    * @return array
-   *   The configuration with defaults applied.
+   *   The configuration with defaults applied, plus nvm_dir when has_nvmrc is
+   *   set.
    */
   protected function setupAssembleMocks(array $config): array {
     $config += [
@@ -90,6 +92,7 @@ final class AssembleTest extends UnitTestCase {
       'has_package_lock' => FALSE,
       'has_skip_npm_build' => FALSE,
       'has_nvmrc' => FALSE,
+      'has_nvm' => FALSE,
       'has_node_modules' => FALSE,
       'tool_files' => ['phpcs.xml', 'phpunit.xml'],
       'has_version_specific_phpunit' => FALSE,
@@ -278,6 +281,19 @@ final class AssembleTest extends UnitTestCase {
 
     $this->registerMock('unlink', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
 
+    // nvm_prefix() checks for 'nvm.sh' on disk, so NVM_DIR names a real
+    // directory.
+    if ($config['has_nvmrc']) {
+      $config['nvm_dir'] = self::$tmp . '/nvm';
+      mkdir($config['nvm_dir']);
+
+      if ($config['has_nvm']) {
+        file_put_contents($config['nvm_dir'] . '/nvm.sh', '');
+      }
+
+      $this->envSet('NVM_DIR', $config['nvm_dir']);
+    }
+
     $passthru_responses = [];
 
     $passthru_responses[] = ['cmd' => 'composer validate --ansi --strict'];
@@ -316,7 +332,7 @@ final class AssembleTest extends UnitTestCase {
     }
 
     if ($config['has_package_lock'] && !$config['has_skip_npm_build']) {
-      $nvm = $config['has_nvmrc'] ? 'nvm use && ' : '';
+      $nvm = $config['has_nvmrc'] && $config['has_nvm'] ? '. "$NVM_DIR/nvm.sh"; { nvm use || nvm install; } && ' : '';
       if (!$config['has_node_modules']) {
         $passthru_responses[] = ['cmd' => $nvm . 'npm --prefix build ci'];
       }
@@ -409,6 +425,12 @@ final class AssembleTest extends UnitTestCase {
     if ($config['has_package_lock'] && !($config['has_skip_npm_build'] ?? FALSE)) {
       $this->assertStringContainsString('Processing front-end dependencies', $output);
       $this->assertStringContainsString('Front-end dependencies processed', $output);
+    }
+
+    if ($config['has_package_lock'] && !($config['has_skip_npm_build'] ?? FALSE) && $config['has_nvmrc']) {
+      $expected_note = $config['has_nvm'] ? 'Using the Node.js version in .nvmrc with nvm from %s.' : 'nvm is not installed in %s; using the Node.js on PATH, not the version in .nvmrc.';
+      $this->assertStringContainsString(sprintf($expected_note, $config['nvm_dir']), $output);
+      $this->assertSame($config['has_nvm'], in_array('NVM_DIR=' . $config['nvm_dir'], $this->putenvCalls, TRUE), 'NVM_DIR is exported only when nvm is installed.');
     }
 
     $extension_require = $config['extension_require'] ?? [];
@@ -544,6 +566,22 @@ final class AssembleTest extends UnitTestCase {
         'has_package_lock' => TRUE,
         'has_skip_npm_build' => FALSE,
         'has_nvmrc' => TRUE,
+        'has_nvm' => TRUE,
+        'tool_files' => ['phpcs.xml', 'phpunit.xml'],
+      ],
+    ];
+    yield 'with NPM build and nvmrc without nvm' => [
+      'env' => [],
+      'config' => [
+        'extension_type' => 'module',
+        'github_token' => '',
+        'suggestions' => [],
+        'has_build_dir' => FALSE,
+        'has_patches' => FALSE,
+        'has_package_lock' => TRUE,
+        'has_skip_npm_build' => FALSE,
+        'has_nvmrc' => TRUE,
+        'has_nvm' => FALSE,
         'tool_files' => ['phpcs.xml', 'phpunit.xml'],
       ],
     ];
@@ -661,6 +699,7 @@ final class AssembleTest extends UnitTestCase {
         'has_package_lock' => TRUE,
         'has_skip_npm_build' => FALSE,
         'has_nvmrc' => TRUE,
+        'has_nvm' => TRUE,
         'has_deprecations_disabled' => TRUE,
         'has_polyfill_bootstrap' => TRUE,
         'has_version_specific_phpunit' => TRUE,

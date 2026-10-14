@@ -17,8 +17,13 @@ use PHPUnit\Framework\Attributes\Group;
 final class AssembleTest extends ToolingTestCase {
 
   #[DataProvider('dataProviderAssemble')]
-  public function testAssemble(string $drupal_version, string $init_message): void {
+  public function testAssemble(string $drupal_version, string $init_message, bool $nvmrc): void {
     $env = $drupal_version !== '' ? ['DRUPAL_VERSION' => $drupal_version] : [];
+
+    if ($nvmrc) {
+      file_put_contents(self::$sut . '/.nvmrc', "22\n");
+      $env['NVM_DIR'] = $this->createNvmStub();
+    }
 
     $this->declareCorePatch('composer.json', 'add-composer-json-file.patch', self::coreFileAdditionDiff('eddy-composer-json.txt'));
     $this->declareCorePatch('composer.dev.json', 'add-composer-dev-json-file.patch', self::coreFileAdditionDiff('eddy-composer-dev-json.txt'));
@@ -42,6 +47,15 @@ final class AssembleTest extends ToolingTestCase {
     $this->assertFileExists(self::$sut . '/build/web/core/eddy-composer-dev-json.txt');
     $this->assertDirectoryDoesNotExist(self::$sut . '/build/vendor/drevops/eddy-tooling', 'The site build leaves the tooling package out.');
     $this->assertFileDoesNotExist(self::$sut . '/build/web/modules/custom/your_extension/vendor', 'The project-root vendor directory is not symlinked into the extension.');
+    $this->assertProcessAnyOutputContains('Would run build');
+
+    if ($nvmrc) {
+      $this->assertProcessAnyOutputContains('Using the Node.js version in .nvmrc with nvm from ' . $env['NVM_DIR'] . '.');
+      $this->assertSame("nvm use 22\nnvm use 22\n", file_get_contents($env['NVM_DIR'] . '/calls.log'), 'Both npm commands run after nvm use in the project root.');
+    }
+    else {
+      $this->assertProcessAnyOutputNotContains('.nvmrc');
+    }
 
     // @see https://github.com/composer/composer/issues/12215
     $this->processRun('composer', ['--working-dir=' . self::$sut . '/build', 'require', '--dev', 'drupal/coder', '--with-all-dependencies', '--dry-run'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
@@ -49,8 +63,8 @@ final class AssembleTest extends ToolingTestCase {
   }
 
   public static function dataProviderAssemble(): \Iterator {
-    yield ['', 'Creating Drupal 11 project'];
-    yield ['10', 'Creating Drupal 10 project'];
+    yield 'Drupal 11' => ['', 'Creating Drupal 11 project', FALSE];
+    yield 'Drupal 10 with .nvmrc' => ['10', 'Creating Drupal 10 project', TRUE];
   }
 
   public function testAssembleFailsOnPatchThatDoesNotApply(): void {
@@ -77,6 +91,23 @@ final class AssembleTest extends ToolingTestCase {
   protected function installTooling(): void {
     $this->processRun('./scripts/eddy-tooling', [], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
+  }
+
+  /**
+   * Create an nvm directory whose 'nvm' logs each call to 'calls.log'.
+   *
+   * Each log line holds the arguments and the '.nvmrc' of the directory that
+   * the call runs in.
+   *
+   * @return string
+   *   The directory.
+   */
+  protected function createNvmStub(): string {
+    $dir = self::$tmp . '/nvm';
+    mkdir($dir);
+    file_put_contents($dir . '/nvm.sh', 'nvm() { echo "nvm $* $(cat .nvmrc)" >> "$NVM_DIR/calls.log"; }' . PHP_EOL);
+
+    return $dir;
   }
 
   /**

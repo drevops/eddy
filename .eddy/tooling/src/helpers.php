@@ -1505,6 +1505,64 @@ function dev_branch_packages(string $lock_file): array {
 }
 
 /**
+ * Get the directory that nvm is installed in.
+ *
+ * @return string
+ *   NVM_DIR, or the directory that the nvm installer defaults to:
+ *   '$XDG_CONFIG_HOME/nvm', or '$HOME/.nvm' when XDG_CONFIG_HOME is not set.
+ *
+ * @see https://github.com/nvm-sh/nvm#installing-and-updating
+ */
+function nvm_dir(): string {
+  $nvm_dir = getenv_default('NVM_DIR', '');
+
+  if ($nvm_dir !== '') {
+    return $nvm_dir;
+  }
+
+  $config_home = getenv_default('XDG_CONFIG_HOME', '');
+
+  return $config_home === '' ? getenv_default('HOME', '') . '/.nvm' : $config_home . '/nvm';
+}
+
+/**
+ * Get the prefix that runs a command on the Node.js version of '.nvmrc'.
+ *
+ * 'nvm' is a shell function that 'nvm.sh' defines, so the prefix loads
+ * 'nvm.sh' into the shell that runs the command. 'nvm install' fetches the
+ * version when nvm does not have it.
+ *
+ * Prints a note that reports whether nvm is used, and exports NVM_DIR when it
+ * is.
+ *
+ * @return string
+ *   The prefix, or an empty string when the working directory has no '.nvmrc'
+ *   or nvm is not installed.
+ */
+function nvm_prefix(): string {
+  if (!file_exists('.nvmrc')) {
+    return '';
+  }
+
+  $nvm_dir = nvm_dir();
+
+  if (!is_file($nvm_dir . '/nvm.sh')) {
+    NOTE('nvm is not installed in %s; using the Node.js on PATH, not the version in .nvmrc.', $nvm_dir);
+
+    return '';
+  }
+
+  NOTE('Using the Node.js version in .nvmrc with nvm from %s.', $nvm_dir);
+
+  // NVM_DIR may be unset when nvm is in its default directory.
+  putenv('NVM_DIR=' . $nvm_dir);
+
+  // Loading 'nvm.sh' runs a silent 'nvm use' that can fail, so its status is
+  // ignored.
+  return '. "$NVM_DIR/nvm.sh"; { nvm use || nvm install; } && ';
+}
+
+/**
  * Check if debug mode is enabled.
  */
 function is_debug(): bool {

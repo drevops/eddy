@@ -22,6 +22,7 @@ The commands read these variables from your shell first and from the project's `
 | `DRUPAL_PROFILE` | `standard`                                               | The install profile that `provision` installs the site from.                                                      |
 | `GITHUB_TOKEN`   | Unset                                                    | A GitHub token that the build passes to Composer to get around API rate limits.                                   |
 | `COMPOSER_AUTH`  | Built from `GITHUB_TOKEN`                                | Composer credentials. A value you set is used as it is.                                                           |
+| `NVM_DIR`        | `$XDG_CONFIG_HOME/nvm`, or `~/.nvm`                      | The nvm directory. With an `.nvmrc`, the build loads nvm from it. See [Frontend dependencies](dependencies.mdx#frontend-dependencies). |
 | `DEBUG`          | Unset                                                    | `1` streams the full output of Composer, npm and Drush. See [Debugging](debugging.mdx#command-output).            |
 
 ## Webserver and site

@@ -47,7 +47,9 @@ Provisioning enables a suggested package as a theme when its Composer `type` is 
 
 ## Frontend dependencies
 
-Add the frontend dependencies your tests need to `package.json`, and commit `package-lock.json` with it. `assemble` then runs `npm ci` and `npm run build` in the `build` directory, after `nvm use` when your project has an `.nvmrc`.
+Add the frontend dependencies your tests need to `package.json`, and commit `package-lock.json` with it. `assemble` then runs `npm ci` and `npm run build` in the `build` directory.
+
+When your project has an `.nvmrc`, `assemble` runs both commands on the Node.js version it names, using [nvm](https://github.com/nvm-sh/nvm). It loads nvm from `NVM_DIR`, or from the directory nvm installs to by default: `$XDG_CONFIG_HOME/nvm`, or `~/.nvm`. When nvm doesn't have that version yet, `nvm install` fetches it. Without nvm, `assemble` says so in its output and runs npm with the Node.js on your `PATH`.
 
 Commit a `.skip_npm_build` file to skip both. It also turns off the JavaScript and CSS linting (ESLint, Stylelint and Prettier) and the Jest tests, since those run from the `node_modules` the build would have installed. CSpell runs from the project root, so it still runs.
 

@@ -46,7 +46,7 @@ final class DocumentationTest extends UnitTestCase {
   /**
    * Variables that the shell or the SSH agent set, not the project.
    */
-  protected const array PROCESS_VARIABLES = ['HOME', 'SSH_AGENT_PID', 'TERM'];
+  protected const array PROCESS_VARIABLES = ['HOME', 'SSH_AGENT_PID', 'TERM', 'XDG_CONFIG_HOME'];
 
   #[DataProvider('dataProviderToolingCommandIsDocumented')]
   public function testToolingCommandIsDocumented(string $name, string $path): void {

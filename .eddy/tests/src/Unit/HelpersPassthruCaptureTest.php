@@ -34,8 +34,8 @@ final class HelpersPassthruCaptureTest extends UnitTestCase {
       'expected_wrapped' => '{ composer install; } 2>&1',
     ];
     yield 'compound command' => [
-      'cmd' => 'nvm use && npm ci && npm run build',
-      'expected_wrapped' => '{ nvm use && npm ci && npm run build; } 2>&1',
+      'cmd' => '. "$NVM_DIR/nvm.sh"; { nvm use || nvm install; } && npm ci',
+      'expected_wrapped' => '{ . "$NVM_DIR/nvm.sh"; { nvm use || nvm install; } && npm ci; } 2>&1',
     ];
   }
 
