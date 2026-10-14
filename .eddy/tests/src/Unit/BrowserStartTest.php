@@ -245,6 +245,49 @@ final class BrowserStartTest extends UnitTestCase {
   }
 
   /**
+   * The project's own backend is stopped only once chromedriver can launch, so
+   * a missing prerequisite leaves it running.
+   *
+   * @param array<string, string> $available
+   *   Command name => resolved path for the commands that are present besides
+   *   docker.
+   */
+  #[DataProvider('dataProviderBrowserStartChromedriverKeepsOwnBackendWhenItCannotLaunch')]
+  public function testBrowserStartChromedriverKeepsOwnBackendWhenItCannotLaunch(bool $container, array $available, string $driver_version, int $npx_exit, string $expected): void {
+    $this->mockChrome(FALSE);
+    $this->mockCommands(['docker' => '/usr/bin/docker'] + $available);
+    $this->mockVersions('Google Chrome 150.0.7871.129', $driver_version);
+    $listeners = $container ? [9999 => ['/Applications/Docker.app/Contents/MacOS/com.docker.backend', '/']] : [1234 => ['/usr/local/bin/chromedriver --port=4444', '/test/project']];
+    $this->mockPortListeners('4444', $listeners, self::seleniumContainerOutputs('4444', $container ? '/test/project' : NULL));
+    $this->mockStatus([$container ? 'selenium' : NULL]);
+    $commands = [];
+    $this->recordPassthru($commands, npx_exit: $npx_exit);
+
+    $output = $this->runBrowserStart(1);
+
+    $this->assertStringContainsString($expected, $output);
+    $this->assertStringNotContainsString('Removing the Selenium container', $output);
+    $this->assertStringNotContainsString('Stopping chromedriver', $output);
+    foreach ($commands as $command) {
+      $this->assertStringNotContainsString('docker rm', $command, 'The container of the project must keep running.');
+      $this->assertStringNotContainsString('kill', $command, 'The chromedriver of the project must keep running.');
+    }
+  }
+
+  public static function dataProviderBrowserStartChromedriverKeepsOwnBackendWhenItCannotLaunch(): \Iterator {
+    $chrome = ['google-chrome' => '/usr/bin/google-chrome'];
+    $mismatch = ['chromedriver' => '/usr/local/bin/chromedriver'];
+    $npx = ['npx' => '/usr/bin/npx'];
+
+    yield 'container of the project, Chrome is missing' => [TRUE, [], '', 0, 'Google Chrome or Chromium was not found'];
+    yield 'container of the project, no matching chromedriver and no npx' => [TRUE, $chrome + $mismatch, 'ChromeDriver 151.0.7922.34 (abc)', 0, 'npx is unavailable'];
+    yield 'container of the project, chromedriver download fails' => [TRUE, $chrome + $npx, '', 1, 'Failed to install chromedriver'];
+    yield 'chromedriver of the project, Chrome is missing' => [FALSE, [], '', 0, 'Google Chrome or Chromium was not found'];
+    yield 'chromedriver of the project, no matching chromedriver and no npx' => [FALSE, $chrome + $mismatch, 'ChromeDriver 151.0.7922.34 (abc)', 0, 'npx is unavailable'];
+    yield 'chromedriver of the project, chromedriver download fails' => [FALSE, $chrome + $npx, '', 1, 'Failed to install chromedriver'];
+  }
+
+  /**
    * A WebDriver session belongs to whoever opens it, so a backend of another
    * project that answers on the port serves this project too.
    *

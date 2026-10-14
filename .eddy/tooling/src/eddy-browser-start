@@ -148,15 +148,6 @@ function chromedriver_start(string $port, string $root): void {
 
   webdriver_fail_when_taken($port, $root);
 
-  // A running container of another project fails webdriver_fail_when_taken(),
-  // so a running container here is the project's own.
-  if (command_path('docker') !== FALSE && selenium_container_running($port)) {
-    TASK('Removing the Selenium container %s.', selenium_container($port));
-    selenium_container_remove($port);
-  }
-
-  chromedriver_stop($port, $root);
-
   $chrome_version = detect_chrome_version();
 
   if ($chrome_version === '') {
@@ -166,6 +157,16 @@ function chromedriver_start(string $port, string $root): void {
   $binary = resolve_chromedriver_binary($chrome_version);
 
   mkdir_or_fail(dirname(CHROMEDRIVER_LOG_FILE));
+
+  // The project's own backend is stopped only once chromedriver can launch,
+  // so a missing prerequisite leaves it running. A running container here is
+  // the project's own: webdriver_fail_when_taken() fails on any other.
+  if (command_path('docker') !== FALSE && selenium_container_running($port)) {
+    TASK('Removing the Selenium container %s.', selenium_container($port));
+    selenium_container_remove($port);
+  }
+
+  chromedriver_stop($port, $root);
 
   TASK('Starting chromedriver on port %s.', $port);
   @passthru(sprintf('nohup %s --port=%s >%s 2>&1 &', escapeshellarg($binary), escapeshellarg($port), escapeshellarg(CHROMEDRIVER_LOG_FILE)));
