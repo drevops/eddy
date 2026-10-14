@@ -19,6 +19,8 @@ Your Extension (`your_extension`) is a Drupal module. The project provides a com
 
 **HARD RULE - run each tool exactly as `CONTRIBUTING.md` shows.** This project has no command wrapper, so the commands below run directly. Most tools run from `build/`, which holds the config, plugins, and environment that CI uses, so a raw invocation from the repository root silently diverges from CI - it can pass locally while CI fails (or vice versa), or crash outright when a relative path resolves against the wrong directory.
 <!-- #;> DEV_NO_COMMAND_WRAPPER -->
+
+**HARD RULE - never modify `scripts/eddy-tooling`.** It comes from Eddy as-is, and a scaffold update replaces it with the release's copy. To change what a tooling command does, declare a patch for the `drevops/eddy-tooling` package in `composer.dev.json`.
 <!-- #;< DEV_MAKEFILE -->
 
 Run each tool through its `make` wrapper, never the binary directly:

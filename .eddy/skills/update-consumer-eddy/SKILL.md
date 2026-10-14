@@ -301,7 +301,7 @@ git log -S'<release_pin>' --oneline -- <file>
 - A file the release removed and the project changed (`UD` in `git status --porcelain`) goes with the release: remove it with `git rm`, and note it for the pull request as a change that needs a new home (see Step 9).
 - A template file the project removed and the release changed (`DU`) stays removed: remove it with `git rm`.
 
-Resolve each conflict by editing it. Restoring a whole file, as the lock file step does or with `git checkout --ours` or `--theirs`, loses the changes that merged cleanly from the other side, so do it for nothing but the lock file. While `.gitattributes` holds conflicts, git warns that its conflict markers are not valid attribute names, so resolve it first.
+Resolve each conflict by editing it. Restoring a whole file, as the lock file step does or with `git checkout --ours` or `--theirs`, loses the changes that merged cleanly from the other side, so do it for nothing but the lock file and `scripts/eddy-tooling`. While `.gitattributes` holds conflicts, git warns that its conflict markers are not valid attribute names, so resolve it first.
 
 Then settle `package-lock.json`, whether or not it conflicted. A lock file never merges as text: even a merge that found no conflict in it can leave it out of step with `package.json`. When the project has one, restore the project's copy:
 
@@ -313,6 +313,18 @@ If the merged `package.json` differs from the project's (`git diff HEAD -- packa
 
 ```bash
 npm install --package-lock-only
+```
+
+Then take `scripts/eddy-tooling` from the release, whether or not it conflicted: projects use it as-is from Eddy and never modify it. This shows what the project changed in it, if anything:
+
+```bash
+git diff FETCH_HEAD -- scripts/eddy-tooling
+```
+
+List any change it shows for the pull request description, as a change that belongs in a patch for the `drevops/eddy-tooling` package in `composer.dev.json`. Then restore the release's copy:
+
+```bash
+git checkout FETCH_HEAD -- scripts/eddy-tooling
 ```
 
 Stage each file once it is resolved (`git add <file>`), until the listing above prints nothing.
@@ -505,7 +517,7 @@ When the deployment check above found `DEPLOY_REMOTE`, end the description with 
 ## Important notes
 
 - When the user names a version, use that tag verbatim. Otherwise take the published release with the highest version that is neither a draft nor marked as a pre-release. Either way, use the tag verbatim and start without asking the user to confirm it, and stop when the project is already on that release or a newer one, unless the user asked to add or drop a Drupal major.
-- Never run the installer in the project root, and never copy the release's files over the project's: the merge keeps what the project changed.
+- Never run the installer in the project root, and never copy the release's files over the project's: the merge keeps what the project changed. The 1 exception is `scripts/eddy-tooling`, which projects use as-is from Eddy, so Step 8 restores the release's copy.
 - A Drupal major the user asks to add or drop changes the render of the new release only. The render of the installed version keeps the majors the project tests now.
 - Always keep the scaffold's example extension and example scripts out of the merge - a real project never ships them. Step 7 leaves them out of both commits with the exclude pathspecs from Step 6.
 - Never overwrite project-specific code (src/, tests/, config/, *.module, etc.). Edit it only for the code changes a new Drupal major needs (Step 12) and the fixes Step 13 calls for.
