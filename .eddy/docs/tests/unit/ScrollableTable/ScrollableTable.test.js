@@ -65,6 +65,26 @@ describe('ScrollableTable', () => {
     expect(table).not.toHaveAttribute('tabindex');
   });
 
+  test('keeps a focused table focusable until it loses focus', () => {
+    widths = { scrollWidth: 900, clientWidth: 600 };
+
+    renderTable();
+
+    const table = screen.getByRole('table');
+
+    act(() => table.focus());
+
+    widths = { scrollWidth: 600, clientWidth: 600 };
+    act(() => resize());
+
+    expect(table).toHaveAttribute('tabindex', '0');
+    expect(table).toHaveFocus();
+
+    act(() => table.blur());
+
+    expect(table).not.toHaveAttribute('tabindex');
+  });
+
   test('keeps the content and attributes of the table', () => {
     renderTable();
 

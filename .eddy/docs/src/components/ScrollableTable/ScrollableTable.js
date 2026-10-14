@@ -8,13 +8,20 @@ const ScrollableTable = (props) => {
 
   useEffect(() => {
     const table = ref.current;
-    const update = () => setScrollable(table.scrollWidth > table.clientWidth);
+
+    // A focused table keeps its tab stop until it loses focus, since the
+    // browser drops the focus of an element that stops being focusable.
+    const update = () => setScrollable(table.scrollWidth > table.clientWidth || document.activeElement === table);
     const observer = new ResizeObserver(update);
 
     update();
     observer.observe(table);
+    table.addEventListener('blur', update);
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      table.removeEventListener('blur', update);
+    };
   }, []);
 
   return <table {...props} ref={ref} tabIndex={scrollable ? 0 : undefined} />;
