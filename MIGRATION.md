@@ -15,6 +15,7 @@ Jump straight to a section:
   - [Cloudflare tunnel hooks](https://eddy.drevops.com/updating/upgrading-from-4x#cloudflare-tunnel-hooks)
   - [CircleCI is gone](https://eddy.drevops.com/updating/upgrading-from-4x#circleci-is-gone)
   - [Deployment](https://eddy.drevops.com/updating/upgrading-from-4x#deployment)
+  - [FunctionalJavascript tests](https://eddy.drevops.com/updating/upgrading-from-4x#functionaljavascript-tests)
   - [Drupal 12](https://eddy.drevops.com/updating/upgrading-from-4x#drupal-12)
   - [Everything else](https://eddy.drevops.com/updating/upgrading-from-4x#everything-else)
 - [After the upgrade](https://eddy.drevops.com/updating/upgrading-from-4x#after-the-upgrade)

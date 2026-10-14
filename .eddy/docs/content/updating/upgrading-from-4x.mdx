@@ -52,7 +52,7 @@ What it can't do is fetch itself into a 4.x project, so you do that part once, f
 
    To add Drupal 12 as well, ask for it in the same request, such as `/update-consumer-eddy add Drupal 12` (see [Drupal 12](#drupal-12)).
 
-4. Go through [What changed](#what-changed) while you review the pull request it opens, and make the changes the skill leaves to you: moving your `.devtools/` edits and the CircleCI settings. If you asked for Drupal 12, the pull request also holds the Drupal 12 code changes, each in a commit of its own, so review those too.
+4. Go through [What changed](#what-changed) while you review the pull request it opens, and make the changes the skill leaves to you: moving your `.devtools/` edits and the CircleCI settings. If your project has FunctionalJavascript tests, the pull request also brings their base class in line with 5.x, and if you asked for Drupal 12, it makes the Drupal 12 code changes. Each is a commit of its own, so review those too.
 
 The upgrade rewrites `AGENTS.md`, so from then on "update Eddy" works the way it does in any 5.x project.
 
@@ -172,6 +172,28 @@ What to do:
 
 [Deployment](../deployment/README.mdx) describes the new behavior in full.
 
+### FunctionalJavascript tests
+
+From 4.13.0 to 4.17.0, FunctionalJavascript tests ran in a Selenium container, which `selenium-start` started on your machine and CI ran as a service. Their base class, `<MachineName>JsTestBase`, pointed the browser at `host.docker.internal` on macOS and at `172.17.0.1` on other systems, which is where a container finds the host. The tests reached the browser at the endpoint in `phpunit.xml`, `http://localhost:4444`.
+
+4.18.0 made the Chrome on your machine the default browser and gave each project its own WebDriver port. It renamed the class to `<MachineName>FunctionalJavascriptTestBase` and pointed the browser at `localhost` unless `WEBDRIVER_BACKEND` is `selenium`. It also added a `getMinkDriverArgs()` that sends the tests to the project's WebDriver port and runs the local Chrome headless. Both classes leave the address alone on CircleCI.
+
+In 5.x, the class is the 4.18.0 one without the CircleCI check, and its `getMinkDriverArgs()` declares the `string|false` return type that Drupal 12 needs.
+
+No update touches `tests/`, so your project still has the class it was created with, even after an update to 4.18.0 or 4.19.0.
+
+What to do, if your project has FunctionalJavascript tests: bring their base class in line with [the 5.x copy](https://github.com/drevops/eddy/blob/main/tests/src/FunctionalJavascript/YourExtensionFunctionalJavascriptTestBase.php). Keep its name, so the tests that extend it stay as they are. What that takes depends on the class you have:
+
+- If it has no `getMinkDriverArgs()`, as in a project created from 4.13.0 to 4.17.0, replace the `CIRCLECI` check in `setUp()`, the comment above it included, with the base URL setup of the 5.x copy, and add the 5.x copy's `getMinkDriverArgs()`. `CONTRIBUTING.md` tells contributors to extend `<MachineName>FunctionalJavascriptTestBase`, so point it at your class instead.
+
+  Until you do, `ahoy test` and `make test` send the local Chrome to an address that doesn't reach the webserver, so every FunctionalJavascript test fails in `setUp()`, such as with `net::ERR_NAME_NOT_RESOLVED` on a Mac. CI keeps passing, because it runs the browser in a Selenium container, the setup the class was written for. A green pull request doesn't mean the class is fine.
+
+- If it has one, as in a project created from 4.18.0 or 4.19.0, declare `string|false` as its return type, drop the `CIRCLECI` check in `setUp()` but keep the base URL setup inside it, and change `.devtools/browser` to `eddy-browser-start` in a comment.
+
+The update skill brings the class in line in a commit of its own, and points `CONTRIBUTING.md` at it.
+
+A project created before 4.13.0 never had the class. If yours has FunctionalJavascript tests of its own, have them extend a class like the 5.x copy, for the reasons in [WebDriver ports](../testing/functional-javascript.mdx#webdriver-ports).
+
 ### Drupal 12
 
 5.x can test your extension on Drupal 12 next to Drupal 10 and 11. It's opt-in: the upgrade keeps the Drupal majors your CI tests today. To add Drupal 12, select `12` when `install.php` asks for the Drupal versions, or ask for it when you run the update skill, such as `/update-consumer-eddy add Drupal 12`. Once you're on 5.x, the skill can add it later the same way, even when there's no newer release to update to.
@@ -179,7 +201,7 @@ What to do:
 Drupal 12 brings 5 CI jobs (`lint-d12`, `test-php-min-d12-stable`, `test-php-max-d12-stable`, `test-php-min-d12-legacy` and `test-php-max-d12-canary`) and a README badge, plus a PHP 8.5 badge if you don't test Drupal 11. It also needs 3 changes in your own code, which no template merge makes. When you add Drupal 12 with the update skill, the skill makes them after the merge, each in a commit of its own, so review them in the pull request. Otherwise make them yourself:
 
 - Add `^12` to `core_version_requirement` in every `*.info.yml` your project has, not only the main one. A submodule your tests enable, such as an example module, needs it too: without it, every Drupal 12 Functional and FunctionalJavascript test that enables the submodule fails at install.
-- If your FunctionalJavascript tests extend the base class the template generated, declare `string|false` as the return type of its `getMinkDriverArgs()`. Drupal 12 declares that type on the parent method, so an override without it is a fatal error, and Drupal 10 and 11 accept the typed override too. The upgrade never touches `tests/`, so bring 2 more things in that class in line with the 5.x copy while you're there, whether or not you add Drupal 12: drop the `CIRCLECI` check in `setUp()` but keep the base URL setup inside it, and, from 4.18.0, change `.devtools/browser` to `eddy-browser-start` in a comment.
+- Declare `string|false` as the return type of every `getMinkDriverArgs()` override, such as the one in the base class of your FunctionalJavascript tests (see [FunctionalJavascript tests](#functionaljavascript-tests)). Drupal 12 declares that type on the parent method, so an override without it is a fatal error, and Drupal 10 and 11 accept the typed override too.
 - Pair `@group` with `#[Group]` and `@dataProvider` with `#[DataProvider]`, the way the example tests do. Drupal 10 runs PHPUnit 9.6, which reads only the annotations, and Drupal 12 runs PHPUnit 12, which reads only the attributes. `@covers` and `@coversDefaultClass` only narrow code coverage, so the example tests leave them without an attribute. Kernel, Functional and FunctionalJavascript test classes also need `#[RunTestsInSeparateProcesses]`, which Drupal 12 requires and the example tests have carried since 4.18.0.
 
 Drupal 12 requires PHP 8.5. CI runs every Drupal 12 job on PHP 8.5, and adding Drupal 12 leaves `extra.eddy.drupal-version` on the newest major you test that has a stable release, so a plain `ahoy build` keeps working on the PHP you have. To build Drupal 12 locally, run `DRUPAL_VERSION=12 ahoy build` on PHP 8.5. On an older PHP, the build stops before it changes anything and says which PHP the release needs.
