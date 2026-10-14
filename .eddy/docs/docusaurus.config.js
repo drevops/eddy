@@ -1,7 +1,7 @@
 // @ts-check
 // @see https://docusaurus.io/docs/api/docusaurus-config
 
-import {themes as prismThemes} from 'prism-react-renderer';
+import {darkCodeTheme, lightCodeTheme} from './src/codeThemes.js';
 
 // The release workflow sets the version. Other builds, such as the Netlify
 // development site and pull request previews, stay out of the analytics and
@@ -152,8 +152,8 @@ const config = {
         copyright: `Eddy version: ${process.env.RELEASE_VERSION || 'development'}<br/>Drupal is a <a class="footer__copyright-link" href="https://www.drupal.org/about/trademark">registered trademark</a> of <a class="footer__copyright-link" href="https://dri.es/">Dries Buytaert</a>.<br/>Copyright ©${new Date().getFullYear()} <a class="footer__copyright-link" href="https://www.drevops.com/">DrevOps®</a>. Built with <a class="footer__copyright-link" href="https://docusaurus.io/">Docusaurus</a>.`,
       },
       prism: {
-        theme: prismThemes.github,
-        darkTheme: prismThemes.dracula,
+        theme: lightCodeTheme,
+        darkTheme: darkCodeTheme,
         additionalLanguages: ['bash', 'json', 'php'],
       },
       mermaid: {
