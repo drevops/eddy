@@ -509,7 +509,7 @@ final class InstallProcessTest extends UnitTestCase {
 
     $makefile = (string) file_get_contents(self::$sut . '/Makefile');
     $export = "\t" . 'export WEBDRIVER_PORT="$$(vendor/bin/eddy-info webdriver-port)" && \\' . "\n";
-    $phpunit = "\t" . 'pushd "build" >/dev/null || exit 1 && \\' . "\n\t" . 'php -d pcov.directory=.. vendor/bin/phpunit $(TEST_RUN_ARGS) && \\' . "\n\t" . 'popd >/dev/null || exit 1' . "\n";
+    $phpunit = "\t" . 'pushd "build" >/dev/null || exit 1 && \\' . "\n\t" . 'php -d pcov.directory=.. vendor/bin/phpunit $(RUN_ARGS) && \\' . "\n\t" . 'popd >/dev/null || exit 1' . "\n";
     $recipe = "\t" . '$(call title,Running PHPUnit)' . "\n" . ($expect_webdriver ? $export : '') . $phpunit;
 
     $this->assertSame($expect_phpunit, str_contains($makefile, $recipe), 'Makefile PHPUnit recipe line mismatch.');

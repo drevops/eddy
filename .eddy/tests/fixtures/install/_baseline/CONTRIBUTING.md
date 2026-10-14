@@ -196,7 +196,8 @@ You can run specific tests by passing a path to the test file or PHPUnit CLI opt
 
 ```bash
 ahoy test-unit web/modules/custom/force_crystal/tests/src/Unit/MyUnitTest.php
-ahoy test-unit -- --group wip
+ahoy test-unit -- --group=wip
+ahoy test-unit -- --filter=MyUnitTest::testSomething
 ```
 
 You may also run tests using the `phpunit` command directly:
@@ -206,4 +207,5 @@ cd build
 php -d pcov.directory=.. vendor/bin/phpunit \
   web/modules/custom/force_crystal/tests/src/Unit/MyUnitTest.php
 php -d pcov.directory=.. vendor/bin/phpunit --group=wip
+php -d pcov.directory=.. vendor/bin/phpunit --filter=MyUnitTest::testSomething
 ```

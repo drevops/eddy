@@ -213,6 +213,11 @@ final class MakeTest extends ToolingTestCase {
     $this->assertProcessAnyOutputContains('Database         : Connected');
     $this->assertProcessAnyOutputContains('Drupal bootstrap : Successful');
 
+    // A command holding ':' and an option holding '=' reach Drush.
+    $this->processRun('make', ['drush', '--', 'config:get', 'system.site', 'name', '--format=json'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->assertProcessSuccessful();
+    $this->assertProcessAnyOutputContains('"system.site:name"');
+
     $this->processRun('make', ['login'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
     $this->assertProcessAnyOutputContains('user/reset/1/');
@@ -328,6 +333,11 @@ final class MakeTest extends ToolingTestCase {
     $this->assertProcessSuccessful();
 
     $this->assertTestCoverage();
+
+    // The filter selects 1 of the 4 data sets.
+    $this->processRun('make', ['test-unit', '--', '--filter=YourExtensionServiceUnitTest::testSanitize#0'], [], [], $this->longTimeout, $this->defaultIdleTimeout);
+    $this->assertProcessSuccessful();
+    $this->assertProcessAnyOutputContains('OK (1 test, 1 assertion)');
 
     File::replaceContentInFile(self::$sut . '/tests/src/Unit/YourExtensionServiceUnitTest.php', 'assertEquals', 'assertNotEquals');
 

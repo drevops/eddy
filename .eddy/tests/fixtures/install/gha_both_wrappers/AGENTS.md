@@ -62,7 +62,7 @@
  
  ### Drupal Commands
  
-+- `make drush <command>` - Run Drush commands. Put `--` before options and separate an option from its value with a space, such as `make drush -- status --format json`, because `make` reads an argument that holds `=` as a variable. An argument that holds `:` fails, so use the command's alias, such as `cr` for `cache:rebuild`
++- `make drush <command>` - Run Drush commands. Put `--` before the arguments when they include an option, such as `make drush -- config:get system.site --format=json`, because `make` reads an option on its command line as its own. An argument can't hold a space or name a `make` target, such as `help`, unless it's an option value joined with `=`
 +- `make login` - Get one-time login link
  - `ahoy drush <command>` - Run Drush commands
  - `ahoy login` - Get one-time login link

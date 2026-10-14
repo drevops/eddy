@@ -129,17 +129,19 @@
  ```
  
  The browser reaches the webserver at `localhost` with the default backend, and at `host.docker.internal` (macOS) or `__VERSION__.1` (other systems) from the Selenium container. Set `WEBDRIVER_HOST` to use a different address.
-@@ -195,9 +194,11 @@
+@@ -195,10 +194,12 @@
  You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the test commands. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site:
  
  ```bash
 -ahoy test-unit web/modules/custom/force_crystal/tests/src/Unit/MyUnitTest.php
--ahoy test-unit -- --group wip
+-ahoy test-unit -- --group=wip
+-ahoy test-unit -- --filter=MyUnitTest::testSomething
 +make test-unit web/modules/custom/force_crystal/tests/src/Unit/MyUnitTest.php
-+make test-unit -- --group wip
++make test-unit -- --group=wip
++make test-unit -- --filter=MyUnitTest::testSomething
  ```
 +
-+`make` reads an argument that holds `=` as a variable and fails on one that holds `:`, so separate an option from its value with a space, and pass `--filter` a class or method name rather than `Class::method`.
++Put `--` before the arguments when they include an option, since `make` reads an option on its command line as its own. An argument can't hold a space or name a `make` target, such as `test`, unless it's an option value joined with `=`, as in `--filter='my test'` or `--filter=test`. `make` keeps 1 value per option joined with `=`, so repeat an option with a space instead, as in `--group wip --group slow`.
  
  You may also run tests using the `phpunit` command directly:
  
