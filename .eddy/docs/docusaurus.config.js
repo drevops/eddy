@@ -68,7 +68,6 @@ const config = {
       /** @type {import("@easyops-cn/docusaurus-search-local").PluginOptions} */
       ({
         // @see https://github.com/easyops-cn/docusaurus-search-local#theme-options
-        searchBarPosition: 'left',
         docsDir: 'content',
         docsRouteBasePath: '/',
         indexBlog: false,
