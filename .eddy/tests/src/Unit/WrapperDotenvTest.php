@@ -32,29 +32,37 @@ final class WrapperDotenvTest extends UnitTestCase {
    * @param array<string, string|false> $env
    * @param array<string, string> $expected
    */
-  #[DataProvider('dataProviderDotenv')]
+  #[DataProvider('dataProviderMake')]
   public function testMake(?string $dotenv, array $env, array $expected): void {
     $output = $this->runMake('probe', $dotenv, $env);
 
     $this->assertSame(self::probeOutput($expected), $output);
   }
 
-  /**
-   * @param array<string, string|false> $env
-   * @param array<string, string> $expected
-   */
-  #[DataProvider('dataProviderDotenv')]
-  public function testMakeSubMake(?string $dotenv, array $env, array $expected): void {
-    $output = $this->runMake('sub-make', $dotenv, $env);
-
-    $this->assertSame(self::probeOutput($expected), $output);
+  public static function dataProviderMake(): \Iterator {
+    yield from self::dotenvCases();
   }
 
   /**
    * @param array<string, string|false> $env
    * @param array<string, string> $expected
    */
-  #[DataProvider('dataProviderDotenv')]
+  #[DataProvider('dataProviderMakeSubMake')]
+  public function testMakeSubMake(?string $dotenv, array $env, array $expected): void {
+    $output = $this->runMake('sub-make', $dotenv, $env);
+
+    $this->assertSame(self::probeOutput($expected), $output);
+  }
+
+  public static function dataProviderMakeSubMake(): \Iterator {
+    yield from self::dotenvCases();
+  }
+
+  /**
+   * @param array<string, string|false> $env
+   * @param array<string, string> $expected
+   */
+  #[DataProvider('dataProviderAhoy')]
   public function testAhoy(?string $dotenv, array $env, array $expected): void {
     self::writeDotenv($dotenv);
 
@@ -70,7 +78,32 @@ final class WrapperDotenvTest extends UnitTestCase {
     $this->assertSame(self::probeOutput($expected), $output);
   }
 
-  public static function dataProviderDotenv(): \Iterator {
+  public static function dataProviderAhoy(): \Iterator {
+    yield from self::dotenvCases();
+  }
+
+  public function testAhoyLoadsNoEnvFile(): void {
+    $config = self::ahoyConfig();
+
+    $this->assertArrayNotHasKey('env', $config, 'Ahoy would load the env files over the shell environment.');
+
+    $commands = $config['commands'] ?? NULL;
+    $this->assertIsArray($commands);
+
+    foreach ($commands as $name => $command) {
+      $this->assertIsArray($command);
+      $this->assertArrayNotHasKey('env', $command, sprintf('Ahoy would load the env files of "%s" over the shell environment.', $name));
+    }
+  }
+
+  /**
+   * List the '.env' cases that every wrapper resolves the same way.
+   *
+   * @return \Iterator<string, array{0: string|null, 1: array<string, string>, 2: array<string, string>}>
+   *   The contents of '.env' or NULL for no file, the shell environment, and
+   *   the value of each probe variable, keyed by case name.
+   */
+  protected static function dotenvCases(): \Iterator {
     yield 'no .env and no shell value' => [
       NULL,
       [],
@@ -136,20 +169,6 @@ final class WrapperDotenvTest extends UnitTestCase {
       [],
       ['WEBSERVER_PORT' => '8001', 'DRUPAL_PROFILE' => 'minimal', 'SIMPLETEST_BASE_URL' => 'http://localhost:8001'],
     ];
-  }
-
-  public function testAhoyLoadsNoEnvFile(): void {
-    $config = self::ahoyConfig();
-
-    $this->assertArrayNotHasKey('env', $config, 'Ahoy would load the env files over the shell environment.');
-
-    $commands = $config['commands'] ?? NULL;
-    $this->assertIsArray($commands);
-
-    foreach ($commands as $name => $command) {
-      $this->assertIsArray($command);
-      $this->assertArrayNotHasKey('env', $command, sprintf('Ahoy would load the env files of "%s" over the shell environment.', $name));
-    }
   }
 
   /**
