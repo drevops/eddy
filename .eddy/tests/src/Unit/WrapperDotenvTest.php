@@ -12,10 +12,10 @@ use Symfony\Component\Yaml\Yaml;
 /**
  * Tests how the command wrappers load '.env'.
  *
- * A variable that the shell sets keeps its value, even an empty one, and
- * '.env' provides the rest. The real 'Makefile' runs with a probe makefile
- * added through a second '-f', and the real Ahoy entrypoint runs with the
- * arguments that Ahoy passes to it.
+ * A variable that the shell sets to a non-empty value keeps it, and '.env'
+ * provides the rest. The real 'Makefile' runs with a probe makefile added
+ * through a second '-f', and the real Ahoy entrypoint runs with the arguments
+ * that Ahoy passes to it.
  *
  * phpcs:disable Drupal.Commenting.FunctionComment.Missing
  * phpcs:disable Drupal.Commenting.DocComment.MissingShort
@@ -129,10 +129,10 @@ final class WrapperDotenvTest extends UnitTestCase {
       ['WEBSERVER_PORT' => '9001'],
       ['WEBSERVER_PORT' => '9001', 'DRUPAL_PROFILE' => 'minimal', 'SIMPLETEST_BASE_URL' => 'http://localhost:9001'],
     ];
-    yield 'empty shell value overrides .env' => [
+    yield 'empty shell value counts as unset' => [
       "WEBSERVER_PORT=8001\nDRUPAL_PROFILE=minimal\n",
       ['WEBSERVER_PORT' => '', 'DRUPAL_PROFILE' => ''],
-      ['WEBSERVER_PORT' => '', 'DRUPAL_PROFILE' => '', 'SIMPLETEST_BASE_URL' => 'http://localhost:8000'],
+      ['WEBSERVER_PORT' => '8001', 'DRUPAL_PROFILE' => 'minimal', 'SIMPLETEST_BASE_URL' => 'http://localhost:8001'],
     ];
     yield 'shell value with special characters' => [
       "DRUPAL_PROFILE=minimal\n",

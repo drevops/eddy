@@ -10,7 +10,7 @@ The commands read these variables from your shell first and from the project's `
 
 :::note Your shell wins over `.env`
 
-`make` and Ahoy load a variable from `.env` only when your shell doesn't set it, so a prefix such as `WEBSERVER_PORT=9000` changes a value for 1 command without touching `.env`. An empty value in your shell counts as set. A variable you export from your shell profile wins the same way, so it overrides the `.env` of every project.
+`make` and Ahoy load a variable from `.env` only when your shell leaves it unset or empty, so a prefix such as `WEBSERVER_PORT=9000` changes a value for 1 command without touching `.env`. A variable you export from your shell profile wins the same way, so it overrides the `.env` of every project.
 
 :::
 
