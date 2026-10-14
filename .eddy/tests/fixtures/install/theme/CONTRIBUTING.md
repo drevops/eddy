@@ -4,14 +4,15 @@
  ```bash
 -ahoy test-unit web/modules/custom/force_crystal/tests/src/Unit/MyUnitTest.php
 +ahoy test-unit web/themes/custom/force_crystal/tests/src/Unit/MyUnitTest.php
- ahoy test-unit -- --group wip
+ ahoy test-unit -- --group=wip
+ ahoy test-unit -- --filter=MyUnitTest::testSomething
  ```
- 
-@@ -204,6 +204,6 @@
+@@ -205,7 +205,7 @@
  ```bash
  cd build
  php -d pcov.directory=.. vendor/bin/phpunit \
 -  web/modules/custom/force_crystal/tests/src/Unit/MyUnitTest.php
 +  web/themes/custom/force_crystal/tests/src/Unit/MyUnitTest.php
  php -d pcov.directory=.. vendor/bin/phpunit --group=wip
+ php -d pcov.directory=.. vendor/bin/phpunit --filter=MyUnitTest::testSomething
  ```

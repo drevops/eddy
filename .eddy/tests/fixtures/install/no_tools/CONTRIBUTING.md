@@ -96,7 +96,7 @@
  ahoy lint-fix
  ```
  
-@@ -150,60 +180,9 @@
+@@ -150,62 +180,9 @@
  Run the tests for this extension with:
  
  ```bash
@@ -147,7 +147,8 @@
 -
 -```bash
 -ahoy test-unit web/modules/custom/force_crystal/tests/src/Unit/MyUnitTest.php
--ahoy test-unit -- --group wip
+-ahoy test-unit -- --group=wip
+-ahoy test-unit -- --filter=MyUnitTest::testSomething
 -```
 -
 -You may also run tests using the `phpunit` command directly:
@@ -157,5 +158,6 @@
 -php -d pcov.directory=.. vendor/bin/phpunit \
 -  web/modules/custom/force_crystal/tests/src/Unit/MyUnitTest.php
 -php -d pcov.directory=.. vendor/bin/phpunit --group=wip
+-php -d pcov.directory=.. vendor/bin/phpunit --filter=MyUnitTest::testSomething
 +ahoy test
  ```

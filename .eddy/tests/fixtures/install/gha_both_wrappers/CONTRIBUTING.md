@@ -130,17 +130,18 @@
  WEBSERVER_HOST=__VERSION__.0 ahoy start
  ahoy provision
  WEBDRIVER_BACKEND=selenium ahoy test-functional-javascript
-@@ -193,6 +255,13 @@
+@@ -193,6 +255,14 @@
  ### Running specific tests
  
  You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the test commands. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site:
 +
 +```bash
 +make test-unit web/modules/custom/force_crystal/tests/src/Unit/MyUnitTest.php
-+make test-unit -- --group wip
++make test-unit -- --group=wip
++make test-unit -- --filter=MyUnitTest::testSomething
 +```
 +
-+`make` reads an argument that holds `=` as a variable and fails on one that holds `:`, so separate an option from its value with a space, and pass `--filter` a class or method name rather than `Class::method`.
++Put `--` before the arguments when they include an option, since `make` reads an option on its command line as its own. An argument can't hold a space or name a `make` target, such as `test`, unless it's an option value joined with `=`, as in `--filter='my test'` or `--filter=test`. `make` keeps 1 value per option joined with `=`, so repeat an option with a space instead, as in `--group wip --group slow`.
  
  ```bash
  ahoy test-unit web/modules/custom/force_crystal/tests/src/Unit/MyUnitTest.php
