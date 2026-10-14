@@ -1451,6 +1451,34 @@ function version_satisfies(string $version, string $constraint): ?bool {
 }
 
 /**
+ * Read a field of each package that a Composer lock file installs.
+ *
+ * @param string $lock_file
+ *   The path to the lock file.
+ * @param string $field
+ *   The field of a package entry, such as 'version' or 'type'.
+ *
+ * @return array<string, string>
+ *   The field values keyed by package name, from both 'packages' and
+ *   'packages-dev'. A package without a string value for the field is left
+ *   out. Empty when the lock file cannot be read.
+ */
+function locked_packages(string $lock_file, string $field): array {
+  $lock = json_decode((string) @file_get_contents($lock_file), TRUE);
+
+  if (!is_array($lock)) {
+    return [];
+  }
+
+  $packages = array_merge((array) ($lock['packages'] ?? []), (array) ($lock['packages-dev'] ?? []));
+
+  /** @var array<string, string> $values */
+  $values = array_filter(array_column($packages, $field, 'name'), is_string(...));
+
+  return $values;
+}
+
+/**
  * List the packages a Composer lock file installs from development branches.
  *
  * @param string $lock_file
@@ -1461,16 +1489,7 @@ function version_satisfies(string $version, string $constraint): ?bool {
  *   'dev-main'.
  */
 function dev_branch_packages(string $lock_file): array {
-  $lock = json_decode((string) @file_get_contents($lock_file), TRUE);
-
-  if (!is_array($lock)) {
-    return [];
-  }
-
-  /** @var array<string, string> $versions */
-  $versions = array_column(array_merge((array) ($lock['packages'] ?? []), (array) ($lock['packages-dev'] ?? [])), 'version', 'name');
-
-  return array_filter($versions, static fn(string $version): bool => str_starts_with($version, 'dev-') || str_ends_with($version, '-dev'));
+  return array_filter(locked_packages($lock_file, 'version'), static fn(string $version): bool => str_starts_with($version, 'dev-') || str_ends_with($version, '-dev'));
 }
 
 /**
