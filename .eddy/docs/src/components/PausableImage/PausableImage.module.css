@@ -1,0 +1,8 @@
+.pausableImage {
+  display: block;
+}
+
+.pausableImage button {
+  display: block;
+  margin-top: 0.5rem;
+}

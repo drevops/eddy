@@ -16,7 +16,8 @@
     "write-heading-ids": "docusaurus write-heading-ids",
     "spellcheck": "cspell --no-progress \"content/**/*.mdx\" README.md",
     "test": "jest && npm run spellcheck",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "test:accessibility": "playwright test"
   },
   "dependencies": {
     "@docusaurus/core": "3.10.2",
@@ -30,11 +31,13 @@
     "react-dom": "^19.3.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@babel/core": "^7.29.7",
     "@babel/preset-env": "^7.29.7",
     "@babel/preset-react": "^7.29.7",
     "@docusaurus/module-type-aliases": "3.10.2",
     "@docusaurus/types": "3.10.2",
+    "@playwright/test": "^1.64.0",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.3",

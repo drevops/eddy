@@ -1,16 +1,20 @@
 module.exports = {
   testEnvironment: 'jsdom',
   testMatch: [
-    '<rootDir>/tests/**/*.{test,spec}.{js,jsx,ts,tsx}',
+    '<rootDir>/tests/unit/**/*.{test,spec}.{js,jsx,ts,tsx}',
     '<rootDir>/src/**/*.{test,spec}.{js,jsx,ts,tsx}'
   ],
   setupFilesAfterEnv: ['<rootDir>/tests/jest-setup.js'],
   moduleNameMapper: {
     '^@site/(.*)$': '<rootDir>/$1',
-    '^@theme/(.*)$': '<rootDir>/tests/__mocks__/theme/$1.js'
+    '^@theme/(.*)$': '<rootDir>/tests/__mocks__/theme/$1.js',
+    '^@theme-original/(.*)$': '<rootDir>/tests/__mocks__/theme-original/$1.js',
+    '\\.css$': '<rootDir>/tests/__mocks__/styleModule.js'
   },
   collectCoverageFrom: [
+    'src/*.js',
     'src/components/**/*.{js,jsx}',
+    'src/theme/**/*.{js,jsx}',
     '!src/**/*.test.{js,jsx}',
     '!src/**/*.spec.{js,jsx}'
   ],

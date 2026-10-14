@@ -221,6 +221,14 @@ jobs:
         run: npm test
         working-directory: .eddy/docs
 
+      - name: Install browser for accessibility checks
+        run: npx playwright install --with-deps chromium
+        working-directory: .eddy/docs
+
+      - name: Check documentation accessibility
+        run: npm run test:accessibility
+        working-directory: .eddy/docs
+
       # A push to 'main' updates the development site, and any other build
       # deploys a preview. Fork pull requests get no secrets, so they skip it.
       - name: Deploy documentation to Netlify
