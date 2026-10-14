@@ -251,6 +251,32 @@ function drupal_version_build_default(array $majors): string {
 }
 
 /**
+ * Define the removal footprint of each Drupal major beyond its blocks.
+ *
+ * A file with a 'DRUPAL_<major>' block holds one for every major, so a file
+ * or text that only 1 major has is listed here instead. 'files' lists the
+ * files that go with the major, and 'replacements' maps the template text
+ * that names them to the text without them.
+ *
+ * '.eddy/CLAUDE.md' lists the steps for adding a Drupal major.
+ *
+ * @return array<int, array{files: list<string>, replacements: array<string, string>}>
+ *   Map of Drupal major to its removal specification. PHP casts the
+ *   numeric-string keys to integers.
+ */
+function drupal_version_specs(): array {
+  return [
+    '10' => [
+      'files' => ['phpunit.d10.xml'],
+      'replacements' => [
+        '# phpunit.d10.xml    export-ignore' . "\n" => '',
+        'run the tests, and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both use' => 'run the tests. It uses',
+      ],
+    ],
+  ];
+}
+
+/**
  * Print help.
  */
 function print_help(): void {
@@ -359,16 +385,11 @@ function process(string $extension_name, string $extension_machine_name, string 
     throw new \Exception(sprintf('Unsupported Drupal version: %s.', implode(', ', $unsupported_majors)));
   }
 
-  // Strip the '#;< DRUPAL_<major>' blocks of deselected majors from every
-  // project file. Markers for kept majors are cleared later by
-  // 'remove_special_comments()'.
-  foreach ($supported_majors as $major) {
-    if (!in_array($major, $selected_majors, TRUE)) {
-      remove_tokens_with_content('DRUPAL_' . $major);
-    }
-  }
-
   process_drupal_version_text($selected_majors);
+
+  // 'process_drupal_version_text()' finds the majors with a PHPUnit
+  // configuration of their own by their files, so the files go after it.
+  remove_drupal_versions(array_diff($supported_majors, $selected_majors));
 
   set_composer_dev_eddy_value('drupal-version', drupal_version_build_default($selected_majors));
 
@@ -451,6 +472,39 @@ function process_drupal_version_text(array $majors): void {
   // A 'phpunit.d<major>.xml' replaces 'phpunit.xml' in the build of its major.
   $own_config_majors = array_filter($supported, static fn(string $major): bool => file_exists('phpunit.d' . $major . '.xml'));
   replace_string_content(phpunit_config_comment(array_diff($supported, $own_config_majors)), phpunit_config_comment(array_diff($majors, $own_config_majors)));
+}
+
+/**
+ * Remove deselected Drupal majors from the project.
+ *
+ * Removing a major strips its '#;< DRUPAL_<major> ... #;> DRUPAL_<major>'
+ * blocks from every project file. Markers for kept majors are stripped later
+ * by 'remove_special_comments()'.
+ *
+ * It also removes the major's files listed in 'drupal_version_specs()' and
+ * rewrites the text in its 'replacements'.
+ *
+ * @param array<string> $majors
+ *   The Drupal majors to remove.
+ */
+function remove_drupal_versions(array $majors): void {
+  $specs = drupal_version_specs();
+
+  foreach ($majors as $major) {
+    remove_tokens_with_content('DRUPAL_' . $major);
+
+    if (!isset($specs[$major])) {
+      continue;
+    }
+
+    foreach ($specs[$major]['files'] as $file) {
+      @unlink($file);
+    }
+
+    foreach ($specs[$major]['replacements'] as $search => $replacement) {
+      replace_string_content($search, $replacement);
+    }
+  }
 }
 
 /**
