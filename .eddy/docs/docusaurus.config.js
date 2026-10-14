@@ -16,8 +16,9 @@ const config = {
   noIndex: !isRelease,
 
   // The release workflow sets both from the GitHub Pages settings, so a
-  // custom domain needs no change here.
-  url: process.env.DOCS_URL || 'https://drevops.github.io',
+  // custom domain needs no change here. Other builds name the development
+  // site, which serves from its root.
+  url: process.env.DOCS_URL || 'https://drevops-eddy-docs.netlify.app',
   baseUrl: process.env.DOCS_BASE_URL || '/',
 
   // GitHub Pages serves '<page>.html' at '/<page>', without the redirect that
