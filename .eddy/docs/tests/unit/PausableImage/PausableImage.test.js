@@ -63,6 +63,8 @@ describe('PausableImage', () => {
 
     const image = screen.getByRole('img', { name: 'Demo' });
 
+    expect(image.parentElement).toHaveClass('pausableImage');
+
     fireEvent.click(await screen.findByRole('button', { name: 'Pause animation' }));
 
     expect(image).toHaveAttribute('src', 'blob:still');
