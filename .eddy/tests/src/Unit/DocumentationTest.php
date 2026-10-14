@@ -22,6 +22,9 @@ use PHPUnit\Framework\Attributes\Group;
  * The update skill answers every 'install.php' prompt through a variable and
  * detects every tool it offers, so either can be added to 'install.php' alone.
  *
+ * Step 0 of the update skill lists a permission for each command the skill
+ * runs, so a command can be added without its permission.
+ *
  * The documentation site lists the CI jobs, the ignore-failure toggles and the
  * variables that the workflows and the tooling read, so any of them can
  * change without the page that lists it.
@@ -323,6 +326,34 @@ final class DocumentationTest extends UnitTestCase {
     }
   }
 
+  #[DataProvider('dataProviderUpdateSkillAllowsCommand')]
+  public function testUpdateSkillAllowsCommand(string $command): void {
+    $allowed = FALSE;
+
+    foreach (self::updateSkillPermissions() as $permission) {
+      if (preg_match('/^Bash\((.+?)(:\*)?\)$/', $permission, $matches) !== 1) {
+        continue;
+      }
+
+      // A rule ending in ':*' allows its command followed by any arguments.
+      $is_prefix = isset($matches[2]);
+
+      if ($command === $matches[1] || ($is_prefix && str_starts_with($command, $matches[1] . ' '))) {
+        $allowed = TRUE;
+
+        break;
+      }
+    }
+
+    $this->assertTrue($allowed, sprintf('Step 0 of the update skill does not allow `%s`, so the command stops for approval.', $command));
+  }
+
+  public static function dataProviderUpdateSkillAllowsCommand(): \Iterator {
+    foreach (self::updateSkillCommands() as $command) {
+      yield $command => ['command' => $command];
+    }
+  }
+
   /**
    * List the commands the tooling package installs.
    *
@@ -396,6 +427,54 @@ final class DocumentationTest extends UnitTestCase {
     self::assertNotSame([], $matches[1], 'The update skill sets no INSTALL_ variables.');
 
     return array_values(array_unique($matches[1]));
+  }
+
+  /**
+   * List the permissions that Step 0 of the update skill grants.
+   *
+   * @return array<int, string>
+   *   The permission rules, such as 'Bash(git:*)'.
+   */
+  protected static function updateSkillPermissions(): array {
+    $skill = (string) file_get_contents(self::updateSkillPath());
+
+    preg_match('/^## Step 0:.*?^```json\n(.*?)^```/ms', $skill, $matches);
+    $permissions = json_decode($matches[1] ?? '', TRUE);
+
+    self::assertIsArray($permissions, 'Step 0 of the update skill lists no permissions.');
+
+    return array_values(array_filter($permissions, is_string(...)));
+  }
+
+  /**
+   * List the commands the update skill runs.
+   *
+   * @return array<int, string>
+   *   The commands in order of appearance, each without the variables
+   *   assigned in front of it.
+   */
+  protected static function updateSkillCommands(): array {
+    $skill = (string) file_get_contents(self::updateSkillPath());
+
+    preg_match_all('/^[ \t]*```bash\n(.*?)^[ \t]*```/ms', $skill, $blocks);
+
+    $commands = [];
+
+    foreach ($blocks[1] as $block) {
+      foreach (explode("\n", str_replace("\\\n", ' ', $block)) as $line) {
+        // Step 0 can't list the values a project assigns in front of a
+        // command, so the check starts at the program.
+        $command = (string) preg_replace("/^(?:\w+=(?:'[^']*'|\S*)\s+)+/", '', trim($line));
+
+        if ($command !== '') {
+          $commands[] = $command;
+        }
+      }
+    }
+
+    self::assertNotSame([], $commands, 'The update skill runs no commands.');
+
+    return array_values(array_unique($commands));
   }
 
   protected static function updateSkillPath(): string {
