@@ -19,6 +19,7 @@ use function cspell_text_words;
 use function drupal_version_build_default;
 use function drupal_version_default;
 use function drupal_version_options;
+use function drupal_version_specs;
 use function eddy_skills;
 use function get_files;
 use function github_repository_from_url;
@@ -40,6 +41,7 @@ use function process_extension_type_text;
 use function read_composer_dev_json;
 use function remove_cspell_eddy_paths;
 use function remove_dir;
+use function remove_drupal_versions;
 use function remove_lines;
 use function remove_npm;
 use function remove_special_comments;
@@ -343,6 +345,71 @@ final class InstallHelpersTest extends UnitTestCase {
       ['test.info.yml' => $info('^10 || ^11'), 'phpunit.xml' => $phpunit('<!-- Drupal 11 PHPUnit configuration. -->')],
       ['test.info.yml' => $info('^10 || ^11'), 'phpunit.xml' => $phpunit('<!-- Drupal 11 PHPUnit configuration. -->')],
     ];
+  }
+
+  /**
+   * @param array<string> $majors
+   * @param array<string, string> $files
+   * @param array<string, string|null> $expected
+   */
+  #[DataProvider('dataProviderRemoveDrupalVersions')]
+  public function testRemoveDrupalVersions(array $majors, array $files, array $expected): void {
+    chdir(self::$sut);
+
+    foreach ($files as $name => $content) {
+      file_put_contents(self::$sut . '/' . $name, $content);
+    }
+
+    remove_drupal_versions($majors);
+
+    foreach ($expected as $name => $content) {
+      $path = self::$sut . '/' . $name;
+
+      if ($content === NULL) {
+        $this->assertFileDoesNotExist($path);
+
+        continue;
+      }
+
+      $this->assertSame($content, file_get_contents($path), $name . ' content mismatch.');
+    }
+  }
+
+  public static function dataProviderRemoveDrupalVersions(): \Iterator {
+    $workflow = static fn(string ...$majors): string => "jobs:\n" . implode('', array_map(static fn(string $major): string => '#;< DRUPAL_' . $major . "\n  d" . $major . ": {}\n#;> DRUPAL_" . $major . "\n", $majors));
+    $contributing = static fn(string $sentence): string => 'The `phpunit.xml` file configures PHPUnit to run the tests' . $sentence . " Drupal core's bootstrap file.\n";
+    $template = [
+      'test.yml' => $workflow('10', '11'),
+      '.gitattributes' => "# phpunit.d10.xml    export-ignore\n# phpunit.xml        export-ignore\n",
+      'CONTRIBUTING.md' => $contributing(', and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both use'),
+      'phpunit.d10.xml' => "<phpunit/>\n",
+    ];
+    $without_d10 = [
+      '.gitattributes' => "# phpunit.xml        export-ignore\n",
+      'CONTRIBUTING.md' => $contributing('. It uses'),
+      'phpunit.d10.xml' => NULL,
+    ];
+
+    yield 'no major' => [[], $template, $template];
+    yield 'a major with a specification' => [['10'], $template, ['test.yml' => $workflow('11')] + $without_d10];
+    yield 'a major without a specification' => [['11'], $template, ['test.yml' => $workflow('10')] + $template];
+    yield 'every major' => [['10', '11'], $template, ['test.yml' => $workflow()] + $without_d10];
+  }
+
+  /**
+   * Every major in 'drupal_version_specs()' is supported, and every file it
+   * lists is in the template.
+   */
+  public function testDrupalVersionSpecsNameTemplateFiles(): void {
+    $supported = array_keys(drupal_version_options());
+
+    foreach (drupal_version_specs() as $major => $spec) {
+      $this->assertContains($major, $supported, sprintf('Drupal %s has a specification but is not a supported major.', $major));
+
+      foreach ($spec['files'] as $file) {
+        $this->assertFileExists(dirname(__DIR__, 4) . '/' . $file, sprintf('Drupal %s lists "%s", which the template does not have.', $major, $file));
+      }
+    }
   }
 
   /**

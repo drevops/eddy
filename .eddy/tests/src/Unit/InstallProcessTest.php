@@ -870,6 +870,7 @@ final class InstallProcessTest extends UnitTestCase {
     yield 'd12 only' => [['12'], ['ahoy'], []];
     yield 'no FunctionalJavascript' => [['10', '11'], ['ahoy', 'makefile'], ['functional_javascript']];
     yield 'no PHPUnit' => [['10', '11'], ['ahoy', 'makefile'], ['phpunit']];
+    yield 'd11 only, no PHPUnit' => [['11'], ['ahoy', 'makefile'], ['phpunit']];
     yield 'no Jest' => [['10', '11'], ['ahoy', 'makefile'], ['jest']];
     yield 'no PHP lint tools' => [['10', '11'], ['ahoy', 'makefile'], ['phpcs', 'phpstan', 'rector', 'twigcs']];
     yield 'no npm tools' => [['10', '11'], ['ahoy', 'makefile'], ['eslint', 'stylelint', 'cspell', 'jest']];
@@ -1020,6 +1021,46 @@ final class InstallProcessTest extends UnitTestCase {
     yield 'd10 and d11' => [['10', '11'], ['Drupal 10', 'Drupal 11'], ['Drupal 12']];
     yield 'd11 only' => [['11'], ['Drupal 11'], ['Drupal 10', 'Drupal 12']];
     yield 'd12 only' => [['12'], ['Drupal 12'], ['Drupal 10', 'Drupal 11']];
+  }
+
+  /**
+   * Deselecting Drupal 10 removes 'phpunit.d10.xml' and every mention of it.
+   *
+   * @param array<string> $drupal_versions
+   */
+  #[DataProvider('dataProviderProcessRemovesDrupalVersionFiles')]
+  public function testProcessRemovesDrupalVersionFiles(array $drupal_versions, bool $expect): void {
+    // The kept 'install.php' names every file it can remove.
+    unlink(self::$sut . '/install.php');
+
+    process('My Extension', 'my_extension', 'module', $drupal_versions, ['ahoy'], [], FALSE, FALSE);
+
+    $gitattributes = (string) file_get_contents(self::$sut . '/.gitattributes');
+    $contributing = (string) file_get_contents(self::$sut . '/CONTRIBUTING.md');
+    $sentence = $expect ? ', and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both use' : '. It uses';
+
+    $this->assertSame($expect, file_exists(self::$sut . '/phpunit.d10.xml'), 'phpunit.d10.xml presence mismatch.');
+    $this->assertSame($expect, preg_match('/^phpunit\.d10\.xml +export-ignore$/m', $gitattributes) === 1, '.gitattributes phpunit.d10.xml entry presence mismatch.');
+    $this->assertMatchesRegularExpression('/^phpunit\.xml +export-ignore$/m', $gitattributes, '.gitattributes misses the phpunit.xml entry.');
+    $this->assertStringContainsString('The `phpunit.xml` file configures PHPUnit to run the tests' . $sentence . " Drupal core's bootstrap file", $contributing, 'CONTRIBUTING.md PHPUnit configuration text mismatch.');
+    $this->assertStringNotContainsString('#;', $gitattributes . $contributing, 'A file keeps a marker line.');
+
+    if ($expect) {
+      return;
+    }
+
+    foreach (get_files() as $file) {
+      $this->assertStringNotContainsString('phpunit.d10.xml', (string) file_get_contents($file), substr($file, strlen((string) getcwd()) + 1) . ' names phpunit.d10.xml.');
+    }
+  }
+
+  public static function dataProviderProcessRemovesDrupalVersionFiles(): \Iterator {
+    yield 'all majors' => [['10', '11', '12'], TRUE];
+    yield 'd10 and d11' => [['10', '11'], TRUE];
+    yield 'd10 only' => [['10'], TRUE];
+    yield 'd11 and d12' => [['11', '12'], FALSE];
+    yield 'd11 only' => [['11'], FALSE];
+    yield 'd12 only' => [['12'], FALSE];
   }
 
   /**
