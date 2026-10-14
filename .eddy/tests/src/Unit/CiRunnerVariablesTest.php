@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Yaml\Yaml;
@@ -30,11 +31,7 @@ final class CiRunnerVariablesTest extends UnitTestCase {
   protected const array ANCHORS = ['CI_RUNNER_INDEX', 'CI_RUNNER_TOTAL'];
 
   public function testGithubActionsFlagsAreReadByStep(): void {
-    $path = self::rootDir() . '/.github/workflows/test.yml';
-    $contents = file_get_contents($path);
-    $this->assertIsString($contents);
-
-    $parsed = Yaml::parse($contents);
+    $parsed = Yaml::parse(File::read(self::rootDir() . '/.github/workflows/test.yml'));
     $this->assertIsArray($parsed);
     $this->assertArrayHasKey('jobs', $parsed);
     $this->assertIsArray($parsed['jobs']);
@@ -192,10 +189,7 @@ final class CiRunnerVariablesTest extends UnitTestCase {
    *   The lines.
    */
   protected static function lines(string $path): array {
-    $contents = file_get_contents($path);
-    self::assertIsString($contents);
-
-    return explode("\n", $contents);
+    return explode("\n", File::read($path));
   }
 
   protected static function rootDir(): string {

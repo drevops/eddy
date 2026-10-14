@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Functional;
 
+use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\Group;
 
 /**
@@ -38,7 +39,7 @@ final class XdebugTest extends ToolingTestCase {
     // the docroot runs in the webserver whose xdebug configuration the test
     // toggles.
     $probe = self::$sut . '/build/web/_xdebug_check.php';
-    file_put_contents($probe, '<?php echo ini_get("xdebug.mode") ?: "off";');
+    File::dump($probe, '<?php echo ini_get("xdebug.mode") ?: "off";');
 
     $this->assertSame('off', $this->fetchProbe(), 'Baseline: xdebug.mode is off.');
 

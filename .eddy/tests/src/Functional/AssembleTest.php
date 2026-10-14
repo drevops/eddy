@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Functional;
 
+use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
@@ -27,7 +28,7 @@ final class AssembleTest extends ToolingTestCase {
     $this->assertProcessAnyOutputContains('Installed drevops/eddy-tooling.');
 
     $this->assertTrue(is_link(self::$sut . '/vendor/drevops/eddy-tooling'), 'The scaffold installs the package from .eddy/tooling as a symlink.');
-    $this->assertSame(realpath(self::$sut . '/.eddy/tooling'), realpath(self::$sut . '/vendor/drevops/eddy-tooling'));
+    $this->assertSame(self::locationsRealpath(self::$sut . '/.eddy/tooling'), self::locationsRealpath(self::$sut . '/vendor/drevops/eddy-tooling'));
 
     $this->processRun('vendor/bin/eddy-assemble', [], [], $env, $this->longTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
@@ -90,18 +91,14 @@ final class AssembleTest extends ToolingTestCase {
    *   The patch content.
    */
   protected function declareCorePatch(string $manifest, string $name, string $diff): void {
-    if (!is_dir(self::$sut . '/patches')) {
-      mkdir(self::$sut . '/patches');
-    }
-
-    file_put_contents(self::$sut . '/patches/' . $name, $diff);
+    File::dump(self::$sut . '/patches/' . $name, $diff);
 
     $manifest_path = self::$sut . '/' . $manifest;
-    $config = json_decode((string) file_get_contents($manifest_path), TRUE, 512, JSON_THROW_ON_ERROR);
+    $config = json_decode(File::read($manifest_path), TRUE, 512, JSON_THROW_ON_ERROR);
     $this->assertIsArray($config);
     /** @var array{extra?: array{patches?: array<string, array<string, string>>}} $config */
     $config['extra']['patches']['drupal/core'][$name] = 'patches/' . $name;
-    file_put_contents($manifest_path, json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL);
+    File::dump($manifest_path, json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL);
   }
 
   /**

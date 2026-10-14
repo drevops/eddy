@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Yaml\Yaml;
 
@@ -69,13 +70,7 @@ final class ReleaseDrafterConfigTest extends UnitTestCase {
    */
   protected static function config(): array {
     $path = dirname(__DIR__, 4) . '/.github/release-drafter.yml';
-    $contents = file_get_contents($path);
-
-    if ($contents === FALSE) {
-      self::fail(sprintf('Unable to read %s.', $path));
-    }
-
-    $parsed = Yaml::parse($contents);
+    $parsed = Yaml::parse(File::read($path));
 
     if (!is_array($parsed)) {
       self::fail(sprintf('%s does not parse to a mapping.', basename($path)));

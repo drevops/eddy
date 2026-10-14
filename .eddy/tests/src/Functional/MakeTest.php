@@ -18,7 +18,7 @@ use Symfony\Component\Process\Process;
 final class MakeTest extends ToolingTestCase {
 
   public function testAssembleSkipNpmBuild(): void {
-    touch(self::$sut . '/.skip_npm_build');
+    File::dump(self::$sut . '/.skip_npm_build');
 
     $this->processRun('make', ['assemble'], [], [], $this->longTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
@@ -44,8 +44,7 @@ final class MakeTest extends ToolingTestCase {
     // twig-cs-fixer scans. Recreate that layout with a template carrying a
     // fixable delimiter-spacing violation, reachable from the scanned build
     // directory only by following the templates/ symlink.
-    mkdir(self::$sut . '/templates');
-    file_put_contents(self::$sut . '/templates/your_extension.html.twig', '{{content}}' . PHP_EOL);
+    File::dump(self::$sut . '/templates/your_extension.html.twig', '{{content}}' . PHP_EOL);
     symlink(self::$sut . '/templates', self::$sut . '/build/web/modules/custom/your_extension/templates');
 
     $this->processRun('make', ['lint'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
@@ -75,7 +74,7 @@ final class MakeTest extends ToolingTestCase {
   public function testShellOverridesDotenv(): void {
     // The tooling reads DRUPAL_PROFILE only from the environment, so 'info'
     // prints the value that the wrapper exported.
-    file_put_contents(self::$sut . '/.env', "WEBSERVER_PORT=8001\nDRUPAL_PROFILE=minimal\n");
+    File::dump(self::$sut . '/.env', "WEBSERVER_PORT=8001\nDRUPAL_PROFILE=minimal\n");
 
     $this->processRun('make', ['info'], [], ['WEBSERVER_PORT' => FALSE, 'DRUPAL_PROFILE' => FALSE], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
@@ -100,7 +99,8 @@ final class MakeTest extends ToolingTestCase {
 
     // The WebDriver backend of the project, which runs from the project root.
     $webdriver_port = self::webserverFreePort();
-    file_put_contents(self::$sut . '/.env', 'WEBDRIVER_PORT=' . $webdriver_port . "\n", FILE_APPEND);
+    $dotenv = self::$sut . '/.env';
+    File::dump($dotenv, (File::exists($dotenv) ? File::read($dotenv) : '') . 'WEBDRIVER_PORT=' . $webdriver_port . "\n");
     $browser = self::webserverStartListener(self::$sut, $webdriver_port);
 
     // Another PHP process of the same user, such as the webserver of another
@@ -138,7 +138,7 @@ final class MakeTest extends ToolingTestCase {
     $other = self::webserverStartOther($other_root, $port);
     $webdriver_port = self::webserverFreePort();
     $other_browser = self::webserverStartListener($other_root, $webdriver_port);
-    file_put_contents(self::$sut . '/.env', sprintf("WEBSERVER_PORT=%s\nWEBDRIVER_PORT=%s\n", $port, $webdriver_port));
+    File::dump(self::$sut . '/.env', sprintf("WEBSERVER_PORT=%s\nWEBDRIVER_PORT=%s\n", $port, $webdriver_port));
 
     // Ports in the environment take precedence over .env.
     $env = ['WEBSERVER_PORT' => FALSE, 'WEBDRIVER_PORT' => FALSE];
@@ -255,9 +255,7 @@ final class MakeTest extends ToolingTestCase {
     // so a relative sys_get_temp_dir() resolves against build/ and tempnam()
     // fails. The wrapper resolves TMPDIR to an absolute path first, so
     // linting still passes when TMPDIR is relative.
-    if (!is_dir(self::$sut . '/.logs/relative-tmp')) {
-      mkdir(self::$sut . '/.logs/relative-tmp', 0777, TRUE);
-    }
+    File::mkdir(self::$sut . '/.logs/relative-tmp');
     $this->processRun('make', ['lint'], [], ['TMPDIR' => '.logs/relative-tmp'], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
 
@@ -322,7 +320,7 @@ final class MakeTest extends ToolingTestCase {
 
     // `test-javascript` must succeed in projects without any JavaScript tests
     // (CSS-only modules, modules without custom JavaScript).
-    unlink(self::$sut . '/js/your_extension.test.js');
+    File::remove(self::$sut . '/js/your_extension.test.js');
 
     $this->processRun('make', ['test-javascript'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();

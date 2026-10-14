@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use AlexSkrypnyk\File\File;
 use DrevOps\Eddy\Tests\Traits\GitTrait;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
@@ -69,7 +70,7 @@ final class DeployRemoteTest extends UnitTestCase {
 
     // The update hook refuses the later tag and accepts every other ref.
     $hook = $remote . '/hooks/update';
-    file_put_contents($hook, sprintf("#!/usr/bin/env bash\n[ \"\$1\" != %s ]\n", escapeshellarg('refs/tags/' . self::LATER_TAG)));
+    File::dump($hook, sprintf("#!/usr/bin/env bash\n[ \"\$1\" != %s ]\n", escapeshellarg('refs/tags/' . self::LATER_TAG)));
     chmod($hook, 0755);
 
     $output = $this->runDeploy($clone, $remote, ['DEPLOY_BRANCH' => self::BRANCH]);
@@ -132,18 +133,18 @@ final class DeployRemoteTest extends UnitTestCase {
    */
   protected function createClone(): string {
     $clone = self::$tmp . '/clone';
-    mkdir($clone, 0755, TRUE);
+    File::mkdir($clone, 0755);
 
     $this->git($clone, ['init', '--quiet', '--initial-branch=main']);
     $this->git($clone, ['config', 'user.name', 'Test User']);
     $this->git($clone, ['config', 'user.email', 'test@example.com']);
 
-    file_put_contents($clone . '/file.txt', 'first');
+    File::dump($clone . '/file.txt', 'first');
     $this->git($clone, ['add', '--all']);
     $this->git($clone, ['commit', '--quiet', '--message', 'First commit']);
     $this->git($clone, ['tag', '--annotate', self::RELEASE_TAG, '--message', 'Release']);
 
-    file_put_contents($clone . '/file.txt', 'second');
+    File::dump($clone . '/file.txt', 'second');
     $this->git($clone, ['commit', '--quiet', '--all', '--message', 'Second commit']);
     $this->git($clone, ['tag', self::LATER_TAG]);
 
@@ -152,7 +153,7 @@ final class DeployRemoteTest extends UnitTestCase {
 
   protected function createRemote(): string {
     $remote = self::$tmp . '/remote.git';
-    mkdir($remote, 0755, TRUE);
+    File::mkdir($remote, 0755);
 
     $this->git($remote, ['init', '--quiet', '--bare']);
 

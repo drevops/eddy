@@ -554,8 +554,8 @@ final class DeployTest extends UnitTestCase {
       $this->assertStringContainsString('SSH key ' . $key_file . ' added.', $output);
     }
 
-    $this->assertSame('/home/testuser/.ssh/agent/s.started', getenv('SSH_AUTH_SOCK'));
-    $this->assertSame('4242', getenv('SSH_AGENT_PID'));
+    $this->assertSame('/home/testuser/.ssh/agent/s.started', self::envGet('SSH_AUTH_SOCK'));
+    $this->assertSame('4242', self::envGet('SSH_AGENT_PID'));
   }
 
   public static function dataProviderDeploySshAgentStarted(): \Iterator {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\default_drupal_version;
+use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -29,7 +30,7 @@ final class HelpersDefaultDrupalVersionTest extends UnitTestCase {
     $file = self::$tmp . '/composer.dev.json';
 
     if ($contents !== NULL) {
-      file_put_contents($file, $contents);
+      File::dump($file, $contents);
     }
 
     $this->assertSame($expected, default_drupal_version($file));

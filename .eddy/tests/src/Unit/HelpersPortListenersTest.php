@@ -12,6 +12,7 @@ use function DrevOps\Eddy\Tooling\webdriver_listeners;
 use function DrevOps\Eddy\Tooling\webserver_docroot_argument;
 use function DrevOps\Eddy\Tooling\webserver_listeners;
 use function DrevOps\Eddy\Tooling\webserver_serves;
+use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -115,8 +116,8 @@ final class HelpersPortListenersTest extends UnitTestCase {
   public function testWebserverServesResolvesPath(string $command, ?string $cwd, int $pid, bool $expected): void {
     $project = self::$tmp . '/project';
     $other = self::$tmp . '/other';
-    mkdir($project . '/build/web', 0755, TRUE);
-    mkdir($other . '/build/web', 0755, TRUE);
+    File::mkdir($project . '/build/web', 0755);
+    File::mkdir($other . '/build/web', 0755);
     symlink($project, self::$tmp . '/link');
     $replacements = ['{project}' => $project, '{link}' => self::$tmp . '/link', '{other}' => $other];
 
@@ -229,8 +230,8 @@ final class HelpersPortListenersTest extends UnitTestCase {
   public function testWebdriverListenersResolvesPaths(string $root, string $cwd, bool $expected_own): void {
     $project = self::$tmp . '/project';
     $other = self::$tmp . '/other';
-    mkdir($project, 0755, TRUE);
-    mkdir($other, 0755, TRUE);
+    File::mkdir($project, 0755);
+    File::mkdir($other, 0755);
     symlink($project, self::$tmp . '/link');
     $replacements = ['{project}' => $project, '{link}' => self::$tmp . '/link', '{other}' => $other];
     $driver = '/usr/local/bin/chromedriver --port=4444';
@@ -249,7 +250,7 @@ final class HelpersPortListenersTest extends UnitTestCase {
 
   public function testWebserverListenersResolvesRelativeDocroot(): void {
     $project = self::$tmp . '/project';
-    mkdir($project . '/build/web', 0755, TRUE);
+    File::mkdir($project . '/build/web', 0755);
     $server = 'php -S localhost:8000 -t build/web';
 
     // Both servers were started by hand: 1234 from the project root and 5678

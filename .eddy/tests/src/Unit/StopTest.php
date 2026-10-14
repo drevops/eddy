@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -137,10 +138,10 @@ final class StopTest extends UnitTestCase {
 
   public function testStopStopsTunnelBeforeWebserver(): void {
     $project_dir = self::$tmp . '/stop_tunnel_' . uniqid();
-    mkdir($project_dir . '/.logs', 0755, TRUE);
+    File::mkdir($project_dir . '/.logs', 0755);
     chdir($project_dir);
-    file_put_contents('.logs/cloudflared.pid', "4242\n");
-    file_put_contents('.env', "WEBSERVER_PORT=8000\nTUNNEL_URL=https://seasonal-deck-organisms-sf.trycloudflare.com\n");
+    File::dump('.logs/cloudflared.pid', "4242\n");
+    File::dump('.env', "WEBSERVER_PORT=8000\nTUNNEL_URL=https://seasonal-deck-organisms-sf.trycloudflare.com\n");
 
     $this->mockPortListeners('8000', [1234 => self::webserverCommandLine($project_dir)], [
       'ps -p 4242 -o command= 2>/dev/null' => "cloudflared tunnel --url http://localhost:8000 --no-autoupdate\n",
@@ -163,7 +164,7 @@ final class StopTest extends UnitTestCase {
     $this->assertStringContainsString('Tunnel stopped.', $output);
     $this->assertStringContainsString('Services stopped on port 8000', $output);
     $this->assertFileDoesNotExist('.logs/cloudflared.pid');
-    $this->assertSame("WEBSERVER_PORT=8000\n", file_get_contents('.env'));
+    $this->assertSame("WEBSERVER_PORT=8000\n", File::read('.env'));
   }
 
 }

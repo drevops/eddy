@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
@@ -37,7 +38,7 @@ final class UpdateAssetsTest extends UnitTestCase {
   protected ?string $originalHome = NULL;
 
   public static function setUpBeforeClass(): void {
-    putenv('SCRIPT_RUN_SKIP=1');
+    self::envSet('SCRIPT_RUN_SKIP', '1');
     require_once dirname(__DIR__, 4) . '/.eddy/assets/update-assets.php';
     parent::setUpBeforeClass();
   }
@@ -131,7 +132,7 @@ final class UpdateAssetsTest extends UnitTestCase {
         '/Users/maintainer' => '/home/user',
       ];
 
-      $content = (string) file_get_contents(dirname(__DIR__, 2) . '/fixtures/assets/' . $run . '/' . $name . '.cast');
+      $content = File::read(dirname(__DIR__, 2) . '/fixtures/assets/' . $run . '/' . $name . '.cast');
       $canonical[$run] = canonicalize_cast($content, $job['command'], $job['frames'], $replacements);
     }
 
@@ -469,19 +470,19 @@ final class UpdateAssetsTest extends UnitTestCase {
   #[DataProvider('dataProviderPathReplacements')]
   public function testPathReplacements(string|false $home, array $expected): void {
     $workspace_dir = self::$sut . '/workspace';
-    mkdir($workspace_dir);
+    File::mkdir($workspace_dir);
     putenv($home === FALSE ? 'HOME' : 'HOME=' . $home);
 
     $replacements = path_replacements($workspace_dir);
 
     $this->assertSame('/home/user/project', $replacements[$workspace_dir] ?? NULL);
-    $this->assertSame('/home/user/project', $replacements[(string) realpath($workspace_dir)] ?? NULL);
+    $this->assertSame('/home/user/project', $replacements[self::locationsRealpath($workspace_dir)] ?? NULL);
 
     foreach ($expected as $search => $replace) {
       $this->assertSame($replace, $replacements[$search] ?? NULL);
     }
 
-    $this->assertCount(count(array_unique([$workspace_dir, (string) realpath($workspace_dir)])) + count($expected), $replacements);
+    $this->assertCount(count(array_unique([$workspace_dir, self::locationsRealpath($workspace_dir)])) + count($expected), $replacements);
   }
 
   public static function dataProviderPathReplacements(): \Iterator {
@@ -554,7 +555,7 @@ final class UpdateAssetsTest extends UnitTestCase {
     $this->assertFileExists($path);
     $this->assertTrue(is_executable($path));
 
-    $content = (string) file_get_contents($path);
+    $content = File::read($path);
 
     $common = [
       '#!/usr/bin/env expect',
@@ -606,7 +607,7 @@ final class UpdateAssetsTest extends UnitTestCase {
   }
 
   public function testInstallStepsAnswerEveryInstallPrompt(): void {
-    $install = (string) file_get_contents(dirname(__DIR__, 4) . '/install.php');
+    $install = File::read(dirname(__DIR__, 4) . '/install.php');
     preg_match_all("/Prompty::(?:text|select|multiselect|confirm)\(\s*'([^']+)'/", $install, $labels);
     preg_match_all('/^expect "([^"]+)"$/m', install_steps(), $patterns);
 
@@ -654,8 +655,7 @@ final class UpdateAssetsTest extends UnitTestCase {
 
   public function testRemoveDirRemovesReadOnlyDirectories(): void {
     $directory = self::$sut . '/workspace';
-    mkdir($directory . '/build/web/sites/default', 0755, TRUE);
-    file_put_contents($directory . '/build/web/sites/default/settings.php', '<?php');
+    File::dump($directory . '/build/web/sites/default/settings.php', '<?php');
     chmod($directory . '/build/web/sites/default', 0555);
 
     remove_dir($directory);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Yaml\Yaml;
@@ -33,8 +34,7 @@ final class PhpunitAttributesTest extends UnitTestCase {
 
   #[DataProvider('dataProviderShippedAttributesAreIgnored')]
   public function testShippedAttributesAreIgnored(string $path): void {
-    $contents = file_get_contents($path);
-    $this->assertIsString($contents);
+    $contents = File::read($path);
 
     preg_match_all('/PHPUnit\\\\Framework\\\\Attributes\\\\(\w+)/', $contents, $matches);
 
@@ -59,16 +59,7 @@ final class PhpunitAttributesTest extends UnitTestCase {
   }
 
   public static function dataProviderShippedAttributesAreIgnored(): \Iterator {
-    $directory = self::rootDir() . '/tests/src';
-
-    $paths = [];
-    $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS));
-
-    foreach ($iterator as $file) {
-      if ($file instanceof \SplFileInfo && $file->getExtension() === 'php') {
-        $paths[] = $file->getPathname();
-      }
-    }
+    $paths = array_values(array_filter(File::scandir(self::rootDir() . '/tests/src'), static fn(string $path): bool => str_ends_with($path, '.php')));
 
     self::assertNotSame([], $paths, 'No test files found in tests/src.');
 
@@ -88,7 +79,7 @@ final class PhpunitAttributesTest extends UnitTestCase {
   protected static function ignorePatterns(): array {
     // NEON is a superset of the YAML that `phpstan.neon` uses, and the parser
     // preserves the backslash escaping the patterns rely on.
-    $parsed = Yaml::parseFile(self::rootDir() . '/phpstan.neon');
+    $parsed = Yaml::parse(File::read(self::rootDir() . '/phpstan.neon'));
 
     $parameters = is_array($parsed) ? $parsed['parameters'] ?? NULL : NULL;
     $entries = is_array($parameters) ? $parameters['ignoreErrors'] ?? NULL : NULL;

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\link_browser_output;
+use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\Group;
 
@@ -39,15 +40,14 @@ final class HelpersLinkBrowserOutputTest extends UnitTestCase {
     $this->assertTrue(is_link($link));
     $this->assertSame($target, readlink($link));
 
-    file_put_contents($link . '/page.html', 'dump');
+    File::dump($link . '/page.html', 'dump');
     $this->assertFileExists($target . '/page.html');
   }
 
   public function testReusesExistingTargetAndSimpletestDir(): void {
     [$webroot, $logs] = $this->createWebroot();
-    mkdir($logs . '/browser_output', 0755, TRUE);
-    file_put_contents($logs . '/browser_output/existing.html', 'keep');
-    mkdir($webroot . '/sites/simpletest', 0755, TRUE);
+    File::dump($logs . '/browser_output/existing.html', 'keep');
+    File::mkdir($webroot . '/sites/simpletest', 0755);
 
     link_browser_output($webroot, $logs);
 
@@ -59,8 +59,7 @@ final class HelpersLinkBrowserOutputTest extends UnitTestCase {
   public function testReplacesExistingDirectory(): void {
     [$webroot, $logs] = $this->createWebroot();
     $link = $webroot . '/sites/simpletest/browser_output';
-    mkdir($link, 0755, TRUE);
-    file_put_contents($link . '/stale.html', 'stale');
+    File::dump($link . '/stale.html', 'stale');
 
     link_browser_output($webroot, $logs);
 
@@ -70,10 +69,10 @@ final class HelpersLinkBrowserOutputTest extends UnitTestCase {
 
   public function testReplacesExistingSymlink(): void {
     [$webroot, $logs] = $this->createWebroot();
-    mkdir($webroot . '/sites/simpletest', 0755, TRUE);
+    File::mkdir($webroot . '/sites/simpletest', 0755);
     $link = $webroot . '/sites/simpletest/browser_output';
     $other = self::$tmp . '/other_' . uniqid();
-    mkdir($other, 0755, TRUE);
+    File::mkdir($other, 0755);
     symlink($other, $link);
 
     link_browser_output($webroot, $logs);
@@ -84,9 +83,9 @@ final class HelpersLinkBrowserOutputTest extends UnitTestCase {
 
   public function testReplacesExistingFile(): void {
     [$webroot, $logs] = $this->createWebroot();
-    mkdir($webroot . '/sites/simpletest', 0755, TRUE);
+    File::mkdir($webroot . '/sites/simpletest', 0755);
     $link = $webroot . '/sites/simpletest/browser_output';
-    file_put_contents($link, 'i am a file');
+    File::dump($link, 'i am a file');
 
     link_browser_output($webroot, $logs);
 
@@ -103,7 +102,7 @@ final class HelpersLinkBrowserOutputTest extends UnitTestCase {
   protected function createWebroot(): array {
     $base = self::$tmp . '/proj_' . uniqid();
     $webroot = $base . '/build/web';
-    mkdir($webroot, 0755, TRUE);
+    File::mkdir($webroot, 0755);
 
     return [$webroot, $base . '/.logs'];
   }

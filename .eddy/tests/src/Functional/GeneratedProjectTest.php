@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Functional;
 
+use AlexSkrypnyk\File\File;
 use DrevOps\Eddy\Tests\Traits\ComposerHomeTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
-use Symfony\Component\Filesystem\Filesystem;
 
 /**
  * Tests the projects that 'install.php' generates, through the 'make' wrapper.
@@ -41,7 +41,7 @@ final class GeneratedProjectTest extends ToolingTestCase {
 
     // The bundled extensions, a Kernel test that uses them and a provision
     // script that enables the one that ships.
-    (new Filesystem())->mirror(dirname(__DIR__, 2) . '/fixtures/bundled/' . $type, self::$sut);
+    File::copy(dirname(__DIR__, 2) . '/fixtures/bundled/' . $type, self::$sut);
 
     $this->installTooling();
 
@@ -54,7 +54,7 @@ final class GeneratedProjectTest extends ToolingTestCase {
     $this->assertTrue(is_link($extension_dir . '/' . $bundled_dir), 'The directory of the bundled extensions is symlinked into the extension.');
     $this->assertTrue(is_link($extension_dir . '/tests'), 'The directory of the test-only extensions is symlinked into the extension.');
     $this->assertFileExists($extension_dir . '/' . $bundled_dir . '/' . $bundled . '/' . $bundled . '.info.yml');
-    $this->assertSame(['.', '..'], scandir($other_custom_dir), 'Nothing is mapped into the custom directory of the other type.');
+    $this->assertTrue(File::dirIsEmpty($other_custom_dir), 'Nothing is mapped into the custom directory of the other type.');
 
     $this->processRun('make', ['start'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
@@ -91,7 +91,7 @@ final class GeneratedProjectTest extends ToolingTestCase {
    * tooling from a release, as every project created from the template does.
    */
   protected function installTooling(): void {
-    $manifest = json_decode((string) file_get_contents(self::$sut . '/composer.dev.json'), TRUE);
+    $manifest = json_decode(File::read(self::$sut . '/composer.dev.json'), TRUE);
     $this->assertIsArray($manifest);
     $require_dev = $manifest['require-dev'] ?? NULL;
     $this->assertIsArray($require_dev);

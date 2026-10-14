@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use AlexSkrypnyk\File\File;
 use DrevOps\Eddy\Tests\Traits\DeployWorkflowTrait;
 use DrevOps\Eddy\Tests\Traits\GitTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -267,7 +268,7 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
    */
   protected function startStep(string $repository, array $environment): Process {
     $script = self::$tmp . '/step.sh';
-    file_put_contents($script, self::stepScript());
+    File::dump($script, self::stepScript());
 
     // GitHub Actions runs a `run` block as `bash -e {0}`.
     $process = new Process(['bash', '-e', $script], $repository, $environment + self::gitEnvironment());
@@ -307,13 +308,13 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
   protected function readDeployment(): ?array {
     $file = self::deploymentFile();
 
-    if (!file_exists($file)) {
+    if (!File::exists($file)) {
       return NULL;
     }
 
     $deployment = [];
 
-    foreach (file($file, FILE_IGNORE_NEW_LINES) ?: [] as $line) {
+    foreach (preg_split('/\R/', File::read($file), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $line) {
       [$name, $value] = explode('=', $line, 2) + [1 => ''];
       $deployment[$name] = $value;
     }
@@ -333,20 +334,20 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
    */
   protected function createRepository(): string {
     $origin = self::originDir();
-    mkdir($origin, 0755, TRUE);
+    File::mkdir($origin, 0755);
 
     $this->git($origin, ['init', '--initial-branch=' . self::DEFAULT_BRANCH]);
     $this->git($origin, ['config', 'user.name', 'Test User']);
     $this->git($origin, ['config', 'user.email', 'test@example.com']);
 
-    file_put_contents($origin . '/file.txt', 'first');
+    File::dump($origin . '/file.txt', 'first');
     $this->git($origin, ['add', '--all']);
     $this->git($origin, ['commit', '--message', 'First commit']);
 
     $this->git($origin, ['tag', self::LIGHTWEIGHT_TAG]);
     $this->git($origin, ['tag', '--annotate', self::ANNOTATED_TAG, '--message', 'Release']);
 
-    file_put_contents($origin . '/file.txt', 'second');
+    File::dump($origin . '/file.txt', 'second');
     $this->git($origin, ['commit', '--all', '--message', 'Second commit']);
 
     foreach ([self::FEATURE_BRANCH, self::LIGHTWEIGHT_TAG] as $branch) {
@@ -356,11 +357,9 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
     $repository = self::$tmp . '/repository';
     $this->git(self::$tmp, ['clone', '--quiet', $origin, $repository]);
 
-    mkdir($repository . '/vendor/bin', 0755, TRUE);
-
     // The step ends by invoking the deploy command, so this stub records the
     // variables it receives.
-    file_put_contents($repository . '/vendor/bin/eddy-deploy', sprintf("#!/usr/bin/env bash\nprintf 'DEPLOY_BRANCH=%%s\\nDEPLOY_TAG=%%s\\n' \"\${DEPLOY_BRANCH:-}\" \"\${DEPLOY_TAG:-}\" > %s\n", escapeshellarg(self::deploymentFile())));
+    File::dump($repository . '/vendor/bin/eddy-deploy', sprintf("#!/usr/bin/env bash\nprintf 'DEPLOY_BRANCH=%%s\\nDEPLOY_TAG=%%s\\n' \"\${DEPLOY_BRANCH:-}\" \"\${DEPLOY_TAG:-}\" > %s\n", escapeshellarg(self::deploymentFile())));
     chmod($repository . '/vendor/bin/eddy-deploy', 0755);
 
     return $repository;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use AlexSkrypnyk\File\File;
 use DrevOps\Eddy\Tests\Traits\CiJobsTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -47,8 +48,7 @@ final class DocumentationTest extends UnitTestCase {
 
   #[DataProvider('dataProviderToolingCommandIsDocumented')]
   public function testToolingCommandIsDocumented(string $name, string $path): void {
-    $document = file_get_contents($path);
-    $this->assertIsString($document);
+    $document = File::read($path);
 
     // Anchored to the entry column: a name mentioned in another row's
     // description is a cross-reference, not an entry of its own.
@@ -101,8 +101,7 @@ final class DocumentationTest extends UnitTestCase {
 
   #[DataProvider('dataProviderPhpunitCorePathsUseDocrootPrefix')]
   public function testPhpunitCorePathsUseDocrootPrefix(string $path): void {
-    $contents = file_get_contents($path);
-    $this->assertIsString($contents);
+    $contents = File::read($path);
 
     // These configs are run from the build root, not the Drupal root, so the
     // docroot prefix in `bootstrap` applies to every other core-relative path.
@@ -147,8 +146,7 @@ final class DocumentationTest extends UnitTestCase {
 
   #[DataProvider('dataProviderUpgradeGuideFetchesUpdateSkill')]
   public function testUpgradeGuideFetchesUpdateSkill(string $line): void {
-    $guide = file_get_contents(self::upgradeGuidePath());
-    $this->assertIsString($guide);
+    $guide = File::read(self::upgradeGuidePath());
 
     // Compared line by line, so the list item that holds a command block can
     // indent it differently.
@@ -158,7 +156,7 @@ final class DocumentationTest extends UnitTestCase {
   }
 
   public static function dataProviderUpgradeGuideFetchesUpdateSkill(): \Iterator {
-    $agents = (string) file_get_contents(self::rootDir() . '/AGENTS.md');
+    $agents = File::read(self::rootDir() . '/AGENTS.md');
 
     preg_match('/^## Updating the scaffold\n(.*?)(?=^## |\z)/ms', $agents, $matches);
     $section = $matches[1] ?? '';
@@ -204,7 +202,7 @@ final class DocumentationTest extends UnitTestCase {
 
   #[DataProvider('dataProviderToolingPhpFloorIsDocumented')]
   public function testToolingPhpFloorIsDocumented(string $path): void {
-    $manifest = json_decode((string) file_get_contents(self::toolingDir() . '/composer.json'), TRUE);
+    $manifest = json_decode(File::read(self::toolingDir() . '/composer.json'), TRUE);
     $requirement = is_array($manifest) && is_array($manifest['require'] ?? NULL) ? ($manifest['require']['php'] ?? NULL) : NULL;
 
     $this->assertIsString($requirement);
@@ -212,7 +210,7 @@ final class DocumentationTest extends UnitTestCase {
 
     $phrase = 'requires PHP ' . substr($requirement, 2) . ' or newer';
 
-    $this->assertStringContainsString($phrase, (string) file_get_contents($path), sprintf('%s does not state the PHP floor of the tooling package: "%s" is missing.', basename($path), $phrase));
+    $this->assertFileContainsString($path, $phrase, sprintf('%s does not state the PHP floor of the tooling package: "%s" is missing.', basename($path), $phrase));
   }
 
   public static function dataProviderToolingPhpFloorIsDocumented(): \Iterator {
@@ -224,7 +222,7 @@ final class DocumentationTest extends UnitTestCase {
 
   #[DataProvider('dataProviderCiJobIsDocumented')]
   public function testCiJobIsDocumented(string $name, string $php, string $drupal): void {
-    $page = (string) file_get_contents(self::docsDir() . '/continuous-integration/README.mdx');
+    $page = File::read(self::docsDir() . '/continuous-integration/README.mdx');
 
     $row = '/^\|\s*`' . preg_quote($name, '/') . '`\s*\|\s*`' . preg_quote($php, '/') . '`\s*\|\s*`' . preg_quote($drupal, '/') . '`\s*\|/m';
     $documented = preg_match($row, $page) === 1;
@@ -240,7 +238,7 @@ final class DocumentationTest extends UnitTestCase {
 
   #[DataProvider('dataProviderRequiredJobIsDocumented')]
   public function testRequiredJobIsDocumented(string $name): void {
-    $page = (string) file_get_contents(self::docsDir() . '/continuous-integration/branch-protection.mdx');
+    $page = File::read(self::docsDir() . '/continuous-integration/branch-protection.mdx');
 
     $documented = str_contains($page, '`' . $name . '`');
 
@@ -255,7 +253,7 @@ final class DocumentationTest extends UnitTestCase {
 
   #[DataProvider('dataProviderIgnoreFailureVariableIsDocumented')]
   public function testIgnoreFailureVariableIsDocumented(string $variable): void {
-    $page = (string) file_get_contents(self::docsDir() . '/continuous-integration/configuration.mdx');
+    $page = File::read(self::docsDir() . '/continuous-integration/configuration.mdx');
 
     $documented = preg_match('/^\|\s*`' . preg_quote($variable, '/') . '`\s*\|/m', $page) === 1;
 
@@ -263,7 +261,7 @@ final class DocumentationTest extends UnitTestCase {
   }
 
   public static function dataProviderIgnoreFailureVariableIsDocumented(): \Iterator {
-    $workflow = (string) file_get_contents(self::rootDir() . '/.github/workflows/test.yml');
+    $workflow = File::read(self::rootDir() . '/.github/workflows/test.yml');
 
     preg_match_all('/\bvars\.(CI_\w+_IGNORE_FAILURE)\b/', $workflow, $matches);
     $variables = array_values(array_unique($matches[1]));
@@ -277,7 +275,7 @@ final class DocumentationTest extends UnitTestCase {
 
   #[DataProvider('dataProviderToolingVariableIsDocumented')]
   public function testToolingVariableIsDocumented(string $variable): void {
-    $page = (string) file_get_contents(self::docsDir() . '/development/environment-variables.mdx');
+    $page = File::read(self::docsDir() . '/development/environment-variables.mdx');
 
     $documented = preg_match('/^\|\s*`' . preg_quote($variable, '/') . '`\s*\|/m', $page) === 1;
 
@@ -288,7 +286,7 @@ final class DocumentationTest extends UnitTestCase {
     $variables = [];
 
     foreach (glob(self::toolingDir() . '/src/*') ?: [] as $path) {
-      preg_match_all("/\b(?:getenv|getenv_default|getenv_required|resolve_env_value|resolve_port_value)\('([A-Z][A-Z0-9_]*)'/", (string) file_get_contents($path), $matches);
+      preg_match_all("/\b(?:getenv|getenv_default|getenv_required|resolve_env_value|resolve_port_value)\('([A-Z][A-Z0-9_]*)'/", File::read($path), $matches);
       $variables = array_merge($variables, $matches[1]);
     }
 
@@ -304,7 +302,7 @@ final class DocumentationTest extends UnitTestCase {
 
   #[DataProvider('dataProviderUpdateSkillDetectsTool')]
   public function testUpdateSkillDetectsTool(string $tool): void {
-    $skill = (string) file_get_contents(self::updateSkillPath());
+    $skill = File::read(self::updateSkillPath());
 
     // The detection list follows each tool with the file that marks it, such
     // as '`phpcs` (`phpcs.xml`)'.
@@ -314,7 +312,7 @@ final class DocumentationTest extends UnitTestCase {
   }
 
   public static function dataProviderUpdateSkillDetectsTool(): \Iterator {
-    $install = (string) file_get_contents(self::rootDir() . '/install.php');
+    $install = File::read(self::rootDir() . '/install.php');
 
     preg_match('/\$tool_options = \[(.*?)\];/s', $install, $options);
     preg_match_all("/'(\w+)' =>/", $options[1] ?? '', $tools);
@@ -361,7 +359,7 @@ final class DocumentationTest extends UnitTestCase {
    *   The command names, keyed by name.
    */
   protected static function toolingCommands(): \Iterator {
-    $manifest = json_decode((string) file_get_contents(self::toolingDir() . '/composer.json'), TRUE);
+    $manifest = json_decode(File::read(self::toolingDir() . '/composer.json'), TRUE);
     $bins = is_array($manifest) && is_array($manifest['bin'] ?? NULL) ? $manifest['bin'] : [];
 
     self::assertNotSame([], $bins, 'The tooling composer.json declares no bins.');
@@ -381,7 +379,7 @@ final class DocumentationTest extends UnitTestCase {
    *   The variable names, such as 'INSTALL_NAME'.
    */
   protected static function installPromptVariables(): array {
-    $install = (string) file_get_contents(self::rootDir() . '/install.php');
+    $install = File::read(self::rootDir() . '/install.php');
 
     preg_match("/env_prefix: '(\w+)'/", $install, $matches);
     $prefix = $matches[1] ?? '';
@@ -405,7 +403,7 @@ final class DocumentationTest extends UnitTestCase {
    *   'install.php' reads with 'getenv()'.
    */
   protected static function installVariables(): array {
-    $install = (string) file_get_contents(self::rootDir() . '/install.php');
+    $install = File::read(self::rootDir() . '/install.php');
 
     preg_match_all("/getenv\('(INSTALL_\w+)'\)/", $install, $matches);
 
@@ -419,7 +417,7 @@ final class DocumentationTest extends UnitTestCase {
    *   The variable names, in order of appearance.
    */
   protected static function updateSkillInstallVariables(): array {
-    $skill = (string) file_get_contents(self::updateSkillPath());
+    $skill = File::read(self::updateSkillPath());
 
     // A list item can indent the command block that holds the assignments.
     preg_match_all('/^[ \t]*(INSTALL_\w+)=/m', $skill, $matches);
@@ -436,7 +434,7 @@ final class DocumentationTest extends UnitTestCase {
    *   The permission rules, such as 'Bash(git:*)'.
    */
   protected static function updateSkillPermissions(): array {
-    $skill = (string) file_get_contents(self::updateSkillPath());
+    $skill = File::read(self::updateSkillPath());
 
     preg_match('/^## Step 0:.*?^```json\n(.*?)^```/ms', $skill, $matches);
     $permissions = json_decode($matches[1] ?? '', TRUE);
@@ -454,7 +452,7 @@ final class DocumentationTest extends UnitTestCase {
    *   assigned in front of it.
    */
   protected static function updateSkillCommands(): array {
-    $skill = (string) file_get_contents(self::updateSkillPath());
+    $skill = File::read(self::updateSkillPath());
 
     preg_match_all('/^[ \t]*```bash\n(.*?)^[ \t]*```/ms', $skill, $blocks);
 

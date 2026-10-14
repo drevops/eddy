@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\resolve_env_value;
+use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -27,7 +28,7 @@ final class HelpersResolveEnvTest extends UnitTestCase {
 
   public function testEnvWinsOverDotenv(): void {
     $file = self::$tmp . '/resolve_env_' . uniqid();
-    file_put_contents($file, "FOO=from_dotenv\n");
+    File::dump($file, "FOO=from_dotenv\n");
     $this->envSet('FOO', 'from_env');
 
     ['value' => $value, 'source' => $source] = resolve_env_value('FOO', 'fallback', $file);
@@ -38,7 +39,7 @@ final class HelpersResolveEnvTest extends UnitTestCase {
 
   public function testDotenvUsedWhenEnvUnset(): void {
     $file = self::$tmp . '/resolve_env_' . uniqid();
-    file_put_contents($file, "FOO=from_dotenv\n");
+    File::dump($file, "FOO=from_dotenv\n");
 
     ['value' => $value, 'source' => $source] = resolve_env_value('FOO', 'fallback', $file);
 
@@ -48,7 +49,7 @@ final class HelpersResolveEnvTest extends UnitTestCase {
 
   public function testDotenvSkippedWhenValueIsEmpty(): void {
     $file = self::$tmp . '/resolve_env_' . uniqid();
-    file_put_contents($file, "FOO=\n");
+    File::dump($file, "FOO=\n");
 
     ['value' => $value, 'source' => $source] = resolve_env_value('FOO', 'fallback', $file);
 
@@ -58,7 +59,7 @@ final class HelpersResolveEnvTest extends UnitTestCase {
 
   public function testEnvSkippedWhenValueIsEmpty(): void {
     $file = self::$tmp . '/resolve_env_' . uniqid();
-    file_put_contents($file, "FOO=from_dotenv\n");
+    File::dump($file, "FOO=from_dotenv\n");
     $this->envSet('FOO', '');
 
     ['value' => $value, 'source' => $source] = resolve_env_value('FOO', 'fallback', $file);
@@ -88,7 +89,7 @@ final class HelpersResolveEnvTest extends UnitTestCase {
   #[DataProvider('dataProviderDotenvFilePathSurfacedAsSource')]
   public function testDotenvFilePathSurfacedAsSource(string $relative_name): void {
     $file = self::$tmp . '/' . $relative_name;
-    file_put_contents($file, "FOO=value\n");
+    File::dump($file, "FOO=value\n");
 
     ['value' => $value, 'source' => $source] = resolve_env_value('FOO', 'fallback', $file);
 

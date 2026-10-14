@@ -7,6 +7,7 @@ namespace DrevOps\Eddy\Tests\Unit;
 use function DrevOps\Eddy\Tooling\dotenv_read;
 use function DrevOps\Eddy\Tooling\dotenv_unset_var;
 use function DrevOps\Eddy\Tooling\dotenv_write_var;
+use AlexSkrypnyk\File\File;
 use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -34,7 +35,7 @@ final class HelpersDotenvTest extends UnitTestCase {
   public function testDotenvRead(?string $contents, array $expected): void {
     $file = self::$tmp . '/dotenv_read_' . uniqid();
     if ($contents !== NULL) {
-      file_put_contents($file, $contents);
+      File::dump($file, $contents);
     }
 
     $result = dotenv_read($file);
@@ -115,53 +116,53 @@ final class HelpersDotenvTest extends UnitTestCase {
     dotenv_write_var('FOO', 'bar', $file);
 
     $this->assertFileExists($file);
-    $this->assertSame("FOO=bar\n", file_get_contents($file));
+    $this->assertSame("FOO=bar\n", File::read($file));
   }
 
   public function testDotenvWriteVarAppendsToExistingFile(): void {
     $file = self::$tmp . '/dotenv_write_' . uniqid();
-    file_put_contents($file, "EXISTING=value\n");
+    File::dump($file, "EXISTING=value\n");
 
     dotenv_write_var('NEW', 'data', $file);
 
-    $this->assertSame("EXISTING=value\nNEW=data\n", file_get_contents($file));
+    $this->assertSame("EXISTING=value\nNEW=data\n", File::read($file));
   }
 
   public function testDotenvWriteVarReplacesExistingKeyInPlace(): void {
     $file = self::$tmp . '/dotenv_write_' . uniqid();
-    file_put_contents($file, "FOO=old\nBAR=keep\n");
+    File::dump($file, "FOO=old\nBAR=keep\n");
 
     dotenv_write_var('FOO', 'new', $file);
 
-    $this->assertSame("FOO=new\nBAR=keep\n", file_get_contents($file));
+    $this->assertSame("FOO=new\nBAR=keep\n", File::read($file));
   }
 
   public function testDotenvWriteVarPreservesCommentsAndBlankLines(): void {
     $file = self::$tmp . '/dotenv_write_' . uniqid();
     $original = "# Top comment\n\nFOO=old\n\n# Another comment\nBAR=keep\n";
-    file_put_contents($file, $original);
+    File::dump($file, $original);
 
     dotenv_write_var('FOO', 'new', $file);
 
-    $this->assertSame("# Top comment\n\nFOO=new\n\n# Another comment\nBAR=keep\n", file_get_contents($file));
+    $this->assertSame("# Top comment\n\nFOO=new\n\n# Another comment\nBAR=keep\n", File::read($file));
   }
 
   public function testDotenvWriteVarReplacesLastMatchToAgreeWithRead(): void {
     $file = self::$tmp . '/dotenv_write_' . uniqid();
-    file_put_contents($file, "FOO=first\nBAR=keep\nFOO=second\n");
+    File::dump($file, "FOO=first\nBAR=keep\nFOO=second\n");
 
     dotenv_write_var('FOO', 'new', $file);
 
-    $this->assertSame("FOO=first\nBAR=keep\nFOO=new\n", file_get_contents($file));
+    $this->assertSame("FOO=first\nBAR=keep\nFOO=new\n", File::read($file));
   }
 
   public function testDotenvWriteVarHandlesFileWithoutTrailingNewline(): void {
     $file = self::$tmp . '/dotenv_write_' . uniqid();
-    file_put_contents($file, 'EXISTING=value');
+    File::dump($file, 'EXISTING=value');
 
     dotenv_write_var('NEW', 'data', $file);
 
-    $this->assertSame("EXISTING=value\nNEW=data\n", file_get_contents($file));
+    $this->assertSame("EXISTING=value\nNEW=data\n", File::read($file));
   }
 
   public function testDotenvWriteVarAndReadRoundTrip(): void {
@@ -178,11 +179,11 @@ final class HelpersDotenvTest extends UnitTestCase {
   #[DataProvider('dataProviderDotenvUnsetVar')]
   public function testDotenvUnsetVar(string $contents, string $expected): void {
     $file = self::$tmp . '/dotenv_unset_' . uniqid();
-    file_put_contents($file, $contents);
+    File::dump($file, $contents);
 
     dotenv_unset_var('TUNNEL_URL', $file);
 
-    $this->assertSame($expected, file_get_contents($file));
+    $this->assertSame($expected, File::read($file));
     $this->assertArrayNotHasKey('TUNNEL_URL', dotenv_read($file));
   }
 
@@ -223,14 +224,14 @@ final class HelpersDotenvTest extends UnitTestCase {
 
   public function testDotenvUnsetVarLeavesFileWithoutKeyUntouched(): void {
     $file = self::$tmp . '/dotenv_unset_' . uniqid();
-    file_put_contents($file, "OTHER=1\r\nMORE=2\r\n");
+    File::dump($file, "OTHER=1\r\nMORE=2\r\n");
     // Writing to a read-only file fails, so the call passing proves that
     // nothing was rewritten.
     chmod($file, 0444);
 
     dotenv_unset_var('TUNNEL_URL', $file);
 
-    $this->assertSame("OTHER=1\r\nMORE=2\r\n", file_get_contents($file));
+    $this->assertSame("OTHER=1\r\nMORE=2\r\n", File::read($file));
   }
 
   public function testDotenvUnsetVarMissingFile(): void {
@@ -243,7 +244,7 @@ final class HelpersDotenvTest extends UnitTestCase {
 
   public function testDotenvUnsetVarWriteFailure(): void {
     $file = self::$tmp . '/dotenv_unset_' . uniqid();
-    file_put_contents($file, "TUNNEL_URL=active\nOTHER=1\n");
+    File::dump($file, "TUNNEL_URL=active\nOTHER=1\n");
     chmod($file, 0444);
     $this->mockQuit(1);
     set_error_handler(static fn(): bool => TRUE);
@@ -261,7 +262,7 @@ final class HelpersDotenvTest extends UnitTestCase {
     }
 
     $this->assertStringContainsString('Unable to write ' . $file, $output);
-    $this->assertSame("TUNNEL_URL=active\nOTHER=1\n", file_get_contents($file));
+    $this->assertSame("TUNNEL_URL=active\nOTHER=1\n", File::read($file));
   }
 
 }

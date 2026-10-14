@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Traits;
 
+use AlexSkrypnyk\File\File;
+
 trait DirectoryFixtureTrait {
 
   /**
@@ -16,18 +18,15 @@ trait DirectoryFixtureTrait {
    *   content; an array value creates a directory and recurses into it.
    */
   protected function createDirectoryStructure(string $base_path, array $structure): void {
-    if (!is_dir($base_path)) {
-      mkdir($base_path, 0755, TRUE);
-    }
+    File::mkdir($base_path, 0755);
 
     foreach ($structure as $name => $content) {
       $path = $base_path . '/' . $name;
       if (is_array($content)) {
-        mkdir($path, 0755, TRUE);
         $this->createDirectoryStructure($path, $content);
       }
       else {
-        file_put_contents($path, $content);
+        File::dump($path, $content);
       }
     }
   }

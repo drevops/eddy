@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\resolve_site_url;
+use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -29,7 +30,7 @@ final class HelpersResolveSiteUrlTest extends UnitTestCase {
   public function testResolveSiteUrl(?string $dotenv_contents, string $expected): void {
     $file = self::$tmp . '/site_url_' . uniqid();
     if ($dotenv_contents !== NULL) {
-      file_put_contents($file, $dotenv_contents);
+      File::dump($file, $dotenv_contents);
     }
 
     $this->assertSame($expected, resolve_site_url('localhost', '8000', $file));

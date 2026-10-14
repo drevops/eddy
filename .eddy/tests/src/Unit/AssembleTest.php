@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use AlexSkrypnyk\File\File;
 use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -352,7 +353,7 @@ final class AssembleTest extends UnitTestCase {
     // RecursiveDirectoryIterator and cannot be mocked.
     $temp_dirs = [];
     if ($config['has_patches'] ?? FALSE) {
-      @mkdir('patches');
+      File::mkdir('patches');
       $temp_dirs[] = 'patches';
     }
 
@@ -363,7 +364,7 @@ final class AssembleTest extends UnitTestCase {
     }
     finally {
       foreach ($temp_dirs as $temp_dir) {
-        @rmdir($temp_dir);
+        File::rmdirIfEmpty($temp_dir);
       }
     }
 
@@ -724,7 +725,7 @@ final class AssembleTest extends UnitTestCase {
     $this->envSet('GITHUB_TOKEN', '');
     $this->envSet('SYMFONY_DEPRECATIONS_HELPER', '');
 
-    $dev_composer_json = json_decode((string) file_get_contents(dirname(__DIR__, 4) . '/composer.dev.json'), TRUE, 512, JSON_THROW_ON_ERROR);
+    $dev_composer_json = json_decode(File::read(dirname(__DIR__, 4) . '/composer.dev.json'), TRUE, 512, JSON_THROW_ON_ERROR);
     $this->assertIsArray($dev_composer_json);
     /** @var array{extra: array<string, mixed>} $dev_composer_json */
     $dev_composer_json['extra']['patches'] = ['drupal/core' => ['Patch from composer.dev.json' => 'patches/dev.patch']];

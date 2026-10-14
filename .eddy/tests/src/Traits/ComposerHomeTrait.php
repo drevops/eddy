@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Traits;
 
+use AlexSkrypnyk\File\File;
+
 /**
  * Serves the in-tree tooling package to Composer as a release.
  *
@@ -33,11 +35,7 @@ trait ComposerHomeTrait {
       $repositories[] = ['packagist.org' => FALSE];
     }
 
-    if (!is_dir(self::composerHomeDir())) {
-      mkdir(self::composerHomeDir(), 0755, TRUE);
-    }
-
-    file_put_contents(self::composerHomeDir() . '/config.json', json_encode(['repositories' => $repositories], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+    File::dump(self::composerHomeDir() . '/config.json', json_encode(['repositories' => $repositories], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
   }
 
   /**

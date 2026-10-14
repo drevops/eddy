@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Yaml\Yaml;
@@ -164,13 +165,7 @@ final class WorkflowsComposerCacheTest extends UnitTestCase {
    */
   protected static function jobs(): array {
     $path = self::rootDir() . '/.github/workflows/test.yml';
-    $contents = file_get_contents($path);
-
-    if ($contents === FALSE) {
-      self::fail(sprintf('Unable to read %s.', $path));
-    }
-
-    $parsed = Yaml::parse($contents);
+    $parsed = Yaml::parse(File::read($path));
     $jobs = is_array($parsed) ? ($parsed['jobs'] ?? NULL) : NULL;
 
     if (!is_array($jobs)) {

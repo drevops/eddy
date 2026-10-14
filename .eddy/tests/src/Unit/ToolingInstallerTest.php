@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -51,7 +52,7 @@ final class ToolingInstallerTest extends UnitTestCase {
 
     require_once dirname(__DIR__, 4) . '/scripts/eddy-tooling';
 
-    $this->originalCwd = (string) getcwd();
+    $this->originalCwd = File::cwd();
     chdir(self::$sut);
 
     $this->envUnset('DEBUG');
@@ -76,7 +77,7 @@ final class ToolingInstallerTest extends UnitTestCase {
     $this->writeFiles($files);
 
     if ($dev_mode) {
-      mkdir('.eddy/tooling', 0755, TRUE);
+      File::mkdir('.eddy/tooling', 0755);
     }
 
     $this->mockComposer(0, 'Composer progress');
@@ -87,7 +88,7 @@ final class ToolingInstallerTest extends UnitTestCase {
     $this->assertStringContainsString('[ OK ] Installed drevops/eddy-tooling.', $output);
     $this->assertStringNotContainsString('Composer progress', $output, 'Composer output is shown only on failure.');
     $this->assertSame([self::COMMAND . ' 2>&1'], $this->commands);
-    $this->assertSame(json_encode($expected_manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL, file_get_contents('vendor/eddy-tooling.json'));
+    $this->assertSame(json_encode($expected_manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL, File::read('vendor/eddy-tooling.json'));
   }
 
   public static function dataProviderInstall(): \Iterator {
@@ -239,11 +240,11 @@ final class ToolingInstallerTest extends UnitTestCase {
     $this->runMain(0);
 
     foreach ($write as $path => $contents) {
-      file_put_contents($path, $contents);
+      File::dump($path, $contents);
     }
 
     foreach ($remove as $path) {
-      unlink($path);
+      File::remove($path);
     }
 
     $output = $this->runMain(0);
@@ -283,10 +284,10 @@ final class ToolingInstallerTest extends UnitTestCase {
     $this->runMain(0);
 
     if ($contents === NULL) {
-      unlink('patches/fix.patch');
+      File::remove('patches/fix.patch');
     }
     else {
-      file_put_contents('patches/fix.patch', $contents);
+      File::dump('patches/fix.patch', $contents);
     }
 
     $output = $this->runMain(0);
@@ -308,23 +309,20 @@ final class ToolingInstallerTest extends UnitTestCase {
     // The previous package holds nested files and a symlink to a directory
     // outside of it, which must survive the removal.
     $outside = self::$tmp . '/outside';
-    mkdir($outside, 0755, TRUE);
-    file_put_contents($outside . '/kept.txt', 'kept');
+    File::dump($outside . '/kept.txt', 'kept');
 
     $package = $symlinked ? self::$tmp . '/source' : 'vendor/drevops/eddy-tooling';
-    mkdir($package . '/src', 0755, TRUE);
-    file_put_contents($package . '/src/eddy-old', 'old');
+    File::dump($package . '/src/eddy-old', 'old');
     symlink($outside, $package . '/linked');
 
     if ($symlinked) {
-      mkdir('vendor/drevops', 0755, TRUE);
+      File::mkdir('vendor/drevops', 0755);
       symlink($package, 'vendor/drevops/eddy-tooling');
     }
 
-    mkdir('vendor/bin', 0755, TRUE);
-    file_put_contents('vendor/bin/eddy-old', 'old');
-    file_put_contents('vendor/bin/other-tool', 'other');
-    file_put_contents('vendor/eddy-tooling-patches.lock.json', '{}');
+    File::dump('vendor/bin/eddy-old', 'old');
+    File::dump('vendor/bin/other-tool', 'other');
+    File::dump('vendor/eddy-tooling-patches.lock.json', '{}');
 
     $this->mockComposer(0, '', self::BINS, ['vendor/drevops/eddy-tooling', 'vendor/bin/eddy-old', 'vendor/bin/other-tool', 'vendor/eddy-tooling-patches.lock.json']);
 
@@ -352,7 +350,7 @@ final class ToolingInstallerTest extends UnitTestCase {
   #[DataProvider('dataProviderFailsWithoutConstraint')]
   public function testFailsWithoutConstraint(?string $contents, string $expected_message): void {
     if ($contents !== NULL) {
-      file_put_contents('composer.dev.json', $contents);
+      File::dump('composer.dev.json', $contents);
     }
 
     $this->mockPassthruNever(self::NAMESPACE);
@@ -393,7 +391,7 @@ final class ToolingInstallerTest extends UnitTestCase {
     $this->writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
 
     // A file where the directory belongs makes the manifest unwritable.
-    file_put_contents('vendor', '');
+    File::dump('vendor', '');
 
     $this->mockPassthruNever(self::NAMESPACE);
 
@@ -434,7 +432,7 @@ final class ToolingInstallerTest extends UnitTestCase {
 
     $this->runMain(0);
 
-    $this->assertSame($expected_auth, getenv('COMPOSER_AUTH'));
+    $this->assertSame($expected_auth, self::envGet('COMPOSER_AUTH'));
   }
 
   public static function dataProviderGithubToken(): \Iterator {
@@ -484,7 +482,7 @@ final class ToolingInstallerTest extends UnitTestCase {
   }
 
   protected function writeDevManifest(array $contents): void {
-    file_put_contents('composer.dev.json', json_encode($contents, JSON_THROW_ON_ERROR));
+    File::dump('composer.dev.json', json_encode($contents, JSON_THROW_ON_ERROR));
   }
 
   /**
@@ -495,11 +493,7 @@ final class ToolingInstallerTest extends UnitTestCase {
    */
   protected function writeFiles(array $files): void {
     foreach ($files as $path => $contents) {
-      if (!is_dir(dirname($path))) {
-        mkdir(dirname($path), 0755, TRUE);
-      }
-
-      file_put_contents($path, $contents);
+      File::dump($path, $contents);
     }
   }
 
@@ -520,19 +514,15 @@ final class ToolingInstallerTest extends UnitTestCase {
       $this->commands[] = $command;
 
       foreach ($watched_paths as $path) {
-        $this->pathsAtComposerRun[$path] = file_exists($path) || is_link($path);
+        $this->pathsAtComposerRun[$path] = File::exists($path) || is_link($path);
       }
 
       if ($exit_code === 0) {
-        mkdir('vendor/drevops/eddy-tooling', 0755, TRUE);
-        file_put_contents('vendor/drevops/eddy-tooling/composer.json', json_encode(['bin' => $bins], JSON_THROW_ON_ERROR));
-
-        if (!is_dir('vendor/bin')) {
-          mkdir('vendor/bin', 0755, TRUE);
-        }
+        File::dump('vendor/drevops/eddy-tooling/composer.json', json_encode(['bin' => $bins], JSON_THROW_ON_ERROR));
+        File::mkdir('vendor/bin', 0755);
 
         foreach ($bins as $bin) {
-          file_put_contents('vendor/bin/' . basename($bin), '<?php');
+          File::dump('vendor/bin/' . basename($bin), '<?php');
         }
       }
 

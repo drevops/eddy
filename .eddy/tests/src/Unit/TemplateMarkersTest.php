@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
@@ -35,14 +36,14 @@ final class TemplateMarkersTest extends UnitTestCase {
   protected const array NAMED_TOKENS = ['DEV_AHOY', 'DEV_MAKEFILE', 'DEV_COMMAND_WRAPPER', 'DEV_NO_COMMAND_WRAPPER', 'DEV_NODEJS_LINT', 'DEV_NPM', 'META'];
 
   public static function setUpBeforeClass(): void {
-    putenv('SCRIPT_RUN_SKIP=1');
+    self::envSet('SCRIPT_RUN_SKIP', '1');
     require_once self::rootDir() . '/install.php';
     parent::setUpBeforeClass();
   }
 
   #[DataProvider('dataProviderMarkersHaveTheirOwnLine')]
   public function testMarkersHaveTheirOwnLine(string $path): void {
-    $markers = self::markers(self::read($path));
+    $markers = self::markers(File::read($path));
     $shared = array_keys(array_filter($markers, static fn(?array $marker): bool => $marker === NULL));
 
     $this->assertSame([], $shared, sprintf('%s holds "#;" beside other text on these lines, which install.php deletes: %s.', basename($path), implode(', ', $shared)));
@@ -54,7 +55,7 @@ final class TemplateMarkersTest extends UnitTestCase {
 
   #[DataProvider('dataProviderBlocksAreClosed')]
   public function testBlocksAreClosed(string $path): void {
-    $unclosed = self::unclosedBlocks(self::markers(self::read($path)));
+    $unclosed = self::unclosedBlocks(self::markers(File::read($path)));
 
     $this->assertSame([], $unclosed, sprintf('%s has markers out of order: %s.', basename($path), implode('; ', $unclosed)));
   }
@@ -68,7 +69,7 @@ final class TemplateMarkersTest extends UnitTestCase {
     $stripped = self::strippedTokens();
     $unknown = [];
 
-    foreach (self::markers(self::read($path)) as $line => $marker) {
+    foreach (self::markers(File::read($path)) as $line => $marker) {
       if ($marker !== NULL && !in_array($marker['token'], $stripped, TRUE)) {
         $unknown[] = sprintf('%s on line %d', $marker['token'], $line);
       }
@@ -92,14 +93,14 @@ final class TemplateMarkersTest extends UnitTestCase {
     $supported = array_map(strval(...), array_keys(drupal_version_options()));
     sort($supported, SORT_NUMERIC);
 
-    $this->assertSame($supported, self::drupalMajors(self::markers(self::read($path))), sprintf('%s has DRUPAL_<major> blocks for only some majors, so a selected major can miss its block.', basename($path)));
+    $this->assertSame($supported, self::drupalMajors(self::markers(File::read($path))), sprintf('%s has DRUPAL_<major> blocks for only some majors, so a selected major can miss its block.', basename($path)));
   }
 
   public static function dataProviderDrupalBlocksCoverEveryMajor(): \Iterator {
     $paths = [];
 
     foreach (self::markedFiles() as $name => $data) {
-      if (self::drupalMajors(self::markers(self::read($data['path']))) !== []) {
+      if (self::drupalMajors(self::markers(File::read($data['path']))) !== []) {
         $paths[$name] = $data;
       }
     }
@@ -217,7 +218,7 @@ final class TemplateMarkersTest extends UnitTestCase {
         continue;
       }
 
-      $contents = self::read($file->getPathname());
+      $contents = File::read($file->getPathname());
 
       if (!str_contains($contents, "\0") && str_contains($contents, '#;')) {
         $paths[] = $file->getPathname();
@@ -391,13 +392,6 @@ final class TemplateMarkersTest extends UnitTestCase {
     sort($majors, SORT_NUMERIC);
 
     return $majors;
-  }
-
-  protected static function read(string $path): string {
-    $contents = file_get_contents($path);
-    self::assertIsString($contents);
-
-    return $contents;
   }
 
   protected static function rootDir(): string {

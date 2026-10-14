@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use AlexSkrypnyk\File\File;
 use DrevOps\Eddy\Tests\Traits\GitTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
-use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Yaml\Yaml;
 
@@ -35,14 +35,14 @@ final class InstallProcessTest extends UnitTestCase {
   protected string $originalCwd;
 
   public static function setUpBeforeClass(): void {
-    putenv('SCRIPT_RUN_SKIP=1');
+    self::envSet('SCRIPT_RUN_SKIP', '1');
     require_once dirname(__DIR__, 4) . '/install.php';
     parent::setUpBeforeClass();
   }
 
   protected function setUp(): void {
     parent::setUp();
-    $this->originalCwd = getcwd() ?: '/';
+    $this->originalCwd = File::cwd();
     $project_root = dirname(__DIR__, 4);
     self::locationsCopy($project_root, self::$sut, [], [
       '.idea',
@@ -78,16 +78,14 @@ final class InstallProcessTest extends UnitTestCase {
     }
 
     $claude_path = self::$sut . '/.claude/settings.json';
-    $claude_content = file_get_contents($claude_path);
-    $this->assertNotFalse($claude_content);
-    $decoded = json_decode($claude_content, TRUE);
+    $decoded = json_decode(File::read($claude_path), TRUE);
     $this->assertSame(['permissions' => ['allow' => $expected_claude_allow, 'deny' => []]], $decoded);
 
     $info_path = self::$sut . '/' . $machine_name . '.info.yml';
-    $info = (string) file_get_contents($info_path);
+    $info = File::read($info_path);
     $this->assertStringNotContainsString('your_extension', $info);
 
-    $readme = (string) file_get_contents(self::$sut . '/README.md');
+    $readme = File::read(self::$sut . '/README.md');
     $this->assertStringContainsString($name, $readme);
     $this->assertStringContainsString('[Eddy](https://github.com/drevops/eddy)', $readme);
     $this->assertStringNotContainsString('img.shields.io/github/license', $readme, 'The README badge reads the license from GitHub, which finds no license file in the project.');
@@ -210,7 +208,7 @@ final class InstallProcessTest extends UnitTestCase {
   public function testProcessRendersInfoFile(string $name, string $machine_name, string $type, array $expected): void {
     process($name, $machine_name, $type, ['10', '11'], ['ahoy'], [], FALSE, FALSE);
 
-    $this->assertSame($expected, Yaml::parseFile(self::$sut . '/' . $machine_name . '.info.yml'));
+    $this->assertSame($expected, Yaml::parse(File::read(self::$sut . '/' . $machine_name . '.info.yml')));
   }
 
   public static function dataProviderProcessRendersInfoFile(): \Iterator {
@@ -251,7 +249,7 @@ final class InstallProcessTest extends UnitTestCase {
   public function testProcessRendersFunctionalJavascriptBase(string $type, string $machine_name, string $class_name, array $expected_present, array $expected_absent): void {
     process('My Extension', $machine_name, $type, ['10', '11'], ['ahoy'], [], FALSE, FALSE);
 
-    $base = (string) file_get_contents(self::$sut . '/tests/src/FunctionalJavascript/' . $class_name . 'FunctionalJavascriptTestBase.php');
+    $base = File::read(self::$sut . '/tests/src/FunctionalJavascript/' . $class_name . 'FunctionalJavascriptTestBase.php');
 
     foreach ($expected_present as $needle) {
       $this->assertStringContainsString($needle, $base);
@@ -278,7 +276,7 @@ final class InstallProcessTest extends UnitTestCase {
   public function testProcessRendersExtensionTypeNotes(string $type, string $machine_name, array $tools_remove, array $expected_present, array $expected_absent): void {
     process('My Extension', $machine_name, $type, ['10', '11'], ['ahoy'], $tools_remove, FALSE, FALSE);
 
-    $agents = (string) file_get_contents(self::$sut . '/AGENTS.md');
+    $agents = File::read(self::$sut . '/AGENTS.md');
 
     foreach ($expected_present as $line) {
       $this->assertMatchesRegularExpression('/^' . preg_quote($line, '/') . '/m', $agents, 'AGENTS.md misses the line: ' . $line);
@@ -329,9 +327,8 @@ final class InstallProcessTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderProcessPrunesThemeDirectories')]
   public function testProcessPrunesThemeDirectories(array $tools_remove, array $project_files, array $expected_dirs, array $expected_no_dirs): void {
-    $filesystem = new Filesystem();
     foreach ($project_files as $path) {
-      $filesystem->dumpFile(self::$sut . '/' . $path, "<?php\n");
+      File::dump(self::$sut . '/' . $path, "<?php\n");
     }
 
     process('My Theme', 'my_theme', 'theme', ['10', '11'], ['ahoy'], $tools_remove, FALSE, FALSE);
@@ -373,19 +370,19 @@ final class InstallProcessTest extends UnitTestCase {
       $this->assertFileDoesNotExist(self::$sut . '/' . $path, 'Expected removed: ' . $path);
     }
 
-    $composer_dev = (string) file_get_contents(self::$sut . '/composer.dev.json');
+    $composer_dev = File::read(self::$sut . '/composer.dev.json');
     foreach ($expected_composer_dev_absent as $needle) {
       $this->assertStringNotContainsString($needle, $composer_dev, 'composer.dev.json should not contain: ' . $needle);
     }
 
-    $package_json = is_file(self::$sut . '/package.json') ? (string) file_get_contents(self::$sut . '/package.json') : '';
+    $package_json = File::exists(self::$sut . '/package.json') ? File::read(self::$sut . '/package.json') : '';
     foreach ($expected_package_json_absent as $needle) {
       $this->assertStringNotContainsString($needle, $package_json, 'package.json should not contain: ' . $needle);
     }
 
-    $ahoy = (string) file_get_contents(self::$sut . '/.ahoy.yml');
-    $makefile = (string) file_get_contents(self::$sut . '/Makefile');
-    $gha = (string) file_get_contents(self::$sut . '/.github/workflows/test.yml');
+    $ahoy = File::read(self::$sut . '/.ahoy.yml');
+    $makefile = File::read(self::$sut . '/Makefile');
+    $gha = File::read(self::$sut . '/.github/workflows/test.yml');
     foreach ($expected_pipeline_absent as $needle) {
       $this->assertStringNotContainsString($needle, $ahoy, '.ahoy.yml should not contain: ' . $needle);
       $this->assertStringNotContainsString($needle, $makefile, 'Makefile should not contain: ' . $needle);
@@ -556,7 +553,7 @@ final class InstallProcessTest extends UnitTestCase {
   #[DataProvider('dataProviderProcessRemovesCspellWords')]
   public function testProcessRemovesCspellWords(array $tools_remove, array $expected, string $name = 'My Extension', bool $keep_script = FALSE, string $type = 'module'): void {
     if (!$keep_script) {
-      unlink(self::$sut . '/install.php');
+      File::remove(self::$sut . '/install.php');
     }
 
     $before = self::cspellWords();
@@ -608,7 +605,7 @@ final class InstallProcessTest extends UnitTestCase {
     process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], $tools_remove, FALSE, FALSE);
 
     foreach (['phpunit.xml', 'phpunit.d10.xml'] as $file) {
-      $content = (string) file_get_contents(self::$sut . '/' . $file);
+      $content = File::read(self::$sut . '/' . $file);
       $document = new \DOMDocument();
       $this->assertTrue($document->loadXML($content), $file . ' is not valid XML.');
 
@@ -638,7 +635,7 @@ final class InstallProcessTest extends UnitTestCase {
   public function testProcessRendersInfoText(array $tools_remove, array $command_wrapper, bool $expect): void {
     process('My Extension', 'my_extension', 'module', ['10', '11'], $command_wrapper, $tools_remove, FALSE, FALSE);
 
-    $agents = (string) file_get_contents(self::$sut . '/AGENTS.md');
+    $agents = File::read(self::$sut . '/AGENTS.md');
     $items = $expect ? 'XDebug state, WebDriver port, build directory' : 'XDebug state, build directory';
 
     preg_match_all('/^- `[^`]+` - Print a read-only summary of .+$/m', $agents, $matches);
@@ -671,7 +668,7 @@ final class InstallProcessTest extends UnitTestCase {
   public function testProcessRendersMakefileTestRecipe(array $tools_remove, bool $expect_phpunit, bool $expect_webdriver): void {
     process('My Extension', 'my_extension', 'module', ['10', '11'], ['makefile'], $tools_remove, FALSE, FALSE);
 
-    $makefile = (string) file_get_contents(self::$sut . '/Makefile');
+    $makefile = File::read(self::$sut . '/Makefile');
     $export = "\t" . 'export WEBDRIVER_PORT="$$(vendor/bin/eddy-info webdriver-port)" && \\' . "\n";
     $phpunit = "\t" . 'pushd "build" >/dev/null || exit 1 && \\' . "\n\t" . 'php -d pcov.directory=.. vendor/bin/phpunit $(RUN_ARGS) && \\' . "\n\t" . 'popd >/dev/null || exit 1' . "\n";
     $recipe = "\t" . '$(call title,Running PHPUnit)' . "\n" . ($expect_webdriver ? $export : '') . $phpunit;
@@ -695,8 +692,8 @@ final class InstallProcessTest extends UnitTestCase {
   public function testProcessPrunesBrowserSetup(array $tools_remove, bool $expect): void {
     process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], $tools_remove, FALSE, FALSE);
 
-    $workflow = (string) file_get_contents(self::$sut . '/.github/workflows/test.yml');
-    $gitignore = (string) file_get_contents(self::$sut . '/.gitignore');
+    $workflow = File::read(self::$sut . '/.github/workflows/test.yml');
+    $gitignore = File::read(self::$sut . '/.gitignore');
 
     $this->assertSame($expect, str_contains($workflow, "\n    services:\n"), 'test.yml services presence mismatch.');
     $this->assertSame($expect, str_contains($workflow, 'selenium'), 'test.yml Selenium presence mismatch.');
@@ -756,18 +753,17 @@ final class InstallProcessTest extends UnitTestCase {
       '.env',
     ];
 
-    $filesystem = new Filesystem();
     foreach ($paths as $path) {
-      $filesystem->dumpFile(self::$sut . '/' . $path, $content);
+      File::dump(self::$sut . '/' . $path, $content);
     }
 
     process('My Theme', 'my_theme', 'theme', ['10', '11'], ['ahoy'], $tools_remove, FALSE, FALSE);
 
     foreach ($paths as $path) {
-      $this->assertSame($content, file_get_contents(self::$sut . '/' . $path), 'Expected untouched: ' . $path);
+      $this->assertSame($content, File::read(self::$sut . '/' . $path), 'Expected untouched: ' . $path);
     }
 
-    $this->assertStringContainsString('type: theme', (string) file_get_contents(self::$sut . '/my_theme.info.yml'));
+    $this->assertFileContainsString(self::$sut . '/my_theme.info.yml', 'type: theme');
   }
 
   public static function dataProviderProcessKeepsProjectFiles(): \Iterator {
@@ -785,16 +781,15 @@ final class InstallProcessTest extends UnitTestCase {
   #[DataProvider('dataProviderProcessRemovesEddySkills')]
   public function testProcessRemovesEddySkills(array $project_skills, bool $expect_skills_dir): void {
     $skills_dir = self::$sut . '/.claude/skills';
-    $filesystem = new Filesystem();
     // The copy holds whatever skills the local checkout has.
-    $filesystem->remove($skills_dir);
+    File::remove($skills_dir);
 
     foreach (eddy_skills() as $skill) {
-      $filesystem->dumpFile($skills_dir . '/' . $skill . '/SKILL.md', 'Eddy skill');
+      File::dump($skills_dir . '/' . $skill . '/SKILL.md', 'Eddy skill');
     }
 
     foreach ($project_skills as $skill) {
-      $filesystem->dumpFile($skills_dir . '/' . $skill . '/SKILL.md', 'Project skill');
+      File::dump($skills_dir . '/' . $skill . '/SKILL.md', 'Project skill');
     }
 
     process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], [], FALSE, FALSE);
@@ -804,10 +799,10 @@ final class InstallProcessTest extends UnitTestCase {
     }
 
     foreach ($project_skills as $skill) {
-      $this->assertSame('Project skill', file_get_contents($skills_dir . '/' . $skill . '/SKILL.md'));
+      $this->assertSame('Project skill', File::read($skills_dir . '/' . $skill . '/SKILL.md'));
     }
 
-    $this->assertSame($expect_skills_dir, is_dir($skills_dir));
+    $this->assertSame($expect_skills_dir, File::exists($skills_dir));
   }
 
   public static function dataProviderProcessRemovesEddySkills(): \Iterator {
@@ -824,7 +819,7 @@ final class InstallProcessTest extends UnitTestCase {
   public function testProcessRemovesWrapperDocs(array $command_wrapper, bool $expect_make, bool $expect_ahoy): void {
     process('My Extension', 'my_extension', 'module', ['10', '11'], $command_wrapper, [], FALSE, FALSE);
 
-    $agents = (string) file_get_contents(self::$sut . '/AGENTS.md');
+    $agents = File::read(self::$sut . '/AGENTS.md');
 
     $make_rule = '`make lint` / `make lint-fix` - never `vendor/bin/phpcs`';
     $ahoy_rule = '`ahoy lint` / `ahoy lint-fix` - never `vendor/bin/phpcs`';
@@ -857,7 +852,7 @@ final class InstallProcessTest extends UnitTestCase {
   public function testProcessPrunesContributingCommands(array $command_wrapper, bool $expect_make, bool $expect_ahoy): void {
     process('My Extension', 'my_extension', 'module', ['10', '11'], $command_wrapper, [], FALSE, FALSE);
 
-    $contributing = (string) file_get_contents(self::$sut . '/CONTRIBUTING.md');
+    $contributing = File::read(self::$sut . '/CONTRIBUTING.md');
     $expect_wrapper = $expect_make || $expect_ahoy;
     $commands = '(build|assemble|start|provision|debug|lint|test)';
 
@@ -883,7 +878,7 @@ final class InstallProcessTest extends UnitTestCase {
   public function testProcessRendersWrapperText(array $command_wrapper, array $expected_lines, array $expected_phrases): void {
     process('My Extension', 'my_extension', 'module', ['10', '11'], $command_wrapper, [], FALSE, FALSE);
 
-    $agents = (string) file_get_contents(self::$sut . '/AGENTS.md');
+    $agents = File::read(self::$sut . '/AGENTS.md');
 
     foreach ($expected_lines as $line) {
       $this->assertMatchesRegularExpression('/^' . preg_quote($line, '/') . '$/m', $agents, 'AGENTS.md misses the line: ' . $line);
@@ -965,8 +960,8 @@ final class InstallProcessTest extends UnitTestCase {
   public function testProcessPrunesWrapperConfig(array $command_wrapper, bool $expect_make, bool $expect_ahoy): void {
     process('My Extension', 'my_extension', 'module', ['10', '11'], $command_wrapper, [], FALSE, FALSE);
 
-    $gitattributes = (string) file_get_contents(self::$sut . '/.gitattributes');
-    $editorconfig = (string) file_get_contents(self::$sut . '/.editorconfig');
+    $gitattributes = File::read(self::$sut . '/.gitattributes');
+    $editorconfig = File::read(self::$sut . '/.editorconfig');
 
     $this->assertSame($expect_make, preg_match('/^Makefile +export-ignore$/m', $gitattributes) === 1, '.gitattributes Makefile entry presence mismatch.');
     $this->assertSame($expect_ahoy, preg_match('/^\.ahoy\.yml +export-ignore$/m', $gitattributes) === 1, '.gitattributes .ahoy.yml entry presence mismatch.');
@@ -986,7 +981,7 @@ final class InstallProcessTest extends UnitTestCase {
   public function testProcessRendersOverview(string $name, string $machine_name, string $type, string $expected): void {
     process($name, $machine_name, $type, ['10', '11'], ['ahoy'], [], FALSE, FALSE);
 
-    $agents = (string) file_get_contents(self::$sut . '/AGENTS.md');
+    $agents = File::read(self::$sut . '/AGENTS.md');
     $overview = preg_match('/^## Overview\n(.*?)^## /ms', $agents, $matches) === 1 ? $matches[1] : '';
 
     $this->assertStringStartsWith("\n" . $expected . ' The project provides', $overview);
@@ -1013,8 +1008,8 @@ final class InstallProcessTest extends UnitTestCase {
     $this->assertNotSame([], $files, 'The project holds no file.');
 
     foreach ($files as $file) {
-      $content = (string) file_get_contents($file);
-      $path = substr($file, strlen((string) getcwd()) + 1);
+      $content = File::read($file);
+      $path = substr($file, strlen(File::cwd()) + 1);
 
       $this->assertStringNotContainsString("\n\n\n", $content, $path . ' holds a double blank line.');
       $this->assertStringStartsNotWith("\n", $content, $path . ' starts with a blank line.');
@@ -1083,7 +1078,7 @@ final class InstallProcessTest extends UnitTestCase {
   public function testProcessRemovesGitattributes(array $tools_remove, array $expected_absent): void {
     process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], $tools_remove, FALSE, FALSE);
 
-    $gitattributes = (string) file_get_contents(self::$sut . '/.gitattributes');
+    $gitattributes = File::read(self::$sut . '/.gitattributes');
     foreach ($expected_absent as $needle) {
       $this->assertStringNotContainsString($needle, $gitattributes, '.gitattributes should not export-ignore: ' . $needle);
     }
@@ -1112,12 +1107,12 @@ final class InstallProcessTest extends UnitTestCase {
   public function testProcessRemovesNpm(array $tools_remove, bool $expect_npm): void {
     process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy', 'makefile'], $tools_remove, FALSE, FALSE);
 
-    $workflow = (string) file_get_contents(self::$sut . '/.github/workflows/test.yml');
-    $gitattributes = (string) file_get_contents(self::$sut . '/.gitattributes');
-    $editorconfig = (string) file_get_contents(self::$sut . '/.editorconfig');
+    $workflow = File::read(self::$sut . '/.github/workflows/test.yml');
+    $gitattributes = File::read(self::$sut . '/.gitattributes');
+    $editorconfig = File::read(self::$sut . '/.editorconfig');
 
-    $this->assertSame($expect_npm, file_exists(self::$sut . '/package.json'), 'package.json presence mismatch.');
-    $this->assertSame($expect_npm, file_exists(self::$sut . '/package-lock.json'), 'package-lock.json presence mismatch.');
+    $this->assertSame($expect_npm, File::exists(self::$sut . '/package.json'), 'package.json presence mismatch.');
+    $this->assertSame($expect_npm, File::exists(self::$sut . '/package-lock.json'), 'package-lock.json presence mismatch.');
     $this->assertSame($expect_npm, str_contains($workflow, '- name: Setup Node.js'), 'test.yml Node.js setup presence mismatch.');
     $this->assertSame($expect_npm, str_contains($workflow, 'run: npm ci --ignore-scripts'), 'test.yml npm install presence mismatch.');
     $this->assertSame($expect_npm, preg_match('/^package\.json +export-ignore$/m', $gitattributes) === 1, '.gitattributes package.json entry presence mismatch.');
@@ -1144,7 +1139,7 @@ final class InstallProcessTest extends UnitTestCase {
   public function testProcessRendersPackageDescription(): void {
     process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], [], FALSE, FALSE);
 
-    $package = json_decode((string) file_get_contents(self::$sut . '/package.json'), TRUE);
+    $package = json_decode(File::read(self::$sut . '/package.json'), TRUE);
     $this->assertIsArray($package);
 
     $this->assertSame('Provides my_extension functionality.', $package['description'] ?? NULL);
@@ -1161,7 +1156,7 @@ final class InstallProcessTest extends UnitTestCase {
   public function testProcessPrunesDrupalVersions(array $drupal_versions, string $ci_file, array $expected_present, array $expected_absent): void {
     process('My Extension', 'my_extension', 'module', $drupal_versions, ['ahoy'], [], FALSE, FALSE);
 
-    $content = (string) file_get_contents(self::$sut . '/' . $ci_file);
+    $content = File::read(self::$sut . '/' . $ci_file);
 
     foreach ($expected_present as $needle) {
       $this->assertStringContainsString($needle, $content, $ci_file . ' should contain corner: ' . $needle);
@@ -1200,7 +1195,7 @@ final class InstallProcessTest extends UnitTestCase {
   public function testProcessRendersBadges(array $drupal_versions, array $expected): void {
     process('My Extension', 'my_extension', 'module', $drupal_versions, ['ahoy'], [], FALSE, FALSE);
 
-    $readme = (string) file_get_contents(self::$sut . '/README.md');
+    $readme = File::read(self::$sut . '/README.md');
 
     preg_match_all('/^!\[((?:PHP|Drupal) [^\]]+)\]\(/m', $readme, $matches);
 
@@ -1226,15 +1221,15 @@ final class InstallProcessTest extends UnitTestCase {
   #[DataProvider('dataProviderProcessRemovesDrupalVersionFiles')]
   public function testProcessRemovesDrupalVersionFiles(array $drupal_versions, bool $expect): void {
     // The kept 'install.php' names every file it can remove.
-    unlink(self::$sut . '/install.php');
+    File::remove(self::$sut . '/install.php');
 
     process('My Extension', 'my_extension', 'module', $drupal_versions, ['ahoy'], [], FALSE, FALSE);
 
-    $gitattributes = (string) file_get_contents(self::$sut . '/.gitattributes');
-    $contributing = (string) file_get_contents(self::$sut . '/CONTRIBUTING.md');
+    $gitattributes = File::read(self::$sut . '/.gitattributes');
+    $contributing = File::read(self::$sut . '/CONTRIBUTING.md');
     $sentence = $expect ? ', and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both use' : '. It uses';
 
-    $this->assertSame($expect, file_exists(self::$sut . '/phpunit.d10.xml'), 'phpunit.d10.xml presence mismatch.');
+    $this->assertSame($expect, File::exists(self::$sut . '/phpunit.d10.xml'), 'phpunit.d10.xml presence mismatch.');
     $this->assertSame($expect, preg_match('/^phpunit\.d10\.xml +export-ignore$/m', $gitattributes) === 1, '.gitattributes phpunit.d10.xml entry presence mismatch.');
     $this->assertMatchesRegularExpression('/^phpunit\.xml +export-ignore$/m', $gitattributes, '.gitattributes misses the phpunit.xml entry.');
     $this->assertStringContainsString('The `phpunit.xml` file configures PHPUnit to run the tests' . $sentence . " Drupal core's bootstrap file", $contributing, 'CONTRIBUTING.md PHPUnit configuration text mismatch.');
@@ -1245,7 +1240,7 @@ final class InstallProcessTest extends UnitTestCase {
     }
 
     foreach (get_files() as $file) {
-      $this->assertStringNotContainsString('phpunit.d10.xml', (string) file_get_contents($file), substr($file, strlen((string) getcwd()) + 1) . ' names phpunit.d10.xml.');
+      $this->assertFileNotContainsString($file, 'phpunit.d10.xml', substr($file, strlen(File::cwd()) + 1) . ' names phpunit.d10.xml.');
     }
   }
 
@@ -1268,13 +1263,13 @@ final class InstallProcessTest extends UnitTestCase {
   public function testProcessRendersDrupalVersionText(array $drupal_versions, string $expected_requirement, string $expected_phpunit_comment, array $expected_matrix): void {
     process('My Extension', 'my_extension', 'module', $drupal_versions, ['ahoy'], [], FALSE, FALSE);
 
-    $info = (string) file_get_contents(self::$sut . '/my_extension.info.yml');
+    $info = File::read(self::$sut . '/my_extension.info.yml');
     $this->assertSame([$expected_requirement], array_values(preg_grep('/^core_version_requirement:/', explode("\n", $info)) ?: []), 'my_extension.info.yml core_version_requirement mismatch.');
 
-    $phpunit = explode("\n", (string) file_get_contents(self::$sut . '/phpunit.xml'));
+    $phpunit = explode("\n", File::read(self::$sut . '/phpunit.xml'));
     $this->assertSame($expected_phpunit_comment, $phpunit[1], 'phpunit.xml opening comment mismatch.');
 
-    preg_match_all('/^  - (Drupal \d+ on PHP .+)$/m', (string) file_get_contents(self::$sut . '/AGENTS.md'), $matches);
+    preg_match_all('/^  - (Drupal \d+ on PHP .+)$/m', File::read(self::$sut . '/AGENTS.md'), $matches);
     $this->assertSame($expected_matrix, $matches[1], 'AGENTS.md matrix mismatch.');
   }
 
@@ -1303,7 +1298,7 @@ final class InstallProcessTest extends UnitTestCase {
   public function testProcessSetsBuildDefault(array $drupal_versions, string $expected_default): void {
     process('My Extension', 'my_extension', 'module', $drupal_versions, ['ahoy'], [], FALSE, FALSE);
 
-    $raw = (string) file_get_contents(self::$sut . '/composer.dev.json');
+    $raw = File::read(self::$sut . '/composer.dev.json');
     $config = json_decode($raw, TRUE);
     $this->assertIsArray($config);
     /** @var array{'require-dev'?: array<string, string>, extra?: array{eddy?: array{'drupal-version'?: string}}} $config */
@@ -1337,14 +1332,14 @@ final class InstallProcessTest extends UnitTestCase {
     if ($committed !== NULL) {
       // A scaffold update leaves the template's copy in the working tree and
       // the project's copy in 'HEAD'.
-      $template = (string) file_get_contents($workflow);
-      file_put_contents($workflow, $committed);
+      $template = File::read($workflow);
+      File::dump($workflow, $committed);
       $this->git(self::$sut, ['init']);
       $this->git(self::$sut, ['config', 'user.name', 'Test User']);
       $this->git(self::$sut, ['config', 'user.email', 'test@example.com']);
       $this->git(self::$sut, ['add', '.github/workflows/test.yml']);
       $this->git(self::$sut, ['commit', '--message', 'Project workflow']);
-      file_put_contents($workflow, $template);
+      File::dump($workflow, $template);
     }
 
     process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], [], FALSE, FALSE, $branches);
@@ -1372,7 +1367,7 @@ final class InstallProcessTest extends UnitTestCase {
   public function testProcessRendersGithubRepository(?string $repository, string $expected): void {
     process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], [], FALSE, FALSE, [], NULL, $repository);
 
-    $readme = (string) file_get_contents(self::$sut . '/README.md');
+    $readme = File::read(self::$sut . '/README.md');
 
     $this->assertStringContainsString('https://img.shields.io/github/issues/' . $expected . '.svg', $readme);
     $this->assertStringContainsString('https://github.com/' . $expected . '/actions/workflows/test.yml', $readme);
@@ -1399,7 +1394,7 @@ final class InstallProcessTest extends UnitTestCase {
 
     process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], [], FALSE, FALSE, [], NULL, $repository);
 
-    $this->assertStringContainsString('https://github.com/' . $expected . '/actions/workflows/test.yml', (string) file_get_contents(self::$sut . '/README.md'));
+    $this->assertFileContainsString(self::$sut . '/README.md', 'https://github.com/' . $expected . '/actions/workflows/test.yml');
   }
 
   public static function dataProviderProcessReadsGithubRepositoryFromOrigin(): \Iterator {
@@ -1414,8 +1409,8 @@ final class InstallProcessTest extends UnitTestCase {
   public function testProcessRendersExtensionTypeText(string $type, string $machine_name, string $dir): void {
     process('My Extension', $machine_name, $type, ['10', '11'], ['ahoy', 'makefile'], [], FALSE, FALSE);
 
-    $contributing = (string) file_get_contents(self::$sut . '/CONTRIBUTING.md');
-    $agents = (string) file_get_contents(self::$sut . '/AGENTS.md');
+    $contributing = File::read(self::$sut . '/CONTRIBUTING.md');
+    $agents = File::read(self::$sut . '/AGENTS.md');
     $other_dir = $dir === 'themes' ? 'modules' : 'themes';
 
     $this->assertStringContainsString("a test path starts at the extension's symlink in the assembled site:", $contributing);
@@ -1441,7 +1436,7 @@ final class InstallProcessTest extends UnitTestCase {
   #[DataProvider('dataProviderProcessNamesOwnCustomDirectory')]
   public function testProcessNamesOwnCustomDirectory(string $type, array $tools_remove, array $expected): void {
     // The copy of 'install.php' names both directories.
-    unlink(self::$sut . '/install.php');
+    File::remove(self::$sut . '/install.php');
 
     process('My Extension', 'my_extension', $type, ['10', '11'], ['ahoy', 'makefile'], $tools_remove, FALSE, FALSE);
 
@@ -1450,8 +1445,8 @@ final class InstallProcessTest extends UnitTestCase {
     $naming_own = [];
 
     foreach (get_files() as $file) {
-      $content = (string) file_get_contents($file);
-      $path = substr($file, strlen((string) getcwd()) + 1);
+      $content = File::read($file);
+      $path = substr($file, strlen(File::cwd()) + 1);
 
       $this->assertStringNotContainsString($other, $content, $path . ' names the custom directory of the other extension type.');
 
@@ -1482,7 +1477,7 @@ final class InstallProcessTest extends UnitTestCase {
   public function testProcessRecordsVersion(?string $version): void {
     process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], [], FALSE, FALSE, [], $version);
 
-    $config = json_decode((string) file_get_contents(self::$sut . '/composer.dev.json'), TRUE);
+    $config = json_decode(File::read(self::$sut . '/composer.dev.json'), TRUE);
     $this->assertIsArray($config);
     /** @var array{extra?: array{eddy?: array<string, string>}} $config */
 
@@ -1502,14 +1497,14 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   public function testProcessThrowsOnInvalidClaudeSettingsJson(): void {
-    file_put_contents(self::$sut . '/.claude/settings.json', '{invalid json');
+    File::dump(self::$sut . '/.claude/settings.json', '{invalid json');
 
     $this->expectException(\JsonException::class);
     process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], [], FALSE, FALSE);
   }
 
   public function testProcessThrowsOnInvalidClaudeSettingsStructure(): void {
-    file_put_contents(self::$sut . '/.claude/settings.json', '{"foo": "bar"}');
+    File::dump(self::$sut . '/.claude/settings.json', '{"foo": "bar"}');
 
     $this->expectException(\RuntimeException::class);
     $this->expectExceptionMessage('Invalid .claude/settings.json structure.');
@@ -1517,7 +1512,7 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   public function testProcessSkipsWhenClaudeSettingsMissing(): void {
-    @unlink(self::$sut . '/.claude/settings.json');
+    File::remove(self::$sut . '/.claude/settings.json');
 
     process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], [], FALSE, FALSE);
 
@@ -1561,7 +1556,7 @@ final class InstallProcessTest extends UnitTestCase {
    *   The 'branches' value, or NULL when the trigger has none.
    */
   protected static function triggerBranches(string $file, string $trigger): mixed {
-    $workflow = Yaml::parseFile($file);
+    $workflow = Yaml::parse(File::read($file));
     $triggers = is_array($workflow) ? $workflow['on'] ?? NULL : NULL;
     $filters = is_array($triggers) ? $triggers[$trigger] ?? NULL : NULL;
 
@@ -1575,7 +1570,7 @@ final class InstallProcessTest extends UnitTestCase {
    *   The package names.
    */
   protected static function composerDevPackages(): array {
-    $config = json_decode((string) file_get_contents(self::$sut . '/composer.dev.json'), TRUE);
+    $config = json_decode(File::read(self::$sut . '/composer.dev.json'), TRUE);
     $packages = is_array($config) ? $config['require-dev'] ?? NULL : NULL;
     self::assertIsArray($packages);
 
@@ -1589,7 +1584,7 @@ final class InstallProcessTest extends UnitTestCase {
    *   The words, in lower case.
    */
   protected static function cspellWords(): array {
-    $config = json_decode((string) file_get_contents(self::$sut . '/.cspell.json'), TRUE);
+    $config = json_decode(File::read(self::$sut . '/.cspell.json'), TRUE);
     $words = is_array($config) ? $config['words'] ?? NULL : NULL;
     self::assertIsArray($words);
 
@@ -1603,7 +1598,7 @@ final class InstallProcessTest extends UnitTestCase {
    *   The lines, in order.
    */
   protected static function installerMarkerLines(): array {
-    $lines = explode("\n", (string) file_get_contents(self::$sut . '/install.php'));
+    $lines = explode("\n", File::read(self::$sut . '/install.php'));
 
     return array_values(preg_grep('/#;/', $lines) ?: []);
   }
