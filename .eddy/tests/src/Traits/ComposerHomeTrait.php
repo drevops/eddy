@@ -41,7 +41,10 @@ trait ComposerHomeTrait {
   }
 
   /**
-   * The directory that 'composerHomeWrite()' writes the Composer home to.
+   * Get the directory that 'composerHomeWrite()' writes the Composer home to.
+   *
+   * @return string
+   *   The directory path.
    */
   protected static function composerHomeDir(): string {
     return self::$tmp . '/composer-home';
