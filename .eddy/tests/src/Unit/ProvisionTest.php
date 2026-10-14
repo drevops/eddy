@@ -39,6 +39,16 @@ final class ProvisionTest extends UnitTestCase {
     return $matches[0];
   }
 
+  /**
+   * @return array<int, string>
+   *   The lines that name a command wrapper's command list, in order.
+   */
+  protected static function hintLines(string $output): array {
+    preg_match_all('/^Run `.*$/m', $output, $matches);
+
+    return $matches[0];
+  }
+
   #[DataProvider('dataProviderProvisionSuccess')]
   public function testProvisionSuccess(array $env, string $extension_type, string $db_status, array $suggested, ?array $locked_types, array $expected_enabled, bool $has_ahoy, bool $has_makefile): void {
     foreach ($env as $name => $value) {
@@ -150,19 +160,17 @@ final class ProvisionTest extends UnitTestCase {
     $this->assertTrue(is_link($browser_output_link));
     $this->assertSame($cwd . '/.logs/browser_output', readlink($browser_output_link));
 
+    $expected_hints = [];
+
     if ($has_ahoy) {
-      $this->assertStringContainsString('Run `ahoy` to see available commands', $output);
-    }
-    else {
-      $this->assertStringNotContainsString('Run `ahoy`', $output);
+      $expected_hints[] = 'Run `ahoy` to see available commands.';
     }
 
     if ($has_makefile) {
-      $this->assertStringContainsString('Run `make` to see available commands', $output);
+      $expected_hints[] = 'Run `make help` to see available commands.';
     }
-    else {
-      $this->assertStringNotContainsString('Run `make`', $output);
-    }
+
+    $this->assertSame($expected_hints, self::hintLines($output));
   }
 
   public static function dataProviderProvisionSuccess(): \Iterator {
