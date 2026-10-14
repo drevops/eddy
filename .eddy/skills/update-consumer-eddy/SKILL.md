@@ -410,17 +410,7 @@ Without a base, the merge cannot tell the project's content from older template 
 
 ## Step 12: Commit
 
-Remove the scratch directory first. No later step needs the renders or the throwaway repository:
-
-```bash
-rm -rf .artifacts/tmp/eddy-update
-```
-
-```bash
-find .artifacts -type d -empty -delete
-```
-
-Then stage the update. The merge already staged the files the release added, so staging the changes to tracked files completes it, and untracked files under `.claude/` and `.idea/` stay out of the commit. Add a file you created yourself by its path:
+Stage the update. The merge already staged the files the release added, so staging the changes to tracked files completes it, and untracked files under `.claude/` and `.idea/` stay out of the commit. Add a file you created yourself by its path:
 
 ```bash
 git add -u
@@ -434,6 +424,17 @@ Updated scaffold to <version>.
 
 Keep this message as it is: when `composer.dev.json` holds no `extra.eddy.version`, the next update reads the installed version from it in Step 1.
 
+### The FunctionalJavascript base class
+
+Skip this unless Step 9 ran and the project has FunctionalJavascript tests. Step 6 kept `tests/` out of the merge, so the base class those tests extend is still the one the project was created with. A class from 4.13.0 to 4.17.0 sends the local Chrome to an address that doesn't reach the webserver, so every FunctionalJavascript test fails in Step 13. A class from 4.18.0 or 4.19.0 is a fatal error on Drupal 12. The render holds the release's copy, named for the project, at `.artifacts/tmp/eddy-update/new/tests/src/FunctionalJavascript/<MachineName>FunctionalJavascriptTestBase.php`.
+
+Find the class the template generated: `<MachineName>JsTestBase` in a project created from 4.13.0 to 4.17.0, `<MachineName>FunctionalJavascriptTestBase` from 4.18.0, or, when the project renamed it, the class in `tests/src/FunctionalJavascript/` whose `setUp()` checks `CIRCLECI`. A project without one, such as a project created before 4.13.0, needs nothing here. Bring the class in line with the release's copy, as the "FunctionalJavascript tests" section of [the upgrade guide](https://eddy.drevops.com/updating/upgrading-from-4x#functionaljavascript-tests) describes:
+
+- A class without `getMinkDriverArgs()`, which 4.13.0 to 4.17.0 generated as `<MachineName>JsTestBase`: replace the `CIRCLECI` check in `setUp()`, the comment above it included, with the release's base URL setup, and add the release's `getMinkDriverArgs()`.
+- A class with `getMinkDriverArgs()`, which 4.18.0 and 4.19.0 generated as `<MachineName>FunctionalJavascriptTestBase`: declare `string|false` as its return type, drop the `CIRCLECI` check in `setUp()` but keep the base URL setup inside it, and change `.devtools/browser` to `eddy-browser-start` in a comment.
+
+Keep the class's name, its `$modules` and `$defaultTheme`, and everything else the project added to it. Step 10 already pointed `CONTRIBUTING.md` at the class. Commit the change on its own.
+
 ### Code changes for a new Drupal major
 
 Skip this when Step 4 added no Drupal major. When it did, the merge brought in the major's CI jobs, badge and docs, but none of the changes the extension's own code needs: Step 6 kept `*.info.yml` and `tests/` out of the merge. Step 13 builds the new major too, so make them now, each in a commit of its own:
@@ -444,9 +445,21 @@ Skip this when Step 4 added no Drupal major. When it did, the merge brought in t
 git ls-files '*.info.yml'
 ```
 
-- For Drupal 12, also make the other changes in the "Drupal 12" section of [the upgrade guide](https://eddy.drevops.com/updating/upgrading-from-4x#drupal-12): `string|false` as the return type of every `getMinkDriverArgs()` override, such as the one in the FunctionalJavascript base class the template generated, and the PHPUnit attributes that the note at the end of Step 13 describes.
+- For Drupal 12, also make the other changes in the "Drupal 12" section of [the upgrade guide](https://eddy.drevops.com/updating/upgrading-from-4x#drupal-12): `string|false` as the return type of every `getMinkDriverArgs()` override that the project's tests still have without it, and the PHPUnit attributes that the note at the end of Step 13 describes.
 
 A dropped major needs no change for the build, so leave `core_version_requirement` as it is and mention the choice in the pull request.
+
+### Remove the scratch directory
+
+Do this whether or not the subsections above applied. No later step needs the renders or the throwaway repository:
+
+```bash
+rm -rf .artifacts/tmp/eddy-update
+```
+
+```bash
+find .artifacts -type d -empty -delete
+```
 
 ## Step 13: Build, lint, and test
 
@@ -526,7 +539,7 @@ When `DEPLOY_REMOTE` isn't in the list, the project doesn't deploy, so carry on.
 
 ### Open the pull request
 
-Push the branch and open a pull request. Use the `/open-pr` skill or create the PR manually with a summary of all changes. Include the conflicts you resolved by judgment, the changes from Step 9 that need a new home, the leftover template files and the jobs below PHP 8.3 from Step 11, the code changes Step 12 made for a new Drupal major, and a new major that Step 13 left to CI.
+Push the branch and open a pull request. Use the `/open-pr` skill or create the PR manually with a summary of all changes. Include the conflicts you resolved by judgment, the changes from Step 9 that need a new home, the leftover template files and the jobs below PHP 8.3 from Step 11, the code changes Step 12 made to the FunctionalJavascript base class and for a new Drupal major, and a new major that Step 13 left to CI.
 
 When the deployment check above found `DEPLOY_REMOTE`, end the description with what's left around the merge:
 
@@ -539,7 +552,7 @@ When the deployment check above found `DEPLOY_REMOTE`, end the description with 
 - Never run the installer in the project root, and never copy the release's files over the project's: the merge keeps what the project changed. The 1 exception is `scripts/eddy-tooling`, which projects use as-is from Eddy, so Step 8 restores the release's copy.
 - A Drupal major the user asks to add or drop changes the render of the new release only. The render of the installed version keeps the majors the project tests now.
 - Always keep the scaffold's example extension and example scripts out of the merge - a real project never ships them. Step 7 leaves them out of both commits with the exclude pathspecs from Step 6.
-- Never overwrite project-specific code (src/, tests/, config/, *.module, etc.). Edit it only for the code changes a new Drupal major needs (Step 12) and the fixes Step 13 calls for.
+- Never overwrite project-specific code (src/, tests/, config/, *.module, etc.). Edit it only for the FunctionalJavascript base class of a 4.x project and the code changes a new Drupal major needs (Step 12), and for the fixes Step 13 calls for.
 - After the merge, always verify branch references match the project.
 - A project created from a 4.x release keeps its build scripts in `.devtools/`. The release ships them as the `drevops/eddy-tooling` package instead, so Step 9 removes the directory - never restore `.devtools/` or merge changes into it. Customisations a project made there become a lifecycle hook in `scripts/` or a patch for the package in `composer.dev.json`.
 - A project created from 4.18.0 or 4.19.0 can carry the Cloudflare tunnel hooks `scripts/provision-cloudflared.sh`, `scripts/start-cloudflared.sh` and `scripts/stop-cloudflared.sh`. Later releases run the tunnel from the tooling package, so Step 9 removes the hooks, and a customisation made in them becomes a patch for the package in `composer.dev.json`.
