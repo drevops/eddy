@@ -6,19 +6,25 @@ namespace DrevOps\Eddy\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Tests that documentation stays consistent with the files it describes.
  *
  * A script added to the tooling package can lack a 'bin' entry, which leaves
- * it uninstalled, or a row in the package README table. A path can be copied
- * into a PHPUnit config without being rebased onto the build root.
+ * it uninstalled, or a row in the package README and the documentation site.
+ * A path can be copied into a PHPUnit config without being rebased onto the
+ * build root.
  *
- * The migration guide repeats the update skill commands from 'AGENTS.md', so
+ * The upgrade guide repeats the update skill commands from 'AGENTS.md', so
  * either copy can change alone.
  *
  * The update skill answers every 'install.php' prompt through a variable and
  * detects every tool it offers, so either can be added to 'install.php' alone.
+ *
+ * The documentation site lists the CI jobs, the ignore-failure toggles and the
+ * variables that the workflows and the tooling read, so any of them can
+ * change without the page that lists it.
  *
  * No such drift is reported by a linter, because each file stays individually
  * valid while the files disagree.
@@ -29,20 +35,31 @@ use PHPUnit\Framework\Attributes\Group;
 #[Group('p0')]
 final class DocumentationTest extends UnitTestCase {
 
+  /**
+   * Variables that the shell or the SSH agent set, not the project.
+   */
+  protected const array PROCESS_VARIABLES = ['HOME', 'SSH_AGENT_PID', 'TERM'];
+
   #[DataProvider('dataProviderToolingCommandIsDocumented')]
-  public function testToolingCommandIsDocumented(string $name): void {
-    $readme = file_get_contents(self::toolingDir() . '/README.md');
-    $this->assertIsString($readme);
+  public function testToolingCommandIsDocumented(string $name, string $path): void {
+    $document = file_get_contents($path);
+    $this->assertIsString($document);
 
     // Anchored to the entry column: a name mentioned in another row's
     // description is a cross-reference, not an entry of its own.
-    $documented = preg_match('/^\|\s*`' . preg_quote($name, '/') . '`\s*\|/m', $readme) === 1;
+    $documented = preg_match('/^\|\s*`' . preg_quote($name, '/') . '`\s*\|/m', $document) === 1;
 
-    $this->assertTrue($documented, sprintf('The tooling README has no table row for `%s`.', $name));
+    $this->assertTrue($documented, sprintf('%s has no table row for `%s`.', self::relativePath($path), $name));
   }
 
   public static function dataProviderToolingCommandIsDocumented(): \Iterator {
-    yield from self::toolingCommands();
+    $documents = [self::toolingDir() . '/README.md', self::docsDir() . '/development/tooling.mdx'];
+
+    foreach (self::toolingCommands() as $name => $command) {
+      foreach ($documents as $path) {
+        yield $name . ' in ' . self::relativePath($path) => ['name' => $command['name'], 'path' => $path];
+      }
+    }
   }
 
   #[DataProvider('dataProviderToolingCommandExists')]
@@ -123,19 +140,19 @@ final class DocumentationTest extends UnitTestCase {
     }
   }
 
-  #[DataProvider('dataProviderMigrationGuideFetchesUpdateSkill')]
-  public function testMigrationGuideFetchesUpdateSkill(string $line): void {
-    $guide = file_get_contents(self::rootDir() . '/MIGRATION.md');
+  #[DataProvider('dataProviderUpgradeGuideFetchesUpdateSkill')]
+  public function testUpgradeGuideFetchesUpdateSkill(string $line): void {
+    $guide = file_get_contents(self::upgradeGuidePath());
     $this->assertIsString($guide);
 
     // Compared line by line, so the list item that holds a command block can
     // indent it differently.
     $lines = array_map(trim(...), explode("\n", $guide));
 
-    $this->assertContains($line, $lines, sprintf('MIGRATION.md does not fetch the update skill the way AGENTS.md does: `%s` is missing.', $line));
+    $this->assertContains($line, $lines, sprintf('The upgrade guide does not fetch the update skill the way AGENTS.md does: `%s` is missing.', $line));
   }
 
-  public static function dataProviderMigrationGuideFetchesUpdateSkill(): \Iterator {
+  public static function dataProviderUpgradeGuideFetchesUpdateSkill(): \Iterator {
     $agents = (string) file_get_contents(self::rootDir() . '/AGENTS.md');
 
     preg_match('/^## Updating the scaffold\n(.*?)(?=^## |\z)/ms', $agents, $matches);
@@ -195,8 +212,86 @@ final class DocumentationTest extends UnitTestCase {
 
   public static function dataProviderToolingPhpFloorIsDocumented(): \Iterator {
     yield 'update skill' => ['path' => self::updateSkillPath()];
-    yield 'migration guide' => ['path' => self::rootDir() . '/MIGRATION.md'];
+    yield 'upgrade guide' => ['path' => self::upgradeGuidePath()];
     yield 'tooling README' => ['path' => self::toolingDir() . '/README.md'];
+    yield 'tooling page' => ['path' => self::docsDir() . '/development/tooling.mdx'];
+  }
+
+  #[DataProvider('dataProviderCiJobIsDocumented')]
+  public function testCiJobIsDocumented(string $name, string $php, string $drupal): void {
+    $page = (string) file_get_contents(self::docsDir() . '/continuous-integration/README.mdx');
+
+    $row = '/^\|\s*`' . preg_quote($name, '/') . '`\s*\|\s*`' . preg_quote($php, '/') . '`\s*\|\s*`' . preg_quote($drupal, '/') . '`\s*\|/m';
+
+    $this->assertTrue(preg_match($row, $page) === 1, sprintf('The CI page has no row for `%s` on PHP %s and Drupal %s.', $name, $php, $drupal));
+  }
+
+  public static function dataProviderCiJobIsDocumented(): \Iterator {
+    foreach (self::ciJobs() as $job) {
+      yield $job['name'] => $job;
+    }
+  }
+
+  #[DataProvider('dataProviderRequiredJobIsDocumented')]
+  public function testRequiredJobIsDocumented(string $name): void {
+    $page = (string) file_get_contents(self::docsDir() . '/continuous-integration/branch-protection.mdx');
+
+    $this->assertTrue(str_contains($page, '`' . $name . '`'), sprintf('The branch protection page does not list the `%s` job.', $name));
+  }
+
+  public static function dataProviderRequiredJobIsDocumented(): \Iterator {
+    foreach (self::ciJobs() as $job) {
+      yield $job['name'] => ['name' => $job['name']];
+    }
+  }
+
+  #[DataProvider('dataProviderIgnoreFailureVariableIsDocumented')]
+  public function testIgnoreFailureVariableIsDocumented(string $variable): void {
+    $page = (string) file_get_contents(self::docsDir() . '/continuous-integration/configuration.mdx');
+
+    $row = '/^\|\s*`' . preg_quote($variable, '/') . '`\s*\|/m';
+
+    $this->assertTrue(preg_match($row, $page) === 1, sprintf('The CI configuration page has no row for `%s`.', $variable));
+  }
+
+  public static function dataProviderIgnoreFailureVariableIsDocumented(): \Iterator {
+    $workflow = (string) file_get_contents(self::rootDir() . '/.github/workflows/test.yml');
+
+    preg_match_all('/\bvars\.(CI_\w+_IGNORE_FAILURE)\b/', $workflow, $matches);
+    $variables = array_values(array_unique($matches[1]));
+
+    self::assertNotSame([], $variables, 'test.yml has no ignore-failure toggles.');
+
+    foreach ($variables as $variable) {
+      yield $variable => ['variable' => $variable];
+    }
+  }
+
+  #[DataProvider('dataProviderToolingVariableIsDocumented')]
+  public function testToolingVariableIsDocumented(string $variable): void {
+    $page = (string) file_get_contents(self::docsDir() . '/development/environment-variables.mdx');
+
+    $row = '/^\|\s*`' . preg_quote($variable, '/') . '`\s*\|/m';
+
+    $this->assertTrue(preg_match($row, $page) === 1, sprintf('The environment variables page has no row for `%s`, which the tooling reads.', $variable));
+  }
+
+  public static function dataProviderToolingVariableIsDocumented(): \Iterator {
+    $variables = [];
+
+    foreach (glob(self::toolingDir() . '/src/*') ?: [] as $path) {
+      preg_match_all("/\b(?:getenv|getenv_default|getenv_required|resolve_env_value|resolve_port_value)\('([A-Z][A-Z0-9_]*)'/", (string) file_get_contents($path), $matches);
+      $variables = array_merge($variables, $matches[1]);
+    }
+
+    $variables = array_values(array_diff(array_unique($variables), self::PROCESS_VARIABLES));
+    sort($variables);
+
+    self::assertNotSame([], $variables, 'The tooling reads no environment variables.');
+
+    foreach ($variables as $variable) {
+      yield $variable => ['variable' => $variable];
+    }
   }
 
   #[DataProvider('dataProviderUpdateSkillDetectsTool')]
@@ -298,8 +393,52 @@ final class DocumentationTest extends UnitTestCase {
     return array_values(array_unique($matches[1]));
   }
 
+  /**
+   * List the jobs of the 'lint' and 'test' matrices of the 'test.yml' workflow.
+   *
+   * @return array<int, array{name: string, php: string, drupal: string}>
+   *   The jobs in workflow order, each with its PHP and Drupal versions.
+   */
+  protected static function ciJobs(): array {
+    $workflow = Yaml::parse((string) file_get_contents(self::rootDir() . '/.github/workflows/test.yml'));
+    $jobs = [];
+
+    foreach (['lint', 'test'] as $job_name) {
+      $include = is_array($workflow) ? ($workflow['jobs'][$job_name]['strategy']['matrix']['include'] ?? NULL) : NULL;
+
+      self::assertIsArray($include, sprintf('test.yml has no matrix for the `%s` job.', $job_name));
+
+      foreach ($include as $leg) {
+        self::assertIsArray($leg);
+        self::assertIsScalar($leg['name'] ?? NULL);
+        self::assertIsScalar($leg['php-version'] ?? NULL);
+        self::assertIsScalar($leg['drupal-version'] ?? NULL);
+
+        $jobs[] = [
+          'name' => (string) $leg['name'],
+          'php' => (string) $leg['php-version'],
+          'drupal' => (string) $leg['drupal-version'],
+        ];
+      }
+    }
+
+    return $jobs;
+  }
+
   protected static function updateSkillPath(): string {
     return self::rootDir() . '/.eddy/skills/update-consumer-eddy/SKILL.md';
+  }
+
+  protected static function upgradeGuidePath(): string {
+    return self::docsDir() . '/updating/upgrading-from-4x.mdx';
+  }
+
+  protected static function docsDir(): string {
+    return self::rootDir() . '/.eddy/docs/content';
+  }
+
+  protected static function relativePath(string $path): string {
+    return substr($path, strlen(self::rootDir()) + 1);
   }
 
   protected static function rootDir(): string {
