@@ -4,18 +4,20 @@
  * @see https://docusaurus.io/docs/styling-layout#styling-your-site-with-infima
  */
 
-/* The primary shades step from the Eddy logo blue, #009cde. */
+/* The primary shades step from #006c99, the Eddy logo blue #009cde darkened
+   until text in it reaches 4.5:1 on the light backgrounds. */
 :root {
-  --ifm-color-primary: #009cde;
-  --ifm-color-primary-dark: #008cc8;
-  --ifm-color-primary-darker: #0085bd;
-  --ifm-color-primary-darkest: #006d9b;
-  --ifm-color-primary-light: #00acf4;
-  --ifm-color-primary-lighter: #00b3ff;
-  --ifm-color-primary-lightest: #22bdff;
+  --ifm-color-primary: #006c99;
+  --ifm-color-primary-dark: #00618a;
+  --ifm-color-primary-darker: #005b82;
+  --ifm-color-primary-darkest: #004b6b;
+  --ifm-color-primary-light: #0076a8;
+  --ifm-color-primary-lighter: #007cb0;
+  --ifm-color-primary-lightest: #008cc7;
   --ifm-code-font-size: 95%;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
   --eddy-ink: #192d62;
+  --search-local-muted-color: var(--ifm-color-emphasis-700);
 }
 
 /* Dark mode steps from a lighter blue that keeps links readable on the dark
@@ -30,6 +32,9 @@
   --ifm-color-primary-lightest: #b4def6;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
   --eddy-ink: #ffffff;
+  /* The selected search result sits on the light blue, so its text takes the
+     dark background color. */
+  --search-local-hit-active-color: var(--ifm-background-color);
 }
 
 .navbar__logo {
@@ -40,6 +45,21 @@
   color: var(--eddy-ink);
 }
 
+/* Color alone doesn't set a link apart from the text around it. */
+.markdown {
+  --ifm-link-decoration: underline;
+}
+
+.markdown .hash-link {
+  --ifm-link-decoration: none;
+}
+
+/* The footer is dark in both color modes, where the light-mode blue is
+   unreadable. */
+.footer--dark {
+  --ifm-footer-link-hover-color: var(--ifm-color-white);
+}
+
 .footer__copyright-link {
   color: var(--ifm-footer-link-color);
   text-decoration: underline;
@@ -47,4 +67,16 @@
 
 .footer__copyright-link:hover {
   color: var(--ifm-footer-link-hover-color);
+}
+
+/* WCAG 2.5.8 minimum target size. */
+.navbar__search [class*='searchClearButton'] {
+  min-width: 24px;
+  min-height: 24px;
+}
+
+/* Mermaid colors the label text with an ID selector, which only !important
+   outranks. */
+[data-theme='dark'] .docusaurus-mermaid-container .edgeLabel {
+  color: var(--ifm-color-white) !important;
 }
