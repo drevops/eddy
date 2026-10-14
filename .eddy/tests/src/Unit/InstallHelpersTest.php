@@ -38,6 +38,7 @@ use function process_command_wrapper_text;
 use function process_drupal_version_text;
 use function process_extension_type_text;
 use function read_composer_dev_json;
+use function remove_cspell_eddy_paths;
 use function remove_dir;
 use function remove_lines;
 use function remove_npm;
@@ -1475,6 +1476,45 @@ final class InstallHelpersTest extends UnitTestCase {
     normalize_cspell_words();
 
     $this->assertSame(json_encode($input), file_get_contents(self::$sut . '/.cspell.json'));
+  }
+
+  /**
+   * @param array<int, string>|null $expected
+   */
+  #[DataProvider('dataProviderRemoveCspellEddyPaths')]
+  public function testRemoveCspellEddyPaths(?string $cspell, ?array $expected): void {
+    chdir(self::$sut);
+
+    if ($cspell !== NULL) {
+      file_put_contents('.cspell.json', $cspell);
+    }
+
+    remove_cspell_eddy_paths();
+
+    if ($expected === NULL) {
+      $this->assertSame($cspell, is_file('.cspell.json') ? file_get_contents('.cspell.json') : NULL, '.cspell.json changed.');
+
+      return;
+    }
+
+    $config = json_decode((string) file_get_contents('.cspell.json'), TRUE);
+    $this->assertIsArray($config);
+    $this->assertSame($expected, $config['ignorePaths'] ?? NULL);
+    $this->assertSame(['**'], $config['files'] ?? NULL);
+  }
+
+  public static function dataProviderRemoveCspellEddyPaths(): \Iterator {
+    $cspell = static fn(array $paths): string => (string) json_encode(['files' => ['**'], 'ignorePaths' => $paths]);
+
+    yield 'eddy paths go' => [$cspell(['build/', '.eddy/docs/', '.eddy/tests/fixtures/', 'vendor/']), ['build/', 'vendor/']];
+    yield 'anchored eddy path goes' => [$cspell(['/.eddy/docs/', 'build/']), ['build/']];
+    yield 'eddy directory goes' => [$cspell(['.eddy', '.eddy/', 'build/']), ['build/']];
+    yield 'every path goes' => [$cspell(['.eddy/docs/']), []];
+    yield 'eddy path inside another directory stays' => [$cspell(['web/.eddy/', 'build/']), NULL];
+    yield 'similar name stays' => [$cspell(['.eddyrc', '.eddy-cache/']), NULL];
+    yield 'no eddy paths' => [$cspell(['build/']), NULL];
+    yield 'no ignore paths' => ['{"files":["**"]}', NULL];
+    yield 'no file' => [NULL, NULL];
   }
 
   /**
