@@ -186,7 +186,7 @@ What to do, if your project has FunctionalJavascript tests: bring their base cla
 
 - If it has no `getMinkDriverArgs()`, as in a project created from 4.13.0 to 4.17.0, replace the `CIRCLECI` check in `setUp()`, the comment above it included, with the base URL setup of the 5.x copy, and add the 5.x copy's `getMinkDriverArgs()`. `CONTRIBUTING.md` tells contributors to extend `<MachineName>FunctionalJavascriptTestBase`, so point it at your class instead.
 
-  Until you do, `ahoy test` and `make test` send the local Chrome to an address that doesn't reach the webserver, so every FunctionalJavascript test fails in `setUp()`, such as with `net::ERR_NAME_NOT_RESOLVED` on a Mac. CI keeps passing, because it runs the browser in a Selenium container, the setup the class was written for. A green pull request doesn't mean the class is fine.
+  Until you do, `ahoy test` and `make test` send the local Chrome to an address that doesn't reach the webserver, so every FunctionalJavascript test fails in `setUp()`, such as with `net::ERR_NAME_NOT_RESOLVED` on a Mac. CI keeps passing, because the 5.x `test.yml` still runs the browser in a Selenium container, the setup the class was written for. A green pull request doesn't mean the class is fine.
 
 - If it has one, as in a project created from 4.18.0 or 4.19.0, declare `string|false` as its return type, drop the `CIRCLECI` check in `setUp()` but keep the base URL setup inside it, and change `.devtools/browser` to `eddy-browser-start` in a comment.
 
