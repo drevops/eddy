@@ -29,6 +29,9 @@ use PHPUnit\Framework\Attributes\Group;
  * variables that the workflows and the tooling read, so any of them can
  * change without the page that lists it.
  *
+ * The documentation links to files on the main branch, and the docs build
+ * does not check external links, so moving a file breaks its links unnoticed.
+ *
  * No such drift is reported by a linter, because each file stays individually
  * valid while the files disagree.
  *
@@ -354,6 +357,30 @@ final class DocumentationTest extends UnitTestCase {
     }
   }
 
+  #[DataProvider('dataProviderRepositoryLinkResolves')]
+  public function testRepositoryLinkResolves(string $path, string $target): void {
+    $this->assertFileExists(self::rootDir() . '/' . $target, sprintf('%s links to `%s` on the main branch, which the repository does not have.', self::relativePath($path), $target));
+  }
+
+  public static function dataProviderRepositoryLinkResolves(): \Iterator {
+    $links = [];
+
+    foreach (self::markdownFiles() as $path) {
+      preg_match_all('#https://(?:github\.com/drevops/eddy/(?:blob|tree)|raw\.githubusercontent\.com/drevops/eddy)/main/([\w./-]+)#', (string) file_get_contents($path), $matches);
+
+      foreach ($matches[1] as $target) {
+        // A link that ends a sentence is followed by its full stop.
+        $target = rtrim($target, '.');
+
+        $links[self::relativePath($path) . ': ' . $target] = ['path' => $path, 'target' => $target];
+      }
+    }
+
+    self::assertNotSame([], $links, 'No document links to a file on the main branch.');
+
+    yield from $links;
+  }
+
   /**
    * List the commands the tooling package installs.
    *
@@ -475,6 +502,33 @@ final class DocumentationTest extends UnitTestCase {
     self::assertNotSame([], $commands, 'The update skill runs no commands.');
 
     return array_values(array_unique($commands));
+  }
+
+  /**
+   * List the Markdown files of the repository.
+   *
+   * Skips dependencies, build output and the snapshot fixtures.
+   *
+   * @return array<int, string>
+   *   The absolute paths, sorted.
+   */
+  protected static function markdownFiles(): array {
+    $skipped = ['.git', '.idea', '.chromedriver', 'vendor', 'node_modules', '.artifacts', '.logs', '.phpunit.cache', 'build', '.docusaurus', 'fixtures'];
+
+    $directory = new \RecursiveDirectoryIterator(self::rootDir(), \FilesystemIterator::SKIP_DOTS);
+    $filter = new \RecursiveCallbackFilterIterator($directory, static fn(\SplFileInfo $current): bool => !$current->isDir() || !in_array($current->getFilename(), $skipped, TRUE));
+
+    $paths = [];
+
+    foreach (new \RecursiveIteratorIterator($filter) as $file) {
+      if ($file instanceof \SplFileInfo && in_array($file->getExtension(), ['md', 'mdx'], TRUE)) {
+        $paths[] = $file->getPathname();
+      }
+    }
+
+    sort($paths);
+
+    return $paths;
   }
 
   protected static function updateSkillPath(): string {
