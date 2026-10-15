@@ -164,6 +164,7 @@ final class MakeTest extends ToolingTestCase {
   public function testWorkflow(): void {
     $this->processRun('make', ['start'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessFailed();
+    $this->assertProcessAnyOutputNotContains('ENVIRONMENT READY');
 
     $this->processRun('make', ['stop'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
