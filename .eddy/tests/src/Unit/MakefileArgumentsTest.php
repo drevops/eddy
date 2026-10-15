@@ -15,9 +15,6 @@ use PHPUnit\Framework\Attributes\Group;
  * The real 'Makefile' runs in a project whose Drush, PHPUnit and tooling
  * commands are stubs. Each stub logs the arguments it receives, after the
  * recipe shell has parsed them.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class MakefileArgumentsTest extends UnitTestCase {

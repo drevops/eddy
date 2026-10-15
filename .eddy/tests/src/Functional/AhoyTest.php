@@ -10,9 +10,6 @@ use Symfony\Component\Process\Process;
 
 /**
  * Tests for the ahoy-based tooling workflow.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p3')]
 final class AhoyTest extends ToolingTestCase {

@@ -17,9 +17,6 @@ use PHPUnit\Framework\Attributes\Group;
  * '.eddy/tooling', so the installer resolves the package as a generated
  * project does. A Composer home with a global path repository serves the
  * in-tree package as a release, so no published release is needed.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p2')]
 final class ToolingInstallerTest extends UnitTestCase {

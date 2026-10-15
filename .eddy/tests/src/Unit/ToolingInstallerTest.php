@@ -17,9 +17,6 @@ use function DrevOps\Eddy\ToolingInstaller\main;
  * Each test runs in an empty project directory with real files. Only the
  * Composer call is mocked, and the mock writes what a successful install
  * leaves: the package manifest and a proxy for each command.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]

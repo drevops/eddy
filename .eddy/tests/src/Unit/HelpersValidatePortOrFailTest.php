@@ -13,10 +13,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests for validate_port_or_fail() helper.
- *
- * phpcs:disable Drupal.Classes.FullyQualifiedNamespace.UseStatementMissing
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[CoversFunction('DrevOps\Eddy\Tooling\validate_port_or_fail')]
 #[RunTestsInSeparateProcesses]

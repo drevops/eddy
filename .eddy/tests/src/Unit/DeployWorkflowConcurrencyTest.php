@@ -20,9 +20,6 @@ use PHPUnit\Framework\Attributes\Group;
  * every waiting run instead.
  *
  * GitHub enforces concurrency, so the settings are read out of the workflow.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class DeployWorkflowConcurrencyTest extends UnitTestCase {

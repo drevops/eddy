@@ -10,9 +10,6 @@ use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests for the 'eddy-assemble' command.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p2')]
 final class AssembleTest extends ToolingTestCase {

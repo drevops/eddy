@@ -12,9 +12,6 @@ use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests for config_platform_php().
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[CoversFunction('DrevOps\Eddy\Tooling\config_platform_php')]
 #[Group('p0')]

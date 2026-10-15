@@ -13,8 +13,6 @@ use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests for copy_dir() function.
- *
- * phpcs:disable Drupal.Classes.FullyQualifiedNamespace.UseStatementMissing
  */
 #[CoversFunction('DrevOps\Eddy\Tooling\copy_dir')]
 #[Group('p0')]

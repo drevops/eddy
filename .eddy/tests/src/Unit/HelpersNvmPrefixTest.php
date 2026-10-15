@@ -16,9 +16,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  *
  * The prefix runs in a real shell through passthru_capture(), as the tooling
  * runs npm, with a stub 'nvm.sh' in place of nvm.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[CoversFunction('DrevOps\Eddy\Tooling\nvm_prefix')]
 #[RunTestsInSeparateProcesses]

@@ -11,9 +11,6 @@ use DrevOps\Eddy\Tests\Unit\UnitTestCase;
 
 /**
  * FunctionalTestCase fixture class.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 abstract class FunctionalTestCase extends UnitTestCase {
 

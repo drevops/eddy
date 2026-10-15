@@ -35,9 +35,6 @@ use PHPUnit\Framework\Attributes\Group;
  *
  * No such drift is reported by a linter, because each file stays individually
  * valid while the files disagree.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class DocumentationTest extends UnitTestCase {

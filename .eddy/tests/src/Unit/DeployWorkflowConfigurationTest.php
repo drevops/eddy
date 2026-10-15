@@ -13,9 +13,6 @@ use PHPUnit\Framework\Attributes\Group;
  * Deployment is optional, so every step is gated on DEPLOY_REMOTE and a notice
  * step reports the skip. Without the gate, the SSH key step fails on the empty
  * key of every repository that has not configured deployment.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class DeployWorkflowConfigurationTest extends UnitTestCase {

@@ -11,9 +11,6 @@ use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests for version_satisfies().
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[CoversFunction('DrevOps\Eddy\Tooling\version_satisfies')]
 #[Group('p0')]

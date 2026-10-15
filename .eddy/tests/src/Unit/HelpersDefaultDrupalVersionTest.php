@@ -12,9 +12,6 @@ use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests for default_drupal_version().
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[CoversFunction('DrevOps\Eddy\Tooling\default_drupal_version')]
 #[Group('p0')]

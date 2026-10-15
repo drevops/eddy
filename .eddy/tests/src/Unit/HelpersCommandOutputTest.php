@@ -15,9 +15,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  *
  * The commands run as real processes, so the pipe and process handling is
  * exercised the same way the tooling uses it.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[CoversFunction('DrevOps\Eddy\Tooling\command_output')]
 #[RunTestsInSeparateProcesses]

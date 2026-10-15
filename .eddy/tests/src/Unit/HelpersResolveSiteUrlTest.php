@@ -12,10 +12,6 @@ use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests for the resolve_site_url() helper.
- *
- * phpcs:disable Drupal.Classes.FullyQualifiedNamespace.UseStatementMissing
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[CoversFunction('DrevOps\Eddy\Tooling\resolve_site_url')]
 #[Group('p0')]

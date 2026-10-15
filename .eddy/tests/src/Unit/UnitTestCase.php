@@ -13,9 +13,6 @@ use DrevOps\Eddy\Tests\Traits\MockTrait;
 
 /**
  * UnitTestCase fixture class.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 abstract class UnitTestCase extends UpstreamUnitTestCase {
 

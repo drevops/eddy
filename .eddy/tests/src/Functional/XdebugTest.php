@@ -9,9 +9,6 @@ use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests for the XDebug step-debugging toggle.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p5')]
 final class XdebugTest extends ToolingTestCase {

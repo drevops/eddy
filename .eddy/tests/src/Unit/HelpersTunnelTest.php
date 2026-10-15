@@ -21,9 +21,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  *
  * Each test runs in an empty project root, so the PID file, the log, '.env'
  * and 'settings.php' are real files. Only the process calls are mocked.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[CoversFunction('DrevOps\Eddy\Tooling\tunnel_enabled')]
 #[CoversFunction('DrevOps\Eddy\Tooling\tunnel_start')]

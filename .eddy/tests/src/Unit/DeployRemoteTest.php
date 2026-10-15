@@ -15,9 +15,6 @@ use Symfony\Component\Process\Process;
  * The script runs in a clone with HEAD detached at the deployed commit, as the
  * workflow's checkout leaves it. It pushes to a local bare repository, and the
  * assertions read the refs that repository received.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class DeployRemoteTest extends UnitTestCase {

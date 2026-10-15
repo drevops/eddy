@@ -26,9 +26,6 @@ use PHPUnit\Framework\Attributes\Group;
  * If either rule is removed, the tests connect to 4444 while the browser
  * listens on another port. The tests then fail only on a machine where 4444 is
  * busy.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class PhpunitWebdriverEndpointTest extends UnitTestCase {

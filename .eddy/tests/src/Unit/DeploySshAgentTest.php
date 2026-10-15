@@ -15,9 +15,6 @@ use Symfony\Component\Process\Process;
  * The script runs against a real 'ssh-agent', with no agent in its environment
  * and a generated key named by its fingerprint, as a CI that installs keys by
  * fingerprint leaves it. It stops before the push.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class DeploySshAgentTest extends UnitTestCase {

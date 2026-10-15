@@ -25,9 +25,6 @@ use Symfony\Component\Yaml\Yaml;
  * `phpstan.neon` ignore patterns. An unmatched attribute breaks the Drupal 10
  * lint, and without this test the failure appears only after a full Drupal 10
  * assemble in CI.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class PhpunitAttributesTest extends UnitTestCase {

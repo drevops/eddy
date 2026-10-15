@@ -11,9 +11,6 @@ use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests for the drupal_release_select() helper.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[CoversFunction('DrevOps\Eddy\Tooling\drupal_release_select')]
 #[Group('p0')]

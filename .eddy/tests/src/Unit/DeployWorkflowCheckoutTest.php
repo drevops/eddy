@@ -19,9 +19,6 @@ use PHPUnit\Framework\Attributes\Group;
  * this repository. The deployment key is in scope for whatever is checked out.
  *
  * Neither half can be executed locally, so both are read out of the workflow.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class DeployWorkflowCheckoutTest extends UnitTestCase {

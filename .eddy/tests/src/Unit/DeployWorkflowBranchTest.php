@@ -29,9 +29,6 @@ use Symfony\Component\Process\Process;
  * The step's shell is read out of the workflow and executed in a clone of a
  * purpose-built repository. These assertions therefore cover that script,
  * not a re-implementation.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class DeployWorkflowBranchTest extends UnitTestCase {

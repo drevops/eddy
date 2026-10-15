@@ -14,9 +14,6 @@ use Symfony\Component\Yaml\Yaml;
  *
  * The `env` context resolves an undefined name to an empty string. A typo or a
  * self-reference then silently disables the value instead of failing the run.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class WorkflowsEnvContextTest extends UnitTestCase {

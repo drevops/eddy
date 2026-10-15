@@ -15,10 +15,6 @@ use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests for dotenv_read(), dotenv_write_var() and dotenv_unset_var() helpers.
- *
- * phpcs:disable Drupal.Classes.FullyQualifiedNamespace.UseStatementMissing
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[CoversFunction('DrevOps\Eddy\Tooling\dotenv_read')]
 #[CoversFunction('DrevOps\Eddy\Tooling\dotenv_write_var')]

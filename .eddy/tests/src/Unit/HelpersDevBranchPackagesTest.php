@@ -12,9 +12,6 @@ use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests for the dev_branch_packages() helper.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[CoversFunction('DrevOps\Eddy\Tooling\dev_branch_packages')]
 #[Group('p0')]

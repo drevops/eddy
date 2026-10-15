@@ -15,9 +15,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  *
  * Runs in isolated processes so the exec() mock for the `qrencode` probe is
  * not polluted by sibling tests.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[RunTestsInSeparateProcesses]
 #[CoversFunction('DrevOps\Eddy\Tooling\print_qrcode')]

@@ -10,9 +10,6 @@ use Symfony\Component\Process\Process;
 
 /**
  * Tests for the make-based tooling workflow.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p4')]
 final class MakeTest extends ToolingTestCase {

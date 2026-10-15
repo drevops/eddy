@@ -13,10 +13,6 @@ use Symfony\Component\Process\Process;
 
 /**
  * Functional tests for the webservers of several projects on the same machine.
- *
- * phpcs:disable Drupal.Classes.FullyQualifiedNamespace.UseStatementMissing
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p3')]
 final class AutoPortDiscoveryTest extends UnitTestCase {
@@ -43,7 +39,6 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
 
   protected function tearDown(): void {
     foreach ($this->startedPorts as $port) {
-      // phpcs:ignore
       @exec(sprintf('lsof -ti tcp:%s -sTCP:LISTEN | xargs kill -9 2>/dev/null', escapeshellarg($port)));
     }
     sleep(1);

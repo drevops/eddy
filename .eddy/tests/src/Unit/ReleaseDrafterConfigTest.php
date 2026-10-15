@@ -17,9 +17,6 @@ use Symfony\Component\Yaml\Yaml;
  * Once that block is removed upstream, a configuration still relying on it
  * silently falls back to the built-in `patch` increment. The next draft is
  * then named after the wrong release.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class ReleaseDrafterConfigTest extends UnitTestCase {

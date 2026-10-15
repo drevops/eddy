@@ -9,9 +9,6 @@ use DrevOps\Eddy\Tests\Traits\WebserverTrait;
 
 /**
  * Base class for tooling functional tests.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 abstract class ToolingTestCase extends FunctionalTestCase {
 

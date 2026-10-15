@@ -17,9 +17,6 @@ use Symfony\Component\Yaml\Yaml;
  * provides the rest. The real 'Makefile' runs with a probe makefile added
  * through a second '-f', and the real Ahoy entrypoint runs with the arguments
  * that Ahoy passes to it.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class WrapperDotenvTest extends UnitTestCase {

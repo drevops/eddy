@@ -12,9 +12,6 @@ use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests for the locked_packages() helper.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[CoversFunction('DrevOps\Eddy\Tooling\locked_packages')]
 #[Group('p0')]

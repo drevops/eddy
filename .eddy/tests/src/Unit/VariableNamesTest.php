@@ -19,9 +19,6 @@ use Symfony\Component\Yaml\Yaml;
  *
  * Every toggle that lets a CI step fail without failing its job is named
  * 'CI_<TOOL>_IGNORE_FAILURE'.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class VariableNamesTest extends UnitTestCase {

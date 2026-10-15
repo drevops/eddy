@@ -18,9 +18,6 @@ use Symfony\Component\Yaml\Yaml;
  * A flag declared outside its `#;< DEV_<TOOL>` block remains after that block
  * is removed, as a name nothing consumes. Both cases stay valid YAML, so no
  * linter reports either.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class CiRunnerVariablesTest extends UnitTestCase {

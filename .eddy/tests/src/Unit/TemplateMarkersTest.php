@@ -19,9 +19,6 @@ use function tool_specs;
  * snapshot fixtures are regenerated from the same output, so they miss it too.
  *
  * '.eddy/CLAUDE.md' documents the rules checked here.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class TemplateMarkersTest extends UnitTestCase {

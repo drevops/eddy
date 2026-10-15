@@ -14,9 +14,6 @@ use PHPUnit\Framework\Attributes\Group;
  *
  * Each project bundles extensions of the other type: 1 that ships with it and
  * 1 that only its tests use, laid out as the bundled extensions guide shows.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p4')]
 final class GeneratedProjectTest extends ToolingTestCase {

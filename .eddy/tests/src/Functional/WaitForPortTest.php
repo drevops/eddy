@@ -10,10 +10,6 @@ use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Functional tests for wait_for_port() against a real socket.
- *
- * phpcs:disable Drupal.Classes.FullyQualifiedNamespace.UseStatementMissing
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p3')]
 final class WaitForPortTest extends UnitTestCase {

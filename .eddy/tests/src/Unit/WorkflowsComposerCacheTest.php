@@ -18,9 +18,6 @@ use Symfony\Component\Yaml\Yaml;
  * A step output read before the step that sets it resolves to an empty
  * string. The job passes in each case, so neither a linter nor a run reports
  * it.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class WorkflowsComposerCacheTest extends UnitTestCase {
