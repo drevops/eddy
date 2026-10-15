@@ -25,7 +25,7 @@ final class InstallTest extends FunctionalTestCase {
       throw new \RuntimeException('Fixtures directory is not set.');
     }
 
-    if (str_contains(self::$fixtures, DIRECTORY_SEPARATOR . 'install' . DIRECTORY_SEPARATOR)) {
+    if (str_contains(self::$fixtures, '/install/')) {
       $this->snapshotUpdateOnFailure(self::$fixtures, self::$sut, self::$tmp);
     }
 
@@ -43,7 +43,7 @@ final class InstallTest extends FunctionalTestCase {
       $env['INSTALL_' . strtoupper((string) $key)] = $value;
     }
 
-    $this->processRun(self::$sut . DIRECTORY_SEPARATOR . 'install.php', [], [], $env);
+    $this->processRun(self::$sut . '/install.php', [], [], $env);
 
     $this->assertProcessSuccessful();
 
@@ -53,7 +53,7 @@ final class InstallTest extends FunctionalTestCase {
 
     // A kept installer must still run.
     if (File::exists(self::$sut . '/install.php')) {
-      $this->processRun(self::$sut . DIRECTORY_SEPARATOR . 'install.php', ['--help']);
+      $this->processRun(self::$sut . '/install.php', ['--help']);
       $this->assertProcessSuccessful();
       $this->assertProcessOutputContains('Eddy - project installation.');
     }

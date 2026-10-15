@@ -19,7 +19,6 @@ final class InfoTest extends UnitTestCase {
 
   protected function setUp(): void {
     parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
 
     self::envUnset('WEBSERVER_HOST');
     self::envUnset('WEBSERVER_PORT');
@@ -483,7 +482,7 @@ final class InfoTest extends UnitTestCase {
 
     $argv = ['info', '--no-coverage'];
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-info';
+    require self::toolingDir() . '/src/eddy-info';
     $output = ob_get_clean();
     $this->assertIsString($output);
 
@@ -492,7 +491,7 @@ final class InfoTest extends UnitTestCase {
 
   protected function runInfo(): string {
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-info';
+    require self::toolingDir() . '/src/eddy-info';
 
     return (string) ob_get_clean();
   }
@@ -506,7 +505,7 @@ final class InfoTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-info';
+      require self::toolingDir() . '/src/eddy-info';
       $this->fail('Expected info to call quit() in field mode.');
     }
     catch (QuitSuccessException | QuitErrorException $e) {

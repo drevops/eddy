@@ -17,11 +17,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class HelpersExtensionInfoTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   #[DataProvider('dataProviderExtensionInfo')]
   public function testExtensionInfo(string $filename, string $content, string $expected_name, string $expected_type): void {
     $dir = self::$tmp . '/ext_' . uniqid();

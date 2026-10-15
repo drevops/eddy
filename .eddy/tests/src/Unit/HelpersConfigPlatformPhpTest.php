@@ -17,11 +17,6 @@ use PHPUnit\Framework\Attributes\Group;
 #[Group('p0')]
 final class HelpersConfigPlatformPhpTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   #[DataProvider('dataProviderConfigPlatformPhp')]
   public function testConfigPlatformPhp(?string $first, ?string $second, ?string $expected): void {
     $manifests = [self::$tmp . '/composer.dev.json', self::$tmp . '/composer.json'];

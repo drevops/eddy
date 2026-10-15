@@ -15,11 +15,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class QrcodeTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   public function testQrcodeRendersQrcodeForUrlArgument(): void {
     // Invoking the command is an explicit request, so no opt-in is consulted.
     self::envSet('LOGIN_QRCODE', '');
@@ -31,7 +26,7 @@ final class QrcodeTest extends UnitTestCase {
 
     $argv = ['qrcode', 'https://example.com'];
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-qrcode';
+    require self::toolingDir() . '/src/eddy-qrcode';
     $output = ob_get_clean();
     $this->assertIsString($output);
 
@@ -44,7 +39,7 @@ final class QrcodeTest extends UnitTestCase {
 
     $argv = ['qrcode'];
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-qrcode';
+    require self::toolingDir() . '/src/eddy-qrcode';
     $output = ob_get_clean();
     $this->assertIsString($output);
 
@@ -59,7 +54,7 @@ final class QrcodeTest extends UnitTestCase {
     $argv = ['qrcode', 'https://example.com'];
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-qrcode';
+      require self::toolingDir() . '/src/eddy-qrcode';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {

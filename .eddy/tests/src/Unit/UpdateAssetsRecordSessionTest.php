@@ -23,7 +23,7 @@ final class UpdateAssetsRecordSessionTest extends UnitTestCase {
   protected function setUp(): void {
     parent::setUp();
     self::envSet('SCRIPT_RUN_SKIP', '1');
-    require_once dirname(__DIR__, 4) . '/.eddy/assets/update-assets.php';
+    require_once self::rootDir() . '/.eddy/assets/update-assets.php';
   }
 
   public function testRecordSession(): void {

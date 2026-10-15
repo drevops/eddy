@@ -19,7 +19,6 @@ final class StartTest extends UnitTestCase {
 
   protected function setUp(): void {
     parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
     self::envUnset('CLOUDFLARE_TUNNEL');
   }
 
@@ -56,7 +55,7 @@ final class StartTest extends UnitTestCase {
     $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): array => ['HTTP/1.1 200 OK']);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
+    require self::toolingDir() . '/src/eddy-start';
     $output = ob_get_clean();
 
     $this->assertIsString($output);
@@ -105,7 +104,7 @@ final class StartTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
+      require self::toolingDir() . '/src/eddy-start';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {
@@ -147,7 +146,7 @@ final class StartTest extends UnitTestCase {
     $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): array => ['HTTP/1.1 302 Found']);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
+    require self::toolingDir() . '/src/eddy-start';
     $output = ob_get_clean();
 
     $this->assertIsString($output);
@@ -185,7 +184,7 @@ final class StartTest extends UnitTestCase {
     $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): array => ['HTTP/1.1 200 OK']);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
+    require self::toolingDir() . '/src/eddy-start';
     $output = (string) ob_get_clean();
 
     $this->assertSame(3, $probes);
@@ -221,7 +220,7 @@ final class StartTest extends UnitTestCase {
     $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): array => ['HTTP/1.1 200 OK']);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
+    require self::toolingDir() . '/src/eddy-start';
     $output = (string) ob_get_clean();
 
     $this->assertStringContainsString('ENVIRONMENT READY', $output);
@@ -248,7 +247,7 @@ final class StartTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
+      require self::toolingDir() . '/src/eddy-start';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {
@@ -302,7 +301,7 @@ final class StartTest extends UnitTestCase {
     $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): array => ['HTTP/1.1 200 OK']);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
+    require self::toolingDir() . '/src/eddy-start';
     $output = (string) ob_get_clean();
 
     $this->assertStringContainsString('ENVIRONMENT READY', $output);
@@ -327,7 +326,7 @@ final class StartTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
+      require self::toolingDir() . '/src/eddy-start';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {
@@ -365,7 +364,7 @@ final class StartTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
+      require self::toolingDir() . '/src/eddy-start';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {
@@ -402,7 +401,7 @@ final class StartTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
+      require self::toolingDir() . '/src/eddy-start';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {
@@ -442,7 +441,7 @@ final class StartTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
+      require self::toolingDir() . '/src/eddy-start';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {
@@ -484,7 +483,7 @@ final class StartTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
+      require self::toolingDir() . '/src/eddy-start';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {
@@ -525,7 +524,7 @@ final class StartTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
+      require self::toolingDir() . '/src/eddy-start';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {
@@ -577,7 +576,7 @@ final class StartTest extends UnitTestCase {
     $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): array => ['HTTP/1.1 200 OK']);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
+    require self::toolingDir() . '/src/eddy-start';
     $output = ob_get_clean();
 
     $this->assertIsString($output);
@@ -633,7 +632,7 @@ final class StartTest extends UnitTestCase {
     $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): array => ['HTTP/1.1 200 OK']);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
+    require self::toolingDir() . '/src/eddy-start';
     $output = ob_get_clean();
 
     $this->assertIsString($output);
@@ -671,7 +670,7 @@ final class StartTest extends UnitTestCase {
     $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): array => ['HTTP/1.1 200 OK']);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
+    require self::toolingDir() . '/src/eddy-start';
     $output = ob_get_clean();
 
     $this->assertIsString($output);
@@ -716,7 +715,7 @@ final class StartTest extends UnitTestCase {
     ]);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
+    require self::toolingDir() . '/src/eddy-start';
     $output = (string) ob_get_clean();
 
     $served = strpos($output, 'Server can serve content');
@@ -757,7 +756,7 @@ final class StartTest extends UnitTestCase {
     $this->mockCommandAvailable('cloudflared', FALSE);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
+    require self::toolingDir() . '/src/eddy-start';
     $output = (string) ob_get_clean();
 
     $this->assertStringContainsString('cloudflared is not on PATH; skipping the tunnel.', $output);
@@ -792,7 +791,7 @@ final class StartTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-start';
+      require self::toolingDir() . '/src/eddy-start';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {

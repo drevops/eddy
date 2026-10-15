@@ -16,11 +16,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class HelpersRunCustomScriptsTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   public function testMissingDirectoryDoesNothing(): void {
     run_custom_scripts(self::$tmp . '/nonexistent_' . uniqid(), 'assemble-');
     $this->expectNotToPerformAssertions();

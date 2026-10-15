@@ -19,11 +19,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class HelpersMkdirOrFailTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   public function testCreatesMissingDirectory(): void {
     $dir = self::$tmp . '/parent/child';
 

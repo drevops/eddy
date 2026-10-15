@@ -20,11 +20,6 @@ final class HelpersCopyDirTest extends UnitTestCase {
 
   use DirectoryFixtureTrait;
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   #[DataProvider('dataProviderCopyDir')]
   public function testCopyDir(array $structure, array $expected_files): void {
     $src = self::$tmp . '/src_' . uniqid();

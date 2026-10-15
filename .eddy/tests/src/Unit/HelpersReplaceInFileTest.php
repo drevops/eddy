@@ -17,11 +17,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class HelpersReplaceInFileTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   #[DataProvider('dataProviderReplaceInFile')]
   public function testReplaceInFile(string $initial_content, string $pattern, string $replacement, string $expected_content): void {
     $file = self::$tmp . '/replace_' . uniqid() . '.txt';

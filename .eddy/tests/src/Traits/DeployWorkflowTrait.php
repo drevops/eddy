@@ -19,7 +19,7 @@ trait DeployWorkflowTrait {
    *   The absolute path.
    */
   protected static function deployWorkflowPath(): string {
-    return dirname(__DIR__, 4) . '/.github/workflows/deploy.yml';
+    return self::rootDir() . '/.github/workflows/deploy.yml';
   }
 
   /**

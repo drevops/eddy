@@ -66,7 +66,7 @@ final class ReleaseDrafterConfigTest extends UnitTestCase {
    *   The parsed configuration.
    */
   protected static function config(): array {
-    $path = dirname(__DIR__, 4) . '/.github/release-drafter.yml';
+    $path = self::rootDir() . '/.github/release-drafter.yml';
     $parsed = Yaml::parse(File::read($path));
 
     if (!is_array($parsed)) {

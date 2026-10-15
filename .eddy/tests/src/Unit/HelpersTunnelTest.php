@@ -51,7 +51,6 @@ final class HelpersTunnelTest extends UnitTestCase {
 
   protected function setUp(): void {
     parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
 
     self::envUnset('CLOUDFLARE_TUNNEL');
 

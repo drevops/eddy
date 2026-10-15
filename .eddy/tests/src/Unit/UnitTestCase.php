@@ -29,12 +29,29 @@ abstract class UnitTestCase extends UpstreamUnitTestCase {
    */
   protected array $mockShellExecOutputs = [];
 
+  protected function setUp(): void {
+    parent::setUp();
+    require_once self::toolingDir() . '/src/helpers.php';
+  }
+
   protected function tearDown(): void {
     // Reset before the mock assertions so a failed mock expectation cannot
     // leave environment variables set for the next test.
     self::envReset();
     $this->mockTearDown();
     parent::tearDown();
+  }
+
+  protected static function rootDir(): string {
+    return dirname(__DIR__, 4);
+  }
+
+  protected static function toolingDir(): string {
+    return self::rootDir() . '/.eddy/tooling';
+  }
+
+  protected static function fixturesDir(): string {
+    return dirname(__DIR__, 2) . '/fixtures';
   }
 
   /**

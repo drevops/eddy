@@ -19,11 +19,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class HelpersValidateTimeoutOrFailTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   #[DataProvider('dataProviderValidTimeout')]
   public function testValidTimeout(string $value, int $expected): void {
     $this->assertSame($expected, validate_timeout_or_fail($value, 'WEBSERVER_WAIT_TIMEOUT'));

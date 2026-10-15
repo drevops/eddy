@@ -16,11 +16,6 @@ use PHPUnit\Framework\Attributes\Group;
 #[Group('p0')]
 final class HelpersVersionSatisfiesTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   #[DataProvider('dataProviderVersionSatisfies')]
   public function testVersionSatisfies(string $version, string $constraint, ?bool $expected): void {
     $this->assertSame($expected, version_satisfies($version, $constraint));

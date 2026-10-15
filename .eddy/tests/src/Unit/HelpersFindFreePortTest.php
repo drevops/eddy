@@ -18,11 +18,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class HelpersFindFreePortTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   public function testFirstPortIsFree(): void {
     $this->mockStreamSocketClient([
       ['port' => 8000, 'listening' => FALSE],

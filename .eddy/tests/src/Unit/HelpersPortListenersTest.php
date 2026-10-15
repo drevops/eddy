@@ -40,11 +40,6 @@ final class HelpersPortListenersTest extends UnitTestCase {
 
   protected const string OTHER_SERVER = 'php -S localhost:8000 -t /www/other/build/web /www/other/build/web/.ht.router.php';
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   #[DataProvider('dataProviderPortListenerPidsCommand')]
   public function testPortListenerPidsCommand(int|string $port, string $expected): void {
     $this->assertSame($expected, port_listener_pids_command($port));

@@ -63,7 +63,7 @@ final class PhpunitWebdriverEndpointTest extends UnitTestCase {
   }
 
   public function testBaseClassRewritesEndpointFromResolvedPort(): void {
-    $path = dirname(__DIR__, 4) . '/tests/src/FunctionalJavascript/YourExtensionFunctionalJavascriptTestBase.php';
+    $path = self::rootDir() . '/tests/src/FunctionalJavascript/YourExtensionFunctionalJavascriptTestBase.php';
 
     $this->assertFileContainsString($path, 'function getMinkDriverArgs()', 'The base class must override getMinkDriverArgs() to apply the resolved WebDriver port.');
     $this->assertFileContainsString($path, "getenv('WEBDRIVER_PORT')", 'The base class must read WEBDRIVER_PORT; without it the endpoint stays pinned to the phpunit.xml literal.');
@@ -76,7 +76,7 @@ final class PhpunitWebdriverEndpointTest extends UnitTestCase {
    *   Configuration file name mapped to its absolute path.
    */
   protected static function phpunitConfigPaths(): \Iterator {
-    $root = dirname(__DIR__, 4);
+    $root = self::rootDir();
 
     foreach (['phpunit.xml', 'phpunit.d10.xml'] as $file) {
       yield $file => ['path' => $root . '/' . $file];

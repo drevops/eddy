@@ -542,12 +542,4 @@ final class DocumentationTest extends UnitTestCase {
     return substr($path, strlen(self::rootDir()) + 1);
   }
 
-  protected static function rootDir(): string {
-    return dirname(__DIR__, 4);
-  }
-
-  protected static function toolingDir(): string {
-    return self::rootDir() . '/.eddy/tooling';
-  }
-
 }

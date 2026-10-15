@@ -38,7 +38,7 @@ final class GeneratedProjectTest extends ToolingTestCase {
 
     // The bundled extensions, a Kernel test that uses them and a provision
     // script that enables the one that ships.
-    File::copy(dirname(__DIR__, 2) . '/fixtures/bundled/' . $type, self::$sut);
+    File::copy(self::fixturesDir() . '/bundled/' . $type, self::$sut);
 
     $this->installTooling();
 

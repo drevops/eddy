@@ -19,11 +19,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class HelpersValidatePortOrFailTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   #[DataProvider('dataProviderValidPortDoesNotFail')]
   public function testValidPortDoesNotFail(string $value): void {
     validate_port_or_fail($value, 'WEBSERVER_PORT');

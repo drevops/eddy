@@ -33,7 +33,7 @@ final class ToolingInstallerTest extends UnitTestCase {
   protected function setUp(): void {
     parent::setUp();
 
-    File::copy(dirname(__DIR__, 4) . '/scripts/eddy-tooling', self::$sut . '/scripts/eddy-tooling');
+    File::copy(self::rootDir() . '/scripts/eddy-tooling', self::$sut . '/scripts/eddy-tooling');
     chmod(self::$sut . '/scripts/eddy-tooling', 0755);
 
     $this->processCwd = self::$sut;
@@ -135,7 +135,7 @@ final class ToolingInstallerTest extends UnitTestCase {
    *   The command names.
    */
   protected function packageBins(): array {
-    $manifest = json_decode(File::read(dirname(__DIR__, 4) . '/.eddy/tooling/composer.json'), TRUE);
+    $manifest = json_decode(File::read(self::toolingDir() . '/composer.json'), TRUE);
     $this->assertIsArray($manifest);
 
     $bins = $manifest['bin'] ?? NULL;

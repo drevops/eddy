@@ -26,11 +26,6 @@ final class HelpersXdebugStateTest extends UnitTestCase {
 
   protected const string OTHER_SERVER_XDEBUG = 'php -d xdebug.mode=debug -d xdebug.start_with_request=yes -S localhost:8000 -t /www/other/build/web /www/other/build/web/.ht.router.php';
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   /**
    * @param array<int, string> $listeners
    *   The command line of each process listening on the port, keyed by

@@ -47,7 +47,7 @@ final class ToolingInstallerTest extends UnitTestCase {
   protected function setUp(): void {
     parent::setUp();
 
-    require_once dirname(__DIR__, 4) . '/scripts/eddy-tooling';
+    require_once self::rootDir() . '/scripts/eddy-tooling';
 
     $this->originalCwd = File::cwd();
     chdir(self::$sut);

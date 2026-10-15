@@ -21,11 +21,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class HelpersPrintQrcodeTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   public function testEmptyUrlDoesNothing(): void {
     // With qrencode available, only the empty URL can stop the render.
     $this->mockCommandAvailable('qrencode', TRUE);

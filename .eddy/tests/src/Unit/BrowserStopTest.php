@@ -20,7 +20,6 @@ final class BrowserStopTest extends UnitTestCase {
 
   protected function setUp(): void {
     parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
     self::envUnset('WEBDRIVER_PORT');
     self::envUnset('WEBDRIVER_BACKEND');
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => self::ROOT);
@@ -63,7 +62,7 @@ final class BrowserStopTest extends UnitTestCase {
     $this->mockSleep();
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-browser-stop';
+    require self::toolingDir() . '/src/eddy-browser-stop';
     $output = (string) ob_get_clean();
 
     $this->assertStringContainsString('STOP BROWSER', $output);
@@ -152,7 +151,7 @@ final class BrowserStopTest extends UnitTestCase {
     $this->mockSleep();
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-browser-stop';
+    require self::toolingDir() . '/src/eddy-browser-stop';
     $output = (string) ob_get_clean();
 
     $this->assertStringContainsString('Browser stopped on port 4444.', $output);
@@ -195,7 +194,7 @@ final class BrowserStopTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-browser-stop';
+      require self::toolingDir() . '/src/eddy-browser-stop';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {

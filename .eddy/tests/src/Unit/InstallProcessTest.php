@@ -36,14 +36,14 @@ final class InstallProcessTest extends UnitTestCase {
 
   public static function setUpBeforeClass(): void {
     self::envSet('SCRIPT_RUN_SKIP', '1');
-    require_once dirname(__DIR__, 4) . '/install.php';
+    require_once self::rootDir() . '/install.php';
     parent::setUpBeforeClass();
   }
 
   protected function setUp(): void {
     parent::setUp();
     $this->originalCwd = File::cwd();
-    $project_root = dirname(__DIR__, 4);
+    $project_root = self::rootDir();
     self::locationsCopy($project_root, self::$sut, [], [
       '.idea',
       '.logs',

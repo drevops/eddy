@@ -109,7 +109,7 @@ final class DeployRemoteTest extends UnitTestCase {
       'GIT_CONFIG_GLOBAL' => self::$tmp . '/gitconfig',
     ];
 
-    $process = new Process([PHP_BINARY, dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy'], $clone, $environment + self::gitEnvironment());
+    $process = new Process([PHP_BINARY, self::toolingDir() . '/src/eddy-deploy'], $clone, $environment + self::gitEnvironment());
     $process->run();
 
     if (!$process->isSuccessful()) {

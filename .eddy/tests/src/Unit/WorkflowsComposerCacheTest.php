@@ -331,8 +331,4 @@ final class WorkflowsComposerCacheTest extends UnitTestCase {
     return $arguments[1];
   }
 
-  protected static function rootDir(): string {
-    return dirname(__DIR__, 4);
-  }
-
 }

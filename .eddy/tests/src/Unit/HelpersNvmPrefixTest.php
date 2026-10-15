@@ -34,7 +34,6 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
 
   protected function setUp(): void {
     parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
 
     $this->originalDir = (string) getcwd();
     chdir(self::$sut);

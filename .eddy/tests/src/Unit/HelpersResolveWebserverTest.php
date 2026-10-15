@@ -20,7 +20,6 @@ final class HelpersResolveWebserverTest extends UnitTestCase {
 
   protected function setUp(): void {
     parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
 
     self::envUnset('WEBSERVER_HOST');
     self::envUnset('WEBSERVER_PORT');

@@ -19,11 +19,6 @@ final class HelpersFilesystemTest extends UnitTestCase {
 
   use DirectoryFixtureTrait;
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   public function testRemoveDirMissing(): void {
     remove_dir(self::$tmp . '/nonexistent_' . uniqid());
     $this->expectNotToPerformAssertions();

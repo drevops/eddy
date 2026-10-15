@@ -269,8 +269,4 @@ final class WrapperDotenvTest extends UnitTestCase {
     return $config;
   }
 
-  protected static function rootDir(): string {
-    return dirname(__DIR__, 4);
-  }
-
 }

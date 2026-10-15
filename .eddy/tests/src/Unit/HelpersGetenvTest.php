@@ -18,11 +18,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class HelpersGetenvTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   #[DataProvider('dataProviderGetenvDefault')]
   public function testGetenvDefault(array $env_vars, array $args, string $expected): void {
     foreach ($env_vars as $name => $value) {

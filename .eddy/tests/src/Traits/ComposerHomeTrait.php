@@ -26,7 +26,7 @@ trait ComposerHomeTrait {
     $repositories = [
       [
         'type' => 'path',
-        'url' => dirname(__DIR__, 4) . '/.eddy/tooling',
+        'url' => self::toolingDir(),
         'options' => ['symlink' => FALSE, 'versions' => ['drevops/eddy-tooling' => $version]],
       ],
     ];

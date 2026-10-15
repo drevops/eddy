@@ -93,7 +93,7 @@ final class DeploySshAgentTest extends UnitTestCase {
    *   The fingerprint of the key to load.
    */
   protected function runDeploy(string $fingerprint): Process {
-    $process = new Process([PHP_BINARY, dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy'], self::$tmp, [
+    $process = new Process([PHP_BINARY, self::toolingDir() . '/src/eddy-deploy'], self::$tmp, [
       // OpenSSH 10.1 and later create the agent socket under the home
       // directory, so a relative one keeps the socket path within its limit.
       'HOME' => self::HOME,

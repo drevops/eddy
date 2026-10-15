@@ -13,11 +13,6 @@ use PHPUnit\Framework\Attributes\Group;
 #[Group('p0')]
 final class HelpersIsDebugTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   #[DataProvider('dataProviderIsDebug')]
   public function testIsDebug(string|false $env_value, bool $expected): void {
     if ($env_value === FALSE) {

@@ -16,11 +16,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class HelpersPassthruOrFailTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   public function testSuccessNoMessage(): void {
     $this->mockPassthru(['cmd' => 'echo hello', 'result_code' => 0]);
     passthru_or_fail('echo hello');

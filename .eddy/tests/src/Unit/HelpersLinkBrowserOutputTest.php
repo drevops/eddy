@@ -13,11 +13,6 @@ use PHPUnit\Framework\Attributes\Group;
 #[Group('p0')]
 final class HelpersLinkBrowserOutputTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   public function testMissingWebrootDoesNothing(): void {
     $webroot = self::$tmp . '/web_' . uniqid();
     $logs = self::$tmp . '/logs_' . uniqid();

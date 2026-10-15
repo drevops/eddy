@@ -103,8 +103,4 @@ final class ZizmorInputsTest extends UnitTestCase {
     return $directory === '.' || $path === $directory || str_starts_with($path, $directory . '/');
   }
 
-  protected static function rootDir(): string {
-    return dirname(__DIR__, 4);
-  }
-
 }

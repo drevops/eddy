@@ -167,8 +167,4 @@ final class VariableNamesTest extends UnitTestCase {
     return $values;
   }
 
-  protected static function rootDir(): string {
-    return dirname(__DIR__, 4);
-  }
-
 }

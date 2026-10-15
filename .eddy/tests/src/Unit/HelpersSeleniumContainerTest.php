@@ -24,11 +24,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class HelpersSeleniumContainerTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   #[DataProvider('dataProviderSeleniumContainer')]
   public function testSeleniumContainer(string $port, string $expected): void {
     $this->assertSame($expected, selenium_container($port));

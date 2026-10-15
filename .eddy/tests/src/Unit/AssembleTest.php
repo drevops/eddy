@@ -41,11 +41,6 @@ final class AssembleTest extends UnitTestCase {
    */
   protected array $putenvCalls = [];
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   /**
    * Build mocks and expected passthru sequence for an assemble run.
    *
@@ -372,7 +367,7 @@ final class AssembleTest extends UnitTestCase {
 
     try {
       ob_start();
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
+      require self::toolingDir() . '/src/eddy-assemble';
       $output = ob_get_clean();
     }
     finally {
@@ -718,7 +713,7 @@ final class AssembleTest extends UnitTestCase {
     $this->setupAssembleMocks(['drupal_version' => $drupal_version, 'drupal_release' => $expected_release, 'releases' => $releases]);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
+    require self::toolingDir() . '/src/eddy-assemble';
     $output = (string) ob_get_clean();
 
     $this->assertStringContainsString('Resolved Drupal ' . $drupal_version . ' to ' . $expected_release . '.', $output);
@@ -761,7 +756,7 @@ final class AssembleTest extends UnitTestCase {
     self::envSet('GITHUB_TOKEN', '');
     self::envSet('SYMFONY_DEPRECATIONS_HELPER', '');
 
-    $dev_composer_json = json_decode(File::read(dirname(__DIR__, 4) . '/composer.dev.json'), TRUE, 512, JSON_THROW_ON_ERROR);
+    $dev_composer_json = json_decode(File::read(self::rootDir() . '/composer.dev.json'), TRUE, 512, JSON_THROW_ON_ERROR);
     $this->assertIsArray($dev_composer_json);
     /** @var array{extra: array<string, mixed>} $dev_composer_json */
     $dev_composer_json['extra']['patches'] = ['drupal/core' => ['Patch from composer.dev.json' => 'patches/dev.patch']];
@@ -772,7 +767,7 @@ final class AssembleTest extends UnitTestCase {
     ]);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
+    require self::toolingDir() . '/src/eddy-assemble';
     ob_end_clean();
 
     $last_write = end($this->capturedBuildComposerJson);
@@ -800,7 +795,7 @@ final class AssembleTest extends UnitTestCase {
     $this->setupAssembleMocks(['drupal_version' => '12', 'drupal_release' => '12.0.0-beta1', 'installed_packages' => $installed_packages]);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
+    require self::toolingDir() . '/src/eddy-assemble';
     $output = (string) ob_get_clean();
 
     if ($expected_lines === []) {
@@ -840,7 +835,7 @@ final class AssembleTest extends UnitTestCase {
     ]);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
+    require self::toolingDir() . '/src/eddy-assemble';
     ob_end_clean();
 
     $last_write = end($this->capturedBuildComposerJson);
@@ -874,7 +869,7 @@ final class AssembleTest extends UnitTestCase {
     ]);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
+    require self::toolingDir() . '/src/eddy-assemble';
     $output = (string) ob_get_clean();
 
     $this->assertStringContainsString('Resolved Drupal ' . $expected_version . ' to ' . $expected_release . '.', $output);
@@ -900,7 +895,7 @@ final class AssembleTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
+      require self::toolingDir() . '/src/eddy-assemble';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {
@@ -931,7 +926,7 @@ final class AssembleTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
+      require self::toolingDir() . '/src/eddy-assemble';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {
@@ -955,7 +950,7 @@ final class AssembleTest extends UnitTestCase {
     $this->setupAssembleMocks(['github_token' => $github_token]);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
+    require self::toolingDir() . '/src/eddy-assemble';
     $output = (string) ob_get_clean();
 
     $auth_calls = array_values(array_filter($this->putenvCalls, static fn(string $assignment): bool => str_starts_with($assignment, 'COMPOSER_AUTH=')));
@@ -978,7 +973,7 @@ final class AssembleTest extends UnitTestCase {
     $this->setupAssembleMocks(['php_requirement' => $php_requirement]);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
+    require self::toolingDir() . '/src/eddy-assemble';
     $output = (string) ob_get_clean();
 
     $this->assertStringContainsString('Checking PHP ' . self::phpVersion() . ' against Drupal 11.4.8.', $output);
@@ -1007,7 +1002,7 @@ final class AssembleTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
+      require self::toolingDir() . '/src/eddy-assemble';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {
@@ -1031,7 +1026,7 @@ final class AssembleTest extends UnitTestCase {
     $this->setupAssembleMocks(['extension_config' => $extension_config, 'dev_composer_json' => $dev_composer_json]);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
+    require self::toolingDir() . '/src/eddy-assemble';
     $output = (string) ob_get_clean();
 
     $expected_check = $expected_platform === NULL ? sprintf('Drupal 11.4.8 supports PHP %s.', self::phpVersion()) : sprintf('Drupal 11.4.8 supports PHP %s and the platform PHP %s.', self::phpVersion(), $expected_platform);
@@ -1070,7 +1065,7 @@ final class AssembleTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
+      require self::toolingDir() . '/src/eddy-assemble';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {
@@ -1095,7 +1090,7 @@ final class AssembleTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-assemble';
+      require self::toolingDir() . '/src/eddy-assemble';
       $this->fail('Expected QuitErrorException to be thrown.');
     }
     catch (QuitErrorException $e) {

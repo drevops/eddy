@@ -189,8 +189,4 @@ final class CiRunnerVariablesTest extends UnitTestCase {
     return explode("\n", File::read($path));
   }
 
-  protected static function rootDir(): string {
-    return dirname(__DIR__, 4);
-  }
-
 }

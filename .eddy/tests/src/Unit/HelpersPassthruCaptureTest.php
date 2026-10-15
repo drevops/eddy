@@ -15,11 +15,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class HelpersPassthruCaptureTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   #[DataProvider('dataProviderWrapsCommand')]
   public function testWrapsCommand(string $command, string $expected_wrapped): void {
     $captured_command = NULL;

@@ -186,8 +186,4 @@ final class MakefileArgumentsTest extends UnitTestCase {
     return self::$tmp . '/' . $command . '.log';
   }
 
-  protected static function rootDir(): string {
-    return dirname(__DIR__, 4);
-  }
-
 }

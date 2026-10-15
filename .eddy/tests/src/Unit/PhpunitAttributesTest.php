@@ -102,8 +102,4 @@ final class PhpunitAttributesTest extends UnitTestCase {
     return $patterns;
   }
 
-  protected static function rootDir(): string {
-    return dirname(__DIR__, 4);
-  }
-
 }

@@ -17,11 +17,6 @@ use PHPUnit\Framework\Attributes\Group;
 #[Group('p0')]
 final class HelpersResolveEnvValueTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   public function testEnvWinsOverDotenv(): void {
     $file = self::$tmp . '/resolve_env_' . uniqid();
     File::dump($file, "FOO=from_dotenv\n");

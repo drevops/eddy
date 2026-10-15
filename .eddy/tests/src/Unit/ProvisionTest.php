@@ -19,7 +19,6 @@ final class ProvisionTest extends UnitTestCase {
 
   protected function setUp(): void {
     parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
     self::envUnset('CLOUDFLARE_TUNNEL');
   }
 
@@ -131,7 +130,7 @@ final class ProvisionTest extends UnitTestCase {
     $this->mockPassthruMultiple($passthru_responses);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-provision';
+    require self::toolingDir() . '/src/eddy-provision';
     $output = ob_get_clean();
 
     $this->assertIsString($output);
@@ -337,7 +336,7 @@ final class ProvisionTest extends UnitTestCase {
     ]);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-provision';
+    require self::toolingDir() . '/src/eddy-provision';
     $output = ob_get_clean();
 
     $this->assertIsString($output);
@@ -382,7 +381,7 @@ final class ProvisionTest extends UnitTestCase {
     ]);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-provision';
+    require self::toolingDir() . '/src/eddy-provision';
     $output = ob_get_clean();
 
     $this->assertIsString($output);
@@ -439,7 +438,7 @@ final class ProvisionTest extends UnitTestCase {
     ]);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-provision';
+    require self::toolingDir() . '/src/eddy-provision';
     $output = ob_get_clean();
 
     $this->assertIsString($output);
@@ -489,7 +488,7 @@ final class ProvisionTest extends UnitTestCase {
     ]);
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-provision';
+    require self::toolingDir() . '/src/eddy-provision';
     $output = ob_get_clean();
 
     $this->assertIsString($output);

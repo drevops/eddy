@@ -14,11 +14,6 @@ use PHPUnit\Framework\Attributes\Group;
 #[Group('p3')]
 final class WaitForPortTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   public function testWaitEndsAtTimeoutWhenConnectionAttemptsAreDropped(): void {
     // A backlog of 1 lets the kernel queue a connection or 2 that is never
     // accepted. Once the queue is full, the kernel drops new connection

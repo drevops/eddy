@@ -24,11 +24,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class HelpersDotenvTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   #[DataProvider('dataProviderDotenvRead')]
   public function testDotenvRead(?string $content, array $expected): void {
     $file = self::$tmp . '/dotenv_read_' . uniqid();

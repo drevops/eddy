@@ -17,11 +17,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class HelpersDrushTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   #[DataProvider('dataProviderDrush')]
   public function testDrush(string $command, string|array|null $args, string $expected_command_suffix, string $mock_output, string $expected_output): void {
     $cwd = File::cwd();

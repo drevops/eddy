@@ -391,8 +391,4 @@ final class TemplateMarkersTest extends UnitTestCase {
     return $majors;
   }
 
-  protected static function rootDir(): string {
-    return dirname(__DIR__, 4);
-  }
-
 }

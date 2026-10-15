@@ -18,11 +18,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class HelpersWaitForPortTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   /**
    * @param array<int, true|float> $probes
    *   Each probe's outcome, in order: TRUE when it connects, otherwise the

@@ -16,11 +16,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class StopTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   public function testStopDefaultPortWhenNoEnvAndNoDotenv(): void {
     $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
 
@@ -29,7 +24,7 @@ final class StopTest extends UnitTestCase {
     $this->mockSleep();
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-stop';
+    require self::toolingDir() . '/src/eddy-stop';
     $output = ob_get_clean();
 
     $this->assertIsString($output);
@@ -47,7 +42,7 @@ final class StopTest extends UnitTestCase {
     $this->mockSleep();
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-stop';
+    require self::toolingDir() . '/src/eddy-stop';
     $output = ob_get_clean();
 
     $this->assertIsString($output);
@@ -65,7 +60,7 @@ final class StopTest extends UnitTestCase {
     $this->mockSleep();
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-stop';
+    require self::toolingDir() . '/src/eddy-stop';
     $output = ob_get_clean();
 
     $this->assertIsString($output);
@@ -100,7 +95,7 @@ final class StopTest extends UnitTestCase {
     $this->mockSleep();
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-stop';
+    require self::toolingDir() . '/src/eddy-stop';
     $output = (string) ob_get_clean();
 
     $this->assertStringContainsString('Services stopped on port 8000.', $output);
@@ -154,7 +149,7 @@ final class StopTest extends UnitTestCase {
     $this->mockSleep();
 
     ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-stop';
+    require self::toolingDir() . '/src/eddy-stop';
     $output = ob_get_clean();
 
     $this->assertIsString($output);

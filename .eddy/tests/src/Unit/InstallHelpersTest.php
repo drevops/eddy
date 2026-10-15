@@ -80,7 +80,7 @@ final class InstallHelpersTest extends UnitTestCase {
 
   public static function setUpBeforeClass(): void {
     self::envSet('SCRIPT_RUN_SKIP', '1');
-    require_once dirname(__DIR__, 4) . '/install.php';
+    require_once self::rootDir() . '/install.php';
     parent::setUpBeforeClass();
   }
 
@@ -203,7 +203,7 @@ final class InstallHelpersTest extends UnitTestCase {
   public function testDrupalVersionShippedBuildDefault(): void {
     $shipped_default = (string) max(array_map(intval(...), drupal_version_default()));
 
-    $config = json_decode(File::read(dirname(__DIR__, 4) . '/composer.dev.json'), TRUE);
+    $config = json_decode(File::read(self::rootDir() . '/composer.dev.json'), TRUE);
     $this->assertIsArray($config);
     /** @var array{extra?: array{eddy?: array{'drupal-version'?: string}}} $config */
 
@@ -326,7 +326,7 @@ final class InstallHelpersTest extends UnitTestCase {
    * installer finds them to render for the selected majors.
    */
   public function testPhpBadgesTemplate(): void {
-    $readme = File::read(dirname(__DIR__, 4) . '/README.dist.md');
+    $readme = File::read(self::rootDir() . '/README.dist.md');
     $badges = php_badges(array_keys(drupal_version_options()));
 
     preg_match_all('/^!\[PHP .*$/m', $readme, $matches);
@@ -559,7 +559,7 @@ final class InstallHelpersTest extends UnitTestCase {
       $this->assertContains($major, $supported, sprintf('Drupal %s has a specification but is not a supported major.', $major));
 
       foreach ($spec['files'] as $file) {
-        $this->assertFileExists(dirname(__DIR__, 4) . '/' . $file, sprintf('Drupal %s lists "%s", which the template does not have.', $major, $file));
+        $this->assertFileExists(self::rootDir() . '/' . $file, sprintf('Drupal %s lists "%s", which the template does not have.', $major, $file));
       }
     }
   }
@@ -579,7 +579,7 @@ final class InstallHelpersTest extends UnitTestCase {
       $tested[(int) $job['drupal']][] = $job['php'];
     }
 
-    $agents = File::read(dirname(__DIR__, 4) . '/AGENTS.md');
+    $agents = File::read(self::rootDir() . '/AGENTS.md');
 
     foreach ($php_versions as $major => $versions) {
       $tested_versions = sort_php_versions($tested[$major] ?? []);
@@ -599,7 +599,7 @@ final class InstallHelpersTest extends UnitTestCase {
 
     foreach (extension_type_specs() as $type => $spec) {
       foreach ($spec['files'] as $file) {
-        $this->assertFileExists(dirname(__DIR__, 4) . '/' . $file, sprintf('The %s type lists "%s", which the template does not have.', $type, $file));
+        $this->assertFileExists(self::rootDir() . '/' . $file, sprintf('The %s type lists "%s", which the template does not have.', $type, $file));
       }
     }
   }
@@ -751,7 +751,7 @@ final class InstallHelpersTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderTemplateVersionArchive')]
   public function testTemplateVersionArchive(?string $tag, int $commits_after_tag, string $expected_pattern): void {
-    $root = dirname(__DIR__, 4);
+    $root = self::rootDir();
     File::copy($root . '/install.php', self::$sut . '/install.php');
     File::copy($root . '/.gitattributes', self::$sut . '/.gitattributes');
 
@@ -1410,7 +1410,7 @@ final class InstallHelpersTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderIsGitignoredTemplate')]
   public function testIsGitignoredTemplate(string $path, bool $is_dir, bool $expected): void {
-    $rules = gitignore_rules(File::read(dirname(__DIR__, 4) . '/.gitignore'));
+    $rules = gitignore_rules(File::read(self::rootDir() . '/.gitignore'));
 
     $this->assertSame($expected, is_gitignored($path, $is_dir, $rules));
   }
@@ -1437,7 +1437,7 @@ final class InstallHelpersTest extends UnitTestCase {
    * Every skill the repository tracks in '.claude/skills' is one of Eddy's.
    */
   public function testEddySkillsListTrackedSkills(): void {
-    $tracked = $this->git(dirname(__DIR__, 4), ['ls-files', '--', '.claude/skills']);
+    $tracked = $this->git(self::rootDir(), ['ls-files', '--', '.claude/skills']);
     $paths = $tracked === '' ? [] : explode("\n", $tracked);
     $skills = array_values(array_unique(array_map(static fn(string $path): string => explode('/', $path)[2], $paths)));
 
@@ -1956,7 +1956,7 @@ final class InstallHelpersTest extends UnitTestCase {
    * Every word a tool lists is in the 'words' of the template '.cspell.json'.
    */
   public function testToolSpecsCspellWordsAreTemplateWords(): void {
-    $config = json_decode(File::read(dirname(__DIR__, 4) . '/.cspell.json'), TRUE);
+    $config = json_decode(File::read(self::rootDir() . '/.cspell.json'), TRUE);
     $this->assertIsArray($config);
     $template_words = $config['words'] ?? NULL;
     $this->assertIsArray($template_words);
@@ -1989,7 +1989,7 @@ final class InstallHelpersTest extends UnitTestCase {
    * '.cspell.json'.
    */
   public function testExtensionTypeSpecsCspellWordsAreTemplateWords(): void {
-    $config = json_decode(File::read(dirname(__DIR__, 4) . '/.cspell.json'), TRUE);
+    $config = json_decode(File::read(self::rootDir() . '/.cspell.json'), TRUE);
     $this->assertIsArray($config);
     $template_words = $config['words'] ?? NULL;
     $this->assertIsArray($template_words);

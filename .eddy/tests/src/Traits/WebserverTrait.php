@@ -175,8 +175,6 @@ trait WebserverTrait {
    *   The TCP port.
    */
   protected static function webserverStop(string $root, string $port): void {
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-
     kill_processes(array_keys(webserver_listeners($port, $root . '/build/web')['own']));
   }
 

@@ -39,7 +39,7 @@ final class UpdateAssetsTest extends UnitTestCase {
 
   public static function setUpBeforeClass(): void {
     self::envSet('SCRIPT_RUN_SKIP', '1');
-    require_once dirname(__DIR__, 4) . '/.eddy/assets/update-assets.php';
+    require_once self::rootDir() . '/.eddy/assets/update-assets.php';
     parent::setUpBeforeClass();
   }
 
@@ -132,7 +132,7 @@ final class UpdateAssetsTest extends UnitTestCase {
         '/Users/maintainer' => '/home/user',
       ];
 
-      $content = File::read(dirname(__DIR__, 2) . '/fixtures/assets/' . $run . '/' . $name . '.cast');
+      $content = File::read(self::fixturesDir() . '/assets/' . $run . '/' . $name . '.cast');
       $canonical[$run] = canonicalize_cast($content, $job['command'], $job['frames'], $replacements);
     }
 
@@ -607,7 +607,7 @@ final class UpdateAssetsTest extends UnitTestCase {
   }
 
   public function testInstallStepsAnswerEveryInstallPrompt(): void {
-    $install = File::read(dirname(__DIR__, 4) . '/install.php');
+    $install = File::read(self::rootDir() . '/install.php');
     preg_match_all("/Prompty::(?:text|select|multiselect|confirm)\(\s*'([^']+)'/", $install, $labels);
     preg_match_all('/^expect "([^"]+)"$/m', install_steps(), $patterns);
 

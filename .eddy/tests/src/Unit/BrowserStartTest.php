@@ -56,7 +56,6 @@ final class BrowserStartTest extends UnitTestCase {
 
   protected function setUp(): void {
     parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
     self::envUnset('WEBDRIVER_PORT');
     self::envUnset('WEBDRIVER_BACKEND');
 
@@ -880,7 +879,7 @@ final class BrowserStartTest extends UnitTestCase {
 
     ob_start();
     try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-browser-start';
+      require self::toolingDir() . '/src/eddy-browser-start';
 
       if ($expected_exit !== 0) {
         $this->fail('Expected eddy-browser-start to fail.');

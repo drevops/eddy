@@ -212,7 +212,7 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
   }
 
   protected function buildMinimalSut(string $sut): void {
-    $source_dir = dirname(__DIR__, 4) . '/.eddy/tooling/src';
+    $source_dir = self::toolingDir() . '/src';
     foreach (['helpers.php', 'eddy-start', 'eddy-stop'] as $file) {
       File::copy($source_dir . '/' . $file, $sut . '/' . self::TOOLING_DIR . '/' . $file);
     }
