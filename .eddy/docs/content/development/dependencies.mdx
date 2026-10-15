@@ -24,7 +24,7 @@ The build installs [`cweagans/composer-patches`](https://github.com/cweagans/com
 }
 ```
 
-A patch that no longer applies fails the build, so a dependency update that conflicts with it can't slip through quietly. Where you declare a patch decides where it applies:
+A patch that no longer applies fails the build, so you find out as soon as a dependency update conflicts with it. Where you declare a patch decides where it applies:
 
 - `composer.dev.json` - the build only, locally and in CI. Use it for patches that only your tests need, and keep their files in the `patches` directory, which the build copies into `build/`.
 - `composer.json` - the build, [Drupal.org GitLab CI](../continuous-integration/drupal-ci.mdx), which reads this format with composer-patches 1.x, and any site that installs your extension with composer-patches 2.x. Refer to these patches by a public URL, since a local `patches/` path doesn't exist on that site.

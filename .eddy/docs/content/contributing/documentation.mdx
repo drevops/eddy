@@ -49,7 +49,7 @@ npm run test:accessibility   # Check the built site for accessibility issues
 
 ## Accessibility
 
-The site aims for [WCAG 2.2](https://www.w3.org/TR/WCAG22/) level AA in both color modes. `npm run test:accessibility` runs [axe](https://github.com/dequelabs/axe-core) on every page of the build, in light and dark mode, at a desktop width and a phone width, against the WCAG A and AA rules. It also opens the search dropdown, the mobile menu and an animated demo, and checks how they behave from the keyboard. Automated checks catch a good share of problems, not all of them, so the writing still needs the care described below.
+The site aims for [WCAG 2.2](https://www.w3.org/TR/WCAG22/) level AA in both color modes. `npm run test:accessibility` runs [axe](https://github.com/dequelabs/axe-core) on every page of the build, in light and dark mode, at a desktop width and a phone width, against the WCAG A and AA rules. It also opens the search dropdown, the mobile menu and an animated demo, and checks how they behave from the keyboard. Automated checks catch many problems but miss others, so the writing still needs the care described below.
 
 Some of it is handled for you, so a page needs no extra markup:
 

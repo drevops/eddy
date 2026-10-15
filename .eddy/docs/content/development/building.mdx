@@ -60,15 +60,15 @@ Run them on their own when you only need part of the job. `provision` reinstalls
 
 `assemble` builds a fresh codebase every time, in this order:
 
-1. It checks your extension and the tools it uses, and resolves the Drupal release to build from `DRUPAL_VERSION` (see [Drupal versions](drupal-versions.mdx)).
-2. It checks that the PHP running the build meets that release's PHP requirement, and stops before it touches `build` when it doesn't.
-3. It removes the old `build` directory and creates a Drupal project from [drupal/recommended-project](https://www.drupal.org/docs/develop/using-composer/starting-a-site-using-drupal-composer-project-templates), with core pinned to the resolved release.
-4. It merges the development dependencies and settings of `composer.dev.json` and your extension's `composer.json` into the project, and pins the PHP platform.
-5. It installs the dependencies, applies your [patches](dependencies.mdx#patching-dependencies), and adds the extensions you [`suggest`](dependencies.mdx#optional-dependencies).
-6. It copies the configuration files of the linters and PHPUnit into `build`, because not every tool resolves a symlinked configuration file correctly.
-7. It symlinks every top-level file and directory of your project into the site, apart from `build` and `vendor`: `web/modules/custom/<your_extension>` for a module, or `web/themes/custom/<your_extension>` for a theme.
-8. It runs `npm ci` and `npm run build` in `build` when your project has a `package-lock.json` and no `.skip_npm_build` file (see [Frontend dependencies](dependencies.mdx#frontend-dependencies)).
-9. It runs your `scripts/assemble-*.sh` [lifecycle scripts](lifecycle-scripts.mdx).
+1. Checks your extension and the tools it uses, and resolves the Drupal release to build from `DRUPAL_VERSION` (see [Drupal versions](drupal-versions.mdx)).
+2. Checks that the PHP running the build meets that release's PHP requirement, and stops before it touches `build` when it doesn't.
+3. Removes the old `build` directory and creates a Drupal project from [drupal/recommended-project](https://www.drupal.org/docs/develop/using-composer/starting-a-site-using-drupal-composer-project-templates), with core pinned to the resolved release.
+4. Merges the development dependencies and settings of `composer.dev.json` and your extension's `composer.json` into the project, and pins the PHP platform.
+5. Installs the dependencies, applies your [patches](dependencies.mdx#patching-dependencies), and adds the extensions you [`suggest`](dependencies.mdx#optional-dependencies).
+6. Copies the configuration files of the linters and PHPUnit into `build`, because not every tool resolves a symlinked configuration file correctly.
+7. Symlinks every top-level file and directory of your project into the site, apart from `build` and `vendor`: `web/modules/custom/<your_extension>` for a module, or `web/themes/custom/<your_extension>` for a theme.
+8. Runs `npm ci` and `npm run build` in `build` when your project has a `package-lock.json` and no `.skip_npm_build` file (see [Frontend dependencies](dependencies.mdx#frontend-dependencies)).
+9. Runs your `scripts/assemble-*.sh` [lifecycle scripts](lifecycle-scripts.mdx).
 
 The build lists every dependency it installed from a development branch rather than a release, so you can see when a build leans on unreleased code.
 
