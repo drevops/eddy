@@ -88,7 +88,7 @@ final class VariableNamesTest extends UnitTestCase {
 
   public static function dataProviderProjectNames(): \Iterator {
     yield 'project prefix' => ['EDDY_DEBUG=1', ['EDDY_DEBUG']];
-    yield 'organisation prefix' => ["vars.DREVOPS_CI_A == '1'", ['DREVOPS_CI_A']];
+    yield 'organization prefix' => ["vars.DREVOPS_CI_A == '1'", ['DREVOPS_CI_A']];
     yield 'other project prefix' => ['export VORTEX_A=1', ['VORTEX_A']];
     yield 'project segment after a tool prefix' => ['AHOY_EDDY_READY=1', ['AHOY_EDDY_READY']];
     yield 'repeated name' => ['EDDY_A and EDDY_A', ['EDDY_A']];

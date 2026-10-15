@@ -1763,7 +1763,7 @@ final class InstallHelpersTest extends UnitTestCase {
     ];
   }
 
-  public function testNormaliseCspellWordsDeduplicatesAndSorts(): void {
+  public function testNormalizeCspellWordsDeduplicatesAndSorts(): void {
     chdir(self::$sut);
     $input = [
       'dictionaries' => ['php'],
@@ -1784,7 +1784,7 @@ final class InstallHelpersTest extends UnitTestCase {
     $this->assertSame(['build/'], $result['ignorePaths']);
   }
 
-  public function testNormaliseCspellWordsMissingFile(): void {
+  public function testNormalizeCspellWordsMissingFile(): void {
     chdir(self::$sut);
 
     normalize_cspell_words();
@@ -1792,7 +1792,7 @@ final class InstallHelpersTest extends UnitTestCase {
     $this->assertFileDoesNotExist(self::$sut . '/.cspell.json');
   }
 
-  public function testNormaliseCspellWordsInvalidJson(): void {
+  public function testNormalizeCspellWordsInvalidJson(): void {
     chdir(self::$sut);
     File::dump(self::$sut . '/.cspell.json', '{not valid json');
 
@@ -1800,7 +1800,7 @@ final class InstallHelpersTest extends UnitTestCase {
     normalize_cspell_words();
   }
 
-  public function testNormaliseCspellWordsMissingWordsKey(): void {
+  public function testNormalizeCspellWordsMissingWordsKey(): void {
     chdir(self::$sut);
     $input = json_encode(['dictionaries' => ['php']], JSON_THROW_ON_ERROR);
     File::dump(self::$sut . '/.cspell.json', $input);

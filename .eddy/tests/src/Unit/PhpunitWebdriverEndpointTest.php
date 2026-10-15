@@ -54,7 +54,7 @@ final class PhpunitWebdriverEndpointTest extends UnitTestCase {
 
     $this->assertIsArray($args, sprintf('%s does not hold a JSON array in MINK_DRIVER_ARGS_WEBDRIVER.', basename($path)));
     $this->assertArrayHasKey(2, $args, sprintf('%s omits the WebDriver endpoint from MINK_DRIVER_ARGS_WEBDRIVER.', basename($path)));
-    $this->assertSame('http://localhost:4444', $args[2], sprintf('%s must carry the default WebDriver endpoint; anything else desynchronises from resolve_webdriver_port().', basename($path)));
+    $this->assertSame('http://localhost:4444', $args[2], sprintf('%s must carry the default WebDriver endpoint; anything else desynchronizes from resolve_webdriver_port().', basename($path)));
   }
 
   /**

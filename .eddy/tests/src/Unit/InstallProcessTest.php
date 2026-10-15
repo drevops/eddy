@@ -325,8 +325,8 @@ final class InstallProcessTest extends UnitTestCase {
    * @param array<string> $expected_dirs
    * @param array<string> $expected_no_dirs
    */
-  #[DataProvider('dataProviderProcessPrunesThemeDirectories')]
-  public function testProcessPrunesThemeDirectories(array $tools_remove, array $project_files, array $expected_dirs, array $expected_no_dirs): void {
+  #[DataProvider('dataProviderProcessRemovesThemeDirectories')]
+  public function testProcessRemovesThemeDirectories(array $tools_remove, array $project_files, array $expected_dirs, array $expected_no_dirs): void {
     foreach ($project_files as $path) {
       File::dump(self::$sut . '/' . $path, "<?php\n");
     }
@@ -346,7 +346,7 @@ final class InstallProcessTest extends UnitTestCase {
     }
   }
 
-  public static function dataProviderProcessPrunesThemeDirectories(): \Iterator {
+  public static function dataProviderProcessRemovesThemeDirectories(): \Iterator {
     $module_dirs = ['src', 'config', 'tests/src/Unit', 'tests/src/Kernel', 'tests/src/Functional'];
 
     yield 'every tool' => [[], [], ['tests/src/FunctionalJavascript', 'css', 'js'], $module_dirs];
@@ -600,8 +600,8 @@ final class InstallProcessTest extends UnitTestCase {
    *
    * @param array<string> $tools_remove
    */
-  #[DataProvider('dataProviderProcessPrunesWebdriverSettings')]
-  public function testProcessPrunesWebdriverSettings(array $tools_remove, bool $expect): void {
+  #[DataProvider('dataProviderProcessRemovesWebdriverSettings')]
+  public function testProcessRemovesWebdriverSettings(array $tools_remove, bool $expect): void {
     process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], $tools_remove, FALSE, FALSE);
 
     foreach (['phpunit.xml', 'phpunit.d10.xml'] as $file) {
@@ -619,7 +619,7 @@ final class InstallProcessTest extends UnitTestCase {
     }
   }
 
-  public static function dataProviderProcessPrunesWebdriverSettings(): \Iterator {
+  public static function dataProviderProcessRemovesWebdriverSettings(): \Iterator {
     yield 'FunctionalJavascript' => [[], TRUE];
     yield 'no FunctionalJavascript' => [['functional_javascript'], FALSE];
   }
@@ -688,8 +688,8 @@ final class InstallProcessTest extends UnitTestCase {
    *
    * @param array<string> $tools_remove
    */
-  #[DataProvider('dataProviderProcessPrunesBrowserSetup')]
-  public function testProcessPrunesBrowserSetup(array $tools_remove, bool $expect): void {
+  #[DataProvider('dataProviderProcessRemovesBrowserSetup')]
+  public function testProcessRemovesBrowserSetup(array $tools_remove, bool $expect): void {
     process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], $tools_remove, FALSE, FALSE);
 
     $workflow = File::read(self::$sut . '/.github/workflows/test.yml');
@@ -702,7 +702,7 @@ final class InstallProcessTest extends UnitTestCase {
     $this->assertStringNotContainsString('#;', $workflow . $gitignore, 'A file keeps a marker line.');
   }
 
-  public static function dataProviderProcessPrunesBrowserSetup(): \Iterator {
+  public static function dataProviderProcessRemovesBrowserSetup(): \Iterator {
     yield 'FunctionalJavascript' => [[], TRUE];
     yield 'no FunctionalJavascript' => [['functional_javascript'], FALSE];
     yield 'no PHPUnit' => [['phpunit'], FALSE];
@@ -848,8 +848,8 @@ final class InstallProcessTest extends UnitTestCase {
    *
    * @param array<string> $command_wrapper
    */
-  #[DataProvider('dataProviderProcessPrunesContributingCommands')]
-  public function testProcessPrunesContributingCommands(array $command_wrapper, bool $expect_make, bool $expect_ahoy): void {
+  #[DataProvider('dataProviderProcessRemovesContributingCommands')]
+  public function testProcessRemovesContributingCommands(array $command_wrapper, bool $expect_make, bool $expect_ahoy): void {
     process('My Extension', 'my_extension', 'module', ['10', '11'], $command_wrapper, [], FALSE, FALSE);
 
     $contributing = File::read(self::$sut . '/CONTRIBUTING.md');
@@ -863,7 +863,7 @@ final class InstallProcessTest extends UnitTestCase {
     $this->assertStringNotContainsString('#;', $contributing, 'CONTRIBUTING.md keeps a marker line.');
   }
 
-  public static function dataProviderProcessPrunesContributingCommands(): \Iterator {
+  public static function dataProviderProcessRemovesContributingCommands(): \Iterator {
     yield from self::dataProviderProcessRemovesWrapperDocs();
   }
 
@@ -956,8 +956,8 @@ final class InstallProcessTest extends UnitTestCase {
    *
    * @param array<string> $command_wrapper
    */
-  #[DataProvider('dataProviderProcessPrunesWrapperConfig')]
-  public function testProcessPrunesWrapperConfig(array $command_wrapper, bool $expect_make, bool $expect_ahoy): void {
+  #[DataProvider('dataProviderProcessRemovesWrapperConfig')]
+  public function testProcessRemovesWrapperConfig(array $command_wrapper, bool $expect_make, bool $expect_ahoy): void {
     process('My Extension', 'my_extension', 'module', ['10', '11'], $command_wrapper, [], FALSE, FALSE);
 
     $gitattributes = File::read(self::$sut . '/.gitattributes');
@@ -970,7 +970,7 @@ final class InstallProcessTest extends UnitTestCase {
     $this->assertStringEndsNotWith("\n\n", $editorconfig, '.editorconfig ends with a blank line.');
   }
 
-  public static function dataProviderProcessPrunesWrapperConfig(): \Iterator {
+  public static function dataProviderProcessRemovesWrapperConfig(): \Iterator {
     yield from self::dataProviderProcessRemovesWrapperDocs();
   }
 
@@ -1152,8 +1152,8 @@ final class InstallProcessTest extends UnitTestCase {
    * @param array<string> $expected_present
    * @param array<string> $expected_absent
    */
-  #[DataProvider('dataProviderProcessPrunesDrupalVersions')]
-  public function testProcessPrunesDrupalVersions(array $drupal_versions, string $ci_file, array $expected_present, array $expected_absent): void {
+  #[DataProvider('dataProviderProcessRemovesDrupalVersions')]
+  public function testProcessRemovesDrupalVersions(array $drupal_versions, string $ci_file, array $expected_present, array $expected_absent): void {
     process('My Extension', 'my_extension', 'module', $drupal_versions, ['ahoy'], [], FALSE, FALSE);
 
     $content = File::read(self::$sut . '/' . $ci_file);
@@ -1169,7 +1169,7 @@ final class InstallProcessTest extends UnitTestCase {
     $this->assertStringNotContainsString('#;', $content, $ci_file . ' should not retain special-comment markers.');
   }
 
-  public static function dataProviderProcessPrunesDrupalVersions(): \Iterator {
+  public static function dataProviderProcessRemovesDrupalVersions(): \Iterator {
     $d10 = ['lint-d10', 'test-php-min-d10-stable', 'test-php-max-d10-stable'];
     $d11 = ['lint-d11', 'test-php-min-d11-stable', 'test-php-max-d11-stable', 'test-php-min-d11-legacy', 'test-php-max-d11-canary'];
     $d12 = ['lint-d12', 'test-php-min-d12-stable', 'test-php-max-d12-stable', 'test-php-min-d12-legacy', 'test-php-max-d12-canary'];
