@@ -16,8 +16,8 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  * Runs in isolated processes so the exec() mock for the `qrencode` probe is
  * not polluted by sibling tests.
  */
-#[RunTestsInSeparateProcesses]
 #[CoversFunction('DrevOps\Eddy\Tooling\print_qrcode')]
+#[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersPrintQrcodeTest extends UnitTestCase {
 

@@ -7,10 +7,13 @@ namespace DrevOps\Eddy\Tests\Unit;
 use function DrevOps\Eddy\Tooling\getenv_default;
 use function DrevOps\Eddy\Tooling\getenv_required;
 use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
+use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
+#[CoversFunction('DrevOps\Eddy\Tooling\getenv_default')]
+#[CoversFunction('DrevOps\Eddy\Tooling\getenv_required')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersGetenvTest extends UnitTestCase {

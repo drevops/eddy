@@ -12,7 +12,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-#[RunTestsInSeparateProcesses]
 #[CoversFunction('DrevOps\Eddy\Tooling\NOTE')]
 #[CoversFunction('DrevOps\Eddy\Tooling\TASK')]
 #[CoversFunction('DrevOps\Eddy\Tooling\INFO')]
@@ -20,6 +19,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[CoversFunction('DrevOps\Eddy\Tooling\FAIL_NO_EXIT')]
 #[CoversFunction('DrevOps\Eddy\Tooling\FAIL')]
 #[CoversFunction('DrevOps\Eddy\Tooling\term_supports_color')]
+#[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersFormatterTest extends UnitTestCase {
 
