@@ -211,6 +211,8 @@ Plain PHP stays where `File` has no method, or where the native behavior is what
 - PHP that a test writes into a file as a string, such as the stub commands of `MakefileArgumentsTest`, since it runs without the packages.
 - The functions that a mock stands in for: the names passed to `mockFunction()` and `getFunctionMock()`, and the native call that a mock falls back to, such as `\file_get_contents()` in `ProvisionTest`. The code under test expects the native return values, such as `FALSE` for a missing file. A mock intercepts only the calls from its namespace, such as `DrevOps\Eddy\Tooling`, so the `File` calls of a test never reach it.
 
+The tooling reads a file through `file_read()` or `file_read_or_fail()`, which check `is_file()` before they call `file_get_contents()`. So a test that mocks the content of a file mocks `is_file()` for it too. `mockIsFile()` answers for the paths it lists and checks every other path on disk.
+
 ## Regenerating snapshot fixtures
 
 **HARD RULE - never edit fixtures directly.** Files under `.eddy/tests/fixtures/install/` are generated artifacts, apart from the `.ignorecontent` rule files, which are edited by hand and kept as they are when the fixtures are regenerated. They must always be regenerated with the `update-snapshots` Composer script - run from inside `.eddy/tests` (see below) - after any source change that affects `install.php` output. Hand-editing a fixture risks drift between what the generator would produce and what is checked in - subsequent regenerations would then overwrite the manual edit and the failure mode would only surface in CI.
