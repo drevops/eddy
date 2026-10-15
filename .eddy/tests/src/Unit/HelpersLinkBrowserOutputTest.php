@@ -24,7 +24,7 @@ final class HelpersLinkBrowserOutputTest extends UnitTestCase {
   }
 
   public function testCreatesSymlinkFromScratch(): void {
-    [$webroot, $logs] = $this->createWebroot();
+    [$webroot, $logs] = self::createWebroot();
 
     link_browser_output($webroot, $logs);
 
@@ -40,7 +40,7 @@ final class HelpersLinkBrowserOutputTest extends UnitTestCase {
   }
 
   public function testReusesExistingTargetAndSimpletestDir(): void {
-    [$webroot, $logs] = $this->createWebroot();
+    [$webroot, $logs] = self::createWebroot();
     File::dump($logs . '/browser_output/existing.html', 'keep');
     File::mkdir($webroot . '/sites/simpletest', 0755);
 
@@ -52,7 +52,7 @@ final class HelpersLinkBrowserOutputTest extends UnitTestCase {
   }
 
   public function testReplacesExistingDirectory(): void {
-    [$webroot, $logs] = $this->createWebroot();
+    [$webroot, $logs] = self::createWebroot();
     $link = $webroot . '/sites/simpletest/browser_output';
     File::dump($link . '/stale.html', 'stale');
 
@@ -63,7 +63,7 @@ final class HelpersLinkBrowserOutputTest extends UnitTestCase {
   }
 
   public function testReplacesExistingSymlink(): void {
-    [$webroot, $logs] = $this->createWebroot();
+    [$webroot, $logs] = self::createWebroot();
     File::mkdir($webroot . '/sites/simpletest', 0755);
     $link = $webroot . '/sites/simpletest/browser_output';
     $other = self::$tmp . '/other_' . uniqid();
@@ -77,7 +77,7 @@ final class HelpersLinkBrowserOutputTest extends UnitTestCase {
   }
 
   public function testReplacesExistingFile(): void {
-    [$webroot, $logs] = $this->createWebroot();
+    [$webroot, $logs] = self::createWebroot();
     File::mkdir($webroot . '/sites/simpletest', 0755);
     $link = $webroot . '/sites/simpletest/browser_output';
     File::dump($link, 'i am a file');
@@ -94,7 +94,7 @@ final class HelpersLinkBrowserOutputTest extends UnitTestCase {
    * @return array{0: string, 1: string}
    *   Tuple of [webroot, logs_dir] absolute paths.
    */
-  protected function createWebroot(): array {
+  protected static function createWebroot(): array {
     $base = self::$tmp . '/proj_' . uniqid();
     $webroot = $base . '/build/web';
     File::mkdir($webroot, 0755);

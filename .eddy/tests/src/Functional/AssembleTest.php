@@ -20,7 +20,7 @@ final class AssembleTest extends ToolingTestCase {
 
     if ($nvmrc) {
       File::dump(self::$sut . '/.nvmrc', "22\n");
-      $env['NVM_DIR'] = $this->createNvmStub();
+      $env['NVM_DIR'] = self::createNvmStub();
     }
 
     $this->declareCorePatch('composer.json', 'add-composer-json-file.patch', self::coreFileAdditionDiff('eddy-composer-json.txt'));
@@ -100,7 +100,7 @@ final class AssembleTest extends ToolingTestCase {
    * @return string
    *   The directory.
    */
-  protected function createNvmStub(): string {
+  protected static function createNvmStub(): string {
     $dir = self::$tmp . '/nvm';
     File::dump($dir . '/nvm.sh', 'nvm() { echo "nvm $* $(cat .nvmrc)" >> "$NVM_DIR/calls.log"; }' . PHP_EOL);
 

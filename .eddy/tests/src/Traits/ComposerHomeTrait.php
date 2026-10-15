@@ -22,7 +22,7 @@ trait ComposerHomeTrait {
    * @param bool $packagist
    *   Whether Packagist stays available for other packages.
    */
-  protected function composerHomeWrite(string $version, bool $packagist): void {
+  protected static function composerHomeWrite(string $version, bool $packagist): void {
     $repositories = [
       [
         'type' => 'path',

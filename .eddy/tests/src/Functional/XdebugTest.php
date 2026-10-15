@@ -38,26 +38,26 @@ final class XdebugTest extends ToolingTestCase {
     $probe = self::$sut . '/build/web/_xdebug_check.php';
     File::dump($probe, '<?php echo ini_get("xdebug.mode") ?: "off";');
 
-    $this->assertSame('off', $this->fetchProbe(), 'Baseline: xdebug.mode is off.');
+    $this->assertSame('off', self::fetchProbe(), 'Baseline: xdebug.mode is off.');
 
     $this->processRun($tool, ['debug'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
     $this->assertProcessAnyOutputContains('Enabled XDebug');
-    $this->assertSame('debug', $this->fetchProbe(), 'After debug: xdebug.mode is debug.');
+    $this->assertSame('debug', self::fetchProbe(), 'After debug: xdebug.mode is debug.');
 
     $this->processRun($tool, ['debug'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
     $this->assertProcessAnyOutputContains('XDebug is already enabled');
-    $this->assertSame('debug', $this->fetchProbe(), 'After repeat debug: still debug.');
+    $this->assertSame('debug', self::fetchProbe(), 'After repeat debug: still debug.');
 
     $this->processRun($tool, ['start'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
     $this->assertProcessAnyOutputContains('XDebug    : Disabled');
-    $this->assertSame('off', $this->fetchProbe(), 'After start: xdebug.mode is off again.');
+    $this->assertSame('off', self::fetchProbe(), 'After start: xdebug.mode is off again.');
   }
 
-  protected function fetchProbe(): string {
-    $body = @file_get_contents('http://localhost:' . $this->webserverPort() . '/_xdebug_check.php');
+  protected static function fetchProbe(): string {
+    $body = @file_get_contents('http://localhost:' . self::webserverPort() . '/_xdebug_check.php');
 
     return $body === FALSE ? '' : trim($body);
   }

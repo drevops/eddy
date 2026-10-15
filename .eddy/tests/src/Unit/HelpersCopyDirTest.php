@@ -25,7 +25,7 @@ final class HelpersCopyDirTest extends UnitTestCase {
     $src = self::$tmp . '/src_' . uniqid();
     $dst = self::$tmp . '/dst_' . uniqid();
 
-    $this->directoryFixtureCreate($src, $structure);
+    self::directoryFixtureCreate($src, $structure);
 
     copy_dir($src, $dst);
 
@@ -135,7 +135,7 @@ final class HelpersCopyDirTest extends UnitTestCase {
     $src = self::$tmp . '/src_' . uniqid();
     $dst = self::$tmp . '/dst_' . uniqid();
 
-    $this->directoryFixtureCreate($src, [
+    self::directoryFixtureCreate($src, [
       'new_file.txt' => 'new content',
     ]);
 
@@ -153,7 +153,7 @@ final class HelpersCopyDirTest extends UnitTestCase {
     $src = self::$tmp . '/src_' . uniqid();
     $dst = self::$tmp . '/dst_' . uniqid();
 
-    $this->directoryFixtureCreate($src, [
+    self::directoryFixtureCreate($src, [
       'file.txt' => 'new content',
     ]);
 

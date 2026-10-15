@@ -60,7 +60,7 @@ final class InstallTest extends FunctionalTestCase {
     }
 
     $baseline = File::dir($fixtures . '/../' . self::BASELINE_DIR);
-    $this->replaceVersions(self::$sut);
+    self::replaceVersions(self::$sut);
 
     $this->assertSnapshotMatchesBaseline($baseline, $fixtures, self::$sut);
   }
@@ -206,7 +206,7 @@ final class InstallTest extends FunctionalTestCase {
     ];
   }
 
-  protected function replaceVersions(string $dir): void {
+  protected static function replaceVersions(string $dir): void {
     File::getReplacer()
       ->addVersionReplacements()
       ->addExclusions(['127.0.0.1'])
@@ -217,7 +217,7 @@ final class InstallTest extends FunctionalTestCase {
   }
 
   protected function snapshotUpdateBefore(string $actual): void {
-    $this->replaceVersions($actual);
+    self::replaceVersions($actual);
   }
 
 }

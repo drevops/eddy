@@ -33,7 +33,7 @@ abstract class ToolingTestCase extends FunctionalTestCase {
    * {@inheritdoc}
    */
   protected function tearDown(): void {
-    self::webserverStop(self::$sut, $this->webserverPort());
+    self::webserverStop(self::$sut, self::webserverPort());
     sleep(1);
 
     // Give enough permission to clean the build dir.
@@ -50,7 +50,7 @@ abstract class ToolingTestCase extends FunctionalTestCase {
    * The environment comes first, then the project '.env', then the default,
    * in the order the tooling resolves it.
    */
-  protected function webserverPort(): string {
+  protected static function webserverPort(): string {
     $port = self::envGet('WEBSERVER_PORT');
 
     if (is_string($port) && $port !== '') {

@@ -46,8 +46,8 @@ final class ToolingInstallerTest extends UnitTestCase {
   }
 
   public function testInstall(): void {
-    $this->composerHomeWrite('1.0.0', FALSE);
-    $this->writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
+    self::composerHomeWrite('1.0.0', FALSE);
+    self::writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
 
     $this->runInstaller();
     $this->assertProcessSuccessful();
@@ -69,8 +69,8 @@ final class ToolingInstallerTest extends UnitTestCase {
     $this->assertProcessSuccessful();
     $this->assertSame('', $this->processGet()->getOutput(), 'A current install prints nothing.');
 
-    $this->composerHomeWrite('1.1.0', FALSE);
-    $this->writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.1.0']]);
+    self::composerHomeWrite('1.1.0', FALSE);
+    self::writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.1.0']]);
 
     $this->runInstaller();
     $this->assertProcessSuccessful();
@@ -80,11 +80,11 @@ final class ToolingInstallerTest extends UnitTestCase {
 
   public function testPatches(): void {
     // The patch plugin comes from Packagist.
-    $this->composerHomeWrite('1.0.0', TRUE);
+    self::composerHomeWrite('1.0.0', TRUE);
 
     File::dump(self::$sut . '/patches/eddy-tooling-add-file.patch', self::PATCH);
 
-    $this->writeDevManifest([
+    self::writeDevManifest([
       'require-dev' => ['drevops/eddy-tooling' => '~1.0.0'],
       'extra' => ['patches' => ['drevops/eddy-tooling' => ['Add a file' => 'patches/eddy-tooling-add-file.patch']]],
     ]);
@@ -101,7 +101,7 @@ final class ToolingInstallerTest extends UnitTestCase {
     $this->assertProcessOutputContains('[INFO] Installing drevops/eddy-tooling ~1.0.0.');
     $this->assertStringEqualsFile(self::$sut . '/vendor/drevops/eddy-tooling/PATCHED.txt', "patched again\n", 'A patch edited in place is applied again.');
 
-    $this->writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
+    self::writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
 
     $this->runInstaller();
     $this->assertProcessSuccessful();
@@ -110,8 +110,8 @@ final class ToolingInstallerTest extends UnitTestCase {
   }
 
   public function testFailure(): void {
-    $this->composerHomeWrite('1.0.0', FALSE);
-    $this->writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~2.0.0']]);
+    self::composerHomeWrite('1.0.0', FALSE);
+    self::writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~2.0.0']]);
 
     $this->runInstaller();
     $this->assertProcessFailed();
@@ -124,7 +124,7 @@ final class ToolingInstallerTest extends UnitTestCase {
     $this->processRun('./scripts/eddy-tooling', [], [], ['COMPOSER_HOME' => self::composerHomeDir()], $this->defaultTimeout, $this->defaultIdleTimeout);
   }
 
-  protected function writeDevManifest(array $contents): void {
+  protected static function writeDevManifest(array $contents): void {
     File::dump(self::$sut . '/composer.dev.json', json_encode($contents, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
   }
 

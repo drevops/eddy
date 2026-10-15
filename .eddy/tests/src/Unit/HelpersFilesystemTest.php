@@ -27,7 +27,7 @@ final class HelpersFilesystemTest extends UnitTestCase {
   #[DataProvider('dataProviderRemoveDir')]
   public function testRemoveDir(array $structure, bool $has_symlink): void {
     $dir = self::$tmp . '/remove_' . uniqid();
-    $this->directoryFixtureCreate($dir, $structure);
+    self::directoryFixtureCreate($dir, $structure);
     if ($has_symlink) {
       File::dump($dir . '/target.txt', 'target content');
       symlink($dir . '/target.txt', $dir . '/subdir/link.txt');
@@ -70,7 +70,7 @@ final class HelpersFilesystemTest extends UnitTestCase {
   #[DataProvider('dataProviderChmodRecursive')]
   public function testChmodRecursive(array $structure, int $mode, array $expected_perms): void {
     $dir = self::$tmp . '/chmod_' . uniqid();
-    $this->directoryFixtureCreate($dir, $structure);
+    self::directoryFixtureCreate($dir, $structure);
     chmod_recursive($dir, $mode);
     foreach ($expected_perms as $relative_path => $expected_mode) {
       $path = $relative_path === '.' ? $dir : $dir . '/' . $relative_path;

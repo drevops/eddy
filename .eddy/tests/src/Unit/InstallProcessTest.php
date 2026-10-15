@@ -1334,9 +1334,9 @@ final class InstallProcessTest extends UnitTestCase {
       // the project's copy in 'HEAD'.
       $template = File::read($workflow);
       File::dump($workflow, $committed);
-      $this->gitInit(self::$sut);
-      $this->gitRun(self::$sut, ['add', '.github/workflows/test.yml']);
-      $this->gitRun(self::$sut, ['commit', '--message', 'Project workflow']);
+      self::gitInit(self::$sut);
+      self::gitRun(self::$sut, ['add', '.github/workflows/test.yml']);
+      self::gitRun(self::$sut, ['commit', '--message', 'Project workflow']);
       File::dump($workflow, $template);
     }
 
@@ -1387,8 +1387,8 @@ final class InstallProcessTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderProcessReadsGithubRepositoryFromOrigin')]
   public function testProcessReadsGithubRepositoryFromOrigin(?string $repository, string $expected): void {
-    $this->gitRun(self::$sut, ['init']);
-    $this->gitRun(self::$sut, ['remote', 'add', 'origin', 'git@github.com:acme/widget.git']);
+    self::gitRun(self::$sut, ['init']);
+    self::gitRun(self::$sut, ['remote', 'add', 'origin', 'git@github.com:acme/widget.git']);
 
     process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], [], FALSE, FALSE, [], NULL, $repository);
 

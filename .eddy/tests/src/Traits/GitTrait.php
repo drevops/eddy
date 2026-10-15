@@ -22,7 +22,7 @@ trait GitTrait {
    * @return string
    *   The trimmed standard output.
    */
-  protected function gitRun(string $repository, array $arguments): string {
+  protected static function gitRun(string $repository, array $arguments): string {
     $process = new Process(array_merge(['git'], $arguments), $repository, self::gitEnvironment());
     $process->run();
 
@@ -41,10 +41,10 @@ trait GitTrait {
    * @param array<int, string> $options
    *   Options for 'git init', such as '--initial-branch=main'.
    */
-  protected function gitInit(string $repository, array $options = []): void {
-    $this->gitRun($repository, ['init', ...$options]);
-    $this->gitRun($repository, ['config', 'user.name', 'Test User']);
-    $this->gitRun($repository, ['config', 'user.email', 'test@example.com']);
+  protected static function gitInit(string $repository, array $options = []): void {
+    self::gitRun($repository, ['init', ...$options]);
+    self::gitRun($repository, ['config', 'user.name', 'Test User']);
+    self::gitRun($repository, ['config', 'user.email', 'test@example.com']);
   }
 
   /**

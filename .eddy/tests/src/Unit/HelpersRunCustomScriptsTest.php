@@ -21,19 +21,19 @@ final class HelpersRunCustomScriptsTest extends UnitTestCase {
   }
 
   public function testEmptyDirectoryDoesNothing(): void {
-    $dir = $this->createScriptsDir();
+    $dir = self::createScriptsDir();
     run_custom_scripts($dir, 'assemble-');
     $this->expectNotToPerformAssertions();
   }
 
   public function testDirectoryWithNoPrefixMatchesDoesNothing(): void {
-    $dir = $this->createScriptsDir(['unrelated.sh' => 'echo nope', 'README.md' => '']);
+    $dir = self::createScriptsDir(['unrelated.sh' => 'echo nope', 'README.md' => '']);
     run_custom_scripts($dir, 'assemble-');
     $this->expectNotToPerformAssertions();
   }
 
   public function testExecutesMatchingScriptsInOrder(): void {
-    $dir = $this->createScriptsDir([
+    $dir = self::createScriptsDir([
       'assemble-zeta.sh' => 'echo zeta',
       'assemble-alpha.sh' => 'echo alpha',
       'assemble-beta.sh' => 'echo beta',
@@ -53,7 +53,7 @@ final class HelpersRunCustomScriptsTest extends UnitTestCase {
   }
 
   public function testIgnoresDifferentPrefix(): void {
-    $dir = $this->createScriptsDir([
+    $dir = self::createScriptsDir([
       'assemble-run.sh' => 'echo a',
       'provision-skip.sh' => 'echo p',
     ]);
@@ -80,7 +80,7 @@ final class HelpersRunCustomScriptsTest extends UnitTestCase {
   }
 
   public function testIgnoresNonShellExtension(): void {
-    $dir = $this->createScriptsDir([
+    $dir = self::createScriptsDir([
       'assemble-real.sh' => 'echo run',
       'assemble-readme.md' => '# notes',
       'assemble-script.txt' => 'echo nope',
@@ -96,7 +96,7 @@ final class HelpersRunCustomScriptsTest extends UnitTestCase {
   }
 
   public function testNonZeroExitAbortsParent(): void {
-    $dir = $this->createScriptsDir([
+    $dir = self::createScriptsDir([
       'provision-first.sh' => 'echo first',
       'provision-second.sh' => 'echo second',
     ]);
@@ -112,7 +112,7 @@ final class HelpersRunCustomScriptsTest extends UnitTestCase {
     $this->assertStringNotContainsString('provision-second.sh', $output);
   }
 
-  protected function createScriptsDir(array $files = []): string {
+  protected static function createScriptsDir(array $files = []): string {
     $dir = self::$tmp . '/scripts_' . uniqid();
     File::mkdir($dir, 0755);
     foreach ($files as $name => $contents) {

@@ -51,7 +51,7 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
       File::dump('.nvmrc', "22\n");
     }
 
-    $nvm_dir = $this->createNvmDir($has_nvm ? 'nvm() { :; }' : NULL);
+    $nvm_dir = self::createNvmDir($has_nvm ? 'nvm() { :; }' : NULL);
     self::envSet('NVM_DIR', $nvm_dir);
 
     $prefix = NULL;
@@ -80,7 +80,7 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
   #[DataProvider('dataProviderNvmPrefixRunsInShell')]
   public function testNvmPrefixRunsInShell(string $nvm_script, string $expected_output, int $expected_exit_code): void {
     File::dump('.nvmrc', "22\n");
-    self::envSet('NVM_DIR', $this->createNvmDir($nvm_script));
+    self::envSet('NVM_DIR', self::createNvmDir($nvm_script));
 
     $prefix = NULL;
     $this->capture(function () use (&$prefix): void {
@@ -103,7 +103,7 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
 
   public function testNvmPrefixFailsWithoutNvmFunction(): void {
     File::dump('.nvmrc', "22\n");
-    self::envSet('NVM_DIR', $this->createNvmDir('NVM_LOADED=1'));
+    self::envSet('NVM_DIR', self::createNvmDir('NVM_LOADED=1'));
 
     $prefix = NULL;
     $this->capture(function () use (&$prefix): void {
@@ -151,7 +151,7 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
    * @return string
    *   The directory.
    */
-  protected function createNvmDir(?string $script): string {
+  protected static function createNvmDir(?string $script): string {
     $dir = self::$tmp . '/nvm';
     File::mkdir($dir);
 

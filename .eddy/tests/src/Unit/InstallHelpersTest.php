@@ -753,19 +753,19 @@ final class InstallHelpersTest extends UnitTestCase {
     File::copy($root . '/install.php', self::$sut . '/install.php');
     File::copy($root . '/.gitattributes', self::$sut . '/.gitattributes');
 
-    $this->gitInit(self::$sut);
-    $this->gitRun(self::$sut, ['add', '--all']);
-    $this->gitRun(self::$sut, ['commit', '--message', 'Release']);
+    self::gitInit(self::$sut);
+    self::gitRun(self::$sut, ['add', '--all']);
+    self::gitRun(self::$sut, ['commit', '--message', 'Release']);
 
     if ($tag !== NULL) {
-      $this->gitRun(self::$sut, ['tag', $tag]);
+      self::gitRun(self::$sut, ['tag', $tag]);
     }
 
     for ($i = 0; $i < $commits_after_tag; $i++) {
-      $this->gitRun(self::$sut, ['commit', '--allow-empty', '--message', 'Change']);
+      self::gitRun(self::$sut, ['commit', '--allow-empty', '--message', 'Change']);
     }
 
-    $this->gitRun(self::$sut, ['archive', '--output=archive.tar', 'HEAD', 'install.php']);
+    self::gitRun(self::$sut, ['archive', '--output=archive.tar', 'HEAD', 'install.php']);
     $process = new Process(['tar', '-xOf', 'archive.tar', 'install.php'], self::$sut);
     $process->mustRun();
     $archived = $process->getOutput();
@@ -875,15 +875,15 @@ final class InstallHelpersTest extends UnitTestCase {
   #[DataProvider('dataProviderCommittedWorkflowBranches')]
   public function testCommittedWorkflowBranches(?array $committed, string $directory, array $expected): void {
     if ($committed !== NULL) {
-      $this->gitInit(self::$sut);
+      self::gitInit(self::$sut);
       File::dump(self::$sut . '/README.md', 'Project');
 
       foreach ($committed as $path => $content) {
         File::dump(self::$sut . '/' . $path, $content);
       }
 
-      $this->gitRun(self::$sut, ['add', '--all']);
-      $this->gitRun(self::$sut, ['commit', '--message', 'Initial commit']);
+      self::gitRun(self::$sut, ['add', '--all']);
+      self::gitRun(self::$sut, ['commit', '--message', 'Initial commit']);
     }
 
     // The working tree holds the template's copy, which the function ignores.
@@ -1029,7 +1029,7 @@ final class InstallHelpersTest extends UnitTestCase {
   #[DataProvider('dataProviderOriginGithubRepository')]
   public function testOriginGithubRepository(array $commands, string $directory, ?string $expected): void {
     foreach ($commands as $command) {
-      $this->gitRun(self::$sut, $command);
+      self::gitRun(self::$sut, $command);
     }
 
     File::mkdir(self::$sut . '/' . $directory);
@@ -1431,7 +1431,7 @@ final class InstallHelpersTest extends UnitTestCase {
    * Every skill the repository tracks in '.claude/skills' is one of Eddy's.
    */
   public function testEddySkillsListTrackedSkills(): void {
-    $tracked = $this->gitRun(self::rootDir(), ['ls-files', '--', '.claude/skills']);
+    $tracked = self::gitRun(self::rootDir(), ['ls-files', '--', '.claude/skills']);
     $paths = $tracked === '' ? [] : explode("\n", $tracked);
     $skills = array_values(array_unique(array_map(static fn(string $path): string => explode('/', $path)[2], $paths)));
 

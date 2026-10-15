@@ -40,9 +40,9 @@ final class DeploySshAgentTest extends UnitTestCase {
 
   #[DataProvider('dataProviderAgentStarted')]
   public function testAgentStarted(string $algorithm): void {
-    $key = $this->createKey();
+    $key = self::createKey();
 
-    $process = $this->runDeploy($key[$algorithm]);
+    $process = self::runDeploy($key[$algorithm]);
     $output = $process->getOutput();
 
     if (preg_match('/Started an SSH agent with PID (\d+)\./', $output, $matches) === 1) {
@@ -69,14 +69,14 @@ final class DeploySshAgentTest extends UnitTestCase {
    *   colon-separated hex, and the SHA256 fingerprint with its 'SHA256:'
    *   prefix.
    */
-  protected function createKey(): array {
+  protected static function createKey(): array {
     File::mkdir(self::$tmp . '/' . self::HOME . '/.ssh', 0700);
 
     $generated = self::HOME . '/.ssh/generated';
-    $this->command(['ssh-keygen', '-q', '-t', 'ed25519', '-N', '', '-C', 'eddy-deploy-test', '-f', $generated]);
+    self::command(['ssh-keygen', '-q', '-t', 'ed25519', '-N', '', '-C', 'eddy-deploy-test', '-f', $generated]);
 
-    $md5 = explode(' ', $this->command(['ssh-keygen', '-l', '-E', 'md5', '-f', $generated]))[1] ?? '';
-    $sha256 = explode(' ', $this->command(['ssh-keygen', '-l', '-E', 'sha256', '-f', $generated]))[1] ?? '';
+    $md5 = explode(' ', self::command(['ssh-keygen', '-l', '-E', 'md5', '-f', $generated]))[1] ?? '';
+    $sha256 = explode(' ', self::command(['ssh-keygen', '-l', '-E', 'sha256', '-f', $generated]))[1] ?? '';
     $md5 = str_replace('MD5:', '', $md5);
 
     $file = self::HOME . '/.ssh/id_rsa_' . str_replace(':', '', $md5);
@@ -92,7 +92,7 @@ final class DeploySshAgentTest extends UnitTestCase {
    * @param string $fingerprint
    *   The fingerprint of the key to load.
    */
-  protected function runDeploy(string $fingerprint): Process {
+  protected static function runDeploy(string $fingerprint): Process {
     $process = new Process([PHP_BINARY, self::toolingDir() . '/src/eddy-deploy'], self::$tmp, [
       // OpenSSH 10.1 and later create the agent socket under the home
       // directory, so a relative one keeps the socket path within its limit.
@@ -122,7 +122,7 @@ final class DeploySshAgentTest extends UnitTestCase {
    * @return string
    *   The standard output, without surrounding whitespace.
    */
-  protected function command(array $command): string {
+  protected static function command(array $command): string {
     $process = new Process($command, self::$tmp);
     $process->run();
 

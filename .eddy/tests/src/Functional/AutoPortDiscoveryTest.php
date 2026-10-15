@@ -52,8 +52,8 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
     $this->sut1 = self::$tmp . '/proj1_' . uniqid();
     $this->sut2 = self::$tmp . '/proj2_' . uniqid();
 
-    $this->buildMinimalSut($this->sut1);
-    $this->buildMinimalSut($this->sut2);
+    self::buildMinimalSut($this->sut1);
+    self::buildMinimalSut($this->sut2);
 
     $this->processCwd = $this->sut1;
     $this->processRun('php', [self::TOOLING_DIR . '/eddy-start'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
@@ -102,7 +102,7 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
 
   public function testExistingDotenvPortIsHonoredAndNotRewritten(): void {
     $sut = self::$tmp . '/proj_preset_' . uniqid();
-    $this->buildMinimalSut($sut);
+    self::buildMinimalSut($sut);
 
     $preset_port = self::webserverFreePort();
     File::dump($sut . '/.env', 'WEBSERVER_PORT=' . $preset_port . "\n# user comment\n");
@@ -119,7 +119,7 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
 
   public function testStopLeavesClientsRunning(): void {
     $sut = self::$tmp . '/proj_client_' . uniqid();
-    $this->buildMinimalSut($sut);
+    self::buildMinimalSut($sut);
 
     $this->processCwd = $sut;
     $this->processRun('php', [self::TOOLING_DIR . '/eddy-start'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
@@ -153,8 +153,8 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
     $this->sut1 = self::$tmp . '/proj1_' . uniqid();
     $this->sut2 = self::$tmp . '/proj2_' . uniqid();
 
-    $this->buildMinimalSut($this->sut1);
-    $this->buildMinimalSut($this->sut2);
+    self::buildMinimalSut($this->sut1);
+    self::buildMinimalSut($this->sut2);
 
     // Both projects recorded the same port, as they do when one of them
     // discovers the port that the other one freed.
@@ -191,8 +191,8 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
     $this->sut1 = self::$tmp . '/proj1_' . uniqid();
     $this->sut2 = self::$tmp . '/proj2_' . uniqid();
 
-    $this->buildMinimalSut($this->sut1);
-    $this->buildMinimalSut($this->sut2);
+    self::buildMinimalSut($this->sut1);
+    self::buildMinimalSut($this->sut2);
 
     $port = self::webserverFreePort();
     File::dump($this->sut2 . '/.env', 'WEBSERVER_PORT=' . $port . "\n");
@@ -211,7 +211,7 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
     $this->assertFalse(self::webserverPortAccepts($port), 'Stopping the webserver of a project stops it.');
   }
 
-  protected function buildMinimalSut(string $sut): void {
+  protected static function buildMinimalSut(string $sut): void {
     $source_dir = self::toolingDir() . '/src';
     foreach (['helpers.php', 'eddy-start', 'eddy-stop'] as $file) {
       File::copy($source_dir . '/' . $file, $sut . '/' . self::TOOLING_DIR . '/' . $file);

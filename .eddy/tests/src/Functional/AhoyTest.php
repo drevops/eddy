@@ -91,7 +91,7 @@ final class AhoyTest extends ToolingTestCase {
     $this->assertProcessSuccessful();
     $this->assertProcessAnyOutputContains('ENVIRONMENT READY');
 
-    $port = $this->webserverPort();
+    $port = self::webserverPort();
     $this->assertTrue(self::webserverPortAccepts($port), 'The webserver of the project is running.');
 
     // The WebDriver backend of the project, which runs from the project root.

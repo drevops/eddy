@@ -99,7 +99,7 @@ final class GeneratedProjectTest extends ToolingTestCase {
       $this->fail(sprintf('The tooling constraint "%s" names no version.', $constraint));
     }
 
-    $this->composerHomeWrite($matches[0], FALSE);
+    self::composerHomeWrite($matches[0], FALSE);
 
     $this->processRun('./scripts/eddy-tooling', [], [], ['COMPOSER_HOME' => self::composerHomeDir()], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
