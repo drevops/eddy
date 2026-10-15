@@ -78,7 +78,7 @@ drush('cr');
 PASS('Caches cleared.');
 
 TASK('Enabling suggested extensions, if any.');
-$extension_json = (array) json_decode((string) file_get_contents('composer.json'), TRUE);
+$extension_json = json_file('composer.json');
 
 if (isset($extension_json['suggest']) && is_array($extension_json['suggest'])) {
   $package_types = locked_packages('build/composer.lock', 'type');

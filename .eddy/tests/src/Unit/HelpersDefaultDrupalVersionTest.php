@@ -14,6 +14,7 @@ use PHPUnit\Framework\Attributes\Group;
  * Tests for default_drupal_version().
  */
 #[CoversFunction('DrevOps\Eddy\Tooling\default_drupal_version')]
+#[CoversFunction('DrevOps\Eddy\Tooling\json_file')]
 #[Group('p0')]
 final class HelpersDefaultDrupalVersionTest extends UnitTestCase {
 

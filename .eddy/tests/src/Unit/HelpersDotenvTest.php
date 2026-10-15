@@ -16,6 +16,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 /**
  * Tests for dotenv_read(), dotenv_write_var() and dotenv_unset_var() helpers.
  */
+#[CoversFunction('DrevOps\Eddy\Tooling\split_lines')]
 #[CoversFunction('DrevOps\Eddy\Tooling\dotenv_read')]
 #[CoversFunction('DrevOps\Eddy\Tooling\dotenv_write_var')]
 #[CoversFunction('DrevOps\Eddy\Tooling\dotenv_unset_var')]

@@ -14,6 +14,7 @@ use PHPUnit\Framework\Attributes\Group;
  * Tests for the locked_packages() helper.
  */
 #[CoversFunction('DrevOps\Eddy\Tooling\locked_packages')]
+#[CoversFunction('DrevOps\Eddy\Tooling\json_file')]
 #[Group('p0')]
 final class HelpersLockedPackagesTest extends UnitTestCase {
 

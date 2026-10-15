@@ -398,7 +398,7 @@ function parse_installed_binary(string $log): string {
     return '';
   }
 
-  $lines = array_values(array_filter(preg_split('/\r\n|\r|\n/', trim($content)) ?: []));
+  $lines = array_values(array_filter(split_lines(trim($content))));
 
   if ($lines === []) {
     return '';

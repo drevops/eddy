@@ -13,6 +13,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 /**
  * Tests for validate_port_or_fail() helper.
  */
+#[CoversFunction('DrevOps\Eddy\Tooling\is_positive_integer')]
 #[CoversFunction('DrevOps\Eddy\Tooling\validate_port_or_fail')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]

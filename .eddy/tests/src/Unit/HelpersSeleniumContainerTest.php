@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  * Tests for the helpers that name, inspect and remove the Selenium container.
  */
 #[CoversFunction('DrevOps\Eddy\Tooling\selenium_container')]
+#[CoversFunction('DrevOps\Eddy\Tooling\selenium_container_inspect')]
 #[CoversFunction('DrevOps\Eddy\Tooling\selenium_container_project')]
 #[CoversFunction('DrevOps\Eddy\Tooling\selenium_container_remove')]
 #[CoversFunction('DrevOps\Eddy\Tooling\selenium_container_running')]

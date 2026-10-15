@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[CoversFunction('DrevOps\Eddy\Tooling\PASS')]
 #[CoversFunction('DrevOps\Eddy\Tooling\FAIL_NO_EXIT')]
 #[CoversFunction('DrevOps\Eddy\Tooling\FAIL')]
+#[CoversFunction('DrevOps\Eddy\Tooling\print_tagged')]
 #[CoversFunction('DrevOps\Eddy\Tooling\term_supports_color')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
