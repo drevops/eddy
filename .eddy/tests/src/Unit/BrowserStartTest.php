@@ -205,7 +205,7 @@ final class BrowserStartTest extends UnitTestCase {
 
     $this->assertStringContainsString('Stopping chromedriver on port 4444.', $output);
     $this->assertStringContainsString('chromedriver is ready on port 4444', $output);
-    $this->assertSame('kill -9 1234 2>/dev/null', $commands[0] ?? NULL, 'A chromedriver of the project that does not answer must be stopped first.');
+    $this->assertSame(self::killProcessesCommand(1234), $commands[0] ?? NULL, 'A chromedriver of the project that does not answer must be stopped first.');
     $this->assertStringContainsString('nohup', $commands[1] ?? '', 'A new chromedriver must be launched after the old one is stopped.');
   }
 
@@ -726,7 +726,7 @@ final class BrowserStartTest extends UnitTestCase {
 
     $this->assertStringContainsString('Selenium is ready on port 4444', $output);
     $this->assertCount(2, $commands, 'Only the container may be replaced, not the listener that publishes its port.');
-    $this->assertSame("docker rm -f 'selenium-4444' >/dev/null 2>&1", $commands[0], 'A container of the project that does not answer must be removed first.');
+    $this->assertSame(self::seleniumRemoveCommand('4444'), $commands[0], 'A container of the project that does not answer must be removed first.');
     $this->assertStringContainsString("--label 'eddy.project=/test/project'", $commands[1], 'The new container must carry the project label.');
   }
 
@@ -753,8 +753,8 @@ final class BrowserStartTest extends UnitTestCase {
     $this->assertStringContainsString('Stopping chromedriver on port 4444.', $output);
     $this->assertStringContainsString('Selenium is ready on port 4444', $output);
     $this->assertCount(3, $commands, 'Only chromedriver and the container name may be freed before the container is started.');
-    $this->assertSame('kill -9 1234 2>/dev/null', $commands[0], 'The chromedriver of the project must be stopped first.');
-    $this->assertSame("docker rm -f 'selenium-4444' >/dev/null 2>&1", $commands[1]);
+    $this->assertSame(self::killProcessesCommand(1234), $commands[0], 'The chromedriver of the project must be stopped first.');
+    $this->assertSame(self::seleniumRemoveCommand('4444'), $commands[1]);
     $this->assertStringContainsString('docker run', $commands[2]);
   }
 
@@ -780,7 +780,7 @@ final class BrowserStartTest extends UnitTestCase {
     $output = $this->runBrowserStart();
 
     $this->assertStringContainsString('Selenium is ready on port 4444', $output);
-    $this->assertSame("docker rm -f 'selenium-4444' >/dev/null 2>&1", $commands[0] ?? NULL, 'The stale container must be removed first.');
+    $this->assertSame(self::seleniumRemoveCommand('4444'), $commands[0] ?? NULL, 'The stale container must be removed first.');
     $this->assertStringContainsString("--label 'eddy.project=/test/project'", $commands[1] ?? '', 'The new container must carry the project label.');
   }
 

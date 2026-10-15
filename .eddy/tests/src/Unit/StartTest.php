@@ -266,7 +266,7 @@ final class StartTest extends UnitTestCase {
   }
 
   public static function dataProviderStartFailsWhenAnotherProcessHoldsPort(): \Iterator {
-    $other = 'php -S localhost:8000 -t /www/other/build/web /www/other/build/web/.ht.router.php';
+    $other = self::webserverCommandLine('/www/other');
 
     yield 'the server of another project' => [[5678 => $other], ['5678 ' . $other]];
     yield 'the server of another project with a worker' => [[5678 => $other, 5679 => $other], ['5678 ' . $other, '5679 ' . $other]];

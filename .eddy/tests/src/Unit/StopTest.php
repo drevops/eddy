@@ -117,7 +117,7 @@ final class StopTest extends UnitTestCase {
 
   public static function dataProviderStopKillsOnlyOwnServer(): \Iterator {
     $own = self::webserverCommandLine('/test/project');
-    $other = 'php -S localhost:8000 -t /www/other/build/web /www/other/build/web/.ht.router.php';
+    $other = self::webserverCommandLine('/www/other');
 
     yield 'nothing listens' => [[], [], []];
     yield 'the project server' => [[1234 => $own], [1234], []];

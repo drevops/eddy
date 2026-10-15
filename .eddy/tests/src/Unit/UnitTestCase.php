@@ -83,6 +83,13 @@ abstract class UnitTestCase extends UpstreamUnitTestCase {
   }
 
   /**
+   * Build the command that selenium_container_remove() runs.
+   */
+  protected static function seleniumRemoveCommand(string $port): string {
+    return sprintf('docker rm -f %s >/dev/null 2>&1', escapeshellarg('selenium-' . $port));
+  }
+
+  /**
    * Build the command that composer_show() runs.
    */
   protected static function composerShowCommand(string $package, string $version = ''): string {

@@ -52,7 +52,7 @@ final class BrowserStopTest extends UnitTestCase {
 
     $commands = [];
     if ($docker) {
-      $commands[] = ['cmd' => sprintf('docker rm -f %s >/dev/null 2>&1', escapeshellarg('selenium-' . $expected_port))];
+      $commands[] = ['cmd' => self::seleniumRemoveCommand($expected_port)];
     }
     $commands[] = ['cmd' => self::killProcessesCommand(1234)];
     $this->mockPassthruMultiple($commands);
@@ -139,7 +139,7 @@ final class BrowserStopTest extends UnitTestCase {
 
     $commands = [];
     if ($expected_removed) {
-      $commands[] = ['cmd' => "docker rm -f 'selenium-4444' >/dev/null 2>&1"];
+      $commands[] = ['cmd' => self::seleniumRemoveCommand('4444')];
     }
     if ($expected_killed !== []) {
       $commands[] = ['cmd' => self::killProcessesCommand(...$expected_killed)];

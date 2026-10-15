@@ -76,8 +76,8 @@ final class HelpersSeleniumContainerTest extends UnitTestCase {
   }
 
   public static function dataProviderSeleniumContainerRemove(): \Iterator {
-    yield 'default port' => ['4444', "docker rm -f 'selenium-4444' >/dev/null 2>&1"];
-    yield 'discovered port' => ['4445', "docker rm -f 'selenium-4445' >/dev/null 2>&1"];
+    yield 'default port' => ['4444', self::seleniumRemoveCommand('4444')];
+    yield 'discovered port' => ['4445', self::seleniumRemoveCommand('4445')];
   }
 
 }

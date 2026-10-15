@@ -248,7 +248,7 @@ final class InfoTest extends UnitTestCase {
   public static function dataProviderInfoXdebugStateDetection(): \Iterator {
     yield 'no server listening' => ['listener' => NULL, 'expected_state' => '-'];
     yield 'server running without xdebug' => [
-      'listener' => 'php -S localhost:8000 -t /test/project/build/web /test/project/build/web/.ht.router.php',
+      'listener' => self::webserverCommandLine('/test/project'),
       'expected_state' => 'disabled',
     ];
     yield 'server running with xdebug' => [

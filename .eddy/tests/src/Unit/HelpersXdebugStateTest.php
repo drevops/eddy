@@ -20,8 +20,6 @@ final class HelpersXdebugStateTest extends UnitTestCase {
 
   protected const string DOCROOT = '/www/project/build/web';
 
-  protected const string SERVER = 'php -S localhost:8000 -t /www/project/build/web /www/project/build/web/.ht.router.php';
-
   protected const string SERVER_XDEBUG = 'php -d xdebug.mode=debug -d xdebug.start_with_request=yes -S localhost:8000 -t /www/project/build/web /www/project/build/web/.ht.router.php';
 
   protected const string OTHER_SERVER_XDEBUG = 'php -d xdebug.mode=debug -d xdebug.start_with_request=yes -S localhost:8000 -t /www/other/build/web /www/other/build/web/.ht.router.php';
@@ -40,11 +38,11 @@ final class HelpersXdebugStateTest extends UnitTestCase {
 
   public static function dataProviderXdebugState(): \Iterator {
     yield 'no server listening' => [[], '-'];
-    yield 'project server without XDebug' => [[1234 => self::SERVER], 'disabled'];
+    yield 'project server without XDebug' => [[1234 => self::webserverCommandLine('/www/project')], 'disabled'];
     yield 'project server with XDebug' => [[1234 => self::SERVER_XDEBUG], 'enabled'];
     yield 'project server with XDebug and a worker' => [[1234 => self::SERVER_XDEBUG, 1235 => self::SERVER_XDEBUG], 'enabled'];
     yield 'only the server of another project, with XDebug' => [[5678 => self::OTHER_SERVER_XDEBUG], '-'];
-    yield 'project server without XDebug and another project server with it' => [[5678 => self::OTHER_SERVER_XDEBUG, 1234 => self::SERVER], 'disabled'];
+    yield 'project server without XDebug and another project server with it' => [[5678 => self::OTHER_SERVER_XDEBUG, 1234 => self::webserverCommandLine('/www/project')], 'disabled'];
   }
 
   public function testPortIsShellEscaped(): void {
