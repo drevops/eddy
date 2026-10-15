@@ -27,6 +27,22 @@ final class ProvisionTest extends UnitTestCase {
   }
 
   /**
+   * @return array<int, array{cmd: string, output?: string}>
+   *   The drush commands of a provision into a new database, in order.
+   */
+  protected static function drushCommands(string $prefix, string $db_file, string $site_url, string $drush_version = '13.8.0', string $uli_options = ' --no-browser', string $extension_name = 'test_extension'): array {
+    return [
+      ['cmd' => $prefix . 'status --field=db-status', 'output' => ''],
+      ['cmd' => $prefix . sprintf('site-install %s -y --db-url=%s --account-name=admin install_configure_form.enable_update_status_module=NULL install_configure_form.enable_update_status_emails=NULL', escapeshellarg('standard'), escapeshellarg('sqlite://localhost/' . $db_file))],
+      ['cmd' => $prefix . 'status'],
+      ['cmd' => $prefix . 'pm:enable ' . escapeshellarg($extension_name)],
+      ['cmd' => $prefix . 'cr'],
+      ['cmd' => $prefix . 'status --field=drush-version', 'output' => $drush_version],
+      ['cmd' => $prefix . sprintf('uli -l %s', escapeshellarg($site_url)) . $uli_options, 'output' => $site_url . '/user/reset/1/abc/login'],
+    ];
+  }
+
+  /**
    * @return array<int, string>
    *   The '[TASK]' and '[ OK ]' lines of the output, in order.
    */
@@ -288,22 +304,27 @@ final class ProvisionTest extends UnitTestCase {
     ];
   }
 
-  public function testProvisionReadsPortFromDotenvWhenEnvUnset(): void {
+  /**
+   * @param array<int, string> $expected_present
+   *   The strings the output contains.
+   * @param array<int, string> $expected_absent
+   *   The strings the output does not contain.
+   */
+  #[DataProvider('dataProviderProvisionReadsDotenv')]
+  public function testProvisionReadsDotenv(string $dotenv, string $site_url, array $expected_present, array $expected_absent): void {
     $extension_name = 'test_extension';
     $info_content = "name: Test\ntype: module\n";
     $cwd = '/test/project';
-    $expected_host = 'localhost';
-    $expected_port = '8123';
 
     $this->mockFunction('getcwd', fn(): string => $cwd);
     $this->mockFunction('glob', fn(): array => [$extension_name . '.info.yml']);
 
-    $this->mockFunction('file_get_contents', function (string $file) use ($info_content): string {
+    $this->mockFunction('file_get_contents', function (string $file) use ($info_content, $dotenv): string {
       if (str_ends_with($file, '.info.yml')) {
         return $info_content;
       }
       if ($file === '.env') {
-        return "WEBSERVER_PORT=8123\n";
+        return $dotenv;
       }
       if ($file === 'composer.json') {
         return json_encode(['suggest' => []], JSON_THROW_ON_ERROR);
@@ -319,20 +340,29 @@ final class ProvisionTest extends UnitTestCase {
 
     $prefix = self::drushPrefix($cwd);
     $db_file = site_db_file($extension_name);
-    $site_url = sprintf('http://%s:%s', $expected_host, $expected_port);
-    $this->mockPassthruMultiple([
-      ['cmd' => $prefix . 'status --field=db-status', 'output' => ''],
-      ['cmd' => $prefix . sprintf('site-install %s -y --db-url=%s --account-name=admin install_configure_form.enable_update_status_module=NULL install_configure_form.enable_update_status_emails=NULL', escapeshellarg('standard'), escapeshellarg('sqlite://localhost/' . $db_file))],
-      ['cmd' => $prefix . 'status'],
-      ['cmd' => $prefix . 'pm:enable ' . escapeshellarg($extension_name)],
-      ['cmd' => $prefix . 'cr'],
-      ['cmd' => $prefix . 'status --field=drush-version', 'output' => '13.8.0'],
-      ['cmd' => $prefix . sprintf('uli -l %s --no-browser', escapeshellarg($site_url)), 'output' => $site_url . '/user/reset/1/abc/login'],
-    ]);
+    $this->mockPassthruMultiple(self::drushCommands($prefix, $db_file, $site_url));
 
     $output = $this->runCommand('eddy-provision');
 
-    $this->assertStringContainsString('http://' . $expected_host . ':' . $expected_port, $output);
+    foreach ($expected_present as $expected) {
+      $this->assertStringContainsString($expected, $output);
+    }
+
+    foreach ($expected_absent as $unexpected) {
+      $this->assertStringNotContainsString($unexpected, $output);
+    }
+  }
+
+  public static function dataProviderProvisionReadsDotenv(): \Iterator {
+    yield 'port from .env' => ["WEBSERVER_PORT=8123\n", 'http://localhost:8123', ['http://localhost:8123'], []];
+    // The pre-warm still hits the local host:port, but the login link and the
+    // completion banner report the public tunnel URL.
+    yield 'tunnel URL from .env' => [
+      "WEBSERVER_PORT=8000\nTUNNEL_URL=https://abc.trycloudflare.com\n",
+      'https://abc.trycloudflare.com',
+      ['Site URL:            https://abc.trycloudflare.com'],
+      ['Site URL:            http://'],
+    ];
   }
 
   #[DataProvider('dataProviderProvisionLoginLinkOptions')]
@@ -362,15 +392,7 @@ final class ProvisionTest extends UnitTestCase {
 
     $prefix = self::drushPrefix($cwd);
     $db_file = site_db_file($extension_name);
-    $this->mockPassthruMultiple([
-      ['cmd' => $prefix . 'status --field=db-status', 'output' => ''],
-      ['cmd' => $prefix . sprintf('site-install %s -y --db-url=%s --account-name=admin install_configure_form.enable_update_status_module=NULL install_configure_form.enable_update_status_emails=NULL', escapeshellarg('standard'), escapeshellarg('sqlite://localhost/' . $db_file))],
-      ['cmd' => $prefix . 'status'],
-      ['cmd' => $prefix . 'pm:enable ' . escapeshellarg($extension_name)],
-      ['cmd' => $prefix . 'cr'],
-      ['cmd' => $prefix . 'status --field=drush-version', 'output' => $drush_version . "\n"],
-      ['cmd' => $prefix . sprintf('uli -l %s', escapeshellarg($site_url)) . $expected_options, 'output' => $site_url . '/user/reset/1/abc/login'],
-    ]);
+    $this->mockPassthruMultiple(self::drushCommands($prefix, $db_file, $site_url, $drush_version . "\n", $expected_options));
 
     $output = $this->runCommand('eddy-provision');
 
@@ -382,54 +404,6 @@ final class ProvisionTest extends UnitTestCase {
     yield 'Drush 13' => ['13.8.0', ' --no-browser'];
     yield 'Drush 14' => ['14.0.0', ''];
     yield 'Drush 14 development branch' => ['14.x-dev', ''];
-  }
-
-  public function testProvisionDisplaysTunnelUrlWhenSet(): void {
-    $extension_name = 'test_extension';
-    $info_content = "name: Test\ntype: module\n";
-    $cwd = '/test/project';
-    $tunnel_url = 'https://abc.trycloudflare.com';
-
-    $this->mockFunction('getcwd', fn(): string => $cwd);
-    $this->mockFunction('glob', fn(): array => [$extension_name . '.info.yml']);
-
-    $this->mockFunction('file_get_contents', function (string $file) use ($info_content, $tunnel_url): string {
-      if (str_ends_with($file, '.info.yml')) {
-        return $info_content;
-      }
-      if ($file === '.env') {
-        return "WEBSERVER_PORT=8000\nTUNNEL_URL=" . $tunnel_url . "\n";
-      }
-      if ($file === 'composer.json') {
-        return json_encode(['suggest' => []], JSON_THROW_ON_ERROR);
-      }
-      if (str_starts_with($file, 'http://')) {
-        return '<html></html>';
-      }
-
-      return '';
-    });
-
-    $this->mockFunction('file_exists', fn(string $file): bool => $file === '.env');
-
-    $prefix = self::drushPrefix($cwd);
-    $db_file = site_db_file($extension_name);
-    // The pre-warm still hits the local host:port, but the login link and the
-    // completion banner report the public tunnel URL.
-    $this->mockPassthruMultiple([
-      ['cmd' => $prefix . 'status --field=db-status', 'output' => ''],
-      ['cmd' => $prefix . sprintf('site-install %s -y --db-url=%s --account-name=admin install_configure_form.enable_update_status_module=NULL install_configure_form.enable_update_status_emails=NULL', escapeshellarg('standard'), escapeshellarg('sqlite://localhost/' . $db_file))],
-      ['cmd' => $prefix . 'status'],
-      ['cmd' => $prefix . 'pm:enable ' . escapeshellarg($extension_name)],
-      ['cmd' => $prefix . 'cr'],
-      ['cmd' => $prefix . 'status --field=drush-version', 'output' => '13.8.0'],
-      ['cmd' => $prefix . sprintf('uli -l %s --no-browser', escapeshellarg($tunnel_url)), 'output' => $tunnel_url . '/user/reset/1/abc/login'],
-    ]);
-
-    $output = $this->runCommand('eddy-provision');
-
-    $this->assertStringContainsString('Site URL:            ' . $tunnel_url, $output);
-    $this->assertStringNotContainsString('Site URL:            http://', $output);
   }
 
   public function testProvisionAddsTunnelSettingsWhenEnabled(): void {
@@ -463,15 +437,7 @@ final class ProvisionTest extends UnitTestCase {
     $prefix = self::drushPrefix($cwd);
     $db_file = site_db_file($extension_name);
     $site_url = 'http://localhost:8000';
-    $this->mockPassthruMultiple([
-      ['cmd' => $prefix . 'status --field=db-status', 'output' => ''],
-      ['cmd' => $prefix . sprintf('site-install %s -y --db-url=%s --account-name=admin install_configure_form.enable_update_status_module=NULL install_configure_form.enable_update_status_emails=NULL', escapeshellarg('standard'), escapeshellarg('sqlite://localhost/' . $db_file))],
-      ['cmd' => $prefix . 'status'],
-      ['cmd' => $prefix . 'pm:enable ' . escapeshellarg($extension_name)],
-      ['cmd' => $prefix . 'cr'],
-      ['cmd' => $prefix . 'status --field=drush-version', 'output' => '13.8.0'],
-      ['cmd' => $prefix . sprintf('uli -l %s --no-browser', escapeshellarg($site_url)), 'output' => $site_url . '/user/reset/1/abc/login'],
-    ]);
+    $this->mockPassthruMultiple(self::drushCommands($prefix, $db_file, $site_url));
 
     $output = $this->runCommand('eddy-provision');
 

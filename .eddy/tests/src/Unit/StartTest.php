@@ -108,7 +108,12 @@ final class StartTest extends UnitTestCase {
     yield 'not a number' => ['five'];
   }
 
-  public function testStartServerWith302Response(): void {
+  /**
+   * @param array<int, string>|false $headers
+   *   The headers get_headers() returns, or FALSE for a failed request.
+   */
+  #[DataProvider('dataProviderStartChecksServedContent')]
+  public function testStartChecksServedContent(array|false $headers, bool $expected_served): void {
     self::envSet('WEBSERVER_PORT', '8000');
     $cwd = '/test/project';
 
@@ -127,14 +132,31 @@ final class StartTest extends UnitTestCase {
     $context = stream_context_create();
     $this->mockFunction('stream_context_create', fn() => $context);
 
-    $this->mockFunction('get_headers', fn(): array => ['HTTP/1.1 302 Found']);
+    $this->mockFunction('get_headers', fn(): array|false => $headers);
 
-    $output = $this->runCommand('eddy-start');
+    if ($expected_served) {
+      $output = $this->runCommand('eddy-start');
 
-    $this->assertStringContainsString('ENVIRONMENT READY', $output);
-    $this->assertStringContainsString('Server can serve content', $output);
+      $this->assertStringContainsString('ENVIRONMENT READY', $output);
+      $this->assertStringContainsString('Server can serve content', $output);
+    }
+    else {
+      $this->mockQuit(1);
+
+      $output = $this->runCommand('eddy-start', 1);
+
+      $this->assertStringContainsString('Server started successfully', $output);
+      $this->assertStringContainsString('Server is started, but site cannot be served', $output);
+    }
 
     fclose($fp);
+  }
+
+  public static function dataProviderStartChecksServedContent(): \Iterator {
+    yield '302 response' => [['HTTP/1.1 302 Found'], TRUE];
+    yield 'no headers' => [FALSE, FALSE];
+    yield 'status 500' => [['HTTP/1.1 500 Internal Server Error'], FALSE];
+    yield 'empty headers' => [[], FALSE];
   }
 
   public function testStartWaitsUntilServerAccepts(): void {
@@ -295,7 +317,12 @@ final class StartTest extends UnitTestCase {
     $this->assertStringNotContainsString('ENVIRONMENT READY', $output);
   }
 
-  public function testStartFsockopenFailure(): void {
+  /**
+   * @param array<int, string> $expected_output
+   *   The strings the output contains.
+   */
+  #[DataProvider('dataProviderStartFailsWhenServerNeverAccepts')]
+  public function testStartFailsWhenServerNeverAccepts(string|false $log, array $expected_output): void {
     self::envSet('WEBSERVER_PORT', '8000');
     $cwd = '/test/project';
 
@@ -313,40 +340,23 @@ final class StartTest extends UnitTestCase {
       return FALSE;
     });
 
-    $this->mockFunction('file_get_contents', fn(string $file): string|false => $file === '.logs/php.log' ? 'PHP Fatal error: some error' : FALSE);
+    $this->mockFunction('file_get_contents', fn(string $file): string|false => $file === '.logs/php.log' ? $log : FALSE);
 
     $this->mockQuit(1);
 
     $output = $this->runCommand('eddy-start', 1);
 
-    $this->assertStringContainsString('START ENVIRONMENT', $output);
-    $this->assertStringContainsString('Unable to start inbuilt PHP server', $output);
-    $this->assertStringContainsString('PHP Fatal error: some error', $output);
+    foreach ($expected_output as $expected) {
+      $this->assertStringContainsString($expected, $output);
+    }
 
     // The default 5-second timeout allows 1 probe every 100 milliseconds.
     $this->assertSame(50, $probes);
   }
 
-  public function testStartFsockopenFailureNoLog(): void {
-    self::envSet('WEBSERVER_PORT', '8000');
-    $cwd = '/test/project';
-
-    $this->mockFunction('getcwd', fn(): string => $cwd);
-
-    $this->mockPortListeners('8000');
-    $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000', $cwd)]);
-
-    $this->mockClock();
-
-    $this->mockFunction('fsockopen', fn(): false => FALSE);
-
-    $this->mockFunction('file_get_contents', fn(): false => FALSE);
-
-    $this->mockQuit(1);
-
-    $output = $this->runCommand('eddy-start', 1);
-
-    $this->assertStringContainsString('Unable to start inbuilt PHP server', $output);
+  public static function dataProviderStartFailsWhenServerNeverAccepts(): \Iterator {
+    yield 'with a log' => ['PHP Fatal error: some error', ['START ENVIRONMENT', 'Unable to start inbuilt PHP server', 'PHP Fatal error: some error']];
+    yield 'without a log' => [FALSE, ['Unable to start inbuilt PHP server']];
   }
 
   public function testStartWaitEndsAtTimeoutWhenConnectionsAreDropped(): void {
@@ -381,67 +391,6 @@ final class StartTest extends UnitTestCase {
     // A probe is a 100-millisecond pause and a 100-millisecond attempt.
     $this->assertSame(25, $probes);
     $this->assertSame(5000000000, $this->mockClockNanoseconds, 'The wait ends at the 5-second timeout.');
-  }
-
-  public function testStartGetHeadersFailure(): void {
-    self::envSet('WEBSERVER_PORT', '8000');
-    $cwd = '/test/project';
-
-    $this->mockFunction('getcwd', fn(): string => $cwd);
-
-    $this->mockPortListeners('8000');
-    $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000', $cwd)]);
-
-    $this->mockClock();
-
-    $fp = fopen('php://memory', 'r');
-    $this->assertNotFalse($fp);
-    $this->mockFunction('fsockopen', fn() => $fp);
-    $this->mockFunction('fclose', fn(): true => TRUE);
-
-    $context = stream_context_create();
-    $this->mockFunction('stream_context_create', fn() => $context);
-
-    $this->mockFunction('get_headers', fn(): false => FALSE);
-
-    $this->mockQuit(1);
-
-    $output = $this->runCommand('eddy-start', 1);
-
-    $this->assertStringContainsString('Server started successfully', $output);
-    $this->assertStringContainsString('Server is started, but site cannot be served', $output);
-
-    fclose($fp);
-  }
-
-  public function testStartGetHeadersNon200Non302(): void {
-    self::envSet('WEBSERVER_PORT', '8000');
-    $cwd = '/test/project';
-
-    $this->mockFunction('getcwd', fn(): string => $cwd);
-
-    $this->mockPortListeners('8000');
-    $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000', $cwd)]);
-
-    $this->mockClock();
-
-    $fp = fopen('php://memory', 'r');
-    $this->assertNotFalse($fp);
-    $this->mockFunction('fsockopen', fn() => $fp);
-    $this->mockFunction('fclose', fn(): true => TRUE);
-
-    $context = stream_context_create();
-    $this->mockFunction('stream_context_create', fn() => $context);
-
-    $this->mockFunction('get_headers', fn(): array => ['HTTP/1.1 500 Internal Server Error']);
-
-    $this->mockQuit(1);
-
-    $output = $this->runCommand('eddy-start', 1);
-
-    $this->assertStringContainsString('Server is started, but site cannot be served', $output);
-
-    fclose($fp);
   }
 
   public function testStartReadsPortFromDotenvAndDoesNotRewrite(): void {
@@ -654,36 +603,6 @@ final class StartTest extends UnitTestCase {
     $this->assertStringContainsString('cloudflared is not on PATH; skipping the tunnel.', $output);
     $this->assertStringContainsString('ENVIRONMENT READY', $output);
     $this->assertStringContainsString('URL       : http://localhost:8000', $output);
-
-    fclose($fp);
-  }
-
-  public function testStartGetHeadersEmptyArray(): void {
-    self::envSet('WEBSERVER_PORT', '8000');
-    $cwd = '/test/project';
-
-    $this->mockFunction('getcwd', fn(): string => $cwd);
-
-    $this->mockPortListeners('8000');
-    $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000', $cwd)]);
-
-    $this->mockClock();
-
-    $fp = fopen('php://memory', 'r');
-    $this->assertNotFalse($fp);
-    $this->mockFunction('fsockopen', fn() => $fp);
-    $this->mockFunction('fclose', fn(): true => TRUE);
-
-    $context = stream_context_create();
-    $this->mockFunction('stream_context_create', fn() => $context);
-
-    $this->mockFunction('get_headers', fn(): array => []);
-
-    $this->mockQuit(1);
-
-    $output = $this->runCommand('eddy-start', 1);
-
-    $this->assertStringContainsString('Server is started, but site cannot be served', $output);
 
     fclose($fp);
   }

@@ -867,41 +867,59 @@ final class AssembleTest extends UnitTestCase {
     yield 'environment overrides the project default' => ['11', ['eddy' => ['drupal-version' => '10']], '11', '11.4.8'];
   }
 
-  #[DataProvider('dataProviderAssembleReleaseFailure')]
-  public function testAssembleReleaseFailure(string $drupal_version, int $releases_result_code, string $expected_message): void {
+  /**
+   * @param array<string, mixed> $config
+   *   The configuration that setupAssembleMocks() applies.
+   * @param array<int, string> $expected_absent
+   *   The strings the output does not contain.
+   */
+  #[DataProvider('dataProviderAssembleFailure')]
+  public function testAssembleFailure(string $drupal_version, array $config, string $expected_message, array $expected_absent): void {
     self::envSet('DRUPAL_VERSION', $drupal_version);
     self::envSet('GITHUB_TOKEN', '');
     self::envSet('SYMFONY_DEPRECATIONS_HELPER', '');
 
-    $this->setupAssembleMocks(['drupal_version' => $drupal_version, 'drupal_release' => NULL, 'releases_result_code' => $releases_result_code, 'has_build_dir' => TRUE]);
+    $this->setupAssembleMocks($config);
 
     $this->mockQuit(1);
 
     $output = $this->runCommand('eddy-assemble', 1);
 
     $this->assertStringContainsString($expected_message, $output);
-    $this->assertStringNotContainsString('Removing existing build directory', $output);
-    $this->assertStringNotContainsString('Creating Drupal', $output);
+
+    foreach ($expected_absent as $unexpected) {
+      $this->assertStringNotContainsString($unexpected, $output);
+    }
   }
 
-  public static function dataProviderAssembleReleaseFailure(): \Iterator {
-    yield 'releases cannot be listed' => ['11', 1, 'Unable to list the Drupal releases.'];
-    yield 'no release matches' => ['13', 0, 'No Drupal release matches 13.'];
-  }
+  public static function dataProviderAssembleFailure(): \Iterator {
+    $build_steps = ['Removing existing build directory', 'Creating Drupal'];
 
-  public function testAssembleCreateProjectFailure(): void {
-    self::envSet('DRUPAL_VERSION', '11');
-    self::envSet('GITHUB_TOKEN', '');
-    self::envSet('SYMFONY_DEPRECATIONS_HELPER', '');
-
-    $this->setupAssembleMocks(['create_project_result_code' => 1]);
-
-    $this->mockQuit(1);
-
-    $output = $this->runCommand('eddy-assemble', 1);
-
-    $this->assertStringContainsString('Unable to create the Drupal 11.4.8 project.', $output);
-    $this->assertStringNotContainsString('Drupal project created', $output);
+    yield 'releases cannot be listed' => [
+      '11',
+      ['drupal_version' => '11', 'drupal_release' => NULL, 'releases_result_code' => 1, 'has_build_dir' => TRUE],
+      'Unable to list the Drupal releases.',
+      $build_steps,
+    ];
+    yield 'no release matches' => [
+      '13',
+      ['drupal_version' => '13', 'drupal_release' => NULL, 'releases_result_code' => 0, 'has_build_dir' => TRUE],
+      'No Drupal release matches 13.',
+      $build_steps,
+    ];
+    yield 'create-project fails' => ['11', ['create_project_result_code' => 1], 'Unable to create the Drupal 11.4.8 project.', ['Drupal project created']];
+    yield 'PHP requirement not met' => [
+      '12',
+      ['drupal_version' => '12', 'drupal_release' => '12.0.0-beta1', 'php_requirement' => '>=99', 'expect_php_failure' => TRUE, 'has_build_dir' => TRUE],
+      sprintf('Drupal 12.0.0-beta1 requires PHP >=99, but the build runs on PHP %1$s. Run the build on a PHP version that meets the requirement, or set DRUPAL_VERSION to a Drupal version that supports PHP %1$s.', self::phpVersion()),
+      $build_steps,
+    ];
+    yield 'platform PHP not met' => [
+      '11',
+      ['extension_config' => ['platform' => ['php' => '8.1.0']], 'php_requirement' => '>=8.3', 'expect_php_failure' => TRUE, 'has_build_dir' => TRUE],
+      'Drupal 11.4.8 requires PHP >=8.3, but config.platform.php in composer.dev.json or composer.json resolves the build for PHP 8.1.0. Raise or remove that setting, or set DRUPAL_VERSION to a Drupal version that supports PHP 8.1.0.',
+      $build_steps,
+    ];
   }
 
   #[DataProvider('dataProviderAssembleComposerAuth')]
@@ -951,22 +969,6 @@ final class AssembleTest extends UnitTestCase {
     yield 'constraint the check does not read' => ['^8.1', $skipped];
   }
 
-  public function testAssemblePhpRequirementFailure(): void {
-    self::envSet('DRUPAL_VERSION', '12');
-    self::envSet('GITHUB_TOKEN', '');
-    self::envSet('SYMFONY_DEPRECATIONS_HELPER', '');
-
-    $this->setupAssembleMocks(['drupal_version' => '12', 'drupal_release' => '12.0.0-beta1', 'php_requirement' => '>=99', 'expect_php_failure' => TRUE, 'has_build_dir' => TRUE]);
-
-    $this->mockQuit(1);
-
-    $output = $this->runCommand('eddy-assemble', 1);
-
-    $this->assertStringContainsString(sprintf('Drupal 12.0.0-beta1 requires PHP >=99, but the build runs on PHP %1$s. Run the build on a PHP version that meets the requirement, or set DRUPAL_VERSION to a Drupal version that supports PHP %1$s.', self::phpVersion()), $output);
-    $this->assertStringNotContainsString('Removing existing build directory', $output);
-    $this->assertStringNotContainsString('Creating Drupal', $output);
-  }
-
   #[DataProvider('dataProviderAssemblePinsPhpPlatform')]
   public function testAssemblePinsPhpPlatform(array $extension_config, array $dev_composer_json, ?string $expected_platform): void {
     self::envSet('DRUPAL_VERSION', '11');
@@ -1000,22 +1002,6 @@ final class AssembleTest extends UnitTestCase {
     yield 'platform from composer.dev.json' => [[], $dev + ['config' => ['platform' => ['php' => '8.4.0']]], '8.4.0'];
     yield 'composer.dev.json over composer.json' => [['platform' => ['php' => '8.3.0']], $dev + ['config' => ['platform' => ['php' => '8.4.0']]], '8.4.0'];
     yield 'empty platform' => [['platform' => ['php' => '']], $dev, NULL];
-  }
-
-  public function testAssemblePlatformRequirementFailure(): void {
-    self::envSet('DRUPAL_VERSION', '11');
-    self::envSet('GITHUB_TOKEN', '');
-    self::envSet('SYMFONY_DEPRECATIONS_HELPER', '');
-
-    $this->setupAssembleMocks(['extension_config' => ['platform' => ['php' => '8.1.0']], 'php_requirement' => '>=8.3', 'expect_php_failure' => TRUE, 'has_build_dir' => TRUE]);
-
-    $this->mockQuit(1);
-
-    $output = $this->runCommand('eddy-assemble', 1);
-
-    $this->assertStringContainsString('Drupal 11.4.8 requires PHP >=8.3, but config.platform.php in composer.dev.json or composer.json resolves the build for PHP 8.1.0. Raise or remove that setting, or set DRUPAL_VERSION to a Drupal version that supports PHP 8.1.0.', $output);
-    $this->assertStringNotContainsString('Removing existing build directory', $output);
-    $this->assertStringNotContainsString('Creating Drupal', $output);
   }
 
   public function testAssembleMissingComposerJson(): void {

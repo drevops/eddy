@@ -16,47 +16,34 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class StopTest extends UnitTestCase {
 
-  public function testStopDefaultPortWhenNoEnvAndNoDotenv(): void {
-    $this->mockFunction('file_exists', fn(): false => FALSE);
+  #[DataProvider('dataProviderStopResolvesPort')]
+  public function testStopResolvesPort(?string $env_port, ?string $dotenv, string $expected_port): void {
+    if ($env_port !== NULL) {
+      self::envSet('WEBSERVER_PORT', $env_port);
+    }
 
-    $this->mockPortListeners('8000');
+    $this->mockFunction('file_exists', fn(string $file): bool => $dotenv !== NULL && $file === '.env');
+
+    if ($dotenv !== NULL) {
+      $this->mockFunction('file_get_contents', fn(): string => $dotenv);
+    }
+
+    $this->mockPortListeners($expected_port);
     $this->mockPassthruNever();
     $this->mockSleep();
 
     $output = $this->runCommand('eddy-stop');
 
     $this->assertStringContainsString('STOP ENVIRONMENT', $output);
-    $this->assertStringContainsString('Stopping previously started services on port 8000', $output);
-    $this->assertStringContainsString('Services stopped on port 8000', $output);
+    $this->assertStringContainsString('Stopping previously started services on port ' . $expected_port, $output);
+    $this->assertStringContainsString('Services stopped on port ' . $expected_port, $output);
     $this->assertStringContainsString('ENVIRONMENT STOPPED', $output);
   }
 
-  public function testStopCustomPortFromEnv(): void {
-    self::envSet('WEBSERVER_PORT', '9000');
-
-    $this->mockPortListeners('9000');
-    $this->mockPassthruNever();
-    $this->mockSleep();
-
-    $output = $this->runCommand('eddy-stop');
-
-    $this->assertStringContainsString('STOP ENVIRONMENT', $output);
-    $this->assertStringContainsString('Services stopped on port 9000', $output);
-    $this->assertStringContainsString('ENVIRONMENT STOPPED', $output);
-  }
-
-  public function testStopReadsPortFromDotenvWhenEnvUnset(): void {
-    $this->mockFunction('file_exists', fn(string $file): bool => $file === '.env');
-    $this->mockFunction('file_get_contents', fn(): string => "WEBSERVER_PORT=8123\n");
-
-    $this->mockPortListeners('8123');
-    $this->mockPassthruNever();
-    $this->mockSleep();
-
-    $output = $this->runCommand('eddy-stop');
-
-    $this->assertStringContainsString('Services stopped on port 8123', $output);
-    $this->assertStringContainsString('ENVIRONMENT STOPPED', $output);
+  public static function dataProviderStopResolvesPort(): \Iterator {
+    yield 'default port' => [NULL, NULL, '8000'];
+    yield 'port from the environment' => ['9000', NULL, '9000'];
+    yield 'port from .env' => [NULL, "WEBSERVER_PORT=8123\n", '8123'];
   }
 
   /**
