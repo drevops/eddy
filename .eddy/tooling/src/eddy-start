@@ -64,13 +64,7 @@ TASK('Stopping previously started services, if any.');
 $listeners = webserver_listeners($webserver_port, $docroot);
 
 if ($listeners['other'] !== []) {
-  FAIL_NO_EXIT('Port %s is in use by another process. Stop it, or set WEBSERVER_PORT in .env to a free port.', $webserver_port);
-
-  foreach ($listeners['other'] as $pid => $command) {
-    NOTE('%d %s', $pid, $command);
-  }
-
-  quit(1);
+  fail_port_in_use($webserver_port, 'WEBSERVER_PORT', $listeners['other']);
 }
 
 kill_processes(array_keys($listeners['own']));

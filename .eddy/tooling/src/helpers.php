@@ -851,6 +851,46 @@ function kill_processes(array $pids): void {
 }
 
 /**
+ * Report the processes that hold a port, then quit.
+ *
+ * @param string $port
+ *   The TCP port.
+ * @param string $variable
+ *   The '.env' variable that selects the port, such as 'WEBSERVER_PORT'.
+ * @param array<int, string> $listeners
+ *   The command line of each process holding the port, keyed by process ID.
+ */
+function fail_port_in_use(string $port, string $variable, array $listeners): void {
+  FAIL_NO_EXIT('Port %s is in use by another process. Stop it, or set %s in .env to a free port.', $port, $variable);
+
+  foreach ($listeners as $pid => $command) {
+    NOTE('%d %s', $pid, $command);
+  }
+
+  quit(1);
+}
+
+/**
+ * Report the processes that were left running on a port.
+ *
+ * @param string $port
+ *   The TCP port.
+ * @param array<int, string> $listeners
+ *   The command line of each process left running, keyed by process ID.
+ */
+function note_port_in_use(string $port, array $listeners): void {
+  if ($listeners === []) {
+    return;
+  }
+
+  NOTE('Port %s is still in use by another process, which was left running:', $port);
+
+  foreach ($listeners as $pid => $command) {
+    NOTE('%d %s', $pid, $command);
+  }
+}
+
+/**
  * Wait for a TCP port to accept connections.
  *
  * Each probe follows a 100-millisecond pause, the first one included. The

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use function DrevOps\Eddy\Tooling\fail_port_in_use;
 use function DrevOps\Eddy\Tooling\kill_processes;
+use function DrevOps\Eddy\Tooling\note_port_in_use;
 use function DrevOps\Eddy\Tooling\port_listener_pids_command;
 use function DrevOps\Eddy\Tooling\process_command;
 use function DrevOps\Eddy\Tooling\process_cwd;
@@ -30,6 +32,8 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[CoversFunction('DrevOps\Eddy\Tooling\port_listeners')]
 #[CoversFunction('DrevOps\Eddy\Tooling\webdriver_listeners')]
 #[CoversFunction('DrevOps\Eddy\Tooling\kill_processes')]
+#[CoversFunction('DrevOps\Eddy\Tooling\fail_port_in_use')]
+#[CoversFunction('DrevOps\Eddy\Tooling\note_port_in_use')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersPortListenersTest extends UnitTestCase {
@@ -293,6 +297,29 @@ final class HelpersPortListenersTest extends UnitTestCase {
     yield 'several processes' => [[1234, 1235, 1236], self::killProcessesCommand(1234, 1235, 1236)];
     yield 'process IDs below 1 are ignored' => [[0, -1, 1234], self::killProcessesCommand(1234)];
     yield 'only process IDs below 1' => [[0, -5], NULL];
+  }
+
+  public function testFailPortInUse(): void {
+    $this->mockQuit(1);
+
+    $output = $this->capture(fn() => fail_port_in_use('8000', 'WEBSERVER_PORT', [1234 => 'php -S localhost:8000', 5678 => 'node server.js']), 1);
+
+    $this->assertStringContainsString('[FAIL] Port 8000 is in use by another process. Stop it, or set WEBSERVER_PORT in .env to a free port.', $output);
+    $this->assertStringContainsString("       1234 php -S localhost:8000\n       5678 node server.js\n", $output);
+  }
+
+  /**
+   * @param array<int, string> $listeners
+   *   The command line of each process left running, keyed by process ID.
+   */
+  #[DataProvider('dataProviderNotePortInUse')]
+  public function testNotePortInUse(array $listeners, string $expected): void {
+    $this->assertSame($expected, $this->capture(fn() => note_port_in_use('4444', $listeners)));
+  }
+
+  public static function dataProviderNotePortInUse(): \Iterator {
+    yield 'no processes' => [[], ''];
+    yield 'several processes' => [[1234 => 'php -S localhost:4444', 5678 => 'node server.js'], "       Port 4444 is still in use by another process, which was left running:\n       1234 php -S localhost:4444\n       5678 node server.js\n"];
   }
 
 }
