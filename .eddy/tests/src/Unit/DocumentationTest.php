@@ -303,6 +303,34 @@ final class DocumentationTest extends UnitTestCase {
     }
   }
 
+  #[DataProvider('dataProviderNoWrapperRunExportsWebdriverSettings')]
+  public function testNoWrapperRunExportsWebdriverSettings(string $path, string $block): void {
+    $this->assertStringContainsString('export WEBDRIVER_HOST="$(vendor/bin/eddy-info webdriver-host)"', $block, sprintf('A run in %s exports WEBDRIVER_PORT for the tests but not WEBDRIVER_HOST.', $path));
+
+    $passes_backend = str_contains($block, 'export WEBDRIVER_BACKEND="$(vendor/bin/eddy-info webdriver-backend)"') || preg_match('/^WEBDRIVER_BACKEND=\S+ php /m', $block) === 1;
+
+    $this->assertTrue($passes_backend, sprintf('A run in %s exports WEBDRIVER_PORT for the tests but does not pass WEBDRIVER_BACKEND to PHPUnit.', $path));
+  }
+
+  public static function dataProviderNoWrapperRunExportsWebdriverSettings(): \Iterator {
+    $sources = [
+      'CONTRIBUTING.dist.md' => '/```bash\n(.*?)```/s',
+      '.eddy/docs/content/testing/README.mdx' => '/none=\{`(.*?)`\}/s',
+      '.eddy/docs/content/testing/functional-javascript.mdx' => '/none=\{`(.*?)`\}/s',
+    ];
+
+    foreach ($sources as $path => $pattern) {
+      preg_match_all($pattern, File::read(self::rootDir() . '/' . $path), $matches);
+      $blocks = array_values(array_filter($matches[1], static fn(string $block): bool => str_contains($block, 'eddy-info webdriver-port')));
+
+      self::assertNotSame([], $blocks, sprintf('%s has no command block that exports WEBDRIVER_PORT.', $path));
+
+      foreach ($blocks as $index => $block) {
+        yield $path . ' block ' . ($index + 1) => ['path' => $path, 'block' => $block];
+      }
+    }
+  }
+
   #[DataProvider('dataProviderUpdateSkillDetectsTool')]
   public function testUpdateSkillDetectsTool(string $tool): void {
     $skill = File::read(self::updateSkillPath());

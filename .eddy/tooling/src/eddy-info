@@ -19,6 +19,10 @@
  * - 'eddy-info <field>': print only that field's value on stdout, exit 0.
  *   Unknown field name prints '-' and exits 1.
  *
+ * The 'webdriver-backend' and 'webdriver-host' fields print in field mode
+ * only. 'webdriver-host' prints an empty line while WEBDRIVER_HOST is unset,
+ * since its default depends on the backend.
+ *
  * Field-mode keeps expensive subprocess probes lazy: only the requested
  * field's resolver runs.
  */
@@ -68,6 +72,8 @@ $fields = [
   'site-url' => fn(): string => resolve_site_url($webserver_host, $webserver_port),
   'xdebug' => fn(): string => xdebug_state($webserver_port, $root . '/build/web'),
   'webdriver-port' => fn(): string => resolve_webdriver_port(validate_port: FALSE)['port'],
+  'webdriver-backend' => fn(): string => resolve_env_value('WEBDRIVER_BACKEND', 'chromedriver')['value'],
+  'webdriver-host' => fn(): string => resolve_env_value('WEBDRIVER_HOST', '')['value'],
   'build-dir' => fn(): string => $build_dir,
   'database' => fn(): string => $db_file,
   'drupal-profile' => fn(): string => $drupal_profile,

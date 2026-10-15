@@ -333,6 +333,8 @@ ahoy test
 #;< DEV_FUNCTIONAL_JAVASCRIPT
 vendor/bin/eddy-browser-start
 export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
+export WEBDRIVER_BACKEND="$(vendor/bin/eddy-info webdriver-backend)"
+export WEBDRIVER_HOST="$(vendor/bin/eddy-info webdriver-host)"
 #;> DEV_FUNCTIONAL_JAVASCRIPT
 #;< DEV_PHPUNIT
 export WEBSERVER_PORT="$(vendor/bin/eddy-info webserver-port)"
@@ -416,6 +418,8 @@ vendor/bin/eddy-start
 vendor/bin/eddy-provision
 vendor/bin/eddy-browser-start
 export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
+export WEBDRIVER_BACKEND="$(vendor/bin/eddy-info webdriver-backend)"
+export WEBDRIVER_HOST="$(vendor/bin/eddy-info webdriver-host)"
 export WEBSERVER_PORT="$(vendor/bin/eddy-info webserver-port)"
 export SIMPLETEST_BASE_URL="http://localhost:${WEBSERVER_PORT}"
 cd build
@@ -457,6 +461,7 @@ WEBSERVER_HOST=0.0.0.0 vendor/bin/eddy-start
 vendor/bin/eddy-provision
 WEBDRIVER_BACKEND=selenium vendor/bin/eddy-browser-start
 export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
+export WEBDRIVER_HOST="$(vendor/bin/eddy-info webdriver-host)"
 export WEBSERVER_PORT="$(vendor/bin/eddy-info webserver-port)"
 export SIMPLETEST_BASE_URL="http://localhost:${WEBSERVER_PORT}"
 cd build
@@ -470,6 +475,10 @@ vendor/bin/eddy-browser-stop
 The browser reaches the webserver at `localhost` with the default backend, and at `host.docker.internal` (macOS) or `172.17.0.1` (other systems) from the Selenium container. Set `WEBDRIVER_HOST` to use a different address.
 
 Each project gets its own WebDriver port, whichever backend it uses: a free one is claimed starting at 4444 and stored in `.env`, so several projects can run FunctionalJavascript tests at the same time. Set `WEBDRIVER_PORT` to pin a specific one. Tests reach the claimed port because the base class applies it to the WebDriver endpoint, so extend `YourExtensionFunctionalJavascriptTestBase` rather than `WebDriverTestBase` directly - a test that bypasses it keeps the default endpoint from `phpunit.xml` unless it exports its own `MINK_DRIVER_ARGS_WEBDRIVER`.
+<!-- #;< DEV_NO_COMMAND_WRAPPER -->
+
+The commands above export the backend, host and port that `eddy-info` resolves from your shell and `.env`, so the tests use the same values as `eddy-browser-start`.
+<!-- #;> DEV_NO_COMMAND_WRAPPER -->
 
 <!-- #;> DEV_FUNCTIONAL_JAVASCRIPT -->
 <!-- #;< DEV_PHPUNIT -->

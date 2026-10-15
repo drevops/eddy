@@ -18,6 +18,8 @@ final class InfoTest extends UnitTestCase {
     self::envUnset('WEBSERVER_HOST');
     self::envUnset('WEBSERVER_PORT');
     self::envUnset('WEBDRIVER_PORT');
+    self::envUnset('WEBDRIVER_BACKEND');
+    self::envUnset('WEBDRIVER_HOST');
     self::envUnset('DRUPAL_PROFILE');
   }
 
@@ -340,6 +342,18 @@ final class InfoTest extends UnitTestCase {
       'files' => [],
       'expected' => '4444',
     ];
+    yield 'webdriver-backend default' => [
+      'field' => 'webdriver-backend',
+      'shell_exec_map' => ['*' => ''],
+      'files' => [],
+      'expected' => 'chromedriver',
+    ];
+    yield 'webdriver-host unset' => [
+      'field' => 'webdriver-host',
+      'shell_exec_map' => ['*' => ''],
+      'files' => [],
+      'expected' => '',
+    ];
     yield 'drupal-profile default' => [
       'field' => 'drupal-profile',
       'shell_exec_map' => ['*' => ''],
@@ -414,26 +428,32 @@ final class InfoTest extends UnitTestCase {
     ];
   }
 
-  #[DataProvider('dataProviderInfoDrupalProfileFromDotenv')]
-  public function testInfoDrupalProfileFromDotenv(?string $env_profile, string $expected): void {
-    if ($env_profile !== NULL) {
-      self::envSet('DRUPAL_PROFILE', $env_profile);
-    }
+  /**
+   * @param array<string, string> $env
+   *   The environment variables to set.
+   */
+  #[DataProvider('dataProviderInfoFieldFromDotenv')]
+  public function testInfoFieldFromDotenv(string $field, array $env, string $expected): void {
+    self::envSetMultiple($env);
 
     $this->setupInfoMocks(
       shell_exec_map: ['*' => ''],
       files: ['.env' => TRUE],
-      file_contents: ['.env' => "DRUPAL_PROFILE=minimal\n"],
+      file_contents: ['.env' => "DRUPAL_PROFILE=minimal\nWEBDRIVER_BACKEND=selenium\nWEBDRIVER_HOST=10.0.0.5\n"],
     );
 
-    $output = $this->runInfoField('drupal-profile', 0);
+    $output = $this->runInfoField($field, 0);
 
     $this->assertSame($expected . PHP_EOL, $output);
   }
 
-  public static function dataProviderInfoDrupalProfileFromDotenv(): \Iterator {
-    yield 'profile from .env' => [NULL, 'minimal'];
-    yield 'environment over .env' => ['testing', 'testing'];
+  public static function dataProviderInfoFieldFromDotenv(): \Iterator {
+    yield 'profile from .env' => ['drupal-profile', [], 'minimal'];
+    yield 'profile from the environment over .env' => ['drupal-profile', ['DRUPAL_PROFILE' => 'testing'], 'testing'];
+    yield 'backend from .env' => ['webdriver-backend', [], 'selenium'];
+    yield 'backend from the environment over .env' => ['webdriver-backend', ['WEBDRIVER_BACKEND' => 'chromedriver'], 'chromedriver'];
+    yield 'host from .env' => ['webdriver-host', [], '10.0.0.5'];
+    yield 'host from the environment over .env' => ['webdriver-host', ['WEBDRIVER_HOST' => 'host.docker.internal'], 'host.docker.internal'];
   }
 
   public function testInfoFieldModeUnknownFieldPrintsDashAndExits1(): void {
