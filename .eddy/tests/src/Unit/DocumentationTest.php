@@ -361,7 +361,7 @@ final class DocumentationTest extends UnitTestCase {
     $links = [];
 
     foreach (self::markdownFiles() as $path) {
-      preg_match_all('#https://(?:github\.com/drevops/eddy/(?:blob|tree)|raw\.githubusercontent\.com/drevops/eddy)/main/([\w./-]+)#', (string) file_get_contents($path), $matches);
+      preg_match_all('#https://(?:github\.com/drevops/eddy/(?:blob|tree)|raw\.githubusercontent\.com/drevops/eddy)/main/([\w./-]+)#', File::read($path), $matches);
 
       foreach ($matches[1] as $target) {
         // A link that ends a sentence is followed by its full stop.

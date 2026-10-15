@@ -6,6 +6,7 @@ namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\nvm_prefix;
 use function DrevOps\Eddy\Tooling\passthru_capture;
+use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -35,7 +36,7 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
   protected function setUp(): void {
     parent::setUp();
 
-    $this->originalDir = (string) getcwd();
+    $this->originalDir = File::cwd();
     chdir(self::$sut);
   }
 
@@ -47,7 +48,7 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
   #[DataProvider('dataProviderNvmPrefix')]
   public function testNvmPrefix(bool $has_nvmrc, bool $has_nvm, string $expected_prefix, string $expected_note): void {
     if ($has_nvmrc) {
-      file_put_contents('.nvmrc', "22\n");
+      File::dump('.nvmrc', "22\n");
     }
 
     $nvm_dir = $this->createNvmDir($has_nvm ? 'nvm() { :; }' : NULL);
@@ -77,7 +78,7 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
 
   #[DataProvider('dataProviderNvmPrefixRunsInShell')]
   public function testNvmPrefixRunsInShell(string $nvm_script, string $expected_output, int $expected_exit_code): void {
-    file_put_contents('.nvmrc', "22\n");
+    File::dump('.nvmrc', "22\n");
     self::envSet('NVM_DIR', $this->createNvmDir($nvm_script));
 
     ob_start();
@@ -99,7 +100,7 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
   }
 
   public function testNvmPrefixFailsWithoutNvmFunction(): void {
-    file_put_contents('.nvmrc', "22\n");
+    File::dump('.nvmrc', "22\n");
     self::envSet('NVM_DIR', $this->createNvmDir('NVM_LOADED=1'));
 
     ob_start();
@@ -115,11 +116,10 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
   }
 
   public function testNvmPrefixExportsDefaultDirectory(): void {
-    file_put_contents('.nvmrc', "22\n");
+    File::dump('.nvmrc', "22\n");
 
     $home = self::$tmp . '/home';
-    mkdir($home . '/.nvm', 0755, TRUE);
-    file_put_contents($home . '/.nvm/nvm.sh', 'nvm() { echo "nvm $* from $NVM_DIR"; }' . PHP_EOL);
+    File::dump($home . '/.nvm/nvm.sh', 'nvm() { echo "nvm $* from $NVM_DIR"; }' . PHP_EOL);
 
     self::envUnset('NVM_DIR');
     self::envUnset('XDG_CONFIG_HOME');
@@ -133,7 +133,7 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
     $output = passthru_capture($prefix . 'echo "npm ran"', $exit_code);
 
     $this->assertStringContainsString('Using the Node.js version in .nvmrc with nvm from ' . $home . '/.nvm.', $note);
-    $this->assertSame($home . '/.nvm', getenv('NVM_DIR'));
+    $this->assertSame($home . '/.nvm', self::envGet('NVM_DIR'));
     $this->assertSame('nvm use from ' . $home . "/.nvm\nnpm ran\n", $output);
     $this->assertSame(0, $exit_code);
   }
@@ -149,10 +149,10 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
    */
   protected function createNvmDir(?string $script): string {
     $dir = self::$tmp . '/nvm';
-    mkdir($dir);
+    File::mkdir($dir);
 
     if ($script !== NULL) {
-      file_put_contents($dir . '/nvm.sh', $script . PHP_EOL);
+      File::dump($dir . '/nvm.sh', $script . PHP_EOL);
     }
 
     return $dir;

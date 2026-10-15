@@ -278,10 +278,10 @@ final class AssembleTest extends UnitTestCase {
     // directory.
     if ($config['has_nvmrc']) {
       $config['nvm_dir'] = self::$tmp . '/nvm';
-      mkdir($config['nvm_dir']);
+      File::mkdir($config['nvm_dir']);
 
       if ($config['has_nvm']) {
-        file_put_contents($config['nvm_dir'] . '/nvm.sh', '');
+        File::dump($config['nvm_dir'] . '/nvm.sh');
       }
 
       self::envSet('NVM_DIR', $config['nvm_dir']);

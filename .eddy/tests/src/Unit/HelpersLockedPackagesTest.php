@@ -23,7 +23,6 @@ final class HelpersLockedPackagesTest extends UnitTestCase {
   #[DataProvider('dataProviderLockedPackages')]
   public function testLockedPackages(?string $lock, string $field, array $expected): void {
     $lock_file = self::$tmp . '/lock_' . uniqid() . '/composer.lock';
-    File::mkdir(dirname($lock_file), 0755);
 
     if ($lock !== NULL) {
       File::dump($lock_file, $lock);

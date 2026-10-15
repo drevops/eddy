@@ -19,7 +19,7 @@ final class AssembleTest extends ToolingTestCase {
     $env = $drupal_version !== '' ? ['DRUPAL_VERSION' => $drupal_version] : [];
 
     if ($nvmrc) {
-      file_put_contents(self::$sut . '/.nvmrc', "22\n");
+      File::dump(self::$sut . '/.nvmrc', "22\n");
       $env['NVM_DIR'] = $this->createNvmStub();
     }
 
@@ -49,7 +49,7 @@ final class AssembleTest extends ToolingTestCase {
 
     if ($nvmrc) {
       $this->assertProcessAnyOutputContains('Using the Node.js version in .nvmrc with nvm from ' . $env['NVM_DIR'] . '.');
-      $this->assertSame("nvm use 22\nnvm use 22\n", file_get_contents($env['NVM_DIR'] . '/calls.log'), 'Both npm commands run after nvm use in the project root.');
+      $this->assertSame("nvm use 22\nnvm use 22\n", File::read($env['NVM_DIR'] . '/calls.log'), 'Both npm commands run after nvm use in the project root.');
     }
     else {
       $this->assertProcessAnyOutputNotContains('.nvmrc');
@@ -102,8 +102,7 @@ final class AssembleTest extends ToolingTestCase {
    */
   protected function createNvmStub(): string {
     $dir = self::$tmp . '/nvm';
-    mkdir($dir);
-    file_put_contents($dir . '/nvm.sh', 'nvm() { echo "nvm $* $(cat .nvmrc)" >> "$NVM_DIR/calls.log"; }' . PHP_EOL);
+    File::dump($dir . '/nvm.sh', 'nvm() { echo "nvm $* $(cat .nvmrc)" >> "$NVM_DIR/calls.log"; }' . PHP_EOL);
 
     return $dir;
   }

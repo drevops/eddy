@@ -23,7 +23,6 @@ final class HelpersDevBranchPackagesTest extends UnitTestCase {
   #[DataProvider('dataProviderDevBranchPackages')]
   public function testDevBranchPackages(?string $lock, array $expected): void {
     $lock_file = self::$tmp . '/lock_' . uniqid() . '/composer.lock';
-    File::mkdir(dirname($lock_file), 0755);
 
     if ($lock !== NULL) {
       File::dump($lock_file, $lock);
