@@ -15,10 +15,15 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class DeployTest extends UnitTestCase {
 
-  public function testDeploySkipWhenProceedNotSet(): void {
+  #[DataProvider('dataProviderDeploySkipsWhenProceedIsNotOne')]
+  public function testDeploySkipsWhenProceedIsNotOne(?string $deploy_proceed): void {
     self::envSet('DEPLOY_USER_NAME', 'Test User');
     self::envSet('DEPLOY_USER_EMAIL', 'test@example.com');
     self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
+
+    if ($deploy_proceed !== NULL) {
+      self::envSet('DEPLOY_PROCEED', $deploy_proceed);
+    }
 
     $this->mockQuit(0);
 
@@ -28,17 +33,9 @@ final class DeployTest extends UnitTestCase {
     $this->assertStringContainsString('Skip deployment because DEPLOY_PROCEED is not set to 1', $output);
   }
 
-  public function testDeploySkipWhenProceedExplicitlyZero(): void {
-    self::envSet('DEPLOY_USER_NAME', 'Test User');
-    self::envSet('DEPLOY_USER_EMAIL', 'test@example.com');
-    self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    self::envSet('DEPLOY_PROCEED', '0');
-
-    $this->mockQuit(0);
-
-    $output = $this->runCommand('eddy-deploy', 0);
-
-    $this->assertStringContainsString('Skip deployment', $output);
+  public static function dataProviderDeploySkipsWhenProceedIsNotOne(): \Iterator {
+    yield 'unset' => [NULL];
+    yield 'zero' => ['0'];
   }
 
   #[DataProvider('dataProviderDeployProceed')]
@@ -251,19 +248,37 @@ final class DeployTest extends UnitTestCase {
     $this->assertStringContainsString('Missing required value for DEPLOY_USER_NAME', $output);
   }
 
-  public function testDeploySshKeyMd5Fingerprint(): void {
+  /**
+   * @param array<string>|null $glob
+   *   The key files that 'glob()' finds, or NULL to leave it unmocked.
+   */
+  #[DataProvider('dataProviderDeploySshKeyFingerprint')]
+  public function testDeploySshKeyFingerprint(string $fingerprint, ?array $glob, string $key_file): void {
     self::envSet('DEPLOY_USER_NAME', 'Test User');
     self::envSet('DEPLOY_USER_EMAIL', 'test@example.com');
     self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd:ee:ff');
+    self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', $fingerprint);
     self::envSet('HOME', '/home/testuser');
 
     $this->mockFunction('is_dir', fn(string $path): bool => str_contains($path, '.ssh'));
 
     $this->mockFunction('file_put_contents', fn(): int => 100);
 
-    // The fingerprint is cleaned to 'aabbccddeeff'.
-    $key_file = '/home/testuser/.ssh/id_rsa_aabbccddeeff';
+    if ($glob !== NULL) {
+      $this->mockFunction('glob', fn(): array => $glob);
+      $this->mockFunction('exec', function (string $command, ?array &$output = NULL): int {
+        $output ??= [];
+
+        if (str_contains($command, '-E sha256')) {
+          $output[] = '2048 SHA256:abcdef123456 testuser@host (RSA)';
+        }
+        elseif (str_contains($command, '-E md5')) {
+          $output[] = '2048 MD5:aa:bb:cc:dd testuser@host (RSA)';
+        }
+
+        return 0;
+      });
+    }
 
     $this->mockFunction('file_exists', fn(string $file): bool => $file === $key_file);
 
@@ -296,61 +311,45 @@ final class DeployTest extends UnitTestCase {
     $this->assertLessThan($skip, $ssh, 'SSH must be set up before the proceed check.');
   }
 
-  public function testDeploySshKeySha256Fingerprint(): void {
-    self::envSet('DEPLOY_USER_NAME', 'Test User');
-    self::envSet('DEPLOY_USER_EMAIL', 'test@example.com');
-    self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'SHA256:abcdef123456');
-    self::envSet('HOME', '/home/testuser');
-
-    $this->mockFunction('is_dir', fn(string $path): bool => str_contains($path, '.ssh'));
-
-    $this->mockFunction('file_put_contents', fn(): int => 100);
-
-    $this->mockFunction('glob', fn(): array => ['/home/testuser/.ssh/id_rsa_test']);
-
-    $exec_calls = 0;
-    $this->mockFunction('exec', function (string $command, ?array &$output = NULL) use (&$exec_calls): int {
-      $exec_calls++;
-      $output ??= [];
-      if (str_contains($command, '-E sha256')) {
-        $output[] = '2048 SHA256:abcdef123456 testuser@host (RSA)';
-      }
-      elseif (str_contains($command, '-E md5')) {
-        $output[] = '2048 MD5:aa:bb:cc:dd testuser@host (RSA)';
-      }
-      return 0;
-    });
-
+  public static function dataProviderDeploySshKeyFingerprint(): \Iterator {
+    // The fingerprint is cleaned to 'aabbccddeeff'.
+    yield 'MD5' => ['aa:bb:cc:dd:ee:ff', NULL, '/home/testuser/.ssh/id_rsa_aabbccddeeff'];
     // The MD5 fingerprint is extracted and cleaned to 'aabbccdd'.
-    $key_file = '/home/testuser/.ssh/id_rsa_aabbccdd';
-
-    $this->mockFunction('file_exists', fn(string $file): bool => $file === $key_file);
-
-    self::envSet('SSH_AGENT_PID', '12345');
-
-    $this->mockPassthruMultiple([
-      ['cmd' => 'ssh-add -D'],
-      ['cmd' => sprintf('ssh-add %s', escapeshellarg($key_file))],
-      ['cmd' => 'ssh-add -l'],
-    ]);
-
-    $this->mockQuit(0);
-
-    $output = $this->runCommand('eddy-deploy', 0);
-
-    $this->assertStringContainsString('Setting up SSH.', $output);
+    yield 'SHA256 converted to MD5' => ['SHA256:abcdef123456', ['/home/testuser/.ssh/id_rsa_test'], '/home/testuser/.ssh/id_rsa_aabbccdd'];
   }
 
-  public function testDeploySshKeyNotFound(): void {
+  /**
+   * @param array<string>|false|null $glob
+   *   The result of 'glob()', or NULL to leave it unmocked.
+   * @param array<string>|null $sha256_output
+   *   The SHA256 lines that 'exec()' returns, or NULL to leave it unmocked.
+   */
+  #[DataProvider('dataProviderDeployFailsWhenSshKeyIsMissing')]
+  public function testDeployFailsWhenSshKeyIsMissing(string $fingerprint, array|false|null $glob, ?array $sha256_output): void {
     self::envSet('DEPLOY_USER_NAME', 'Test User');
     self::envSet('DEPLOY_USER_EMAIL', 'test@example.com');
     self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd');
+    self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', $fingerprint);
     self::envSet('HOME', '/home/testuser');
 
     $this->mockFunction('is_dir', fn(): true => TRUE);
     $this->mockFunction('file_put_contents', fn(): int => 100);
+
+    if ($glob !== NULL) {
+      $this->mockFunction('glob', fn(): array|false => $glob);
+    }
+
+    if ($sha256_output !== NULL) {
+      $this->mockFunction('exec', function (string $command, ?array &$output = NULL) use ($sha256_output): int {
+        $output ??= [];
+
+        if (str_contains($command, '-E sha256')) {
+          $output = array_merge($output, $sha256_output);
+        }
+
+        return 0;
+      });
+    }
 
     $this->mockFunction('file_exists', fn(): false => FALSE);
 
@@ -359,6 +358,15 @@ final class DeployTest extends UnitTestCase {
     $output = $this->runCommand('eddy-deploy', 1);
 
     $this->assertStringContainsString('Unable to find SSH key file', $output);
+  }
+
+  public static function dataProviderDeployFailsWhenSshKeyIsMissing(): \Iterator {
+    yield 'MD5 key missing' => ['aa:bb:cc:dd', NULL, NULL];
+    // The unconverted fingerprint cleans to 'SHA256nomatch'.
+    yield 'SHA256 matches no key' => ['SHA256:nomatch', ['/home/testuser/.ssh/id_rsa_test'], ['2048 SHA256:differenthash testuser@host (RSA)']];
+    // The SHA256 fingerprint is not converted, so no key file matches.
+    yield 'SHA256 with no key files' => ['SHA256:abcdef', FALSE, NULL];
+    yield 'SHA256 with empty ssh-keygen output' => ['SHA256:abcdef', ['/home/testuser/.ssh/id_rsa_test'], []];
   }
 
   public function testDeploySshCreatesSshDir(): void {
@@ -470,84 +478,6 @@ final class DeployTest extends UnitTestCase {
     yield 'no output' => [''];
     yield 'no socket' => ["SSH_AGENT_PID=4242; export SSH_AGENT_PID;\necho Agent pid 4242;\n"];
     yield 'no process ID' => ["SSH_AUTH_SOCK=/home/testuser/.ssh/agent/s.started; export SSH_AUTH_SOCK;\n"];
-  }
-
-  public function testDeploySshSha256NoMatch(): void {
-    self::envSet('DEPLOY_USER_NAME', 'Test User');
-    self::envSet('DEPLOY_USER_EMAIL', 'test@example.com');
-    self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'SHA256:nomatch');
-    self::envSet('HOME', '/home/testuser');
-
-    $this->mockFunction('is_dir', fn(): true => TRUE);
-    $this->mockFunction('file_put_contents', fn(): int => 100);
-
-    $this->mockFunction('glob', fn(): array => ['/home/testuser/.ssh/id_rsa_test']);
-
-    $this->mockFunction('exec', function (string $command, ?array &$output = NULL): int {
-      $output ??= [];
-      if (str_contains($command, '-E sha256')) {
-        $output[] = '2048 SHA256:differenthash testuser@host (RSA)';
-      }
-      return 0;
-    });
-
-    // The unconverted fingerprint cleans to 'SHA256nomatch'.
-    $this->mockFunction('file_exists', fn(): false => FALSE);
-
-    $this->mockQuit(1);
-
-    $output = $this->runCommand('eddy-deploy', 1);
-
-    $this->assertStringContainsString('Unable to find SSH key file', $output);
-  }
-
-  public function testDeploySshSha256EmptyGlob(): void {
-    self::envSet('DEPLOY_USER_NAME', 'Test User');
-    self::envSet('DEPLOY_USER_EMAIL', 'test@example.com');
-    self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'SHA256:abcdef');
-    self::envSet('HOME', '/home/testuser');
-
-    $this->mockFunction('is_dir', fn(): true => TRUE);
-    $this->mockFunction('file_put_contents', fn(): int => 100);
-
-    $this->mockFunction('glob', fn(): false => FALSE);
-
-    // The SHA256 fingerprint is not converted, so no key file matches.
-    $this->mockFunction('file_exists', fn(): false => FALSE);
-
-    $this->mockQuit(1);
-
-    $output = $this->runCommand('eddy-deploy', 1);
-
-    $this->assertStringContainsString('Unable to find SSH key file', $output);
-  }
-
-  public function testDeploySshSha256EmptyExecOutput(): void {
-    self::envSet('DEPLOY_USER_NAME', 'Test User');
-    self::envSet('DEPLOY_USER_EMAIL', 'test@example.com');
-    self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'SHA256:abcdef');
-    self::envSet('HOME', '/home/testuser');
-
-    $this->mockFunction('is_dir', fn(): true => TRUE);
-    $this->mockFunction('file_put_contents', fn(): int => 100);
-
-    $this->mockFunction('glob', fn(): array => ['/home/testuser/.ssh/id_rsa_test']);
-
-    $this->mockFunction('exec', function (string $command, ?array &$output = NULL): int {
-      $output ??= [];
-      return 0;
-    });
-
-    $this->mockFunction('file_exists', fn(): false => FALSE);
-
-    $this->mockQuit(1);
-
-    $output = $this->runCommand('eddy-deploy', 1);
-
-    $this->assertStringContainsString('Unable to find SSH key file', $output);
   }
 
 }

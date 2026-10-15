@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Unit;
 
 use AlexSkrypnyk\File\File;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
@@ -40,62 +41,55 @@ final class UpdateAssetsRecordSessionTest extends UnitTestCase {
     $this->assertFileExists($cast_file);
   }
 
-  public function testRecordSessionFailsWithSessionTail(): void {
-    $expect_script = self::$sut . '/lint.exp';
-    $cast_file = self::$sut . '/lint.cast';
+  /**
+   * @param list<string> $stderr
+   *   Lines asciinema prints.
+   */
+  #[DataProvider('dataProviderRecordSessionFails')]
+  public function testRecordSessionFails(?string $cast, array $stderr, string $expected_message): void {
+    $expect_script = self::$sut . '/session.exp';
+    $cast_file = self::$sut . '/session.cast';
     File::dump($expect_script);
 
-    $cast = implode("\n", [
-      '{"version":3,"term":{"cols":80,"rows":24}}',
-      '[0.5,"o","\u001b[?2004h$ ahoy lint\r\r\n"]',
-      '[0.1,"o","\u001b[31mpushd: build: No such file or directory\u001b[0m\r\r\n"]',
-      '[0.1,"o","Timed out waiting for the session.\r\r\n"]',
-      '[0.1,"x","1"]',
-    ]);
-    $this->mockAsciinema($cast_file, $cast, 1, NULL, ['asciinema: session ended']);
+    $this->mockAsciinema($cast_file, $cast, 1, NULL, $stderr);
 
     try {
       record_session($expect_script, $cast_file);
       $this->fail('Expected the recording to fail.');
     }
     catch (\RuntimeException $exception) {
-      $this->assertSame(implode(PHP_EOL, [
+      $this->assertSame(sprintf($expected_message, $cast_file), $exception->getMessage());
+    }
+  }
+
+  public static function dataProviderRecordSessionFails(): \Iterator {
+    yield 'session tail' => [
+      implode("\n", [
+        '{"version":3,"term":{"cols":80,"rows":24}}',
+        '[0.5,"o","\u001b[?2004h$ ahoy lint\r\r\n"]',
+        '[0.1,"o","\u001b[31mpushd: build: No such file or directory\u001b[0m\r\r\n"]',
+        '[0.1,"o","Timed out waiting for the session.\r\r\n"]',
+        '[0.1,"x","1"]',
+      ]),
+      ['asciinema: session ended'],
+      implode(PHP_EOL, [
         'The session exited with code 1. Its last output:',
         '$ ahoy lint',
         'pushd: build: No such file or directory',
         'Timed out waiting for the session.',
         'asciinema: session ended',
-      ]), $exception->getMessage());
-    }
-  }
-
-  public function testRecordSessionFailsWithoutAsciinemaOutput(): void {
-    $expect_script = self::$sut . '/install.exp';
-    $cast_file = self::$sut . '/install.cast';
-    File::dump($expect_script);
-
-    $this->mockAsciinema($cast_file, '{"version":3,"term":{"cols":80,"rows":24}}' . "\n" . '[0.5,"o","The session ended unexpectedly.\r\n"]' . "\n", 1);
-
-    try {
-      record_session($expect_script, $cast_file);
-      $this->fail('Expected the recording to fail.');
-    }
-    catch (\RuntimeException $exception) {
-      $this->assertSame('The session exited with code 1. Its last output:' . PHP_EOL . 'The session ended unexpectedly.', $exception->getMessage());
-    }
-  }
-
-  public function testRecordSessionFailsWithoutRecording(): void {
-    $expect_script = self::$sut . '/lint.exp';
-    $cast_file = self::$sut . '/lint.cast';
-    File::dump($expect_script);
-
-    $this->mockAsciinema($cast_file, NULL, 1, NULL, ['asciinema: no such file']);
-
-    $this->expectException(\RuntimeException::class);
-    $this->expectExceptionMessage(sprintf('No recording was written to %s.', $cast_file) . PHP_EOL . 'asciinema: no such file');
-
-    record_session($expect_script, $cast_file);
+      ]),
+    ];
+    yield 'no asciinema output' => [
+      '{"version":3,"term":{"cols":80,"rows":24}}' . "\n" . '[0.5,"o","The session ended unexpectedly.\r\n"]' . "\n",
+      [],
+      'The session exited with code 1. Its last output:' . PHP_EOL . 'The session ended unexpectedly.',
+    ];
+    yield 'no recording' => [
+      NULL,
+      ['asciinema: no such file'],
+      'No recording was written to %s.' . PHP_EOL . 'asciinema: no such file',
+    ];
   }
 
   public function testRecordSessionFailsWithoutExpectScript(): void {

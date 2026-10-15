@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Functional;
 
 use AlexSkrypnyk\File\File;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
 /**
@@ -13,12 +14,14 @@ use PHPUnit\Framework\Attributes\Group;
 #[Group('p5')]
 final class XdebugTest extends ToolingTestCase {
 
-  public function testAhoy(): void {
-    $this->assertToggle('ahoy');
+  #[DataProvider('dataProviderToggle')]
+  public function testToggle(string $tool): void {
+    $this->assertToggle($tool);
   }
 
-  public function testMake(): void {
-    $this->assertToggle('make');
+  public static function dataProviderToggle(): \Iterator {
+    yield 'ahoy' => ['ahoy'];
+    yield 'make' => ['make'];
   }
 
   protected function assertToggle(string $tool): void {

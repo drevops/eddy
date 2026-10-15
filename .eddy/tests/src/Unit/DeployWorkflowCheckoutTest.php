@@ -29,10 +29,23 @@ final class DeployWorkflowCheckoutTest extends UnitTestCase {
 
   protected const string CHECKOUT_ACTION = 'actions/checkout@';
 
-  public function testCheckoutNamesTheTestedCommit(): void {
-    $ref = self::deployChild(self::deployChild(self::deployStep(self::STEP), 'with'), 'ref');
+  #[DataProvider('dataProviderCheckoutInput')]
+  public function testCheckoutInput(string $input, string|int $expected, string $message): void {
+    $this->assertSame($expected, self::deployChild(self::deployChild(self::deployStep(self::STEP), 'with'), $input), $message);
+  }
 
-    $this->assertSame('${{ github.event.workflow_run.head_sha }}', $ref, sprintf('The "%s" step must check out the commit that triggered the run, otherwise the deployment publishes default-branch code.', self::STEP));
+  public static function dataProviderCheckoutInput(): \Iterator {
+    yield 'ref' => [
+      'ref',
+      '${{ github.event.workflow_run.head_sha }}',
+      sprintf('The "%s" step must check out the commit that triggered the run, otherwise the deployment publishes default-branch code.', self::STEP),
+    ];
+
+    yield 'fetch-depth' => [
+      'fetch-depth',
+      0,
+      sprintf('The "%s" step must fetch every branch and tag: the deploy step compares the commit with its branch tip, detects tag pushes and pushes every tag.', self::STEP),
+    ];
   }
 
   public function testEveryCheckoutNamesItsRef(): void {
@@ -56,12 +69,6 @@ final class DeployWorkflowCheckoutTest extends UnitTestCase {
     }
 
     $this->assertSame([], $unnamed, sprintf('The deploy job checks out without naming a ref in: %s', implode(', ', $unnamed)));
-  }
-
-  public function testCheckoutFetchesFullHistory(): void {
-    $fetch_depth = self::deployChild(self::deployChild(self::deployStep(self::STEP), 'with'), 'fetch-depth');
-
-    $this->assertSame(0, $fetch_depth, sprintf('The "%s" step must fetch every branch and tag: the deploy step compares the commit with its branch tip, detects tag pushes and pushes every tag.', self::STEP));
   }
 
   #[DataProvider('dataProviderJobIsGated')]

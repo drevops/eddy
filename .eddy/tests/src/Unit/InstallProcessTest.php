@@ -1486,19 +1486,26 @@ final class InstallProcessTest extends UnitTestCase {
     yield 'unknown' => [NULL];
   }
 
-  public function testProcessThrowsOnInvalidClaudeSettingsJson(): void {
-    File::dump(self::$sut . '/.claude/settings.json', '{invalid json');
+  /**
+   * @param class-string<\Throwable> $exception
+   *   The expected exception class.
+   */
+  #[DataProvider('dataProviderProcessThrowsOnInvalidClaudeSettings')]
+  public function testProcessThrowsOnInvalidClaudeSettings(string $settings, string $exception, ?string $message): void {
+    File::dump(self::$sut . '/.claude/settings.json', $settings);
 
-    $this->expectException(\JsonException::class);
+    $this->expectException($exception);
+
+    if ($message !== NULL) {
+      $this->expectExceptionMessage($message);
+    }
+
     process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], [], FALSE, FALSE);
   }
 
-  public function testProcessThrowsOnInvalidClaudeSettingsStructure(): void {
-    File::dump(self::$sut . '/.claude/settings.json', '{"foo": "bar"}');
-
-    $this->expectException(\RuntimeException::class);
-    $this->expectExceptionMessage('Invalid .claude/settings.json structure.');
-    process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], [], FALSE, FALSE);
+  public static function dataProviderProcessThrowsOnInvalidClaudeSettings(): \Iterator {
+    yield 'invalid JSON' => ['{invalid json', \JsonException::class, NULL];
+    yield 'invalid structure' => ['{"foo": "bar"}', \RuntimeException::class, 'Invalid .claude/settings.json structure.'];
   }
 
   public function testProcessSkipsWhenClaudeSettingsMissing(): void {

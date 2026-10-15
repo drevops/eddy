@@ -341,28 +341,35 @@ final class UpdateAssetsTest extends UnitTestCase {
     ];
   }
 
-  public function testReadCast(): void {
-    $content = implode("\n", [
-      '{"version":3,"term":{"cols":80,"rows":24}}',
-      '[0.5, "o", "ab"]',
-      'not json',
-      '[0.25, "i", "x"]',
-      '[0.25, "o", "cd"]',
-      '[0.5, "o"]',
-      '["late", "o", "ef"]',
-      '[1.0, "x", "0"]',
-      '',
-    ]);
-
-    $this->assertSame([
-      'header' => ['version' => 3, 'term' => ['cols' => 80, 'rows' => 24]],
-      'stream' => 'abcd',
-      'arrivals' => [0 => 0.5, 2 => 1.0],
-    ], read_cast($content));
+  /**
+   * @param array{header: array<mixed>, stream: string, arrivals: array<int, float>} $expected
+   *   The decoded header, the joined output and the arrival times.
+   */
+  #[DataProvider('dataProviderReadCast')]
+  public function testReadCast(string $content, array $expected): void {
+    $this->assertSame($expected, read_cast($content));
   }
 
-  public function testReadCastWithoutHeader(): void {
-    $this->assertSame(['header' => [], 'stream' => '', 'arrivals' => []], read_cast(''));
+  public static function dataProviderReadCast(): \Iterator {
+    yield 'events' => [
+      implode("\n", [
+        '{"version":3,"term":{"cols":80,"rows":24}}',
+        '[0.5, "o", "ab"]',
+        'not json',
+        '[0.25, "i", "x"]',
+        '[0.25, "o", "cd"]',
+        '[0.5, "o"]',
+        '["late", "o", "ef"]',
+        '[1.0, "x", "0"]',
+        '',
+      ]),
+      [
+        'header' => ['version' => 3, 'term' => ['cols' => 80, 'rows' => 24]],
+        'stream' => 'abcd',
+        'arrivals' => [0 => 0.5, 2 => 1.0],
+      ],
+    ];
+    yield 'empty' => ['', ['header' => [], 'stream' => '', 'arrivals' => []]];
   }
 
   /**
@@ -653,22 +660,23 @@ final class UpdateAssetsTest extends UnitTestCase {
     yield 'zero kept' => [['0', 'a'], '0' . PHP_EOL . 'a'];
   }
 
-  public function testRemoveDirRemovesReadOnlyDirectories(): void {
+  #[DataProvider('dataProviderRemoveDir')]
+  public function testRemoveDir(bool $exists): void {
     $directory = self::$sut . '/workspace';
-    File::dump($directory . '/build/web/sites/default/settings.php', '<?php');
-    chmod($directory . '/build/web/sites/default', 0555);
+
+    if ($exists) {
+      File::dump($directory . '/build/web/sites/default/settings.php', '<?php');
+      chmod($directory . '/build/web/sites/default', 0555);
+    }
 
     remove_dir($directory);
 
     $this->assertDirectoryDoesNotExist($directory);
   }
 
-  public function testRemoveDirIgnoresMissingDirectory(): void {
-    $directory = self::$sut . '/missing';
-
-    remove_dir($directory);
-
-    $this->assertDirectoryDoesNotExist($directory);
+  public static function dataProviderRemoveDir(): \Iterator {
+    yield 'read-only directory' => [TRUE];
+    yield 'missing directory' => [FALSE];
   }
 
   /**

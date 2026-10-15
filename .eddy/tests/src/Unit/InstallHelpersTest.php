@@ -142,24 +142,29 @@ final class InstallHelpersTest extends UnitTestCase {
     }
   }
 
-  public function testPrintHelp(): void {
+  #[DataProvider('dataProviderPrintHelp')]
+  public function testPrintHelp(string $needle): void {
     $output = $this->capture(fn() => print_help());
 
-    $this->assertStringContainsString('Eddy - project installation.', $output);
-    $this->assertStringContainsString('Usage:', $output);
-    $this->assertStringContainsString('install.php', $output);
-    $this->assertStringContainsString('--help', $output);
-    $this->assertStringContainsString('INSTALL_NAME', $output);
-    $this->assertStringContainsString('INSTALL_MACHINE_NAME', $output);
-    $this->assertStringContainsString('INSTALL_TYPE', $output);
-    $this->assertStringContainsString('INSTALL_DRUPAL_VERSION', $output);
-    $this->assertStringContainsString('INSTALL_COMMAND_WRAPPER', $output);
-    $this->assertStringContainsString('INSTALL_TOOLS', $output);
-    $this->assertStringContainsString('INSTALL_EXAMPLES', $output);
-    $this->assertStringContainsString('INSTALL_REMOVE_SELF', $output);
-    $this->assertStringContainsString('INSTALL_PROCEED', $output);
-    $this->assertStringContainsString('INSTALL_BRANCHES', $output);
-    $this->assertStringContainsString('INSTALL_GITHUB_REPOSITORY', $output);
+    $this->assertStringContainsString($needle, $output);
+  }
+
+  public static function dataProviderPrintHelp(): \Iterator {
+    yield 'Eddy - project installation.' => ['Eddy - project installation.'];
+    yield 'Usage:' => ['Usage:'];
+    yield 'install.php' => ['install.php'];
+    yield '--help' => ['--help'];
+    yield 'INSTALL_NAME' => ['INSTALL_NAME'];
+    yield 'INSTALL_MACHINE_NAME' => ['INSTALL_MACHINE_NAME'];
+    yield 'INSTALL_TYPE' => ['INSTALL_TYPE'];
+    yield 'INSTALL_DRUPAL_VERSION' => ['INSTALL_DRUPAL_VERSION'];
+    yield 'INSTALL_COMMAND_WRAPPER' => ['INSTALL_COMMAND_WRAPPER'];
+    yield 'INSTALL_TOOLS' => ['INSTALL_TOOLS'];
+    yield 'INSTALL_EXAMPLES' => ['INSTALL_EXAMPLES'];
+    yield 'INSTALL_REMOVE_SELF' => ['INSTALL_REMOVE_SELF'];
+    yield 'INSTALL_PROCEED' => ['INSTALL_PROCEED'];
+    yield 'INSTALL_BRANCHES' => ['INSTALL_BRANCHES'];
+    yield 'INSTALL_GITHUB_REPOSITORY' => ['INSTALL_GITHUB_REPOSITORY'];
   }
 
   /**
