@@ -1334,9 +1334,7 @@ final class InstallProcessTest extends UnitTestCase {
       // the project's copy in 'HEAD'.
       $template = File::read($workflow);
       File::dump($workflow, $committed);
-      $this->gitRun(self::$sut, ['init']);
-      $this->gitRun(self::$sut, ['config', 'user.name', 'Test User']);
-      $this->gitRun(self::$sut, ['config', 'user.email', 'test@example.com']);
+      $this->gitInit(self::$sut);
       $this->gitRun(self::$sut, ['add', '.github/workflows/test.yml']);
       $this->gitRun(self::$sut, ['commit', '--message', 'Project workflow']);
       File::dump($workflow, $template);

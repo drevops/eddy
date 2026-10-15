@@ -333,9 +333,7 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
     $origin = self::originDir();
     File::mkdir($origin, 0755);
 
-    $this->gitRun($origin, ['init', '--initial-branch=' . self::DEFAULT_BRANCH]);
-    $this->gitRun($origin, ['config', 'user.name', 'Test User']);
-    $this->gitRun($origin, ['config', 'user.email', 'test@example.com']);
+    $this->gitInit($origin, ['--initial-branch=' . self::DEFAULT_BRANCH]);
 
     File::dump($origin . '/file.txt', 'first');
     $this->gitRun($origin, ['add', '--all']);

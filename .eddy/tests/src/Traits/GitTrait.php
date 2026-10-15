@@ -34,6 +34,20 @@ trait GitTrait {
   }
 
   /**
+   * Initialise a repository with the identity the tests commit as.
+   *
+   * @param string $repository
+   *   Directory of the repository.
+   * @param array<int, string> $options
+   *   Options for 'git init', such as '--initial-branch=main'.
+   */
+  protected function gitInit(string $repository, array $options = []): void {
+    $this->gitRun($repository, ['init', ...$options]);
+    $this->gitRun($repository, ['config', 'user.name', 'Test User']);
+    $this->gitRun($repository, ['config', 'user.email', 'test@example.com']);
+  }
+
+  /**
    * Environment that detaches git from the configuration of the host.
    *
    * @return array<string, string>

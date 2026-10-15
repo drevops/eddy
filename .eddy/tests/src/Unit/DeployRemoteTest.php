@@ -132,9 +132,7 @@ final class DeployRemoteTest extends UnitTestCase {
     $clone = self::$tmp . '/clone';
     File::mkdir($clone, 0755);
 
-    $this->gitRun($clone, ['init', '--quiet', '--initial-branch=main']);
-    $this->gitRun($clone, ['config', 'user.name', 'Test User']);
-    $this->gitRun($clone, ['config', 'user.email', 'test@example.com']);
+    $this->gitInit($clone, ['--quiet', '--initial-branch=main']);
 
     File::dump($clone . '/file.txt', 'first');
     $this->gitRun($clone, ['add', '--all']);

@@ -753,9 +753,7 @@ final class InstallHelpersTest extends UnitTestCase {
     File::copy($root . '/install.php', self::$sut . '/install.php');
     File::copy($root . '/.gitattributes', self::$sut . '/.gitattributes');
 
-    $this->gitRun(self::$sut, ['init']);
-    $this->gitRun(self::$sut, ['config', 'user.name', 'Test User']);
-    $this->gitRun(self::$sut, ['config', 'user.email', 'test@example.com']);
+    $this->gitInit(self::$sut);
     $this->gitRun(self::$sut, ['add', '--all']);
     $this->gitRun(self::$sut, ['commit', '--message', 'Release']);
 
@@ -877,9 +875,7 @@ final class InstallHelpersTest extends UnitTestCase {
   #[DataProvider('dataProviderCommittedWorkflowBranches')]
   public function testCommittedWorkflowBranches(?array $committed, string $directory, array $expected): void {
     if ($committed !== NULL) {
-      $this->gitRun(self::$sut, ['init']);
-      $this->gitRun(self::$sut, ['config', 'user.name', 'Test User']);
-      $this->gitRun(self::$sut, ['config', 'user.email', 'test@example.com']);
+      $this->gitInit(self::$sut);
       File::dump(self::$sut . '/README.md', 'Project');
 
       foreach ($committed as $path => $content) {
