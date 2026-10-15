@@ -184,7 +184,7 @@ final class InfoTest extends UnitTestCase {
     $this->assertStringContainsString('Drupal profile:     standard', $output);
   }
 
-  public function testInfoDrushMissingSuppressesPhpPathSuffixOnlyWhenPhpAlsoMissing(): void {
+  public function testInfoOmitsPhpPathWhenPhpPathIsUnknown(): void {
     $this->setupInfoMocks(
       shell_exec_map: [
         'php -v' => "PHP 8.3.14\n",
