@@ -127,11 +127,8 @@ final class ProvisionTest extends UnitTestCase {
 
     $this->mockPassthruMultiple($passthru_responses);
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-provision';
-    $output = ob_get_clean();
+    $output = $this->runCommand('eddy-provision');
 
-    $this->assertIsString($output);
     $this->assertStringContainsString('PROVISION', $output);
     $this->assertSame([
       '[TASK] Installing Drupal into SQLite database ' . $db_file . '.',
@@ -333,11 +330,8 @@ final class ProvisionTest extends UnitTestCase {
       ['cmd' => $prefix . sprintf('uli -l %s --no-browser', escapeshellarg($site_url)), 'output' => $site_url . '/user/reset/1/abc/login'],
     ]);
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-provision';
-    $output = ob_get_clean();
+    $output = $this->runCommand('eddy-provision');
 
-    $this->assertIsString($output);
     $this->assertStringContainsString('http://' . $expected_host . ':' . $expected_port, $output);
   }
 
@@ -378,11 +372,8 @@ final class ProvisionTest extends UnitTestCase {
       ['cmd' => $prefix . sprintf('uli -l %s', escapeshellarg($site_url)) . $expected_options, 'output' => $site_url . '/user/reset/1/abc/login'],
     ]);
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-provision';
-    $output = ob_get_clean();
+    $output = $this->runCommand('eddy-provision');
 
-    $this->assertIsString($output);
     $this->assertStringContainsString('One-time login link: ' . $site_url . '/user/reset/1/abc/login', $output);
   }
 
@@ -435,11 +426,8 @@ final class ProvisionTest extends UnitTestCase {
       ['cmd' => $prefix . sprintf('uli -l %s --no-browser', escapeshellarg($tunnel_url)), 'output' => $tunnel_url . '/user/reset/1/abc/login'],
     ]);
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-provision';
-    $output = ob_get_clean();
+    $output = $this->runCommand('eddy-provision');
 
-    $this->assertIsString($output);
     $this->assertStringContainsString('Site URL:            ' . $tunnel_url, $output);
     $this->assertStringNotContainsString('Site URL:            http://', $output);
   }
@@ -485,11 +473,8 @@ final class ProvisionTest extends UnitTestCase {
       ['cmd' => $prefix . sprintf('uli -l %s --no-browser', escapeshellarg($site_url)), 'output' => $site_url . '/user/reset/1/abc/login'],
     ]);
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-provision';
-    $output = ob_get_clean();
+    $output = $this->runCommand('eddy-provision');
 
-    $this->assertIsString($output);
     $this->assertStringContainsString('Adding the tunnel settings to build/web/sites/default/settings.php.', $output);
     $this->assertStringContainsString('Tunnel settings added.', $output);
     $this->assertStringContainsString("# Cloudflare quick tunnel settings.\n\$settings['reverse_proxy'] = TRUE;", File::read($settings_file));

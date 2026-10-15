@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -59,9 +58,7 @@ final class BrowserStopTest extends UnitTestCase {
 
     $this->mockSleep();
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-browser-stop';
-    $output = (string) ob_get_clean();
+    $output = $this->runCommand('eddy-browser-stop');
 
     $this->assertStringContainsString('STOP BROWSER', $output);
     $this->assertStringContainsString('Browser stopped on port ' . $expected_port . '.', $output);
@@ -148,9 +145,7 @@ final class BrowserStopTest extends UnitTestCase {
 
     $this->mockSleep();
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-browser-stop';
-    $output = (string) ob_get_clean();
+    $output = $this->runCommand('eddy-browser-stop');
 
     $this->assertStringContainsString('Browser stopped on port 4444.', $output);
     $this->assertStringContainsString('BROWSER STOPPED', $output);
@@ -190,17 +185,7 @@ final class BrowserStopTest extends UnitTestCase {
     $this->mockPassthruNever();
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-browser-stop';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = (string) ob_get_clean();
-    }
+    $output = $this->runCommand('eddy-browser-stop', 1);
 
     $this->assertStringContainsString('Invalid WEBDRIVER_PORT "99999"', $output);
     $this->assertStringNotContainsString('BROWSER STOPPED', $output);

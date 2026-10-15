@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -874,25 +873,14 @@ final class BrowserStartTest extends UnitTestCase {
    * The completion banner is asserted here for every run: it is printed when
    * the backend is ready and never on a failure.
    */
-  protected function runBrowserStart(int $expected_exit = 0): string {
-    $this->mockQuit($expected_exit);
-
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-browser-start';
-
-      if ($expected_exit !== 0) {
-        $this->fail('Expected eddy-browser-start to fail.');
-      }
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame($expected_exit, $e->getCode());
-    }
-    finally {
-      $output = (string) ob_get_clean();
+  protected function runBrowserStart(?int $expected_exit_code = NULL): string {
+    if ($expected_exit_code !== NULL) {
+      $this->mockQuit($expected_exit_code);
     }
 
-    if ($expected_exit === 0) {
+    $output = $this->runCommand('eddy-browser-start', $expected_exit_code);
+
+    if ($expected_exit_code === NULL) {
       $this->assertStringContainsString('BROWSER READY', $output);
     }
     else {

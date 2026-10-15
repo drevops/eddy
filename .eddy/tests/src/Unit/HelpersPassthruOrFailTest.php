@@ -69,7 +69,7 @@ final class HelpersPassthruOrFailTest extends UnitTestCase {
       $this->mockQuit($result_code);
     }
 
-    $output = $this->capture(fn() => passthru_or_fail('run-tool'), $result_code);
+    $output = $this->capture(fn() => passthru_or_fail('run-tool'), $result_code === 0 ? NULL : $result_code);
 
     if ($expect_visible) {
       $this->assertStringContainsString('TOOL_NOISE', $output);

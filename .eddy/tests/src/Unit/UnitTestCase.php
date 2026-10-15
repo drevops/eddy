@@ -52,15 +52,15 @@ abstract class UnitTestCase extends UpstreamUnitTestCase {
    *
    * @param callable(): mixed $callback
    *   The code to run.
-   * @param int $expected_exit_code
-   *   The exit code the callback quits with. 0 also covers a callback that
-   *   returns without calling quit().
+   * @param int|null $expected_exit_code
+   *   The exit code the callback quits with, or NULL for a callback that must
+   *   return without calling quit().
    *
    * @return string
    *   The captured output.
    */
-  protected function capture(callable $callback, int $expected_exit_code = 0): string {
-    $exit_code = 0;
+  protected function capture(callable $callback, ?int $expected_exit_code = NULL): string {
+    $exit_code = NULL;
     ob_start();
 
     try {
@@ -73,10 +73,39 @@ abstract class UnitTestCase extends UpstreamUnitTestCase {
       $output = (string) ob_get_clean();
     }
 
-    $message = sprintf('Expected exit code %d, got %d. Output:%s%s', $expected_exit_code, $exit_code, PHP_EOL, $output);
+    $describe = static fn(?int $code): string => $code === NULL ? 'no quit()' : 'exit code ' . $code;
+    $message = sprintf('Expected %s, got %s. Output:%s%s', $describe($expected_exit_code), $describe($exit_code), PHP_EOL, $output);
     $this->assertSame($expected_exit_code, $exit_code, $message);
 
     return $output;
+  }
+
+  /**
+   * Run a tooling command script and return its output.
+   *
+   * @param string $command
+   *   The script name, such as 'eddy-start'.
+   * @param int|null $expected_exit_code
+   *   The exit code the script quits with, or NULL for a script that must run
+   *   to its end.
+   * @param array<int, string> $argv
+   *   The arguments the script reads from $argv, the script name first.
+   *
+   * @return string
+   *   The captured output.
+   */
+  protected function runCommand(string $command, ?int $expected_exit_code = NULL, array $argv = []): string {
+    return $this->capture(fn() => self::requireCommand($command, $argv), $expected_exit_code);
+  }
+
+  /**
+   * Include a tooling command script, which reads $argv from this scope.
+   *
+   * @param array<int, string> $argv
+   *   The arguments the script reads.
+   */
+  protected static function requireCommand(string $command, array $argv): void {
+    require self::toolingDir() . '/src/' . $command;
   }
 
   protected static function rootDir(): string {

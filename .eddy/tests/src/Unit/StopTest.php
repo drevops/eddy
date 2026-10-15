@@ -23,11 +23,8 @@ final class StopTest extends UnitTestCase {
     $this->mockPassthruNever();
     $this->mockSleep();
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-stop';
-    $output = ob_get_clean();
+    $output = $this->runCommand('eddy-stop');
 
-    $this->assertIsString($output);
     $this->assertStringContainsString('STOP ENVIRONMENT', $output);
     $this->assertStringContainsString('Stopping previously started services on port 8000', $output);
     $this->assertStringContainsString('Services stopped on port 8000', $output);
@@ -41,11 +38,8 @@ final class StopTest extends UnitTestCase {
     $this->mockPassthruNever();
     $this->mockSleep();
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-stop';
-    $output = ob_get_clean();
+    $output = $this->runCommand('eddy-stop');
 
-    $this->assertIsString($output);
     $this->assertStringContainsString('STOP ENVIRONMENT', $output);
     $this->assertStringContainsString('Services stopped on port 9000', $output);
     $this->assertStringContainsString('ENVIRONMENT STOPPED', $output);
@@ -59,11 +53,8 @@ final class StopTest extends UnitTestCase {
     $this->mockPassthruNever();
     $this->mockSleep();
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-stop';
-    $output = ob_get_clean();
+    $output = $this->runCommand('eddy-stop');
 
-    $this->assertIsString($output);
     $this->assertStringContainsString('Services stopped on port 8123', $output);
     $this->assertStringContainsString('ENVIRONMENT STOPPED', $output);
   }
@@ -94,9 +85,7 @@ final class StopTest extends UnitTestCase {
 
     $this->mockSleep();
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-stop';
-    $output = (string) ob_get_clean();
+    $output = $this->runCommand('eddy-stop');
 
     $this->assertStringContainsString('Services stopped on port 8000.', $output);
     $this->assertStringContainsString('ENVIRONMENT STOPPED', $output);
@@ -148,11 +137,8 @@ final class StopTest extends UnitTestCase {
     ]);
     $this->mockSleep();
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-stop';
-    $output = ob_get_clean();
+    $output = $this->runCommand('eddy-stop');
 
-    $this->assertIsString($output);
     $this->assertStringContainsString('Tunnel stopped.', $output);
     $this->assertStringContainsString('Services stopped on port 8000', $output);
     $this->assertFileDoesNotExist('.logs/cloudflared.pid');

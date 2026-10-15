@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
-use DrevOps\Eddy\Tests\Exceptions\QuitSuccessException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -469,43 +467,19 @@ final class InfoTest extends UnitTestCase {
       cwd: '/test/project',
     );
 
-    $argv = ['info', '--no-coverage'];
-    ob_start();
-    require self::toolingDir() . '/src/eddy-info';
-    $output = ob_get_clean();
-    $this->assertIsString($output);
+    $output = $this->runCommand('eddy-info', 0, ['info', '--no-coverage']);
 
     $this->assertStringContainsString('ENVIRONMENT INFO', $output);
   }
 
   protected function runInfo(): string {
-    ob_start();
-    require self::toolingDir() . '/src/eddy-info';
-
-    return (string) ob_get_clean();
+    return $this->runCommand('eddy-info');
   }
 
   protected function runInfoField(string $field, int $expected_exit_code): string {
     $this->mockQuit($expected_exit_code);
 
-    // The included info script inherits this method's scope, so it reads the
-    // field argument from $argv.
-    $argv = ['info', $field];
-
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-info';
-      $this->fail('Expected info to call quit() in field mode.');
-    }
-    catch (QuitSuccessException | QuitErrorException $e) {
-      $this->assertSame($expected_exit_code, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-    }
-
-    return $output;
+    return $this->runCommand('eddy-info', $expected_exit_code, ['info', $field]);
   }
 
 }

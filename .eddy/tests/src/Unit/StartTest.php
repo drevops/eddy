@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Unit;
 
 use AlexSkrypnyk\File\File;
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -52,11 +51,8 @@ final class StartTest extends UnitTestCase {
 
     $this->mockFunction('get_headers', fn(): array => ['HTTP/1.1 200 OK']);
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-start';
-    $output = ob_get_clean();
+    $output = $this->runCommand('eddy-start');
 
-    $this->assertIsString($output);
     $this->assertStringContainsString('START ENVIRONMENT', $output);
     $this->assertStringContainsString('Waiting up to ' . $expected_timeout . ' seconds for the server to be ready.', $output);
     $this->assertSame([$expected_host . ':' . $expected_port], $probes, 'Only the first probe runs when it connects.');
@@ -100,17 +96,7 @@ final class StartTest extends UnitTestCase {
     $this->mockPassthruNever();
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-start';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = (string) ob_get_clean();
-    }
+    $output = $this->runCommand('eddy-start', 1);
 
     $this->assertStringContainsString(sprintf('Invalid WEBSERVER_WAIT_TIMEOUT "%s". Expected a whole number of seconds, 1 or more.', $timeout), $output);
     $this->assertStringNotContainsString('START ENVIRONMENT', $output);
@@ -143,11 +129,8 @@ final class StartTest extends UnitTestCase {
 
     $this->mockFunction('get_headers', fn(): array => ['HTTP/1.1 302 Found']);
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-start';
-    $output = ob_get_clean();
+    $output = $this->runCommand('eddy-start');
 
-    $this->assertIsString($output);
     $this->assertStringContainsString('ENVIRONMENT READY', $output);
     $this->assertStringContainsString('Server can serve content', $output);
 
@@ -181,9 +164,7 @@ final class StartTest extends UnitTestCase {
     $this->mockFunction('stream_context_create', fn() => $context);
     $this->mockFunction('get_headers', fn(): array => ['HTTP/1.1 200 OK']);
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-start';
-    $output = (string) ob_get_clean();
+    $output = $this->runCommand('eddy-start');
 
     $this->assertSame(3, $probes);
     $this->assertStringContainsString('Server started successfully', $output);
@@ -217,9 +198,7 @@ final class StartTest extends UnitTestCase {
     $this->mockFunction('stream_context_create', fn() => $context);
     $this->mockFunction('get_headers', fn(): array => ['HTTP/1.1 200 OK']);
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-start';
-    $output = (string) ob_get_clean();
+    $output = $this->runCommand('eddy-start');
 
     $this->assertStringContainsString('ENVIRONMENT READY', $output);
 
@@ -243,17 +222,7 @@ final class StartTest extends UnitTestCase {
     $this->mockPassthruNever();
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-start';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = (string) ob_get_clean();
-    }
+    $output = $this->runCommand('eddy-start', 1);
 
     $this->assertStringContainsString('Port 8000 is in use by another process. Stop it, or set WEBSERVER_PORT in .env to a free port.', $output);
 
@@ -298,9 +267,7 @@ final class StartTest extends UnitTestCase {
     $this->mockFunction('stream_context_create', fn() => $context);
     $this->mockFunction('get_headers', fn(): array => ['HTTP/1.1 200 OK']);
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-start';
-    $output = (string) ob_get_clean();
+    $output = $this->runCommand('eddy-start');
 
     $this->assertStringContainsString('ENVIRONMENT READY', $output);
     $this->assertDirectoryExists($project_dir . '/.logs');
@@ -322,17 +289,7 @@ final class StartTest extends UnitTestCase {
     $this->mockPassthru(['cmd' => self::killProcessesCommand(1234)]);
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-start';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = (string) ob_get_clean();
-    }
+    $output = $this->runCommand('eddy-start', 1);
 
     $this->assertStringContainsString('Unable to create directory .logs.', $output);
     $this->assertStringNotContainsString('ENVIRONMENT READY', $output);
@@ -360,21 +317,11 @@ final class StartTest extends UnitTestCase {
 
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-start';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('START ENVIRONMENT', $output);
-      $this->assertStringContainsString('Unable to start inbuilt PHP server', $output);
-      $this->assertStringContainsString('PHP Fatal error: some error', $output);
-    }
+    $output = $this->runCommand('eddy-start', 1);
+
+    $this->assertStringContainsString('START ENVIRONMENT', $output);
+    $this->assertStringContainsString('Unable to start inbuilt PHP server', $output);
+    $this->assertStringContainsString('PHP Fatal error: some error', $output);
 
     // The default 5-second timeout allows 1 probe every 100 milliseconds.
     $this->assertSame(50, $probes);
@@ -397,19 +344,9 @@ final class StartTest extends UnitTestCase {
 
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-start';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Unable to start inbuilt PHP server', $output);
-    }
+    $output = $this->runCommand('eddy-start', 1);
+
+    $this->assertStringContainsString('Unable to start inbuilt PHP server', $output);
   }
 
   public function testStartWaitEndsAtTimeoutWhenConnectionsAreDropped(): void {
@@ -437,17 +374,7 @@ final class StartTest extends UnitTestCase {
 
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-start';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = (string) ob_get_clean();
-    }
+    $output = $this->runCommand('eddy-start', 1);
 
     $this->assertStringContainsString('Waiting up to 5 seconds for the server to be ready.', $output);
     $this->assertStringContainsString('Unable to start inbuilt PHP server', $output);
@@ -479,20 +406,10 @@ final class StartTest extends UnitTestCase {
 
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-start';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Server started successfully', $output);
-      $this->assertStringContainsString('Server is started, but site cannot be served', $output);
-    }
+    $output = $this->runCommand('eddy-start', 1);
+
+    $this->assertStringContainsString('Server started successfully', $output);
+    $this->assertStringContainsString('Server is started, but site cannot be served', $output);
 
     fclose($fp);
   }
@@ -520,19 +437,9 @@ final class StartTest extends UnitTestCase {
 
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-start';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Server is started, but site cannot be served', $output);
-    }
+    $output = $this->runCommand('eddy-start', 1);
+
+    $this->assertStringContainsString('Server is started, but site cannot be served', $output);
 
     fclose($fp);
   }
@@ -573,11 +480,8 @@ final class StartTest extends UnitTestCase {
     $this->mockFunction('stream_context_create', fn() => $context);
     $this->mockFunction('get_headers', fn(): array => ['HTTP/1.1 200 OK']);
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-start';
-    $output = ob_get_clean();
+    $output = $this->runCommand('eddy-start');
 
-    $this->assertIsString($output);
     $this->assertStringContainsString('http://localhost:8123', $output);
     $this->assertFalse($put_called, 'file_put_contents should not be called when .env already has WEBSERVER_PORT.');
     $this->assertFalse($stream_called, 'stream_socket_server should not be called when .env already has WEBSERVER_PORT.');
@@ -629,11 +533,8 @@ final class StartTest extends UnitTestCase {
     $this->mockFunction('stream_context_create', fn() => $context);
     $this->mockFunction('get_headers', fn(): array => ['HTTP/1.1 200 OK']);
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-start';
-    $output = ob_get_clean();
+    $output = $this->runCommand('eddy-start');
 
-    $this->assertIsString($output);
     $this->assertStringContainsString('http://localhost:8001', $output);
     $this->assertSame('.env', $persisted_file);
     $this->assertSame('8001', $persisted_port);
@@ -667,11 +568,8 @@ final class StartTest extends UnitTestCase {
     $this->mockFunction('stream_context_create', fn() => $context);
     $this->mockFunction('get_headers', fn(): array => ['HTTP/1.1 200 OK']);
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-start';
-    $output = ob_get_clean();
+    $output = $this->runCommand('eddy-start');
 
-    $this->assertIsString($output);
     $this->assertStringContainsString('URL       : ' . $tunnel_url, $output);
     $this->assertStringNotContainsString('URL       : http://localhost:8000', $output);
 
@@ -712,9 +610,7 @@ final class StartTest extends UnitTestCase {
       },
     ]);
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-start';
-    $output = (string) ob_get_clean();
+    $output = $this->runCommand('eddy-start');
 
     $served = strpos($output, 'Server can serve content');
     $tunnel = strpos($output, 'Tunnel started at ' . $tunnel_url . '.');
@@ -753,9 +649,7 @@ final class StartTest extends UnitTestCase {
 
     $this->mockCommandAvailable('cloudflared', FALSE);
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-start';
-    $output = (string) ob_get_clean();
+    $output = $this->runCommand('eddy-start');
 
     $this->assertStringContainsString('cloudflared is not on PATH; skipping the tunnel.', $output);
     $this->assertStringContainsString('ENVIRONMENT READY', $output);
@@ -787,19 +681,9 @@ final class StartTest extends UnitTestCase {
 
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-start';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Server is started, but site cannot be served', $output);
-    }
+    $output = $this->runCommand('eddy-start', 1);
+
+    $this->assertStringContainsString('Server is started, but site cannot be served', $output);
 
     fclose($fp);
   }

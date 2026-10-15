@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
-use DrevOps\Eddy\Tests\Exceptions\QuitSuccessException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -24,20 +22,10 @@ final class DeployTest extends UnitTestCase {
 
     $this->mockQuit(0);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-deploy';
-      $this->fail('Expected QuitSuccessException to be thrown');
-    }
-    catch (QuitSuccessException $e) {
-      $this->assertSame(0, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('DEPLOY', $output);
-      $this->assertStringContainsString('Skip deployment because DEPLOY_PROCEED is not set to 1', $output);
-    }
+    $output = $this->runCommand('eddy-deploy', 0);
+
+    $this->assertStringContainsString('DEPLOY', $output);
+    $this->assertStringContainsString('Skip deployment because DEPLOY_PROCEED is not set to 1', $output);
   }
 
   public function testDeploySkipWhenProceedExplicitlyZero(): void {
@@ -48,19 +36,9 @@ final class DeployTest extends UnitTestCase {
 
     $this->mockQuit(0);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-deploy';
-      $this->fail('Expected QuitSuccessException to be thrown');
-    }
-    catch (QuitSuccessException $e) {
-      $this->assertSame(0, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Skip deployment', $output);
-    }
+    $output = $this->runCommand('eddy-deploy', 0);
+
+    $this->assertStringContainsString('Skip deployment', $output);
   }
 
   #[DataProvider('dataProviderDeployProceed')]
@@ -112,11 +90,8 @@ final class DeployTest extends UnitTestCase {
 
     $this->mockPassthruMultiple($passthru_responses);
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-deploy';
-    $output = ob_get_clean();
+    $output = $this->runCommand('eddy-deploy');
 
-    $this->assertIsString($output);
     $this->assertStringContainsString('DEPLOY', $output);
     $this->assertStringContainsString('Pushing code to branch ' . $effective_branch, $output);
     $this->assertStringContainsString('Code pushed to ' . $deploy_remote . ':' . $effective_branch, $output);
@@ -161,19 +136,9 @@ final class DeployTest extends UnitTestCase {
     $this->mockPassthruNever();
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-deploy';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Unable to determine the branch to deploy because HEAD is detached', $output);
-    }
+    $output = $this->runCommand('eddy-deploy', 1);
+
+    $this->assertStringContainsString('Unable to determine the branch to deploy because HEAD is detached', $output);
   }
 
   public function testDeployRefusedTags(): void {
@@ -198,11 +163,8 @@ final class DeployTest extends UnitTestCase {
       ],
     ]);
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-deploy';
-    $output = ob_get_clean();
+    $output = $this->runCommand('eddy-deploy');
 
-    $this->assertIsString($output);
     $this->assertStringContainsString('Code pushed to ' . $deploy_remote . ':1.x', $output);
     $this->assertStringContainsString('[remote rejected] 1.0.0 -> 1.0.0', $output);
     $this->assertStringContainsString('Some tags were not pushed to ' . $deploy_remote, $output);
@@ -234,11 +196,8 @@ final class DeployTest extends UnitTestCase {
       ['cmd' => sprintf('git push --force deployremote %s', escapeshellarg('refs/tags/1.2.0'))],
     ]);
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-deploy';
-    $output = ob_get_clean();
+    $output = $this->runCommand('eddy-deploy');
 
-    $this->assertIsString($output);
     $this->assertStringContainsString('Pushing tag 1.2.0', $output);
     $this->assertStringContainsString('Tag pushed to ' . $deploy_remote . ':1.2.0', $output);
     $this->assertStringContainsString('DEPLOY COMPLETE', $output);
@@ -278,38 +237,18 @@ final class DeployTest extends UnitTestCase {
 
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-deploy';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('[remote rejected] 1.2.0 -> 1.2.0', $output);
-      $this->assertStringNotContainsString('Tag pushed', $output);
-    }
+    $output = $this->runCommand('eddy-deploy', 1);
+
+    $this->assertStringContainsString('[remote rejected] 1.2.0 -> 1.2.0', $output);
+    $this->assertStringNotContainsString('Tag pushed', $output);
   }
 
   public function testDeployMissingRequiredVars(): void {
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-deploy';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Missing required value for DEPLOY_USER_NAME', $output);
-    }
+    $output = $this->runCommand('eddy-deploy', 1);
+
+    $this->assertStringContainsString('Missing required value for DEPLOY_USER_NAME', $output);
   }
 
   public function testDeploySshKeyMd5Fingerprint(): void {
@@ -341,29 +280,20 @@ final class DeployTest extends UnitTestCase {
     // DEPLOY_PROCEED is not 1, so it skips.
     $this->mockQuit(0);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-deploy';
-      $this->fail('Expected QuitSuccessException to be thrown');
-    }
-    catch (QuitSuccessException) {
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Setting up SSH.', $output);
-      $this->assertStringContainsString('SSH key ' . $key_file . ' added.', $output);
-      $this->assertStringContainsString('Skip deployment', $output);
+    $output = $this->runCommand('eddy-deploy', 0);
 
-      $banner = strpos($output, '🚚 DEPLOY');
-      $ssh = strpos($output, 'Setting up SSH.');
-      $skip = strpos($output, 'Skip deployment');
-      $this->assertIsInt($banner);
-      $this->assertIsInt($ssh);
-      $this->assertIsInt($skip);
-      $this->assertLessThan($ssh, $banner, 'The banner must open the output, before the SSH setup.');
-      $this->assertLessThan($skip, $ssh, 'SSH must be set up before the proceed check.');
-    }
+    $this->assertStringContainsString('Setting up SSH.', $output);
+    $this->assertStringContainsString('SSH key ' . $key_file . ' added.', $output);
+    $this->assertStringContainsString('Skip deployment', $output);
+
+    $banner = strpos($output, '🚚 DEPLOY');
+    $ssh = strpos($output, 'Setting up SSH.');
+    $skip = strpos($output, 'Skip deployment');
+    $this->assertIsInt($banner);
+    $this->assertIsInt($ssh);
+    $this->assertIsInt($skip);
+    $this->assertLessThan($ssh, $banner, 'The banner must open the output, before the SSH setup.');
+    $this->assertLessThan($skip, $ssh, 'SSH must be set up before the proceed check.');
   }
 
   public function testDeploySshKeySha256Fingerprint(): void {
@@ -407,18 +337,9 @@ final class DeployTest extends UnitTestCase {
 
     $this->mockQuit(0);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-deploy';
-      $this->fail('Expected QuitSuccessException to be thrown');
-    }
-    catch (QuitSuccessException) {
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Setting up SSH.', $output);
-    }
+    $output = $this->runCommand('eddy-deploy', 0);
+
+    $this->assertStringContainsString('Setting up SSH.', $output);
   }
 
   public function testDeploySshKeyNotFound(): void {
@@ -435,19 +356,9 @@ final class DeployTest extends UnitTestCase {
 
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-deploy';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Unable to find SSH key file', $output);
-    }
+    $output = $this->runCommand('eddy-deploy', 1);
+
+    $this->assertStringContainsString('Unable to find SSH key file', $output);
   }
 
   public function testDeploySshCreatesSshDir(): void {
@@ -480,17 +391,7 @@ final class DeployTest extends UnitTestCase {
 
     $this->mockQuit(0);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-deploy';
-      $this->fail('Expected QuitSuccessException to be thrown');
-    }
-    catch (QuitSuccessException) {
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-    }
+    $this->runCommand('eddy-deploy', 0);
 
     $this->assertContains('/home/testuser/.ssh', $mkdir_calls);
   }
@@ -529,19 +430,10 @@ final class DeployTest extends UnitTestCase {
 
     $this->mockQuit(0);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-deploy';
-      $this->fail('Expected QuitSuccessException to be thrown');
-    }
-    catch (QuitSuccessException) {
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Started an SSH agent with PID 4242.', $output);
-      $this->assertStringContainsString('SSH key ' . $key_file . ' added.', $output);
-    }
+    $output = $this->runCommand('eddy-deploy', 0);
+
+    $this->assertStringContainsString('Started an SSH agent with PID 4242.', $output);
+    $this->assertStringContainsString('SSH key ' . $key_file . ' added.', $output);
 
     $this->assertSame('/home/testuser/.ssh/agent/s.started', self::envGet('SSH_AUTH_SOCK'));
     $this->assertSame('4242', self::envGet('SSH_AGENT_PID'));
@@ -569,19 +461,9 @@ final class DeployTest extends UnitTestCase {
     $this->mockPassthruNever();
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-deploy';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Unable to start the SSH agent.', $output);
-    }
+    $output = $this->runCommand('eddy-deploy', 1);
+
+    $this->assertStringContainsString('Unable to start the SSH agent.', $output);
   }
 
   public static function dataProviderDeploySshAgentStartFailure(): \Iterator {
@@ -615,19 +497,9 @@ final class DeployTest extends UnitTestCase {
 
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-deploy';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Unable to find SSH key file', $output);
-    }
+    $output = $this->runCommand('eddy-deploy', 1);
+
+    $this->assertStringContainsString('Unable to find SSH key file', $output);
   }
 
   public function testDeploySshSha256EmptyGlob(): void {
@@ -647,19 +519,9 @@ final class DeployTest extends UnitTestCase {
 
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-deploy';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Unable to find SSH key file', $output);
-    }
+    $output = $this->runCommand('eddy-deploy', 1);
+
+    $this->assertStringContainsString('Unable to find SSH key file', $output);
   }
 
   public function testDeploySshSha256EmptyExecOutput(): void {
@@ -683,19 +545,9 @@ final class DeployTest extends UnitTestCase {
 
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-deploy';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Unable to find SSH key file', $output);
-    }
+    $output = $this->runCommand('eddy-deploy', 1);
+
+    $this->assertStringContainsString('Unable to find SSH key file', $output);
   }
 
 }

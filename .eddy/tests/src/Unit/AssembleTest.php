@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Unit;
 
 use AlexSkrypnyk\File\File;
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -364,9 +363,7 @@ final class AssembleTest extends UnitTestCase {
     }
 
     try {
-      ob_start();
-      require self::toolingDir() . '/src/eddy-assemble';
-      $output = ob_get_clean();
+      $output = $this->runCommand('eddy-assemble');
     }
     finally {
       foreach ($temp_dirs as $temp_dir) {
@@ -374,7 +371,6 @@ final class AssembleTest extends UnitTestCase {
       }
     }
 
-    $this->assertIsString($output);
     $this->assertStringContainsString('ASSEMBLE', $output);
     $this->assertStringContainsString('Scaffold is valid', $output);
     $this->assertStringContainsString('Tools are valid', $output);
@@ -710,9 +706,7 @@ final class AssembleTest extends UnitTestCase {
 
     $this->setupAssembleMocks(['drupal_version' => $drupal_version, 'drupal_release' => $expected_release, 'releases' => $releases]);
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-assemble';
-    $output = (string) ob_get_clean();
+    $output = $this->runCommand('eddy-assemble');
 
     $this->assertStringContainsString('Resolved Drupal ' . $drupal_version . ' to ' . $expected_release . '.', $output);
 
@@ -764,9 +758,7 @@ final class AssembleTest extends UnitTestCase {
       'extension_extra' => ['patches' => ['drupal/core' => ['Patch from composer.json' => 'patches/extension.patch']]],
     ]);
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-assemble';
-    ob_end_clean();
+    $this->runCommand('eddy-assemble');
 
     $last_write = end($this->capturedBuildComposerJson);
     $this->assertIsString($last_write);
@@ -792,9 +784,7 @@ final class AssembleTest extends UnitTestCase {
 
     $this->setupAssembleMocks(['drupal_version' => '12', 'drupal_release' => '12.0.0-beta1', 'installed_packages' => $installed_packages]);
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-assemble';
-    $output = (string) ob_get_clean();
+    $output = $this->runCommand('eddy-assemble');
 
     if ($expected_lines === []) {
       $this->assertStringNotContainsString('Dependencies installed from development branches', $output);
@@ -832,9 +822,7 @@ final class AssembleTest extends UnitTestCase {
       ],
     ]);
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-assemble';
-    ob_end_clean();
+    $this->runCommand('eddy-assemble');
 
     $last_write = end($this->capturedBuildComposerJson);
     $this->assertIsString($last_write);
@@ -866,9 +854,7 @@ final class AssembleTest extends UnitTestCase {
       'dev_composer_json' => ['require-dev' => ['drupal/coder' => '^8'], 'extra' => $extra],
     ]);
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-assemble';
-    $output = (string) ob_get_clean();
+    $output = $this->runCommand('eddy-assemble');
 
     $this->assertStringContainsString('Resolved Drupal ' . $expected_version . ' to ' . $expected_release . '.', $output);
     $this->assertStringContainsString('Creating Drupal ' . $expected_version . ' project', $output);
@@ -891,17 +877,7 @@ final class AssembleTest extends UnitTestCase {
 
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-assemble';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = (string) ob_get_clean();
-    }
+    $output = $this->runCommand('eddy-assemble', 1);
 
     $this->assertStringContainsString($expected_message, $output);
     $this->assertStringNotContainsString('Removing existing build directory', $output);
@@ -922,17 +898,7 @@ final class AssembleTest extends UnitTestCase {
 
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-assemble';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = (string) ob_get_clean();
-    }
+    $output = $this->runCommand('eddy-assemble', 1);
 
     $this->assertStringContainsString('Unable to create the Drupal 11.4.8 project.', $output);
     $this->assertStringNotContainsString('Drupal project created', $output);
@@ -947,9 +913,7 @@ final class AssembleTest extends UnitTestCase {
 
     $this->setupAssembleMocks(['github_token' => $github_token]);
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-assemble';
-    $output = (string) ob_get_clean();
+    $output = $this->runCommand('eddy-assemble');
 
     $auth_calls = array_values(array_filter($this->putenvCalls, static fn(string $assignment): bool => str_starts_with($assignment, 'COMPOSER_AUTH=')));
     $this->assertSame($expected_auth === NULL ? [] : ['COMPOSER_AUTH=' . $expected_auth], $auth_calls);
@@ -970,9 +934,7 @@ final class AssembleTest extends UnitTestCase {
 
     $this->setupAssembleMocks(['php_requirement' => $php_requirement]);
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-assemble';
-    $output = (string) ob_get_clean();
+    $output = $this->runCommand('eddy-assemble');
 
     $this->assertStringContainsString('Checking PHP ' . self::phpVersion() . ' against Drupal 11.4.8.', $output);
     $this->assertStringContainsString(sprintf($expected_message, self::phpVersion()), $output);
@@ -998,17 +960,7 @@ final class AssembleTest extends UnitTestCase {
 
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-assemble';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = (string) ob_get_clean();
-    }
+    $output = $this->runCommand('eddy-assemble', 1);
 
     $this->assertStringContainsString(sprintf('Drupal 12.0.0-beta1 requires PHP >=99, but the build runs on PHP %1$s. Run the build on a PHP version that meets the requirement, or set DRUPAL_VERSION to a Drupal version that supports PHP %1$s.', self::phpVersion()), $output);
     $this->assertStringNotContainsString('Removing existing build directory', $output);
@@ -1023,9 +975,7 @@ final class AssembleTest extends UnitTestCase {
 
     $this->setupAssembleMocks(['extension_config' => $extension_config, 'dev_composer_json' => $dev_composer_json]);
 
-    ob_start();
-    require self::toolingDir() . '/src/eddy-assemble';
-    $output = (string) ob_get_clean();
+    $output = $this->runCommand('eddy-assemble');
 
     $expected_check = $expected_platform === NULL ? sprintf('Drupal 11.4.8 supports PHP %s.', self::phpVersion()) : sprintf('Drupal 11.4.8 supports PHP %s and the platform PHP %s.', self::phpVersion(), $expected_platform);
     $this->assertStringContainsString($expected_check, $output);
@@ -1061,17 +1011,7 @@ final class AssembleTest extends UnitTestCase {
 
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-assemble';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = (string) ob_get_clean();
-    }
+    $output = $this->runCommand('eddy-assemble', 1);
 
     $this->assertStringContainsString('Drupal 11.4.8 requires PHP >=8.3, but config.platform.php in composer.dev.json or composer.json resolves the build for PHP 8.1.0. Raise or remove that setting, or set DRUPAL_VERSION to a Drupal version that supports PHP 8.1.0.', $output);
     $this->assertStringNotContainsString('Removing existing build directory', $output);
@@ -1086,20 +1026,10 @@ final class AssembleTest extends UnitTestCase {
 
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require self::toolingDir() . '/src/eddy-assemble';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('ASSEMBLE', $output);
-      $this->assertStringContainsString('Missing composer.json file', $output);
-    }
+    $output = $this->runCommand('eddy-assemble', 1);
+
+    $this->assertStringContainsString('ASSEMBLE', $output);
+    $this->assertStringContainsString('Missing composer.json file', $output);
   }
 
   /**
