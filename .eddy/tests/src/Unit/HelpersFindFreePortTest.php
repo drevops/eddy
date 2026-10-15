@@ -6,6 +6,7 @@ namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\find_free_port;
 use PHPUnit\Framework\Attributes\CoversFunction;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
@@ -17,59 +18,46 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class HelpersFindFreePortTest extends UnitTestCase {
 
-  public function testFirstPortIsFree(): void {
-    $this->mockStreamSocketClient([
-      ['port' => 8000, 'listening' => FALSE],
-    ]);
+  /**
+   * @param array<int, array{port: int, listening: bool}> $responses
+   *   The connect outcome of each port, in the order the helper probes them.
+   */
+  #[DataProvider('dataProviderFindFreePort')]
+  public function testFindFreePort(array $responses, int $start, int $expected): void {
+    $this->mockStreamSocketClient($responses);
 
-    $port = find_free_port(8000, 100);
-    $this->assertSame(8000, $port);
+    $port = find_free_port($start, 100);
+    $this->assertSame($expected, $port);
   }
 
-  public function testFirstFewPortsBusy(): void {
-    $this->mockStreamSocketClient([
-      ['port' => 8000, 'listening' => TRUE],
-      ['port' => 8001, 'listening' => TRUE],
-      ['port' => 8002, 'listening' => TRUE],
-      ['port' => 8003, 'listening' => FALSE],
-    ]);
-
-    $port = find_free_port(8000, 100);
-    $this->assertSame(8003, $port);
+  public static function dataProviderFindFreePort(): \Iterator {
+    yield 'first port free' => [[['port' => 8000, 'listening' => FALSE]], 8000, 8000];
+    yield 'first few ports busy' => [
+      [
+        ['port' => 8000, 'listening' => TRUE],
+        ['port' => 8001, 'listening' => TRUE],
+        ['port' => 8002, 'listening' => TRUE],
+        ['port' => 8003, 'listening' => FALSE],
+      ],
+      8000,
+      8003,
+    ];
+    yield 'custom starting port' => [[['port' => 9000, 'listening' => TRUE], ['port' => 9001, 'listening' => FALSE]], 9000, 9001];
   }
 
-  public function testCustomStartingPort(): void {
-    $this->mockStreamSocketClient([
-      ['port' => 9000, 'listening' => TRUE],
-      ['port' => 9001, 'listening' => FALSE],
-    ]);
-
-    $port = find_free_port(9000, 100);
-    $this->assertSame(9001, $port);
-  }
-
-  public function testInvalidStartPortBelowRangeFails(): void {
+  #[DataProvider('dataProviderFindFreePortFailsOnInvalidArguments')]
+  public function testFindFreePortFailsOnInvalidArguments(int $start, int $max_attempts, string $expected_message): void {
     $this->mockQuit(1);
 
-    $output = $this->capture(fn(): int => find_free_port(0, 100), 1);
+    $output = $this->capture(fn(): int => find_free_port($start, $max_attempts), 1);
 
-    $this->assertStringContainsString('Start port must be between 1 and 65535', $output);
+    $this->assertStringContainsString($expected_message, $output);
   }
 
-  public function testInvalidStartPortAboveRangeFails(): void {
-    $this->mockQuit(1);
-
-    $output = $this->capture(fn(): int => find_free_port(70000, 100), 1);
-
-    $this->assertStringContainsString('Start port must be between 1 and 65535', $output);
-  }
-
-  public function testInvalidMaxAttemptsFails(): void {
-    $this->mockQuit(1);
-
-    $output = $this->capture(fn(): int => find_free_port(8000, 0), 1);
-
-    $this->assertStringContainsString('Max attempts must be a positive integer', $output);
+  public static function dataProviderFindFreePortFailsOnInvalidArguments(): \Iterator {
+    yield 'start port below range' => [0, 100, 'Start port must be between 1 and 65535'];
+    yield 'start port above range' => [70000, 100, 'Start port must be between 1 and 65535'];
+    yield 'invalid max attempts' => [8000, 0, 'Max attempts must be a positive integer'];
   }
 
   public function testAllPortsBusyCallsFail(): void {

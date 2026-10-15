@@ -102,60 +102,35 @@ final class HelpersDotenvTest extends UnitTestCase {
     ];
   }
 
-  public function testDotenvWriteVarCreatesFileWhenMissing(): void {
+  #[DataProvider('dataProviderDotenvWriteVar')]
+  public function testDotenvWriteVar(?string $existing, string $key, string $value, string $expected): void {
     $file = self::$tmp . '/dotenv_write_' . uniqid();
-    $this->assertFileDoesNotExist($file);
 
-    dotenv_write_var('FOO', 'bar', $file);
+    if ($existing === NULL) {
+      $this->assertFileDoesNotExist($file);
+    }
+    else {
+      File::dump($file, $existing);
+    }
+
+    dotenv_write_var($key, $value, $file);
 
     $this->assertFileExists($file);
-    $this->assertSame("FOO=bar\n", File::read($file));
+    $this->assertSame($expected, File::read($file));
   }
 
-  public function testDotenvWriteVarAppendsToExistingFile(): void {
-    $file = self::$tmp . '/dotenv_write_' . uniqid();
-    File::dump($file, "EXISTING=value\n");
-
-    dotenv_write_var('NEW', 'data', $file);
-
-    $this->assertSame("EXISTING=value\nNEW=data\n", File::read($file));
-  }
-
-  public function testDotenvWriteVarReplacesExistingKeyInPlace(): void {
-    $file = self::$tmp . '/dotenv_write_' . uniqid();
-    File::dump($file, "FOO=old\nBAR=keep\n");
-
-    dotenv_write_var('FOO', 'new', $file);
-
-    $this->assertSame("FOO=new\nBAR=keep\n", File::read($file));
-  }
-
-  public function testDotenvWriteVarPreservesCommentsAndBlankLines(): void {
-    $file = self::$tmp . '/dotenv_write_' . uniqid();
-    $original = "# Top comment\n\nFOO=old\n\n# Another comment\nBAR=keep\n";
-    File::dump($file, $original);
-
-    dotenv_write_var('FOO', 'new', $file);
-
-    $this->assertSame("# Top comment\n\nFOO=new\n\n# Another comment\nBAR=keep\n", File::read($file));
-  }
-
-  public function testDotenvWriteVarReplacesLastMatchToAgreeWithRead(): void {
-    $file = self::$tmp . '/dotenv_write_' . uniqid();
-    File::dump($file, "FOO=first\nBAR=keep\nFOO=second\n");
-
-    dotenv_write_var('FOO', 'new', $file);
-
-    $this->assertSame("FOO=first\nBAR=keep\nFOO=new\n", File::read($file));
-  }
-
-  public function testDotenvWriteVarHandlesFileWithoutTrailingNewline(): void {
-    $file = self::$tmp . '/dotenv_write_' . uniqid();
-    File::dump($file, 'EXISTING=value');
-
-    dotenv_write_var('NEW', 'data', $file);
-
-    $this->assertSame("EXISTING=value\nNEW=data\n", File::read($file));
+  public static function dataProviderDotenvWriteVar(): \Iterator {
+    yield 'creates the file' => [NULL, 'FOO', 'bar', "FOO=bar\n"];
+    yield 'appends to an existing file' => ["EXISTING=value\n", 'NEW', 'data', "EXISTING=value\nNEW=data\n"];
+    yield 'replaces an existing key in place' => ["FOO=old\nBAR=keep\n", 'FOO', 'new', "FOO=new\nBAR=keep\n"];
+    yield 'preserves comments and blank lines' => [
+      "# Top comment\n\nFOO=old\n\n# Another comment\nBAR=keep\n",
+      'FOO',
+      'new',
+      "# Top comment\n\nFOO=new\n\n# Another comment\nBAR=keep\n",
+    ];
+    yield 'replaces the last match to agree with read' => ["FOO=first\nBAR=keep\nFOO=second\n", 'FOO', 'new', "FOO=first\nBAR=keep\nFOO=new\n"];
+    yield 'file without a trailing newline' => ['EXISTING=value', 'NEW', 'data', "EXISTING=value\nNEW=data\n"];
   }
 
   public function testDotenvWriteVarAndReadRoundTrip(): void {

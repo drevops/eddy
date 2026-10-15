@@ -32,26 +32,31 @@ final class HelpersPassthruOrFailTest extends UnitTestCase {
     $this->capture(fn() => passthru_or_fail('false'), 42);
   }
 
-  public function testFailureWithMessage(): void {
+  /**
+   * @param array<int, string> $args
+   *   The values for the placeholders in the format.
+   */
+  #[DataProvider('dataProviderFailureWithMessage')]
+  public function testFailureWithMessage(string $command, int $result_code, string $format, array $args, string $expected_message): void {
     // A result code other than 1 proves the failure-message branch passes the
     // real exit code through, not a hardcoded 1.
-    $this->mockPassthru(['cmd' => 'false', 'result_code' => 42]);
-    $this->mockQuit(42);
+    $this->mockPassthru(['cmd' => $command, 'result_code' => $result_code]);
+    $this->mockQuit($result_code);
 
-    $output = $this->capture(fn() => passthru_or_fail('false', 'Command failed.'), 42);
+    $output = $this->capture(fn() => passthru_or_fail($command, $format, ...$args), $result_code);
 
-    $this->assertStringContainsString('Command failed.', $output);
+    $this->assertStringContainsString($expected_message, $output);
   }
 
-  public function testFailureWithFormatArgs(): void {
-    // A result code other than 1 proves the failure-message branch passes the
-    // real exit code through, not a hardcoded 1.
-    $this->mockPassthru(['cmd' => 'curl http://example.com', 'result_code' => 7]);
-    $this->mockQuit(7);
-
-    $output = $this->capture(fn() => passthru_or_fail('curl http://example.com', 'Failed to download from %s.', 'http://example.com'), 7);
-
-    $this->assertStringContainsString('Failed to download from http://example.com.', $output);
+  public static function dataProviderFailureWithMessage(): \Iterator {
+    yield 'message' => ['false', 42, 'Command failed.', [], 'Command failed.'];
+    yield 'format arguments' => [
+      'curl http://example.com',
+      7,
+      'Failed to download from %s.',
+      ['http://example.com'],
+      'Failed to download from http://example.com.',
+    ];
   }
 
   #[DataProvider('dataProviderOutputVisibility')]

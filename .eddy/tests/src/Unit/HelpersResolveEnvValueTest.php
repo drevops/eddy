@@ -17,64 +17,31 @@ use PHPUnit\Framework\Attributes\Group;
 #[Group('p0')]
 final class HelpersResolveEnvValueTest extends UnitTestCase {
 
-  public function testEnvWinsOverDotenv(): void {
+  #[DataProvider('dataProviderResolveEnvValue')]
+  public function testResolveEnvValue(?string $dotenv, ?string $env, string $default, string $expected_value, string $expected_source): void {
     $file = self::$tmp . '/resolve_env_' . uniqid();
-    File::dump($file, "FOO=from_dotenv\n");
-    self::envSet('FOO', 'from_env');
 
-    ['value' => $value, 'source' => $source] = resolve_env_value('FOO', 'fallback', $file);
+    if ($dotenv !== NULL) {
+      File::dump($file, $dotenv);
+    }
 
-    $this->assertSame('from_env', $value);
-    $this->assertSame('env', $source);
+    if ($env !== NULL) {
+      self::envSet('FOO', $env);
+    }
+
+    ['value' => $value, 'source' => $source] = resolve_env_value('FOO', $default, $file);
+
+    $this->assertSame($expected_value, $value);
+    $this->assertSame($expected_source === 'file' ? $file : $expected_source, $source);
   }
 
-  public function testDotenvUsedWhenEnvUnset(): void {
-    $file = self::$tmp . '/resolve_env_' . uniqid();
-    File::dump($file, "FOO=from_dotenv\n");
-
-    ['value' => $value, 'source' => $source] = resolve_env_value('FOO', 'fallback', $file);
-
-    $this->assertSame('from_dotenv', $value);
-    $this->assertSame($file, $source);
-  }
-
-  public function testDotenvSkippedWhenValueIsEmpty(): void {
-    $file = self::$tmp . '/resolve_env_' . uniqid();
-    File::dump($file, "FOO=\n");
-
-    ['value' => $value, 'source' => $source] = resolve_env_value('FOO', 'fallback', $file);
-
-    $this->assertSame('fallback', $value);
-    $this->assertSame('default', $source);
-  }
-
-  public function testEnvSkippedWhenValueIsEmpty(): void {
-    $file = self::$tmp . '/resolve_env_' . uniqid();
-    File::dump($file, "FOO=from_dotenv\n");
-    self::envSet('FOO', '');
-
-    ['value' => $value, 'source' => $source] = resolve_env_value('FOO', 'fallback', $file);
-
-    $this->assertSame('from_dotenv', $value);
-    $this->assertSame($file, $source);
-  }
-
-  public function testDefaultReturnedWhenNeitherSourceHasValue(): void {
-    $file = self::$tmp . '/resolve_env_' . uniqid();
-
-    ['value' => $value, 'source' => $source] = resolve_env_value('FOO', 'fallback', $file);
-
-    $this->assertSame('fallback', $value);
-    $this->assertSame('default', $source);
-  }
-
-  public function testDefaultMayBeEmptyString(): void {
-    $file = self::$tmp . '/resolve_env_' . uniqid();
-
-    ['value' => $value, 'source' => $source] = resolve_env_value('FOO', '', $file);
-
-    $this->assertSame('', $value);
-    $this->assertSame('default', $source);
+  public static function dataProviderResolveEnvValue(): \Iterator {
+    yield 'env wins over dotenv' => ["FOO=from_dotenv\n", 'from_env', 'fallback', 'from_env', 'env'];
+    yield 'dotenv when env is unset' => ["FOO=from_dotenv\n", NULL, 'fallback', 'from_dotenv', 'file'];
+    yield 'dotenv skipped when its value is empty' => ["FOO=\n", NULL, 'fallback', 'fallback', 'default'];
+    yield 'env skipped when its value is empty' => ["FOO=from_dotenv\n", '', 'fallback', 'from_dotenv', 'file'];
+    yield 'default when neither has a value' => [NULL, NULL, 'fallback', 'fallback', 'default'];
+    yield 'default may be empty' => [NULL, NULL, '', '', 'default'];
   }
 
   #[DataProvider('dataProviderDotenvFilePathSurfacedAsSource')]

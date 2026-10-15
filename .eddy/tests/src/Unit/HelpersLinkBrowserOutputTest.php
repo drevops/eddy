@@ -7,6 +7,7 @@ namespace DrevOps\Eddy\Tests\Unit;
 use function DrevOps\Eddy\Tooling\link_browser_output;
 use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\CoversFunction;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
 #[CoversFunction('DrevOps\Eddy\Tooling\link_browser_output')]
@@ -51,10 +52,11 @@ final class HelpersLinkBrowserOutputTest extends UnitTestCase {
     $this->assertFileExists($logs . '/browser_output/existing.html');
   }
 
-  public function testReplacesExistingDirectory(): void {
+  #[DataProvider('dataProviderReplacesExisting')]
+  public function testReplacesExisting(callable $setup): void {
     [$webroot, $logs] = self::createWebroot();
     $link = $webroot . '/sites/simpletest/browser_output';
-    File::dump($link . '/stale.html', 'stale');
+    $setup($link);
 
     link_browser_output($webroot, $logs);
 
@@ -62,30 +64,24 @@ final class HelpersLinkBrowserOutputTest extends UnitTestCase {
     $this->assertSame($logs . '/browser_output', readlink($link));
   }
 
-  public function testReplacesExistingSymlink(): void {
-    [$webroot, $logs] = self::createWebroot();
-    File::mkdir($webroot . '/sites/simpletest', 0755);
-    $link = $webroot . '/sites/simpletest/browser_output';
-    $other = self::$tmp . '/other_' . uniqid();
-    File::mkdir($other, 0755);
-    symlink($other, $link);
+  public static function dataProviderReplacesExisting(): \Iterator {
+    yield 'directory' => [static fn(string $link) => File::dump($link . '/stale.html', 'stale')];
 
-    link_browser_output($webroot, $logs);
+    yield 'symlink' => [
+      static function (string $link): void {
+        File::mkdir(dirname($link), 0755);
+        $other = self::$tmp . '/other_' . uniqid();
+        File::mkdir($other, 0755);
+        symlink($other, $link);
+      },
+    ];
 
-    $this->assertTrue(is_link($link));
-    $this->assertSame($logs . '/browser_output', readlink($link));
-  }
-
-  public function testReplacesExistingFile(): void {
-    [$webroot, $logs] = self::createWebroot();
-    File::mkdir($webroot . '/sites/simpletest', 0755);
-    $link = $webroot . '/sites/simpletest/browser_output';
-    File::dump($link, 'i am a file');
-
-    link_browser_output($webroot, $logs);
-
-    $this->assertTrue(is_link($link));
-    $this->assertSame($logs . '/browser_output', readlink($link));
+    yield 'file' => [
+      static function (string $link): void {
+        File::mkdir(dirname($link), 0755);
+        File::dump($link, 'i am a file');
+      },
+    ];
   }
 
   /**

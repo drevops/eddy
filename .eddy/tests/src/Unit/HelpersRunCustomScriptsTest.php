@@ -7,6 +7,7 @@ namespace DrevOps\Eddy\Tests\Unit;
 use function DrevOps\Eddy\Tooling\run_custom_scripts;
 use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\CoversFunction;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
@@ -15,21 +16,21 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class HelpersRunCustomScriptsTest extends UnitTestCase {
 
-  public function testMissingDirectoryDoesNothing(): void {
-    run_custom_scripts(self::$tmp . '/nonexistent_' . uniqid(), 'assemble-');
-    $this->expectNotToPerformAssertions();
-  }
-
-  public function testEmptyDirectoryDoesNothing(): void {
-    $dir = self::createScriptsDir();
+  /**
+   * @param array<string, string>|null $files
+   *   The files of the scripts directory, or NULL for a missing directory.
+   */
+  #[DataProvider('dataProviderDoesNothingWithoutMatchingScripts')]
+  public function testDoesNothingWithoutMatchingScripts(?array $files): void {
+    $dir = $files === NULL ? self::$tmp . '/nonexistent_' . uniqid() : self::createScriptsDir($files);
     run_custom_scripts($dir, 'assemble-');
     $this->expectNotToPerformAssertions();
   }
 
-  public function testDirectoryWithNoPrefixMatchesDoesNothing(): void {
-    $dir = self::createScriptsDir(['unrelated.sh' => 'echo nope', 'README.md' => '']);
-    run_custom_scripts($dir, 'assemble-');
-    $this->expectNotToPerformAssertions();
+  public static function dataProviderDoesNothingWithoutMatchingScripts(): \Iterator {
+    yield 'missing directory' => [NULL];
+    yield 'empty directory' => [[]];
+    yield 'no prefix matches' => [['unrelated.sh' => 'echo nope', 'README.md' => '']];
   }
 
   public function testExecutesMatchingScriptsInOrder(): void {
@@ -52,18 +53,34 @@ final class HelpersRunCustomScriptsTest extends UnitTestCase {
     $this->assertStringContainsString('assemble-zeta.sh', $output);
   }
 
-  public function testIgnoresDifferentPrefix(): void {
-    $dir = self::createScriptsDir([
-      'assemble-run.sh' => 'echo a',
-      'provision-skip.sh' => 'echo p',
-    ]);
+  /**
+   * @param array<string, string> $files
+   *   The contents of each file in the scripts directory, keyed by file name.
+   * @param array<int, string> $expected_skipped
+   *   The names of the files that must not run.
+   */
+  #[DataProvider('dataProviderRunsOnlyMatchingScripts')]
+  public function testRunsOnlyMatchingScripts(array $files, string $expected_run, array $expected_skipped): void {
+    $dir = self::createScriptsDir($files);
 
-    $this->mockPassthru(['cmd' => escapeshellarg($dir . '/assemble-run.sh'), 'result_code' => 0]);
+    $this->mockPassthru(['cmd' => escapeshellarg($dir . '/' . $expected_run), 'result_code' => 0]);
 
     $output = $this->capture(fn() => run_custom_scripts($dir, 'assemble-'));
 
-    $this->assertStringContainsString('assemble-run.sh', $output);
-    $this->assertStringNotContainsString('provision-skip.sh', $output);
+    $this->assertStringContainsString($expected_run, $output);
+
+    foreach ($expected_skipped as $skipped) {
+      $this->assertStringNotContainsString($skipped, $output);
+    }
+  }
+
+  public static function dataProviderRunsOnlyMatchingScripts(): \Iterator {
+    yield 'different prefix' => [['assemble-run.sh' => 'echo a', 'provision-skip.sh' => 'echo p'], 'assemble-run.sh', ['provision-skip.sh']];
+    yield 'non-shell extension' => [
+      ['assemble-real.sh' => 'echo run', 'assemble-readme.md' => '# notes', 'assemble-script.txt' => 'echo nope'],
+      'assemble-real.sh',
+      ['assemble-readme.md', 'assemble-script.txt'],
+    ];
   }
 
   public function testSkipsDirectoriesMatchingPrefix(): void {
@@ -77,22 +94,6 @@ final class HelpersRunCustomScriptsTest extends UnitTestCase {
 
     $this->assertStringContainsString('assemble-real.sh', $output);
     $this->assertStringNotContainsString('assemble-rogue.sh', $output);
-  }
-
-  public function testIgnoresNonShellExtension(): void {
-    $dir = self::createScriptsDir([
-      'assemble-real.sh' => 'echo run',
-      'assemble-readme.md' => '# notes',
-      'assemble-script.txt' => 'echo nope',
-    ]);
-
-    $this->mockPassthru(['cmd' => escapeshellarg($dir . '/assemble-real.sh'), 'result_code' => 0]);
-
-    $output = $this->capture(fn() => run_custom_scripts($dir, 'assemble-'));
-
-    $this->assertStringContainsString('assemble-real.sh', $output);
-    $this->assertStringNotContainsString('assemble-readme.md', $output);
-    $this->assertStringNotContainsString('assemble-script.txt', $output);
   }
 
   public function testNonZeroExitAbortsParent(): void {

@@ -6,6 +6,7 @@ namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\print_qrcode;
 use PHPUnit\Framework\Attributes\CoversFunction;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
@@ -30,7 +31,12 @@ final class HelpersPrintQrcodeTest extends UnitTestCase {
     $this->assertSame('', $output);
   }
 
-  public function testRendersCode(): void {
+  #[DataProvider('dataProviderRendersCode')]
+  public function testRendersCode(?string $login_qrcode): void {
+    if ($login_qrcode !== NULL) {
+      self::envSet('LOGIN_QRCODE', $login_qrcode);
+    }
+
     $this->mockCommandAvailable('qrencode', TRUE);
     $this->mockPassthru([
       'cmd' => "qrencode -t ANSIUTF8 'https://example.com'",
@@ -42,19 +48,11 @@ final class HelpersPrintQrcodeTest extends UnitTestCase {
     $this->assertStringContainsString('[QR-CODE]', $output);
   }
 
-  public function testRendersCodeRegardlessOfLoginOptIn(): void {
+  public static function dataProviderRendersCode(): \Iterator {
+    yield 'default' => [NULL];
     // Whether to draw a code is decided by the caller, so the login opt-in
     // has no bearing on this helper.
-    self::envSet('LOGIN_QRCODE', '');
-    $this->mockCommandAvailable('qrencode', TRUE);
-    $this->mockPassthru([
-      'cmd' => "qrencode -t ANSIUTF8 'https://example.com'",
-      'output' => '[QR-CODE]',
-    ]);
-
-    $output = $this->capture(fn() => print_qrcode('https://example.com'));
-
-    $this->assertStringContainsString('[QR-CODE]', $output);
+    yield 'login opt-in unset' => [''];
   }
 
   public function testMissingQrencodeFailsWithInstallHint(): void {
