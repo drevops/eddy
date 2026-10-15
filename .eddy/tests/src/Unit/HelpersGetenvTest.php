@@ -6,7 +6,6 @@ namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\getenv_default;
 use function DrevOps\Eddy\Tooling\getenv_required;
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -153,19 +152,10 @@ final class HelpersGetenvTest extends UnitTestCase {
   public function testGetenvRequiredFails(array $env_vars, array $args, string $expected_message): void {
     self::envSetMultiple($env_vars);
     $this->mockQuit(1);
-    ob_start();
-    try {
-      getenv_required(...$args);
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString($expected_message, $output);
-    }
+
+    $output = $this->capture(fn(): string => getenv_required(...$args), 1);
+
+    $this->assertStringContainsString($expected_message, $output);
   }
 
   public static function dataProviderGetenvRequiredFails(): \Iterator {

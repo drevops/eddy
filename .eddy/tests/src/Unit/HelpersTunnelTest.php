@@ -10,7 +10,6 @@ use function DrevOps\Eddy\Tooling\tunnel_start;
 use function DrevOps\Eddy\Tooling\tunnel_stop;
 use function DrevOps\Eddy\Tooling\tunnel_write_settings;
 use AlexSkrypnyk\File\File;
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -487,17 +486,7 @@ PHP;
     $this->mockFunction('file_put_contents', fn(): false => FALSE);
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      tunnel_write_settings($file);
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = (string) ob_get_clean();
-    }
+    $output = $this->capture(static fn() => tunnel_write_settings($file), 1);
 
     $this->assertStringContainsString('Unable to write ' . $file . '.', $output);
   }
@@ -534,19 +523,6 @@ PHP;
       '2026-10-08T00:00:01Z INF |  Your quick Tunnel has been created! Visit it at (it may take some time to be reachable):  |',
       '2026-10-08T00:00:01Z INF |  ' . $url . '  |',
     ]) . PHP_EOL;
-  }
-
-  protected function capture(callable $callback): string {
-    ob_start();
-
-    try {
-      $callback();
-    }
-    finally {
-      $output = (string) ob_get_clean();
-    }
-
-    return $output;
   }
 
   /**

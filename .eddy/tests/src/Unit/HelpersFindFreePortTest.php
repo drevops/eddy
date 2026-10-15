@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\find_free_port;
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -52,55 +51,25 @@ final class HelpersFindFreePortTest extends UnitTestCase {
   public function testInvalidStartPortBelowRangeFails(): void {
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      find_free_port(0, 100);
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Start port must be between 1 and 65535', $output);
-    }
+    $output = $this->capture(fn(): int => find_free_port(0, 100), 1);
+
+    $this->assertStringContainsString('Start port must be between 1 and 65535', $output);
   }
 
   public function testInvalidStartPortAboveRangeFails(): void {
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      find_free_port(70000, 100);
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Start port must be between 1 and 65535', $output);
-    }
+    $output = $this->capture(fn(): int => find_free_port(70000, 100), 1);
+
+    $this->assertStringContainsString('Start port must be between 1 and 65535', $output);
   }
 
   public function testInvalidMaxAttemptsFails(): void {
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      find_free_port(8000, 0);
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Max attempts must be a positive integer', $output);
-    }
+    $output = $this->capture(fn(): int => find_free_port(8000, 0), 1);
+
+    $this->assertStringContainsString('Max attempts must be a positive integer', $output);
   }
 
   public function testAllPortsBusyCallsFail(): void {
@@ -111,19 +80,9 @@ final class HelpersFindFreePortTest extends UnitTestCase {
     $this->mockStreamSocketClient($responses);
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      find_free_port(8000, 5);
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Unable to find a free port in range 8000-8004', $output);
-    }
+    $output = $this->capture(fn(): int => find_free_port(8000, 5), 1);
+
+    $this->assertStringContainsString('Unable to find a free port in range 8000-8004', $output);
   }
 
   /**

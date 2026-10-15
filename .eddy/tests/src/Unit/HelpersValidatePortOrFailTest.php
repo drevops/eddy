@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\validate_port_or_fail;
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -36,20 +35,10 @@ final class HelpersValidatePortOrFailTest extends UnitTestCase {
   public function testInvalidPortFails(string $value): void {
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      validate_port_or_fail($value, 'WEBSERVER_PORT');
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Invalid WEBSERVER_PORT', $output);
-      $this->assertStringContainsString('Expected integer in range 1-65535', $output);
-    }
+    $output = $this->capture(fn() => validate_port_or_fail($value, 'WEBSERVER_PORT'), 1);
+
+    $this->assertStringContainsString('Invalid WEBSERVER_PORT', $output);
+    $this->assertStringContainsString('Expected integer in range 1-65535', $output);
   }
 
   public static function dataProviderInvalidPortFails(): \Iterator {
@@ -67,19 +56,9 @@ final class HelpersValidatePortOrFailTest extends UnitTestCase {
   public function testUsesProvidedSourceNameInErrorMessage(): void {
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      validate_port_or_fail('bogus', 'CUSTOM_PORT_VAR');
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Invalid CUSTOM_PORT_VAR', $output);
-    }
+    $output = $this->capture(fn() => validate_port_or_fail('bogus', 'CUSTOM_PORT_VAR'), 1);
+
+    $this->assertStringContainsString('Invalid CUSTOM_PORT_VAR', $output);
   }
 
 }

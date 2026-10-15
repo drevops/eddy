@@ -9,6 +9,8 @@ use AlexSkrypnyk\File\Testing\FileAssertionsTrait;
 use AlexSkrypnyk\PhpunitHelpers\Traits\EnvTrait;
 use AlexSkrypnyk\PhpunitHelpers\Traits\SerializableClosureTrait;
 use AlexSkrypnyk\PhpunitHelpers\UnitTestCase as UpstreamUnitTestCase;
+use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
+use DrevOps\Eddy\Tests\Exceptions\QuitSuccessException;
 use DrevOps\Eddy\Tests\Traits\MockTrait;
 
 /**
@@ -40,6 +42,41 @@ abstract class UnitTestCase extends UpstreamUnitTestCase {
     self::envReset();
     $this->mockTearDown();
     parent::tearDown();
+  }
+
+  /**
+   * Run a callback and return the output it prints.
+   *
+   * A callback that calls quit() ends in the exception that mockQuit() throws
+   * in place of exiting, and its exit code is asserted.
+   *
+   * @param callable(): mixed $callback
+   *   The code to run.
+   * @param int $expected_exit_code
+   *   The exit code the callback quits with. 0 also covers a callback that
+   *   returns without calling quit().
+   *
+   * @return string
+   *   The captured output.
+   */
+  protected function capture(callable $callback, int $expected_exit_code = 0): string {
+    $exit_code = 0;
+    ob_start();
+
+    try {
+      $callback();
+    }
+    catch (QuitSuccessException | QuitErrorException $exception) {
+      $exit_code = $exception->getCode();
+    }
+    finally {
+      $output = (string) ob_get_clean();
+    }
+
+    $message = sprintf('Expected exit code %d, got %d. Output:%s%s', $expected_exit_code, $exit_code, PHP_EOL, $output);
+    $this->assertSame($expected_exit_code, $exit_code, $message);
+
+    return $output;
   }
 
   protected static function rootDir(): string {

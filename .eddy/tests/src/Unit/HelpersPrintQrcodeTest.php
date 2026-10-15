@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\print_qrcode;
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -26,10 +25,7 @@ final class HelpersPrintQrcodeTest extends UnitTestCase {
     $this->mockCommandAvailable('qrencode', TRUE);
     $this->mockPassthruNever();
 
-    ob_start();
-    print_qrcode('');
-    $output = ob_get_clean();
-    $this->assertIsString($output);
+    $output = $this->capture(fn() => print_qrcode(''));
 
     $this->assertSame('', $output);
   }
@@ -41,10 +37,7 @@ final class HelpersPrintQrcodeTest extends UnitTestCase {
       'output' => '[QR-CODE]',
     ]);
 
-    ob_start();
-    print_qrcode('https://example.com');
-    $output = ob_get_clean();
-    $this->assertIsString($output);
+    $output = $this->capture(fn() => print_qrcode('https://example.com'));
 
     $this->assertStringContainsString('[QR-CODE]', $output);
   }
@@ -59,10 +52,7 @@ final class HelpersPrintQrcodeTest extends UnitTestCase {
       'output' => '[QR-CODE]',
     ]);
 
-    ob_start();
-    print_qrcode('https://example.com');
-    $output = ob_get_clean();
-    $this->assertIsString($output);
+    $output = $this->capture(fn() => print_qrcode('https://example.com'));
 
     $this->assertStringContainsString('[QR-CODE]', $output);
   }
@@ -72,18 +62,7 @@ final class HelpersPrintQrcodeTest extends UnitTestCase {
     $this->mockPassthruNever();
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      print_qrcode('https://example.com');
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-    }
+    $output = $this->capture(fn() => print_qrcode('https://example.com'), 1);
 
     $this->assertStringContainsString("Command 'qrencode' is not available", $output);
     $this->assertStringContainsString('https://fukuchi.org/works/qrencode/', $output);

@@ -6,7 +6,6 @@ namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\FAIL;
 use function DrevOps\Eddy\Tooling\term_supports_color;
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -29,14 +28,15 @@ final class HelpersFormatterTest extends UnitTestCase {
       self::envSet('TERM', 'xterm-256color');
       $this->mockPosixIsatty($is_tty);
     }
-    ob_start();
     $callable = 'DrevOps\\Eddy\\Tooling\\' . $function;
     if (!is_callable($callable)) {
       $this->fail(sprintf('Function %s is not callable.', $callable));
     }
-    call_user_func($callable, 'Test message %s', 'arg');
-    $output = ob_get_clean();
-    $this->assertIsString($output);
+
+    $output = $this->capture(function () use ($callable): void {
+      call_user_func($callable, 'Test message %s', 'arg');
+    });
+
     $this->assertSame($expected_output, $output);
   }
 
@@ -57,19 +57,10 @@ final class HelpersFormatterTest extends UnitTestCase {
     self::envSet('TERM', 'xterm-256color');
     $this->mockPosixIsatty($is_tty);
     $this->mockQuit(1);
-    ob_start();
-    try {
-      FAIL('Test failure %s', 'message');
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertSame($expected_output, $output);
-    }
+
+    $output = $this->capture(fn() => FAIL('Test failure %s', 'message'), 1);
+
+    $this->assertSame($expected_output, $output);
   }
 
   public static function dataProviderFail(): \Iterator {

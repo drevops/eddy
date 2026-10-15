@@ -6,7 +6,6 @@ namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\extension_info;
 use AlexSkrypnyk\File\File;
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -53,20 +52,15 @@ final class HelpersExtensionInfoTest extends UnitTestCase {
     $original = File::cwd();
     chdir($dir);
     $this->mockQuit(1);
-    ob_start();
+
     try {
-      extension_info();
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
+      $output = $this->capture(fn(): array => extension_info(), 1);
     }
     finally {
       chdir($original);
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('No .info.yml file found', $output);
     }
+
+    $this->assertStringContainsString('No .info.yml file found', $output);
   }
 
 }

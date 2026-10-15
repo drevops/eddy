@@ -6,7 +6,6 @@ namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\drush;
 use AlexSkrypnyk\File\File;
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -64,19 +63,10 @@ final class HelpersDrushTest extends UnitTestCase {
     $expected_command = 'build/vendor/bin/drush -r ' . escapeshellarg($cwd . '/build/web') . ' -y bad-command';
     $this->mockPassthru(['cmd' => $expected_command, 'output' => '', 'result_code' => 1]);
     $this->mockQuit(1);
-    ob_start();
-    try {
-      drush('bad-command');
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Drush command failed', $output);
-    }
+
+    $output = $this->capture(fn(): string => drush('bad-command'), 1);
+
+    $this->assertStringContainsString('Drush command failed', $output);
   }
 
   public function testDrushFailsWithExitCodeRefDoesNotExit(): void {
@@ -95,20 +85,11 @@ final class HelpersDrushTest extends UnitTestCase {
     $expected_command = 'build/vendor/bin/drush -r ' . escapeshellarg($cwd . '/build/web') . ' -y bad-command';
     $this->mockPassthru(['cmd' => $expected_command, 'output' => 'Command "bad-command" is not defined.', 'result_code' => 1]);
     $this->mockQuit(1);
-    ob_start();
-    try {
-      drush('bad-command');
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Command "bad-command" is not defined.', $output);
-      $this->assertStringContainsString('Drush command failed', $output);
-    }
+
+    $output = $this->capture(fn(): string => drush('bad-command'), 1);
+
+    $this->assertStringContainsString('Command "bad-command" is not defined.', $output);
+    $this->assertStringContainsString('Drush command failed', $output);
   }
 
   public function testDrushStreamsLiveInDebugMode(): void {

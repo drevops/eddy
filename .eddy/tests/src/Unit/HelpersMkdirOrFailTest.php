@@ -6,7 +6,6 @@ namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\mkdir_or_fail;
 use AlexSkrypnyk\File\File;
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -41,17 +40,7 @@ final class HelpersMkdirOrFailTest extends UnitTestCase {
     File::dump($path, 'content');
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      mkdir_or_fail($path);
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = (string) ob_get_clean();
-    }
+    $output = $this->capture(fn() => mkdir_or_fail($path), 1);
 
     $this->assertStringContainsString('Unable to create directory ' . $path . '.', $output);
   }

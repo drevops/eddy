@@ -155,9 +155,7 @@ final class InstallHelpersTest extends UnitTestCase {
   }
 
   public function testPrintHelp(): void {
-    ob_start();
-    print_help();
-    $output = (string) ob_get_clean();
+    $output = $this->capture(fn() => print_help());
 
     $this->assertStringContainsString('Eddy - project installation.', $output);
     $this->assertStringContainsString('Usage:', $output);

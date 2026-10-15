@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\resolve_webserver;
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -115,19 +114,9 @@ final class HelpersResolveWebserverTest extends UnitTestCase {
 
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      resolve_webserver();
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Invalid WEBSERVER_PORT "not-a-port"', $output);
-    }
+    $output = $this->capture(fn(): array => resolve_webserver(), 1);
+
+    $this->assertStringContainsString('Invalid WEBSERVER_PORT "not-a-port"', $output);
   }
 
   public function testValidationSkippedWhenDisabled(): void {

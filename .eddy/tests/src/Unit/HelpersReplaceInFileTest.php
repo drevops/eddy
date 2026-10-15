@@ -6,7 +6,6 @@ namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\replace_in_file;
 use AlexSkrypnyk\File\File;
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -57,20 +56,15 @@ final class HelpersReplaceInFileTest extends UnitTestCase {
     $file = self::$tmp . '/nonexistent_' . uniqid() . '.txt';
     $this->mockQuit(1);
     set_error_handler(static fn(): bool => TRUE);
-    ob_start();
+
     try {
-      replace_in_file($file, '/foo/', 'bar');
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
+      $output = $this->capture(fn(): string => replace_in_file($file, '/foo/', 'bar'), 1);
     }
     finally {
       restore_error_handler();
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Unable to read file', $output);
     }
+
+    $this->assertStringContainsString('Unable to read file', $output);
   }
 
   public function testReplaceInFileInvalidRegex(): void {
@@ -78,20 +72,15 @@ final class HelpersReplaceInFileTest extends UnitTestCase {
     File::dump($file, 'test content');
     $this->mockQuit(1);
     set_error_handler(static fn(): bool => TRUE);
-    ob_start();
+
     try {
-      replace_in_file($file, '/(?invalid/', 'bar');
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
+      $output = $this->capture(fn(): string => replace_in_file($file, '/(?invalid/', 'bar'), 1);
     }
     finally {
       restore_error_handler();
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Regex replacement failed', $output);
     }
+
+    $this->assertStringContainsString('Regex replacement failed', $output);
   }
 
 }

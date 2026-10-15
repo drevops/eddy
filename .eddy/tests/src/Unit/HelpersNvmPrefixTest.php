@@ -54,9 +54,10 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
     $nvm_dir = $this->createNvmDir($has_nvm ? 'nvm() { :; }' : NULL);
     self::envSet('NVM_DIR', $nvm_dir);
 
-    ob_start();
-    $prefix = nvm_prefix();
-    $output = (string) ob_get_clean();
+    $prefix = NULL;
+    $output = $this->capture(function () use (&$prefix): void {
+      $prefix = nvm_prefix();
+    });
 
     $this->assertSame($expected_prefix, $prefix);
 
@@ -81,9 +82,10 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
     File::dump('.nvmrc', "22\n");
     self::envSet('NVM_DIR', $this->createNvmDir($nvm_script));
 
-    ob_start();
-    $prefix = nvm_prefix();
-    ob_end_clean();
+    $prefix = NULL;
+    $this->capture(function () use (&$prefix): void {
+      $prefix = nvm_prefix();
+    });
 
     $exit_code = 0;
     $output = passthru_capture($prefix . 'echo "npm ran"', $exit_code);
@@ -103,9 +105,10 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
     File::dump('.nvmrc', "22\n");
     self::envSet('NVM_DIR', $this->createNvmDir('NVM_LOADED=1'));
 
-    ob_start();
-    $prefix = nvm_prefix();
-    ob_end_clean();
+    $prefix = NULL;
+    $this->capture(function () use (&$prefix): void {
+      $prefix = nvm_prefix();
+    });
 
     $exit_code = 0;
     $output = passthru_capture($prefix . 'echo "npm ran"', $exit_code);
@@ -125,9 +128,10 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
     self::envUnset('XDG_CONFIG_HOME');
     self::envSet('HOME', $home);
 
-    ob_start();
-    $prefix = nvm_prefix();
-    $note = (string) ob_get_clean();
+    $prefix = NULL;
+    $note = $this->capture(function () use (&$prefix): void {
+      $prefix = nvm_prefix();
+    });
 
     $exit_code = 0;
     $output = passthru_capture($prefix . 'echo "npm ran"', $exit_code);

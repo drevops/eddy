@@ -6,7 +6,6 @@ namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\run_custom_scripts;
 use AlexSkrypnyk\File\File;
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -46,10 +45,7 @@ final class HelpersRunCustomScriptsTest extends UnitTestCase {
       ['cmd' => escapeshellarg($dir . '/assemble-zeta.sh'), 'result_code' => 0],
     ]);
 
-    ob_start();
-    run_custom_scripts($dir, 'assemble-');
-    $output = ob_get_clean();
-    $this->assertIsString($output);
+    $output = $this->capture(fn() => run_custom_scripts($dir, 'assemble-'));
 
     $this->assertStringContainsString('assemble-alpha.sh', $output);
     $this->assertStringContainsString('assemble-beta.sh', $output);
@@ -64,10 +60,7 @@ final class HelpersRunCustomScriptsTest extends UnitTestCase {
 
     $this->mockPassthru(['cmd' => escapeshellarg($dir . '/assemble-run.sh'), 'result_code' => 0]);
 
-    ob_start();
-    run_custom_scripts($dir, 'assemble-');
-    $output = ob_get_clean();
-    $this->assertIsString($output);
+    $output = $this->capture(fn() => run_custom_scripts($dir, 'assemble-'));
 
     $this->assertStringContainsString('assemble-run.sh', $output);
     $this->assertStringNotContainsString('provision-skip.sh', $output);
@@ -80,10 +73,7 @@ final class HelpersRunCustomScriptsTest extends UnitTestCase {
 
     $this->mockPassthru(['cmd' => escapeshellarg($dir . '/assemble-real.sh'), 'result_code' => 0]);
 
-    ob_start();
-    run_custom_scripts($dir, 'assemble-');
-    $output = ob_get_clean();
-    $this->assertIsString($output);
+    $output = $this->capture(fn() => run_custom_scripts($dir, 'assemble-'));
 
     $this->assertStringContainsString('assemble-real.sh', $output);
     $this->assertStringNotContainsString('assemble-rogue.sh', $output);
@@ -98,10 +88,7 @@ final class HelpersRunCustomScriptsTest extends UnitTestCase {
 
     $this->mockPassthru(['cmd' => escapeshellarg($dir . '/assemble-real.sh'), 'result_code' => 0]);
 
-    ob_start();
-    run_custom_scripts($dir, 'assemble-');
-    $output = ob_get_clean();
-    $this->assertIsString($output);
+    $output = $this->capture(fn() => run_custom_scripts($dir, 'assemble-'));
 
     $this->assertStringContainsString('assemble-real.sh', $output);
     $this->assertStringNotContainsString('assemble-readme.md', $output);
@@ -117,22 +104,12 @@ final class HelpersRunCustomScriptsTest extends UnitTestCase {
     $this->mockPassthru(['cmd' => escapeshellarg($dir . '/provision-first.sh'), 'result_code' => 7]);
     $this->mockQuit(7);
 
-    ob_start();
-    try {
-      run_custom_scripts($dir, 'provision-');
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(7, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('provision-first.sh', $output);
-      $this->assertStringContainsString('Custom script', $output);
-      $this->assertStringContainsString('failed', $output);
-      $this->assertStringNotContainsString('provision-second.sh', $output);
-    }
+    $output = $this->capture(fn() => run_custom_scripts($dir, 'provision-'), 7);
+
+    $this->assertStringContainsString('provision-first.sh', $output);
+    $this->assertStringContainsString('Custom script', $output);
+    $this->assertStringContainsString('failed', $output);
+    $this->assertStringNotContainsString('provision-second.sh', $output);
   }
 
   protected function createScriptsDir(array $files = []): string {

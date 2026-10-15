@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\passthru_or_fail;
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -29,13 +28,8 @@ final class HelpersPassthruOrFailTest extends UnitTestCase {
   public function testFailureNoMessage(): void {
     $this->mockPassthru(['cmd' => 'false', 'result_code' => 42]);
     $this->mockQuit(42);
-    try {
-      passthru_or_fail('false');
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(42, $e->getCode());
-    }
+
+    $this->capture(fn() => passthru_or_fail('false'), 42);
   }
 
   public function testFailureWithMessage(): void {
@@ -43,19 +37,10 @@ final class HelpersPassthruOrFailTest extends UnitTestCase {
     // real exit code through, not a hardcoded 1.
     $this->mockPassthru(['cmd' => 'false', 'result_code' => 42]);
     $this->mockQuit(42);
-    ob_start();
-    try {
-      passthru_or_fail('false', 'Command failed.');
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(42, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Command failed.', $output);
-    }
+
+    $output = $this->capture(fn() => passthru_or_fail('false', 'Command failed.'), 42);
+
+    $this->assertStringContainsString('Command failed.', $output);
   }
 
   public function testFailureWithFormatArgs(): void {
@@ -63,19 +48,10 @@ final class HelpersPassthruOrFailTest extends UnitTestCase {
     // real exit code through, not a hardcoded 1.
     $this->mockPassthru(['cmd' => 'curl http://example.com', 'result_code' => 7]);
     $this->mockQuit(7);
-    ob_start();
-    try {
-      passthru_or_fail('curl http://example.com', 'Failed to download from %s.', 'http://example.com');
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(7, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Failed to download from http://example.com.', $output);
-    }
+
+    $output = $this->capture(fn() => passthru_or_fail('curl http://example.com', 'Failed to download from %s.', 'http://example.com'), 7);
+
+    $this->assertStringContainsString('Failed to download from http://example.com.', $output);
   }
 
   #[DataProvider('dataProviderOutputVisibility')]
@@ -93,20 +69,7 @@ final class HelpersPassthruOrFailTest extends UnitTestCase {
       $this->mockQuit($result_code);
     }
 
-    $quit_thrown = FALSE;
-    ob_start();
-    try {
-      passthru_or_fail('run-tool');
-    }
-    catch (QuitErrorException) {
-      $quit_thrown = TRUE;
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-    }
-
-    $this->assertSame($result_code !== 0, $quit_thrown);
+    $output = $this->capture(fn() => passthru_or_fail('run-tool'), $result_code);
 
     if ($expect_visible) {
       $this->assertStringContainsString('TOOL_NOISE', $output);

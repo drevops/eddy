@@ -1525,9 +1525,7 @@ final class InstallProcessTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderMainHelp')]
   public function testMainHelp(array $argv): void {
-    ob_start();
-    main($argv);
-    $output = (string) ob_get_clean();
+    $output = $this->capture(fn() => main($argv));
 
     $this->assertStringContainsString('Eddy - project installation.', $output);
     $this->assertStringContainsString('Usage:', $output);

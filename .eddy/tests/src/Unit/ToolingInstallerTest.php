@@ -469,9 +469,10 @@ final class ToolingInstallerTest extends UnitTestCase {
   }
 
   protected function runMain(int $expected_exit_code): string {
-    ob_start();
-    $exit_code = main();
-    $output = (string) ob_get_clean();
+    $exit_code = 0;
+    $output = $this->capture(function () use (&$exit_code): void {
+      $exit_code = main();
+    });
 
     $this->assertSame($expected_exit_code, $exit_code, 'Unexpected exit code. Output: ' . $output);
 

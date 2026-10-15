@@ -8,7 +8,6 @@ use function DrevOps\Eddy\Tooling\dotenv_read;
 use function DrevOps\Eddy\Tooling\dotenv_unset_var;
 use function DrevOps\Eddy\Tooling\dotenv_write_var;
 use AlexSkrypnyk\File\File;
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -241,17 +240,12 @@ final class HelpersDotenvTest extends UnitTestCase {
     chmod($file, 0444);
     $this->mockQuit(1);
     set_error_handler(static fn(): bool => TRUE);
-    ob_start();
+
     try {
-      dotenv_unset_var('TUNNEL_URL', $file);
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
+      $output = $this->capture(fn() => dotenv_unset_var('TUNNEL_URL', $file), 1);
     }
     finally {
       restore_error_handler();
-      $output = (string) ob_get_clean();
     }
 
     $this->assertStringContainsString('Unable to write ' . $file, $output);
