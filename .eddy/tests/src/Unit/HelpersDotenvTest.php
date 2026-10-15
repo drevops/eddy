@@ -12,6 +12,7 @@ use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests for dotenv_read(), dotenv_write_var() and dotenv_unset_var() helpers.
@@ -19,6 +20,7 @@ use PHPUnit\Framework\Attributes\Group;
 #[CoversFunction('DrevOps\Eddy\Tooling\dotenv_read')]
 #[CoversFunction('DrevOps\Eddy\Tooling\dotenv_write_var')]
 #[CoversFunction('DrevOps\Eddy\Tooling\dotenv_unset_var')]
+#[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersDotenvTest extends UnitTestCase {
 

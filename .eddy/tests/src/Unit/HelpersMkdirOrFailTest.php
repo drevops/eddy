@@ -9,11 +9,13 @@ use AlexSkrypnyk\File\File;
 use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests for the mkdir_or_fail() helper.
  */
 #[CoversFunction('DrevOps\Eddy\Tooling\mkdir_or_fail')]
+#[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersMkdirOrFailTest extends UnitTestCase {
 

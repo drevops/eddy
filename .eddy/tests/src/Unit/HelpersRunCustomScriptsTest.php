@@ -9,8 +9,10 @@ use AlexSkrypnyk\File\File;
 use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 #[CoversFunction('DrevOps\Eddy\Tooling\run_custom_scripts')]
+#[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersRunCustomScriptsTest extends UnitTestCase {
 

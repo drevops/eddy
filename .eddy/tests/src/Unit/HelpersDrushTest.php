@@ -10,8 +10,10 @@ use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 #[CoversFunction('DrevOps\Eddy\Tooling\drush')]
+#[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersDrushTest extends UnitTestCase {
 

@@ -8,8 +8,10 @@ use function DrevOps\Eddy\Tooling\passthru_capture;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 #[CoversFunction('DrevOps\Eddy\Tooling\passthru_capture')]
+#[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersPassthruCaptureTest extends UnitTestCase {
 

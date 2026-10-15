@@ -9,8 +9,10 @@ use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 #[CoversFunction('DrevOps\Eddy\Tooling\passthru_or_fail')]
+#[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersPassthruOrFailTest extends UnitTestCase {
 

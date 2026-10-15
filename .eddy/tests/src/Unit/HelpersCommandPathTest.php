@@ -10,9 +10,11 @@ use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 #[CoversFunction('DrevOps\Eddy\Tooling\command_path')]
 #[CoversFunction('DrevOps\Eddy\Tooling\command_must_exist')]
+#[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersCommandPathTest extends UnitTestCase {
 
