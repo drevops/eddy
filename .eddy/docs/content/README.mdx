@@ -10,11 +10,11 @@ import CommandTabs from '@site/src/components/CommandTabs';
 
 Eddy is a template for maintaining a contributed Drupal module or theme on GitHub. Start your extension from it and you get CI on GitHub Actions, a local Drupal site to develop and test against, coding standards checks, and mirroring of the code to [Drupal.org](https://www.drupal.org).
 
-You write the extension, and Eddy brings the machinery around it. The commands that build the site on your machine are the same commands CI runs, so a passing local run tells you something real about the next CI run.
+You write the extension, and Eddy provides the rest. The commands that build the site on your machine are the same commands CI runs, so a run that passes locally is likely to pass in CI too.
 
 :::info Building a website?
 
-Eddy isn't for building websites: use [Vortex](https://www.vortextemplate.com) for that. The 2 templates do separate jobs, and a repository uses 1 or the other, never both.
+Eddy isn't for building websites: use [Vortex](https://www.vortextemplate.com) for that. The 2 templates do separate jobs, and a repository uses only 1 of them.
 
 :::
 
@@ -45,7 +45,7 @@ flowchart LR
 
 ## A quick look
 
-[Installation](installation.mdx) covers every step, from the download to the first deployment. Once Eddy is in a new directory, it comes down to this:
+[Installation](installation.mdx) covers every step, from the download to the first deployment. Once Eddy is in a new directory, the first run looks like this:
 
 <CommandTabs
   make={`php install.php   # Answer the questions about your extension

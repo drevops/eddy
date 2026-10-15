@@ -11,7 +11,7 @@ This guide upgrades a Drupal module or theme created from a 4.x release of this 
 
 5.x is a bigger step than a usual update. Since `4.19.0`, the last 4.x release, the template became Eddy and moved to [`drevops/eddy`](https://github.com/drevops/eddy), the scripts in `.devtools/` turned into the `drevops/eddy-tooling` Composer package, and CircleCI support went away. The upgrade rewrites most of your build and CI files in one go, and a few of the changes need decisions only you can make.
 
-There's a more immediate catch, too: a 4.x project can't update itself anymore. From 4.15.0, its `AGENTS.md` fetches the update skill from the `.scaffold/` directory of the old repository, and that URL returns 404 now that the skill lives in `.eddy/`. The steps below get you past it.
+More immediately, a 4.x project can't update itself anymore. From 4.15.0, its `AGENTS.md` fetches the update skill from the `.scaffold/` directory of the old repository, and that URL returns 404 now that the skill lives in `.eddy/`. The steps below get you past it.
 
 ## Before you start
 
@@ -25,7 +25,7 @@ There's a more immediate catch, too: a 4.x project can't update itself anymore. 
 
 The `update-consumer-eddy` skill does most of the work. It renders the latest release and the release your project is on with your project's answers, merges the difference into your project and opens a pull request. Your own files stay as they are, and so do the changes you made to the template's files, such as the versions Renovate bumped. The skill reads the release your project is on from your last scaffold update commit. Without one, every difference between your files and the new release's comes up for a decision. It already knows about 4.x projects: it drops `.devtools/` and the Cloudflare hooks, and it reads your Drupal versions from `.circleci/config.yml` when your project has no GitHub Actions workflow.
 
-What it can't do is fetch itself into a 4.x project, so you do that part once, from the project root:
+It can't fetch itself into a 4.x project, though, so you do that part once, from the project root:
 
 1. Delete the old skill directory. The `AGENTS.md` of 4.15.0 to 4.19.0 downloads the skill with `curl -sSL`, which doesn't fail on an HTTP error, so the directory holds the 404 page instead of a skill.
 
@@ -186,7 +186,7 @@ What to do, if your project has FunctionalJavascript tests: bring their base cla
 
 - If it has no `getMinkDriverArgs()`, as in a project created from 4.13.0 to 4.17.0, replace the `CIRCLECI` check in `setUp()`, the comment above it included, with the base URL setup of the 5.x copy, and add the 5.x copy's `getMinkDriverArgs()`. `CONTRIBUTING.md` tells contributors to extend `<MachineName>FunctionalJavascriptTestBase`, so point it at your class instead.
 
-  Until you do, `ahoy test` and `make test` send the local Chrome to an address that doesn't reach the webserver, so every FunctionalJavascript test fails in `setUp()`, such as with `net::ERR_NAME_NOT_RESOLVED` on a Mac. CI keeps passing, because the 5.x `test.yml` still runs the browser in a Selenium container, the setup the class was written for. A green pull request doesn't mean the class is fine.
+  Until you do, `ahoy test` and `make test` send the local Chrome to an address that doesn't reach the webserver, so every FunctionalJavascript test fails in `setUp()`, such as with `net::ERR_NAME_NOT_RESOLVED` on a Mac. A green pull request doesn't mean the class is fine: CI keeps passing, because the 5.x `test.yml` still runs the browser in a Selenium container, the setup the class was written for.
 
 - If it has one, as in a project created from 4.18.0 or 4.19.0, declare `string|false` as its return type, drop the `CIRCLECI` check in `setUp()` but keep the base URL setup inside it, and change `.devtools/browser` to `eddy-browser-start` in a comment.
 

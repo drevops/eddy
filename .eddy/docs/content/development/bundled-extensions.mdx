@@ -6,7 +6,7 @@ description: Ship a module with your theme or a theme with your module, for the 
 
 # Bundled extensions
 
-Your project is 1 extension, but it doesn't have to travel alone. A theme can bring a module that provides its blocks, a module can bring a theme for its tests, and either can carry extensions that only its tests use. Eddy doesn't set this up for you: the configurations the installer generates name only your extension's type, so bundling another extension takes a few deliberate steps, which this page walks through.
+Your project is 1 extension, and it can bundle others. A theme can bring a module that provides its blocks, a module can bring a theme for its tests, and either can carry extensions that only its tests use. Eddy doesn't set this up for you: the configurations the installer generates name only your extension's type, so bundling another extension takes a few manual steps, which this page walks through.
 
 ## Where they go
 
@@ -25,7 +25,7 @@ While you keep PHPUnit, `.gitattributes` keeps `tests/` out of the archives publ
 
 `assemble` symlinks every top-level item of your project into `web/modules/custom/<your_extension>`, or `web/themes/custom/<your_extension>` for a theme, so a bundled extension arrives inside yours. Drupal finds extensions at any depth below `modules/` and `themes/`, and it reads each one's type from its own `.info.yml`. A module inside a theme's directory is found as a module, and a theme inside a module's directory as a theme. Drupal core relies on this too: it keeps about 50 test themes inside the System module.
 
-So there's no mapping step, and adding one would hurt. A second symlink to the same module in `web/modules/custom` makes Drupal find it twice and quietly keep 1 copy.
+So there's no mapping step. Adding one anyway, such as a second symlink to the same module in `web/modules/custom`, makes Drupal find the module twice and keep 1 copy without a warning.
 
 A few limits apply:
 

@@ -18,14 +18,14 @@ import CommandTabs from '@site/src/components/CommandTabs';
 
 ## What it does
 
-1. It installs Drupal from the `standard` profile into a fresh SQLite database, with an `admin` account and without the Update Status module. Set `DRUPAL_PROFILE` to install from another profile.
-2. It enables your extension, as a module or as a theme.
-3. It enables each `drupal/*` extension in the `suggest` section of your `composer.json`, as a module or as a theme (see [Optional dependencies](dependencies.mdx#optional-dependencies)).
-4. It requests the front page once, so the caches are warm before you open the site.
-5. It links Drupal's browser test output into `.logs/browser_output`, next to the other test artifacts.
-6. It adds the reverse-proxy and trusted-host settings that a [public tunnel](tunnel.mdx) needs, when the tunnel is on.
-7. It runs your `scripts/provision-*.sh` [lifecycle scripts](lifecycle-scripts.mdx).
-8. It prints the site URL and a one-time login link.
+1. Installs Drupal from the `standard` profile into a fresh SQLite database, with an `admin` account and without the Update Status module. Set `DRUPAL_PROFILE` to install from another profile.
+2. Enables your extension, as a module or as a theme.
+3. Enables each `drupal/*` extension in the `suggest` section of your `composer.json`, as a module or as a theme (see [Optional dependencies](dependencies.mdx#optional-dependencies)).
+4. Requests the front page once, so the caches are warm before you open the site.
+5. Links Drupal's browser test output into `.logs/browser_output`, next to the other test artifacts.
+6. Adds the reverse-proxy and trusted-host settings that a [public tunnel](tunnel.mdx) needs, when the tunnel is on.
+7. Runs your `scripts/provision-*.sh` [lifecycle scripts](lifecycle-scripts.mdx).
+8. Prints the site URL and a one-time login link.
 
 ## The database
 

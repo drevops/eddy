@@ -31,7 +31,7 @@
 
 **Eddy** is a template for maintaining a contributed Drupal module or theme on GitHub. Start your extension from it and you get CI on GitHub Actions, a local Drupal site to develop and test against, coding standards checks, and mirroring of the code to [Drupal.org](https://drupal.org).
 
-Eddy isn't for building websites: use [Vortex](https://github.com/drevops/vortex) for that. The 2 templates do separate jobs, and a repository uses one or the other, never both.
+Eddy isn't for building websites: use [Vortex](https://github.com/drevops/vortex) for that. The 2 templates do separate jobs, and a repository uses only 1 of them.
 
 ## Features
 

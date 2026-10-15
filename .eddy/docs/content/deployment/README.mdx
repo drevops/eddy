@@ -30,7 +30,7 @@ flowchart TB
 
 ## Deployments never overtake each other
 
-Deployments of a branch never overlap: each one waits for the previous one, then checks the branch on GitHub right before it pushes. When the branch has moved on, or an older run is re-run, it skips the deployment with a notice, so an older commit never replaces a newer one.
+Each deployment of a branch waits for the previous one, then checks the branch on GitHub right before it pushes. When the branch has moved on, or an older run is re-run, it skips the deployment with a notice, so an older commit never replaces a newer one.
 
 ## Turning it on
 
