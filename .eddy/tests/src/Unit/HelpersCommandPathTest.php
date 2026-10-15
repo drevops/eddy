@@ -14,7 +14,7 @@ use PHPUnit\Framework\Attributes\Group;
 #[CoversFunction('DrevOps\Eddy\Tooling\command_path')]
 #[CoversFunction('DrevOps\Eddy\Tooling\command_must_exist')]
 #[Group('p0')]
-final class HelpersCommandExistsTest extends UnitTestCase {
+final class HelpersCommandPathTest extends UnitTestCase {
 
   protected function setUp(): void {
     parent::setUp();

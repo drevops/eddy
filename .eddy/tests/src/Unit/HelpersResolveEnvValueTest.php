@@ -19,7 +19,7 @@ use PHPUnit\Framework\Attributes\Group;
  */
 #[CoversFunction('DrevOps\Eddy\Tooling\resolve_env_value')]
 #[Group('p0')]
-final class HelpersResolveEnvTest extends UnitTestCase {
+final class HelpersResolveEnvValueTest extends UnitTestCase {
 
   protected function setUp(): void {
     parent::setUp();

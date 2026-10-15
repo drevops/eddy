@@ -21,7 +21,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[CoversFunction('DrevOps\Eddy\Tooling\validate_timeout_or_fail')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
-final class HelpersValidateTimeoutTest extends UnitTestCase {
+final class HelpersValidateTimeoutOrFailTest extends UnitTestCase {
 
   protected function setUp(): void {
     parent::setUp();

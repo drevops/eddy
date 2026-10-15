@@ -21,7 +21,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[CoversFunction('DrevOps\Eddy\Tooling\validate_port_or_fail')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
-final class HelpersValidatePortTest extends UnitTestCase {
+final class HelpersValidatePortOrFailTest extends UnitTestCase {
 
   protected function setUp(): void {
     parent::setUp();
