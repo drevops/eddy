@@ -3,7 +3,7 @@
     <description>Custom PHPCS standard for Eddy tests.</description>
 
     <rule ref="Drupal"/>
-    <rule ref="Generic.PHP.RequireStrictTypes" />
+    <rule ref="Generic.PHP.RequireStrictTypes"/>
     <rule ref="DrevOps"/>
 
     <!-- Show sniff codes in all reports -->
@@ -14,16 +14,16 @@
 
     <file>src</file>
     <file>../assets/update-assets.php</file>
-    <file>../../.eddy/tooling/src/eddy-assemble</file>
-    <file>../../.eddy/tooling/src/eddy-browser-start</file>
-    <file>../../.eddy/tooling/src/eddy-browser-stop</file>
-    <file>../../.eddy/tooling/src/eddy-deploy</file>
-    <file>../../.eddy/tooling/src/helpers.php</file>
-    <file>../../.eddy/tooling/src/eddy-info</file>
-    <file>../../.eddy/tooling/src/eddy-provision</file>
-    <file>../../.eddy/tooling/src/eddy-qrcode</file>
-    <file>../../.eddy/tooling/src/eddy-start</file>
-    <file>../../.eddy/tooling/src/eddy-stop</file>
+    <file>../tooling/src/eddy-assemble</file>
+    <file>../tooling/src/eddy-browser-start</file>
+    <file>../tooling/src/eddy-browser-stop</file>
+    <file>../tooling/src/eddy-deploy</file>
+    <file>../tooling/src/helpers.php</file>
+    <file>../tooling/src/eddy-info</file>
+    <file>../tooling/src/eddy-provision</file>
+    <file>../tooling/src/eddy-qrcode</file>
+    <file>../tooling/src/eddy-start</file>
+    <file>../tooling/src/eddy-stop</file>
     <file>../../install.php</file>
     <file>../../scripts/eddy-tooling</file>
 

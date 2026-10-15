@@ -62,11 +62,11 @@
             "phpcbf"
         ],
         "test": "phpunit --no-coverage",
-        "test-coverage": "php -d pcov.directory=../.. vendor/bin/phpunit $@",
+        "test-coverage": "php -d pcov.directory=../.. vendor/bin/phpunit",
         "update-assets": [
             "Composer\\Config::disableProcessTimeout",
             "php ../assets/update-assets.php"
         ],
-        "update-snapshots": "./vendor/bin/update-snapshots --test-dir=src InstallTest::testInstall fixtures/install $@"
+        "update-snapshots": "update-snapshots --test-dir=src InstallTest::testInstall fixtures/install"
     }
 }
