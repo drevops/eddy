@@ -24,9 +24,7 @@ final class StartTest extends UnitTestCase {
 
   #[DataProvider('dataProviderStartSuccess')]
   public function testStartSuccess(array $env, string $expected_host, string $expected_port, int $expected_timeout): void {
-    foreach ($env as $name => $value) {
-      self::envSet($name, $value);
-    }
+    self::envSetMultiple($env);
 
     $cwd = '/test/project';
 
@@ -98,7 +96,7 @@ final class StartTest extends UnitTestCase {
     self::envSet('WEBSERVER_PORT', '8000');
     self::envSet('WEBSERVER_WAIT_TIMEOUT', $timeout);
 
-    $this->mockFunction('shell_exec', fn(string $command): never => throw new \RuntimeException(sprintf('shell_exec() called with unexpected command "%s".', $command)));
+    $this->mockShellExecOutputs([]);
     $this->mockPassthruNever();
     $this->mockQuit(1);
 

@@ -559,17 +559,16 @@ PHP;
    *   prints its banner.
    */
   protected function mockShellExec(array $outputs, ?string $log = NULL): void {
-    $this->mockFunction('shell_exec', function (string $command) use ($outputs, $log): ?string {
-      if (!array_key_exists($command, $outputs)) {
-        throw new \RuntimeException(sprintf('shell_exec() called with unexpected command "%s".', $command));
-      }
-
-      if ($log !== NULL && $command === self::LAUNCH) {
+    if ($log !== NULL) {
+      $launch_output = $outputs[self::LAUNCH] ?? NULL;
+      $outputs[self::LAUNCH] = static function () use ($launch_output, $log): ?string {
         File::dump('.logs/cloudflared.log', $log);
-      }
 
-      return $outputs[$command];
-    });
+        return $launch_output;
+      };
+    }
+
+    $this->mockShellExecOutputs($outputs);
   }
 
   /**

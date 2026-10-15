@@ -319,6 +319,29 @@ trait MockTrait {
   }
 
   /**
+   * Mock command_path() through the exec() probe behind it.
+   *
+   * @param array<string, string|false> $paths
+   *   The path of each command, or FALSE for a command that is missing. A
+   *   command that is not listed is missing.
+   * @param string $namespace
+   *   Namespace to mock the function in.
+   */
+  protected function mockCommandPaths(array $paths, string $namespace = self::TOOLING_NAMESPACE): void {
+    $this->mockFunction('exec', function (string $command, ?array &$output = NULL, ?int &$result_code = NULL) use ($paths): string {
+      $output = [];
+      $result_code = 1;
+
+      if (preg_match('/^command -v (.+) 2>\/dev\/null$/', $command, $matches) === 1 && is_string($paths[$matches[1]] ?? FALSE)) {
+        $output = [$paths[$matches[1]]];
+        $result_code = 0;
+      }
+
+      return $output[0] ?? '';
+    }, $namespace);
+  }
+
+  /**
    * Mock command_path() resolution through the exec() probe behind it.
    *
    * Any command other than the named one always resolves as missing, so a
@@ -333,20 +356,7 @@ trait MockTrait {
    *   Namespace to mock the function in.
    */
   protected function mockCommandAvailable(string $command, bool $available, string $namespace = self::TOOLING_NAMESPACE): void {
-    $this->mockFunction('exec', function (string $cmd, ?array &$output = NULL, ?int &$code = NULL) use ($command, $available): bool {
-      $output ??= [];
-
-      if ($available && $cmd === sprintf('command -v %s 2>/dev/null', $command)) {
-        $output[] = '/usr/bin/' . $command;
-        $code = 0;
-
-        return TRUE;
-      }
-
-      $code = 1;
-
-      return FALSE;
-    }, $namespace);
+    $this->mockCommandPaths([$command => $available ? '/usr/bin/' . $command : FALSE], $namespace);
   }
 
   /**

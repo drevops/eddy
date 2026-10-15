@@ -25,7 +25,7 @@ abstract class UnitTestCase extends UpstreamUnitTestCase {
   /**
    * The output of each command that mockShellExecOutputs() answers.
    *
-   * @var array<string, string|\Closure>
+   * @var array<string, string|\Closure|null>
    */
   protected array $mockShellExecOutputs = [];
 
@@ -83,6 +83,13 @@ abstract class UnitTestCase extends UpstreamUnitTestCase {
   }
 
   /**
+   * Build the command that composer_show() runs.
+   */
+  protected static function composerShowCommand(string $package, string $version = ''): string {
+    return 'composer show --all --format=json ' . escapeshellarg($package) . ($version === '' ? '' : ' ' . escapeshellarg($version));
+  }
+
+  /**
    * Build the outputs of the commands that inspect a Selenium container.
    *
    * @param string $port
@@ -112,7 +119,7 @@ abstract class UnitTestCase extends UpstreamUnitTestCase {
    * @param array<int, string|array{0: string, 1: string}> $listeners
    *   The command line of each listening process, or its command line and
    *   working directory, keyed by process ID.
-   * @param array<string, string|\Closure> $outputs
+   * @param array<string, string|\Closure|null> $outputs
    *   The output of other shell_exec() commands, as for
    *   mockShellExecOutputs().
    */
@@ -137,7 +144,7 @@ abstract class UnitTestCase extends UpstreamUnitTestCase {
    * A later call adds its outputs to those of an earlier one, and replaces the
    * output of a command that both list.
    *
-   * @param array<string, string|\Closure> $outputs
+   * @param array<string, string|\Closure|null> $outputs
    *   The output keyed by command. A closure is called for its output. Any
    *   command not listed fails the test.
    */
@@ -156,6 +163,26 @@ abstract class UnitTestCase extends UpstreamUnitTestCase {
       $output = $this->mockShellExecOutputs[$command];
 
       return $output instanceof \Closure ? $output() : $output;
+    });
+  }
+
+  /**
+   * Mock exec() for 1 expected command.
+   *
+   * @param string $expected_command
+   *   The command line exec() receives; any other fails the test.
+   * @param array<int, string> $output
+   *   The lines the command prints.
+   * @param int $exit_code
+   *   The exit code of the command.
+   */
+  protected function mockExecOutput(string $expected_command, array $output, int $exit_code = 0): void {
+    $this->mockFunction('exec', function (string $command, ?array &$lines = NULL, ?int &$result_code = NULL) use ($expected_command, $output, $exit_code): string {
+      $this->assertSame($expected_command, $command);
+      $lines = $output;
+      $result_code = $exit_code;
+
+      return '';
     });
   }
 

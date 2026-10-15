@@ -48,9 +48,7 @@ final class ProvisionTest extends UnitTestCase {
 
   #[DataProvider('dataProviderProvisionSuccess')]
   public function testProvisionSuccess(array $env, string $extension_type, string $db_status, array $suggested, ?array $locked_types, array $expected_enabled, bool $has_ahoy, bool $has_makefile): void {
-    foreach ($env as $name => $value) {
-      self::envSet($name, $value);
-    }
+    self::envSetMultiple($env);
 
     $expected_host = $env['WEBSERVER_HOST'] ?? 'localhost';
     $expected_port = $env['WEBSERVER_PORT'] ?? '8000';

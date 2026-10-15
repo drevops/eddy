@@ -71,18 +71,7 @@ final class InfoTest extends UnitTestCase {
     $this->mockFunction('glob', fn(): array => $info_files);
     $this->mockFunction('file_get_contents', fn(string $file): string => $file_contents[$file] ?? '');
 
-    $this->mockFunction('exec', function (string $command, ?array &$output = NULL, ?int &$result_code = NULL) use ($command_php_path): bool {
-      $output ??= [];
-      if ($command_php_path !== FALSE && str_contains($command, 'command -v php')) {
-        $output[] = $command_php_path;
-        $result_code = 0;
-
-        return TRUE;
-      }
-      $result_code = 1;
-
-      return FALSE;
-    });
+    $this->mockCommandPaths(['php' => $command_php_path]);
   }
 
   public function testInfoFullyPopulatedEnvironment(): void {

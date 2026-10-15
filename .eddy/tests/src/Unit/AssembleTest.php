@@ -339,9 +339,7 @@ final class AssembleTest extends UnitTestCase {
 
   #[DataProvider('dataProviderAssembleSuccess')]
   public function testAssembleSuccess(array $env, array $config): void {
-    foreach ($env as $name => $value) {
-      self::envSet($name, $value);
-    }
+    self::envSetMultiple($env);
 
     // An explicit empty value overrides GITHUB_TOKEN and COMPOSER_AUTH
     // inherited from the environment.
@@ -1102,13 +1100,6 @@ final class AssembleTest extends UnitTestCase {
       $this->assertStringContainsString('ASSEMBLE', $output);
       $this->assertStringContainsString('Missing composer.json file', $output);
     }
-  }
-
-  /**
-   * Build the command that 'composer_show()' runs.
-   */
-  protected static function composerShowCommand(string $package, string $version = ''): string {
-    return 'composer show --all --format=json ' . escapeshellarg($package) . ($version === '' ? '' : ' ' . escapeshellarg($version));
   }
 
   /**

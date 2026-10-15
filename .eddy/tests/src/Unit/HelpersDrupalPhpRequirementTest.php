@@ -23,13 +23,7 @@ final class HelpersDrupalPhpRequirementTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderDrupalPhpRequirement')]
   public function testDrupalPhpRequirement(array $output, int $exit_code, ?string $expected): void {
-    $this->mockFunction('exec', function (string $command, ?array &$exec_output = NULL, ?int &$result_code = NULL) use ($output, $exit_code): string {
-      $this->assertSame("composer show --all --format=json 'drupal/core' '12.0.0-beta1'", $command);
-      $exec_output = $output;
-      $result_code = $exit_code;
-
-      return '';
-    });
+    $this->mockExecOutput(self::composerShowCommand('drupal/core', '12.0.0-beta1'), $output, $exit_code);
 
     $this->assertSame($expected, drupal_php_requirement('12.0.0-beta1'));
   }

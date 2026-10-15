@@ -27,9 +27,7 @@ final class BrowserStopTest extends UnitTestCase {
 
   #[DataProvider('dataProviderBrowserStop')]
   public function testBrowserStop(array $env, ?string $dotenv, bool $docker, string $expected_port): void {
-    foreach ($env as $name => $value) {
-      self::envSet($name, $value);
-    }
+    self::envSetMultiple($env);
 
     $this->mockFunction('file_exists', fn(string $file): bool => $dotenv !== NULL && $file === '.env');
     $this->mockFunction('file_get_contents', fn(string $file): string|false => $file === '.env' && $dotenv !== NULL ? $dotenv : FALSE);

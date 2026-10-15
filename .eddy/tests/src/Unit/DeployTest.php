@@ -156,10 +156,7 @@ final class DeployTest extends UnitTestCase {
     self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
     self::envSet('DEPLOY_PROCEED', '1');
 
-    $this->mockFunction('shell_exec', fn(string $command): ?string => match ($command) {
-      'git symbolic-ref --quiet --short HEAD' => NULL,
-      default => throw new \RuntimeException(sprintf('Unexpected command "%s".', $command)),
-    });
+    $this->mockShellExecOutputs(['git symbolic-ref --quiet --short HEAD' => NULL]);
 
     $this->mockPassthruNever();
     $this->mockQuit(1);
