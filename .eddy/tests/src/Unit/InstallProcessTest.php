@@ -61,19 +61,19 @@ final class InstallProcessTest extends UnitTestCase {
 
   /**
    * @param array<string> $command_wrapper
-   * @param array<string> $expected_exists
-   * @param array<string> $expected_not_exists
+   * @param array<string> $expected_present
+   * @param array<string> $expected_absent
    * @param array<string> $expected_claude_allow
    */
   #[DataProvider('dataProviderProcess')]
-  public function testProcess(string $name, string $machine_name, string $type, array $command_wrapper, array $expected_exists, array $expected_not_exists, array $expected_claude_allow): void {
+  public function testProcess(string $name, string $machine_name, string $type, array $command_wrapper, array $expected_present, array $expected_absent, array $expected_claude_allow): void {
     process($name, $machine_name, $type, ['10', '11'], $command_wrapper, [], FALSE, FALSE);
 
-    foreach ($expected_exists as $path) {
+    foreach ($expected_present as $path) {
       $this->assertFileExists(self::$sut . '/' . $path, 'Expected to exist: ' . $path);
     }
 
-    foreach ($expected_not_exists as $path) {
+    foreach ($expected_absent as $path) {
       $this->assertFileDoesNotExist(self::$sut . '/' . $path, 'Expected not to exist: ' . $path);
     }
 
@@ -322,22 +322,22 @@ final class InstallProcessTest extends UnitTestCase {
    *
    * @param array<string> $tools_remove
    * @param array<string> $project_files
-   * @param array<string> $expected_dirs
-   * @param array<string> $expected_no_dirs
+   * @param array<string> $expected_present
+   * @param array<string> $expected_absent
    */
   #[DataProvider('dataProviderProcessRemovesThemeDirectories')]
-  public function testProcessRemovesThemeDirectories(array $tools_remove, array $project_files, array $expected_dirs, array $expected_no_dirs): void {
+  public function testProcessRemovesThemeDirectories(array $tools_remove, array $project_files, array $expected_present, array $expected_absent): void {
     foreach ($project_files as $path) {
       File::dump(self::$sut . '/' . $path, "<?php\n");
     }
 
     process('My Theme', 'my_theme', 'theme', ['10', '11'], ['ahoy'], $tools_remove, FALSE, FALSE);
 
-    foreach ($expected_dirs as $dir) {
+    foreach ($expected_present as $dir) {
       $this->assertDirectoryExists(self::$sut . '/' . $dir);
     }
 
-    foreach ($expected_no_dirs as $dir) {
+    foreach ($expected_absent as $dir) {
       $this->assertDirectoryDoesNotExist(self::$sut . '/' . $dir);
     }
 
@@ -357,16 +357,16 @@ final class InstallProcessTest extends UnitTestCase {
 
   /**
    * @param array<string> $tools_remove
-   * @param array<string> $expected_not_exists
+   * @param array<string> $expected_absent
    * @param array<string> $expected_composer_dev_absent
    * @param array<string> $expected_package_json_absent
    * @param array<string> $expected_pipeline_absent
    */
   #[DataProvider('dataProviderProcessRemovesTools')]
-  public function testProcessRemovesTools(array $tools_remove, array $expected_not_exists, array $expected_composer_dev_absent, array $expected_package_json_absent, array $expected_pipeline_absent): void {
+  public function testProcessRemovesTools(array $tools_remove, array $expected_absent, array $expected_composer_dev_absent, array $expected_package_json_absent, array $expected_pipeline_absent): void {
     process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy', 'makefile'], $tools_remove, FALSE, FALSE);
 
-    foreach ($expected_not_exists as $path) {
+    foreach ($expected_absent as $path) {
       $this->assertFileDoesNotExist(self::$sut . '/' . $path, 'Expected removed: ' . $path);
     }
 

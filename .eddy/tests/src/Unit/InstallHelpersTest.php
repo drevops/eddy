@@ -1193,16 +1193,16 @@ final class InstallHelpersTest extends UnitTestCase {
   }
 
   #[DataProvider('dataProviderGetFiles')]
-  public function testGetFiles(callable $setup, array $expected_filenames, array $not_expected_filenames = []): void {
+  public function testGetFiles(callable $setup, array $expected_present, array $expected_absent = []): void {
     chdir(self::$sut);
     $setup(self::$sut);
     $files = get_files();
     $basenames = array_map(static fn(string $f): string => str_replace(self::$sut . '/', '', $f), $files);
 
-    foreach ($expected_filenames as $expected_filename) {
+    foreach ($expected_present as $expected_filename) {
       $this->assertContains($expected_filename, $basenames, 'Expected file not found: ' . $expected_filename);
     }
-    foreach ($not_expected_filenames as $not_expected_filename) {
+    foreach ($expected_absent as $not_expected_filename) {
       $this->assertNotContains($not_expected_filename, $basenames, 'Unexpected file found: ' . $not_expected_filename);
     }
   }
@@ -2003,13 +2003,13 @@ final class InstallHelpersTest extends UnitTestCase {
 
   /**
    * @param array<string> $drupal_versions
-   * @param array<string> $wrapper
+   * @param array<string> $command_wrapper
    */
   #[DataProvider('dataProviderProcessValidation')]
-  public function testProcessValidation(string $extension_name, string $machine_name, string $type, array $drupal_versions, array $wrapper, string $expected_message): void {
+  public function testProcessValidation(string $name, string $machine_name, string $type, array $drupal_versions, array $command_wrapper, string $expected_message): void {
     $this->expectException(\Exception::class);
     $this->expectExceptionMessage($expected_message);
-    process($extension_name, $machine_name, $type, $drupal_versions, $wrapper, [], FALSE, FALSE);
+    process($name, $machine_name, $type, $drupal_versions, $command_wrapper, [], FALSE, FALSE);
   }
 
   public static function dataProviderProcessValidation(): \Iterator {
