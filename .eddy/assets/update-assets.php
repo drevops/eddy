@@ -338,11 +338,11 @@ function resolve_jobs(array $names, array $only): array {
  *   The exit code and combined output.
  */
 function run_in_workspace(string $workspace_dir, string $command): array {
-  $cmd = sprintf('cd %s && %s 2>&1', escapeshellarg($workspace_dir), $command);
+  $command = sprintf('cd %s && %s 2>&1', escapeshellarg($workspace_dir), $command);
 
   $output = [];
   $exit_code = 0;
-  exec($cmd, $output, $exit_code);
+  exec($command, $output, $exit_code);
 
   return [
     'exit_code' => $exit_code,
@@ -390,7 +390,7 @@ function check_dependencies(): void {
     }
   }
 
-  if (!empty($missing)) {
+  if ($missing !== []) {
     throw new \RuntimeException('Missing required dependencies: ' . implode(', ', $missing));
   }
 
@@ -414,8 +414,8 @@ function install_node_dependencies(string $assets_dir): void {
     return;
   }
 
-  $cmd = sprintf('npm install --prefix %s svg-term@1.3.1 2>&1', escapeshellarg($assets_dir));
-  $output = shell_exec($cmd);
+  $command = sprintf('npm install --prefix %s svg-term@1.3.1 2>&1', escapeshellarg($assets_dir));
+  $output = shell_exec($command);
 
   if (!is_dir($node_modules . '/svg-term')) {
     throw new \RuntimeException('Failed to install svg-term: ' . (is_string($output) ? $output : 'unknown error'));
@@ -439,13 +439,13 @@ function create_workspace(string $project_dir): string {
 
   info('Exporting current branch to workspace...');
 
-  $cmd = sprintf(
+  $command = sprintf(
     'cd %s && git archive HEAD | tar -x -C %s 2>&1',
     escapeshellarg($project_dir),
     escapeshellarg($workspace_dir)
   );
 
-  $output = shell_exec($cmd);
+  $output = shell_exec($command);
 
   if (!file_exists($workspace_dir . '/install.php')) {
     throw new \RuntimeException('Failed to export git archive: ' . (is_string($output) ? $output : 'unknown error'));
@@ -567,7 +567,7 @@ function record_session(string $expect_script, string $cast_file): void {
 
   // Without '--return', asciinema exits with 0 whatever the session does.
   // '--headless' keeps it off the terminal this script runs in.
-  $cmd = sprintf(
+  $command = sprintf(
     'asciinema rec --headless --quiet --return --command=%s --window-size=%dx%d --overwrite %s 2>&1',
     escapeshellarg($expect_script),
     TERMINAL_COLS,
@@ -577,7 +577,7 @@ function record_session(string $expect_script, string $cast_file): void {
 
   $output = [];
   $exit_code = 0;
-  exec($cmd, $output, $exit_code);
+  exec($command, $output, $exit_code);
 
   if (!is_file($cast_file)) {
     throw new \RuntimeException(join_lines(sprintf('No recording was written to %s.', $cast_file), ...$output));
@@ -923,7 +923,7 @@ function join_lines(string ...$lines): string {
  *   Path to the assets directory containing svg-term-render.js.
  */
 function convert_to_svg(string $cast_file, string $svg_file, string $assets_dir): void {
-  $cmd = sprintf(
+  $command = sprintf(
     'node %s %s %s --line-height 1.1 2>&1',
     escapeshellarg($assets_dir . '/svg-term-render.js'),
     escapeshellarg($cast_file),
@@ -932,7 +932,7 @@ function convert_to_svg(string $cast_file, string $svg_file, string $assets_dir)
 
   $output = [];
   $exit_code = 0;
-  exec($cmd, $output, $exit_code);
+  exec($command, $output, $exit_code);
 
   if ($exit_code !== 0) {
     throw new \RuntimeException('Failed to convert cast to SVG: ' . $cast_file . PHP_EOL . implode(PHP_EOL, $output));
@@ -971,7 +971,7 @@ function info(string $message): void {
 }
 
 // @codeCoverageIgnoreStart
-if (getenv('SCRIPT_RUN_SKIP') != 1) {
+if (getenv('SCRIPT_RUN_SKIP') !== '1') {
   ini_set('display_errors', '1');
 
   if (PHP_SAPI !== 'cli' || !empty($_SERVER['REMOTE_ADDR'])) {
