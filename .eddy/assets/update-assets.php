@@ -6,7 +6,8 @@
  * Generate animated SVG assets from asciinema recordings.
  *
  * Records the install, build, lint and test sessions in a clean workspace and
- * renders each recording as an animated SVG for README.md.
+ * renders each recording as an animated SVG for README.md and the
+ * documentation site.
  *
  * A recording is rewritten onto a canonical timeline before it is rendered,
  * so recording the same session twice produces the same SVG.
