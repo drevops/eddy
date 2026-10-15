@@ -136,7 +136,7 @@ function dotenv_write_var(string $key, string $value, string $dotenv_file = '.en
 
   if (!file_exists($dotenv_file)) {
     if (file_put_contents($dotenv_file, $assignment . PHP_EOL) === FALSE) {
-      FAIL('Unable to write %s', $dotenv_file);
+      FAIL('Unable to write %s.', $dotenv_file);
     }
 
     return;
@@ -145,7 +145,7 @@ function dotenv_write_var(string $key, string $value, string $dotenv_file = '.en
   $content = file_get_contents($dotenv_file);
 
   if ($content === FALSE) {
-    FAIL('Unable to read %s', $dotenv_file);
+    FAIL('Unable to read %s.', $dotenv_file);
 
     // @codeCoverageIgnoreStart
     return;
@@ -193,7 +193,7 @@ function dotenv_write_var(string $key, string $value, string $dotenv_file = '.en
   }
 
   if (file_put_contents($dotenv_file, implode(PHP_EOL, $lines) . PHP_EOL) === FALSE) {
-    FAIL('Unable to write %s', $dotenv_file);
+    FAIL('Unable to write %s.', $dotenv_file);
   }
 }
 
@@ -219,7 +219,7 @@ function dotenv_unset_var(string $key, string $dotenv_file = '.env'): void {
   }
 
   if (file_put_contents($dotenv_file, implode(PHP_EOL, $kept)) === FALSE) {
-    FAIL('Unable to write %s', $dotenv_file);
+    FAIL('Unable to write %s.', $dotenv_file);
   }
 }
 
@@ -605,11 +605,11 @@ function validate_timeout_or_fail(string $value, string $source): int {
  */
 function find_free_port(int $start = 8000, int $max_attempts = 100): int {
   if ($start < 1 || $start > 65535) {
-    FAIL('Start port must be between 1 and 65535, got %d', $start);
+    FAIL('Start port must be between 1 and 65535, got %d.', $start);
   }
 
   if ($max_attempts < 1) {
-    FAIL('Max attempts must be a positive integer, got %d', $max_attempts);
+    FAIL('Max attempts must be a positive integer, got %d.', $max_attempts);
   }
 
   for ($port = $start; $port < $start + $max_attempts; $port++) {
@@ -622,7 +622,7 @@ function find_free_port(int $start = 8000, int $max_attempts = 100): int {
     fclose($fp);
   }
 
-  FAIL('Unable to find a free port in range %d-%d', $start, $start + $max_attempts - 1);
+  FAIL('Unable to find a free port in range %d-%d.', $start, $start + $max_attempts - 1);
 
   // @codeCoverageIgnoreStart
   return $start;
@@ -870,7 +870,7 @@ function getenv_required(mixed ...$vars): string {
     return $value;
   }
 
-  FAIL('Missing required value for %s', implode(', ', array_filter(array_map(static fn(mixed $v): string => is_string($v) ? $v : '', $vars))));
+  FAIL('Missing required value for %s.', implode(', ', array_filter(array_map(static fn(mixed $v): string => is_string($v) ? $v : '', $vars))));
 
   // @codeCoverageIgnoreStart
   return '';
@@ -952,8 +952,8 @@ function command_path(string $command): string|false {
  * Require a command to be available, or fail.
  */
 function command_must_exist(string $command): void {
-  if (!command_path($command)) {
-    FAIL("Command '%s' is not available", $command);
+  if (command_path($command) === FALSE) {
+    FAIL("Command '%s' is not available.", $command);
   }
 }
 
@@ -1102,8 +1102,8 @@ function print_qrcode(string $url): void {
     return;
   }
 
-  if (!command_path('qrencode')) {
-    FAIL("Command 'qrencode' is not available. Install it from https://fukuchi.org/works/qrencode/ to render QR codes");
+  if (command_path('qrencode') === FALSE) {
+    FAIL("Command 'qrencode' is not available. Install it from https://fukuchi.org/works/qrencode/ to render QR codes.");
   }
 
   passthru(sprintf('qrencode -t ANSIUTF8 %s', escapeshellarg($url)));
@@ -1199,7 +1199,7 @@ function drush(string $command, mixed $args = NULL, ?int &$exit_code = NULL): st
     // it holds only stdout, because stderr already streamed live.
     echo $output;
 
-    FAIL('Drush command failed: %s', $command);
+    FAIL('Drush command failed: %s.', $command);
   }
 
   return $output;
@@ -1579,7 +1579,7 @@ function replace_in_file(string $file, string $pattern, string $replacement): st
   $content = file_get_contents($file);
 
   if ($content === FALSE) {
-    FAIL('Unable to read file %s.', $file);
+    FAIL('Unable to read %s.', $file);
 
     // @codeCoverageIgnoreStart
     return '';

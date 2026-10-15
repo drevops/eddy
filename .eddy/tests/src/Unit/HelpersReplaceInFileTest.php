@@ -64,7 +64,7 @@ final class HelpersReplaceInFileTest extends UnitTestCase {
       restore_error_handler();
     }
 
-    $this->assertStringContainsString('Unable to read file', $output);
+    $this->assertStringContainsString('Unable to read ', $output);
   }
 
   public function testReplaceInFileInvalidRegex(): void {

@@ -100,25 +100,25 @@ echo '===============================' . PHP_EOL;
 echo '      ℹ️ ENVIRONMENT INFO      ' . PHP_EOL;
 echo '===============================' . PHP_EOL;
 echo PHP_EOL;
-printf('Drupal version:     %s%s', $values['drupal-version'], PHP_EOL);
-printf('PHP version:        %s%s%s', $values['php-version'], $php_path !== FALSE && $values['php-version'] !== '-' ? ' (' . $php_path . ')' : '', PHP_EOL);
-printf('Composer:           %s%s', $values['composer'], PHP_EOL);
-printf('Drush:              %s%s', $values['drush'], PHP_EOL);
-printf('Node / npm:         %s / %s%s', $values['node'], $values['npm'], PHP_EOL);
+echo 'Drupal version:     ' . $values['drupal-version'] . PHP_EOL;
+echo 'PHP version:        ' . $values['php-version'] . ($php_path !== FALSE && $values['php-version'] !== '-' ? ' (' . $php_path . ')' : '') . PHP_EOL;
+echo 'Composer:           ' . $values['composer'] . PHP_EOL;
+echo 'Drush:              ' . $values['drush'] . PHP_EOL;
+echo 'Node / npm:         ' . $values['node'] . ' / ' . $values['npm'] . PHP_EOL;
 echo PHP_EOL;
-printf('Webserver host:     %s (%s)%s', $values['webserver-host'], $host_source, PHP_EOL);
-printf('Webserver port:     %s (%s)%s', $values['webserver-port'], $port_source, PHP_EOL);
-printf('Site URL:           %s%s', $values['site-url'], PHP_EOL);
-printf('XDebug:             %s%s', $values['xdebug'], PHP_EOL);
+echo 'Webserver host:     ' . $values['webserver-host'] . ' (' . $host_source . ')' . PHP_EOL;
+echo 'Webserver port:     ' . $values['webserver-port'] . ' (' . $port_source . ')' . PHP_EOL;
+echo 'Site URL:           ' . $values['site-url'] . PHP_EOL;
+echo 'XDebug:             ' . $values['xdebug'] . PHP_EOL;
 
 if ($has_functional_javascript) {
-  printf('WebDriver port:     %s%s', $values['webdriver-port'], PHP_EOL);
+  echo 'WebDriver port:     ' . $values['webdriver-port'] . PHP_EOL;
 }
 
 echo PHP_EOL;
-printf('Build dir:          %s%s', $values['build-dir'], PHP_EOL);
-printf('Database:           %s%s', $values['database'], PHP_EOL);
-printf('Drupal profile:     %s%s', $values['drupal-profile'], PHP_EOL);
+echo 'Build dir:          ' . $values['build-dir'] . PHP_EOL;
+echo 'Database:           ' . $values['database'] . PHP_EOL;
+echo 'Drupal profile:     ' . $values['drupal-profile'] . PHP_EOL;
 echo PHP_EOL;
 
 // -----------------------------------------------------------------------------

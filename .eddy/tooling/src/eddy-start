@@ -83,7 +83,7 @@ NOTE('Waiting up to %s seconds for the server to be ready.', (string) $webserver
 
 if (!wait_for_port($webserver_host, $webserver_port, $webserver_wait_timeout)) {
   $content = @file_get_contents($webserver_log) ?: '';
-  FAIL('Unable to start inbuilt PHP server' . ($content !== '' ? "\n" . $content : ''));
+  FAIL('Unable to start inbuilt PHP server.%s', $content !== '' ? "\n" . $content : '');
 }
 
 PASS('Server started successfully.');
