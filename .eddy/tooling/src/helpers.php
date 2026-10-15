@@ -75,23 +75,13 @@ function split_lines(string $text): array {
  *   Path to the dotenv file.
  *
  * @return array<string, string>
- *   Associative array of key-value pairs. Empty if the file does not exist
- *   or contains no parseable lines.
+ *   Associative array of key-value pairs. Empty if the file is missing or
+ *   unreadable, or contains no parseable lines.
  */
 function dotenv_read(string $dotenv_file = '.env'): array {
-  if (!file_exists($dotenv_file)) {
-    return [];
-  }
-
-  $content = file_get_contents($dotenv_file);
-
-  if ($content === FALSE) {
-    return [];
-  }
-
   $vars = [];
 
-  foreach (split_lines($content) as $line) {
+  foreach (split_lines(file_read($dotenv_file)) as $line) {
     $trimmed = trim($line);
 
     if ($trimmed === '') {
@@ -147,24 +137,13 @@ function dotenv_read(string $dotenv_file = '.env'): array {
 function dotenv_write_var(string $key, string $value, string $dotenv_file = '.env'): void {
   $assignment = sprintf('%s=%s', $key, $value);
 
-  if (!file_exists($dotenv_file)) {
-    if (file_put_contents($dotenv_file, $assignment . PHP_EOL) === FALSE) {
-      FAIL('Unable to write %s.', $dotenv_file);
-    }
+  if (!is_file($dotenv_file)) {
+    file_write_or_fail($dotenv_file, $assignment . PHP_EOL);
 
     return;
   }
 
-  $content = file_get_contents($dotenv_file);
-
-  if ($content === FALSE) {
-    FAIL('Unable to read %s.', $dotenv_file);
-
-    // @codeCoverageIgnoreStart
-    return;
-    // @codeCoverageIgnoreEnd
-  }
-
+  $content = file_read_or_fail($dotenv_file);
   $lines = split_lines($content);
   $trailing_newline = $content !== '' && (str_ends_with($content, "\n") || str_ends_with($content, "\r"));
 
@@ -205,9 +184,7 @@ function dotenv_write_var(string $key, string $value, string $dotenv_file = '.en
     $lines[$replace_index] = $assignment;
   }
 
-  if (file_put_contents($dotenv_file, implode(PHP_EOL, $lines) . PHP_EOL) === FALSE) {
-    FAIL('Unable to write %s.', $dotenv_file);
-  }
+  file_write_or_fail($dotenv_file, implode(PHP_EOL, $lines) . PHP_EOL);
 }
 
 /**
@@ -223,17 +200,14 @@ function dotenv_write_var(string $key, string $value, string $dotenv_file = '.en
  *   Path to the dotenv file.
  */
 function dotenv_unset_var(string $key, string $dotenv_file = '.env'): void {
-  $content = file_exists($dotenv_file) ? (string) file_get_contents($dotenv_file) : '';
-  $lines = split_lines($content);
+  $lines = split_lines(file_read($dotenv_file));
   $kept = preg_grep('/^\s*' . preg_quote($key, '/') . '\s*=/', $lines, PREG_GREP_INVERT) ?: [];
 
   if (count($kept) === count($lines)) {
     return;
   }
 
-  if (file_put_contents($dotenv_file, implode(PHP_EOL, $kept)) === FALSE) {
-    FAIL('Unable to write %s.', $dotenv_file);
-  }
+  file_write_or_fail($dotenv_file, implode(PHP_EOL, $kept));
 }
 
 /**
@@ -484,7 +458,7 @@ function selenium_container_running(string $port): bool {
  *   The WebDriver port the container publishes.
  */
 function selenium_container_remove(string $port): void {
-  @passthru(sprintf('docker rm -f %s >/dev/null 2>&1', escapeshellarg(selenium_container($port))));
+  passthru(sprintf('docker rm -f %s >/dev/null 2>&1', escapeshellarg(selenium_container($port))));
 }
 
 /**
@@ -847,7 +821,7 @@ function kill_processes(array $pids): void {
     return;
   }
 
-  @passthru(sprintf('kill -9 %s 2>/dev/null', implode(' ', $pids)));
+  passthru(sprintf('kill -9 %s 2>/dev/null', implode(' ', $pids)));
 }
 
 /**
@@ -934,9 +908,9 @@ function wait_for_port(string $host, string $port, int $timeout): bool {
 /**
  * Get required environment variable with fallback support.
  */
-function getenv_required(mixed ...$vars): string {
+function getenv_or_fail(mixed ...$vars): string {
   if (count($vars) < 1) {
-    throw new \InvalidArgumentException('getenv_required() requires at least 1 argument');
+    throw new \InvalidArgumentException('getenv_or_fail() requires at least 1 argument');
   }
 
   $vars[] = '';
@@ -1038,7 +1012,7 @@ function command_path(string $command): string|false {
 /**
  * Require a command to be available, or fail.
  */
-function command_must_exist(string $command): void {
+function command_exists_or_fail(string $command): void {
   if (command_path($command) === FALSE) {
     FAIL("Command '%s' is not available.", $command);
   }
@@ -1295,6 +1269,8 @@ function drush(string $command, mixed $args = NULL, ?int &$exit_code = NULL): st
 /**
  * Get extension information from the .info.yml file.
  *
+ * Fails when no .info.yml file exists or it cannot be read.
+ *
  * @return array{name: string, type: string}
  *   Array with 'name' (machine name) and 'type' ('module' or 'theme').
  */
@@ -1310,7 +1286,7 @@ function extension_info(): array {
   }
 
   $name = basename($info_files[0], '.info.yml');
-  $type = str_contains((string) file_get_contents($info_files[0]), 'type: theme') ? 'theme' : 'module';
+  $type = str_contains(file_read_or_fail($info_files[0]), 'type: theme') ? 'theme' : 'module';
 
   return ['name' => $name, 'type' => $type];
 }
@@ -1336,13 +1312,27 @@ function site_db_file(string $extension_name): string {
  *   The path to the JSON file.
  *
  * @return array<mixed>
- *   The decoded array, or an empty array when the file cannot be read or does
- *   not hold a JSON object or array.
+ *   The decoded array, or an empty array when the file is missing or
+ *   unreadable, or does not hold a JSON object or array.
  */
 function json_file(string $file): array {
-  $decoded = json_decode((string) @file_get_contents($file), TRUE);
+  $decoded = json_decode(file_read($file), TRUE);
 
   return is_array($decoded) ? $decoded : [];
+}
+
+/**
+ * Write an array to a JSON file, failing when the file cannot be written.
+ *
+ * The JSON is pretty-printed with unescaped slashes and ends with a newline.
+ *
+ * @param string $file
+ *   The path to the JSON file.
+ * @param array<mixed> $data
+ *   The data to encode.
+ */
+function json_file_write(string $file, array $data): void {
+  file_write_or_fail($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n");
 }
 
 /**
@@ -1363,6 +1353,16 @@ function default_drupal_version(string $dev_manifest = 'composer.dev.json'): str
   }
 
   return is_string($version) && $version !== '' ? $version : '11';
+}
+
+/**
+ * Get the install profile that the site is installed from.
+ *
+ * @return string
+ *   DRUPAL_PROFILE from the environment or '.env', or 'standard'.
+ */
+function drupal_profile(): string {
+  return resolve_env_value('DRUPAL_PROFILE', 'standard')['value'];
 }
 
 /**
@@ -1604,13 +1604,14 @@ function dev_branch_packages(string $lock_file): array {
  * Get the directory that nvm is installed in.
  *
  * @return string
- *   NVM_DIR, or the directory that the nvm installer defaults to:
- *   '$XDG_CONFIG_HOME/nvm', or '$HOME/.nvm' when XDG_CONFIG_HOME is not set.
+ *   NVM_DIR from the environment or '.env', or the directory that the nvm
+ *   installer defaults to: '$XDG_CONFIG_HOME/nvm', or '$HOME/.nvm' when
+ *   XDG_CONFIG_HOME is not set.
  *
  * @see https://github.com/nvm-sh/nvm#installing-and-updating
  */
 function nvm_dir(): string {
-  $nvm_dir = getenv_default('NVM_DIR', '');
+  $nvm_dir = resolve_env_value('NVM_DIR', '')['value'];
 
   if ($nvm_dir !== '') {
     return $nvm_dir;
@@ -1636,7 +1637,7 @@ function nvm_dir(): string {
  *   or nvm is not installed.
  */
 function nvm_prefix(): string {
-  if (!file_exists('.nvmrc')) {
+  if (!is_file('.nvmrc')) {
     return '';
   }
 
@@ -1660,28 +1661,24 @@ function nvm_prefix(): string {
 
 /**
  * Check if debug mode is enabled.
+ *
+ * @return bool
+ *   TRUE when DEBUG is '1' in the environment or '.env'.
  */
 function is_debug(): bool {
-  return getenv('DEBUG') === '1';
+  return resolve_env_value('DEBUG', '')['value'] === '1';
 }
 
 /**
  * Replace content in a file using a regular expression.
  *
+ * Fails when the file cannot be read or written, or the pattern is invalid.
+ *
  * @return string
  *   The file content after replacement.
  */
 function replace_in_file(string $file, string $pattern, string $replacement): string {
-  $content = file_get_contents($file);
-
-  if ($content === FALSE) {
-    FAIL('Unable to read %s.', $file);
-
-    // @codeCoverageIgnoreStart
-    return '';
-    // @codeCoverageIgnoreEnd
-  }
-
+  $content = file_read_or_fail($file);
   $replaced = preg_replace($pattern, $replacement, $content);
 
   if ($replaced === NULL) {
@@ -1692,17 +1689,20 @@ function replace_in_file(string $file, string $pattern, string $replacement): st
     // @codeCoverageIgnoreEnd
   }
 
-  file_put_contents($file, $replaced);
+  file_write_or_fail($file, $replaced);
 
   return $replaced;
 }
 
 /**
  * Recursively remove a directory.
+ *
+ * @return bool
+ *   TRUE when the directory was removed or did not exist.
  */
-function remove_dir(string $dir): void {
+function remove_dir(string $dir): bool {
   if (!is_dir($dir)) {
-    return;
+    return TRUE;
   }
 
   $items = new \RecursiveIteratorIterator(
@@ -1725,16 +1725,16 @@ function remove_dir(string $dir): void {
     }
   }
 
-  @rmdir($dir);
+  return @rmdir($dir);
 }
 
 /**
  * Recursively copy a directory.
+ *
+ * Fails when a directory or a file cannot be copied.
  */
 function copy_dir(string $src, string $dst): void {
-  if (!is_dir($dst)) {
-    mkdir($dst, 0755, TRUE);
-  }
+  mkdir_or_fail($dst);
 
   $iterator = new \RecursiveIteratorIterator(
     new \RecursiveDirectoryIterator($src, \RecursiveDirectoryIterator::SKIP_DOTS),
@@ -1746,12 +1746,10 @@ function copy_dir(string $src, string $dst): void {
     $target = $dst . DIRECTORY_SEPARATOR . $iterator->getSubPathname();
 
     if ($item->isDir()) {
-      if (!is_dir($target)) {
-        mkdir($target, 0755, TRUE);
-      }
+      mkdir_or_fail($target);
     }
     else {
-      copy($item->getPathname(), $target);
+      copy_or_fail($item->getPathname(), $target);
     }
   }
 }
@@ -1787,10 +1785,100 @@ function chmod_recursive(string $dir, int $mode): void {
  *
  * @param string $dir
  *   The directory path.
+ * @param int $mode
+ *   The permissions of each directory created, before the umask applies. A
+ *   directory that already exists keeps its permissions.
  */
-function mkdir_or_fail(string $dir): void {
-  if (!@mkdir($dir, 0755, TRUE) && !is_dir($dir)) {
+function mkdir_or_fail(string $dir, int $mode = 0755): void {
+  if (!@mkdir($dir, $mode, TRUE) && !is_dir($dir)) {
     FAIL('Unable to create directory %s.', $dir);
+  }
+}
+
+/**
+ * Read a file that may be missing.
+ *
+ * @param string $file
+ *   The file path.
+ *
+ * @return string
+ *   The content, or an empty string when the file is missing or unreadable.
+ *   An unreadable file also raises PHP's warning.
+ */
+function file_read(string $file): string {
+  if (!is_file($file)) {
+    return '';
+  }
+
+  $content = file_get_contents($file);
+
+  return $content === FALSE ? '' : $content;
+}
+
+/**
+ * Read a file, failing when it is missing or unreadable.
+ *
+ * @param string $file
+ *   The file path.
+ *
+ * @return string
+ *   The content.
+ */
+function file_read_or_fail(string $file): string {
+  $content = is_file($file) ? file_get_contents($file) : FALSE;
+
+  if ($content === FALSE) {
+    FAIL('Unable to read %s.', $file);
+
+    // @codeCoverageIgnoreStart
+    return '';
+    // @codeCoverageIgnoreEnd
+  }
+
+  return $content;
+}
+
+/**
+ * Write a file, failing when it cannot be written.
+ *
+ * @param string $file
+ *   The file path.
+ * @param string $content
+ *   The content to write.
+ * @param int $flags
+ *   The flags of file_put_contents(), such as FILE_APPEND.
+ */
+function file_write_or_fail(string $file, string $content, int $flags = 0): void {
+  if (file_put_contents($file, $content, $flags) === FALSE) {
+    FAIL('Unable to write %s.', $file);
+  }
+}
+
+/**
+ * Copy a file, failing when it cannot be copied.
+ *
+ * @param string $source
+ *   The file to copy.
+ * @param string $destination
+ *   The path of the copy.
+ */
+function copy_or_fail(string $source, string $destination): void {
+  if (!copy($source, $destination)) {
+    FAIL('Unable to copy %s to %s.', $source, $destination);
+  }
+}
+
+/**
+ * Create a symlink, failing when it cannot be created.
+ *
+ * @param string $target
+ *   The path that the symlink points to.
+ * @param string $link
+ *   The path of the symlink.
+ */
+function symlink_or_fail(string $target, string $link): void {
+  if (!symlink($target, $link)) {
+    FAIL('Unable to create symlink %s to %s.', $link, $target);
   }
 }
 
@@ -1805,7 +1893,8 @@ function mkdir_or_fail(string $dir): void {
  * test artifacts instead of leaving it under the web root.
  *
  * Any existing file, directory, or symlink at the browser output location is
- * removed first. Does nothing when the web root is absent.
+ * removed first. Does nothing when the web root is absent, and fails when a
+ * directory or the symlink cannot be created.
  *
  * @param string $webroot
  *   Absolute path to the Drupal web root: the directory that contains "sites".
@@ -1818,16 +1907,10 @@ function link_browser_output(string $webroot, string $logs_dir): void {
   }
 
   $target = $logs_dir . '/browser_output';
-
-  if (!is_dir($target)) {
-    mkdir($target, 0755, TRUE);
-  }
+  mkdir_or_fail($target);
 
   $simpletest_dir = $webroot . '/sites/simpletest';
-
-  if (!is_dir($simpletest_dir)) {
-    mkdir($simpletest_dir, 0755, TRUE);
-  }
+  mkdir_or_fail($simpletest_dir);
 
   $link = $simpletest_dir . '/browser_output';
 
@@ -1838,12 +1921,14 @@ function link_browser_output(string $webroot, string $logs_dir): void {
     remove_dir($link);
   }
 
-  symlink($target, $link);
+  symlink_or_fail($target, $link);
 }
 
-const TUNNEL_PID_FILE = '.logs/cloudflared.pid';
+const LOGS_DIR = '.logs';
 
-const TUNNEL_LOG_FILE = '.logs/cloudflared.log';
+const TUNNEL_PID_FILE = LOGS_DIR . '/cloudflared.pid';
+
+const TUNNEL_LOG_FILE = LOGS_DIR . '/cloudflared.log';
 
 // 'cloudflared' logs 'https://api.trycloudflare.com' when the request that
 // creates a quick tunnel fails, so that host is excluded.
@@ -1869,8 +1954,9 @@ function tunnel_enabled(): bool {
  *
  * A running tunnel is reused while its URL responds. Otherwise a new tunnel
  * is started and its public URL is written to '.env' as TUNNEL_URL. A missing
- * 'cloudflared' binary, a launch without a PID or a tunnel that publishes no
- * URL is reported without failing, so the webserver stays available locally.
+ * 'cloudflared' binary, a log or PID file that cannot be written, a launch
+ * without a PID or a tunnel that publishes no URL is reported without
+ * failing, so the webserver stays available locally.
  *
  * @param string $port
  *   The webserver port the tunnel forwards to.
@@ -1904,13 +1990,16 @@ function tunnel_start(string $port): void {
     return;
   }
 
-  if (!is_dir(dirname(TUNNEL_LOG_FILE))) {
-    mkdir(dirname(TUNNEL_LOG_FILE), 0755, TRUE);
-  }
+  mkdir_or_fail(dirname(TUNNEL_LOG_FILE));
 
   // Empty the log before the new process starts, so the URL of the previous
   // tunnel cannot be read back as the new one.
-  file_put_contents(TUNNEL_LOG_FILE, '');
+  if (file_put_contents(TUNNEL_LOG_FILE, '') === FALSE) {
+    tunnel_forget();
+    NOTE('Unable to write %s. Continuing without the tunnel.', TUNNEL_LOG_FILE);
+
+    return;
+  }
 
   $pid = (int) trim((string) shell_exec(sprintf('nohup cloudflared tunnel --url %s --no-autoupdate >%s 2>&1 & echo $!', escapeshellarg('http://localhost:' . $port), escapeshellarg(TUNNEL_LOG_FILE))));
 
@@ -1921,7 +2010,15 @@ function tunnel_start(string $port): void {
     return;
   }
 
-  file_put_contents(TUNNEL_PID_FILE, $pid . PHP_EOL);
+  if (file_put_contents(TUNNEL_PID_FILE, $pid . PHP_EOL) === FALSE) {
+    // tunnel_stop() finds the tunnel only through its PID file, so a tunnel
+    // without one would stay public after 'eddy-stop'.
+    tunnel_kill($pid);
+    tunnel_forget();
+    NOTE('Unable to write %s. Stopped the tunnel and continuing without it.', TUNNEL_PID_FILE);
+
+    return;
+  }
 
   NOTE('Waiting for the tunnel URL.');
   $url = '';
@@ -2001,7 +2098,7 @@ function tunnel_write_settings(string $settings_file): void {
 
   $marker = '# Cloudflare quick tunnel settings.';
 
-  if (str_contains((string) file_get_contents($settings_file), $marker)) {
+  if (str_contains(file_read_or_fail($settings_file), $marker)) {
     return;
   }
 
@@ -2020,9 +2117,7 @@ PHP;
   $mode = fileperms($settings_file) ?: 0644;
   chmod($settings_file, ($mode & 0777) | 0200);
 
-  if (file_put_contents($settings_file, PHP_EOL . $marker . PHP_EOL . $settings . PHP_EOL, FILE_APPEND) === FALSE) {
-    FAIL('Unable to write %s.', $settings_file);
-  }
+  file_write_or_fail($settings_file, PHP_EOL . $marker . PHP_EOL . $settings . PHP_EOL, FILE_APPEND);
 
   PASS('Tunnel settings added.');
 }
@@ -2036,7 +2131,7 @@ PHP;
  *   signalled.
  */
 function tunnel_pid(): ?int {
-  $pid = is_file(TUNNEL_PID_FILE) ? trim((string) file_get_contents(TUNNEL_PID_FILE)) : '';
+  $pid = trim(file_read(TUNNEL_PID_FILE));
 
   if (!is_positive_integer($pid)) {
     return NULL;
@@ -2067,7 +2162,7 @@ function tunnel_forwards_to(int $pid, string $port): bool {
  *   The quick tunnel URL, or an empty string while the log holds none.
  */
 function tunnel_log_url(): string {
-  $log = is_file(TUNNEL_LOG_FILE) ? (string) file_get_contents(TUNNEL_LOG_FILE) : '';
+  $log = file_read(TUNNEL_LOG_FILE);
 
   return preg_match('#' . TUNNEL_URL_PATTERN . '#', $log, $matches) === 1 ? $matches[0] : '';
 }

@@ -39,7 +39,7 @@ require_once __DIR__ . '/helpers.php';
 // Ignored by git and safe to delete.
 const CHROMEDRIVER_DIR = '.chromedriver';
 
-const CHROMEDRIVER_LOG_FILE = '.logs/chromedriver.log';
+const CHROMEDRIVER_LOG_FILE = LOGS_DIR . '/chromedriver.log';
 
 const SELENIUM_IMAGE = 'selenium/standalone-chromium:latest';
 
@@ -163,7 +163,7 @@ function chromedriver_start(string $port, string $root): void {
   chromedriver_stop($port, $root);
 
   TASK('Starting chromedriver on port %s.', $port);
-  @passthru(sprintf('nohup %s --port=%s >%s 2>&1 &', escapeshellarg($binary), escapeshellarg($port), escapeshellarg(CHROMEDRIVER_LOG_FILE)));
+  passthru(sprintf('nohup %s --port=%s >%s 2>&1 &', escapeshellarg($binary), escapeshellarg($port), escapeshellarg(CHROMEDRIVER_LOG_FILE)));
 
   NOTE('Waiting for chromedriver to be ready.');
 
@@ -343,7 +343,7 @@ function resolve_chromedriver_binary(string $chrome_version): string {
     FAIL('No matching chromedriver found and npx is unavailable. Install a chromedriver matching Chrome %s, or set WEBDRIVER_BACKEND=selenium.', $chrome_version);
   }
 
-  @mkdir(CHROMEDRIVER_DIR, 0755, TRUE);
+  mkdir_or_fail(CHROMEDRIVER_DIR);
   $log = CHROMEDRIVER_DIR . '/install.log';
 
   TASK('Fetching chromedriver matching Chrome %s.', $chrome_version);
@@ -402,13 +402,7 @@ function detect_matching_chromedriver(string $chrome_version): string {
  * may contain spaces, so everything after the first field is kept verbatim.
  */
 function parse_installed_binary(string $log): string {
-  $content = @file_get_contents($log);
-
-  if ($content === FALSE) {
-    return '';
-  }
-
-  $lines = array_values(array_filter(split_lines(trim($content))));
+  $lines = array_values(array_filter(split_lines(trim(file_read($log)))));
 
   if ($lines === []) {
     return '';

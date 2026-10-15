@@ -231,6 +231,51 @@ final class HelpersTunnelTest extends UnitTestCase {
     $this->assertSame('', File::read('.env'));
   }
 
+  #[DataProvider('dataProviderTunnelStartWithoutWritableFile')]
+  public function testTunnelStartWithoutWritableFile(string $file, bool $expect_launched, string $expected_message): void {
+    File::dump('.env', 'TUNNEL_URL=' . self::URL . "\nOTHER=1\n");
+    $this->mockCommandAvailable('cloudflared', TRUE);
+    $this->mockFunction('file_put_contents', fn(string $path, string $content, int $flags = 0): int|false => $path === $file ? FALSE : \file_put_contents($path, $content, $flags));
+    $this->mockShellExec($expect_launched ? [self::LAUNCH => "4242\n"] : []);
+
+    if ($expect_launched) {
+      $this->mockPassthru(['cmd' => 'kill 4242 >/dev/null 2>&1']);
+    }
+    else {
+      $this->mockPassthruNever();
+    }
+
+    $sleeps = 0;
+    $this->mockSleepCounted($sleeps);
+
+    $output = $this->capture(static fn() => tunnel_start('8000'));
+
+    $this->assertStringContainsString($expected_message, $output);
+    $this->assertStringNotContainsString('Waiting for the tunnel URL.', $output);
+    $this->assertSame(0, $sleeps);
+    $this->assertFileDoesNotExist('.logs/cloudflared.pid');
+    $this->assertSame("OTHER=1\n", File::read('.env'));
+  }
+
+  public static function dataProviderTunnelStartWithoutWritableFile(): \Iterator {
+    yield 'log' => ['.logs/cloudflared.log', FALSE, 'Unable to write .logs/cloudflared.log. Continuing without the tunnel.'];
+    // tunnel_stop() finds a tunnel only through its PID file, so the tunnel
+    // that was launched is stopped.
+    yield 'PID file' => ['.logs/cloudflared.pid', TRUE, 'Unable to write .logs/cloudflared.pid. Stopped the tunnel and continuing without it.'];
+  }
+
+  public function testTunnelStartWithoutLogsDirectory(): void {
+    File::dump('.logs', '');
+    $this->mockCommandAvailable('cloudflared', TRUE);
+    $this->mockShellExec([]);
+    $this->mockPassthruNever();
+    $this->mockQuit(1);
+
+    $output = $this->capture(static fn() => tunnel_start('8000'), 1);
+
+    $this->assertStringContainsString('Unable to create directory .logs.', $output);
+  }
+
   #[DataProvider('dataProviderTunnelStartChecksRunningTunnel')]
   public function testTunnelStartChecksRunningTunnel(array|false $headers, bool $expect_reused): void {
     File::dump('.logs/cloudflared.pid', "4242\n");
@@ -470,15 +515,21 @@ PHP;
     $this->assertSame($expected, File::read($file));
   }
 
-  public function testTunnelWriteSettingsWriteFailure(): void {
+  #[DataProvider('dataProviderTunnelWriteSettingsFailure')]
+  public function testTunnelWriteSettingsFailure(string $function, string $expected_message): void {
     $file = 'build/web/sites/default/settings.php';
     File::dump($file, "<?php\n");
-    $this->mockFunction('file_put_contents', fn(): false => FALSE);
+    $this->mockFunction($function, fn(): false => FALSE);
     $this->mockQuit(1);
 
     $output = $this->capture(static fn() => tunnel_write_settings($file), 1);
 
-    $this->assertStringContainsString('Unable to write ' . $file . '.', $output);
+    $this->assertStringContainsString(sprintf($expected_message, $file), $output);
+  }
+
+  public static function dataProviderTunnelWriteSettingsFailure(): \Iterator {
+    yield 'reading the file' => ['file_get_contents', 'Unable to read %s.'];
+    yield 'writing the file' => ['file_put_contents', 'Unable to write %s.'];
   }
 
   /**

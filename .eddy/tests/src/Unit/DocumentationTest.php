@@ -289,7 +289,7 @@ final class DocumentationTest extends UnitTestCase {
     $variables = [];
 
     foreach (glob(self::toolingDir() . '/src/*') ?: [] as $path) {
-      preg_match_all("/\b(?:getenv|getenv_default|getenv_required|resolve_env_value|resolve_port_value)\('([A-Z][A-Z0-9_]*)'/", File::read($path), $matches);
+      preg_match_all("/\b(?:getenv|getenv_default|getenv_or_fail|resolve_env_value|resolve_port_value)\('([A-Z][A-Z0-9_]*)'/", File::read($path), $matches);
       $variables = array_merge($variables, $matches[1]);
     }
 

@@ -22,7 +22,7 @@ final class HelpersResolveWebserverTest extends UnitTestCase {
   }
 
   public function testDefaultsWhenNothingProvided(): void {
-    $this->mockFunction('file_exists', fn(): bool => FALSE);
+    $this->mockIsFile(['.env' => FALSE]);
 
     $resolved = resolve_webserver();
 
@@ -35,7 +35,7 @@ final class HelpersResolveWebserverTest extends UnitTestCase {
   public function testEnvOverridesDotenvAndDefault(): void {
     self::envSet('WEBSERVER_HOST', '0.0.0.0');
     self::envSet('WEBSERVER_PORT', '9001');
-    $this->mockFunction('file_exists', fn(): bool => TRUE);
+    $this->mockIsFile(['.env' => TRUE]);
     $this->mockFunction('file_get_contents', fn(): string => "WEBSERVER_HOST=ignored\nWEBSERVER_PORT=1234\n");
 
     $resolved = resolve_webserver();
@@ -47,7 +47,7 @@ final class HelpersResolveWebserverTest extends UnitTestCase {
   }
 
   public function testDotenvUsedWhenEnvUnset(): void {
-    $this->mockFunction('file_exists', fn(string $file): bool => $file === '.env');
+    $this->mockIsFile(['.env' => TRUE]);
     $this->mockFunction('file_get_contents', fn(): string => "WEBSERVER_HOST=internal\nWEBSERVER_PORT=8123\n");
 
     $resolved = resolve_webserver();
@@ -59,7 +59,7 @@ final class HelpersResolveWebserverTest extends UnitTestCase {
   }
 
   public function testAutoDiscoveryWritesPortAndUpdatesSource(): void {
-    $this->mockFunction('file_exists', fn(): bool => FALSE);
+    $this->mockIsFile(['.env' => FALSE]);
     $this->mockFunction('stream_socket_client', fn(): false => FALSE);
 
     $persisted = NULL;
@@ -81,7 +81,7 @@ final class HelpersResolveWebserverTest extends UnitTestCase {
   }
 
   public function testAutoDiscoverySkippedWhenDotenvHasPort(): void {
-    $this->mockFunction('file_exists', fn(string $file): bool => $file === '.env');
+    $this->mockIsFile(['.env' => TRUE]);
     $this->mockFunction('file_get_contents', fn(): string => "WEBSERVER_PORT=8123\n");
 
     $write_called = FALSE;
@@ -107,7 +107,7 @@ final class HelpersResolveWebserverTest extends UnitTestCase {
 
   public function testValidationFailsOnMalformedPort(): void {
     self::envSet('WEBSERVER_PORT', 'not-a-port');
-    $this->mockFunction('file_exists', fn(): bool => FALSE);
+    $this->mockIsFile(['.env' => FALSE]);
 
     $this->mockQuit(1);
 
@@ -118,7 +118,7 @@ final class HelpersResolveWebserverTest extends UnitTestCase {
 
   public function testValidationSkippedWhenDisabled(): void {
     self::envSet('WEBSERVER_PORT', 'not-a-port');
-    $this->mockFunction('file_exists', fn(): bool => FALSE);
+    $this->mockIsFile(['.env' => FALSE]);
 
     $resolved = resolve_webserver(validate_port: FALSE);
 

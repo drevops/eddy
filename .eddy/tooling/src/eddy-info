@@ -39,7 +39,7 @@ $host_source = $webserver['host_source'];
 $webserver_port = $webserver['port'];
 $port_source = $webserver['port_source'];
 
-$drupal_profile = getenv_default('DRUPAL_PROFILE', 'standard');
+$drupal_profile = drupal_profile();
 
 $root = (string) getcwd();
 $build_dir = is_dir($root . '/build') ? $root . '/build' : '-';

@@ -44,6 +44,13 @@ final class BrowserStartTest extends UnitTestCase {
   protected array $createdDirs = [];
 
   /**
+   * Directories that mkdir() fails to create.
+   *
+   * @var array<int, string>
+   */
+  protected array $uncreatableDirs = [];
+
+  /**
    * @var array<int, array<int, string>>
    */
   protected array $probes = [];
@@ -64,7 +71,7 @@ final class BrowserStartTest extends UnitTestCase {
 
     // The mocked '.env' supplies port 4444, so the port resolves without the
     // free-port probe.
-    $this->mockFunction('file_exists', fn(string $file): bool => $file === '.env');
+    $this->mockIsFile(['.env' => TRUE, '.chromedriver/install.log' => TRUE]);
     $this->mockFunction('file_get_contents', function (string $file): string|false {
       if ($file === '.env') {
         return $this->envFileContent;
@@ -83,7 +90,11 @@ final class BrowserStartTest extends UnitTestCase {
 
       return FALSE;
     });
-    $this->mockFunction('mkdir', function (string $dir): true {
+    $this->mockFunction('mkdir', function (string $dir): bool {
+      if (in_array($dir, $this->uncreatableDirs, TRUE)) {
+        return FALSE;
+      }
+
       $this->createdDirs[] = $dir;
 
       return TRUE;
@@ -655,6 +666,34 @@ final class BrowserStartTest extends UnitTestCase {
     yield 'unreadable log' => [''];
     yield 'log of blank lines' => ["\n\n"];
     yield 'last line without a path' => ["chromedriver@150.0.7871.129\n"];
+  }
+
+  /**
+   * @param array<string, string> $commands_available
+   *   Command name => resolved path for the commands that are present.
+   */
+  #[DataProvider('dataProviderBrowserStartFailsWhenDirectoryCannotBeCreated')]
+  public function testBrowserStartFailsWhenDirectoryCannotBeCreated(string $dir, array $commands_available): void {
+    $this->uncreatableDirs = [$dir];
+    $this->mockFunction('is_dir', fn(string $path): bool => $path !== $dir && \is_dir($path));
+    $this->mockChrome(FALSE);
+    $this->mockCommandPaths($commands_available);
+    $this->mockVersions('Google Chrome 150.0.7871.129', 'ChromeDriver 150.0.7871.129 (abc)');
+    $this->mockStatus([NULL]);
+    $commands = [];
+    $this->recordPassthru($commands);
+
+    $output = $this->runBrowserStart(1);
+
+    $this->assertStringContainsString('Unable to create directory ' . $dir . '.', $output);
+    $this->assertSame([], $commands, 'Nothing may be fetched or started without the directory.');
+  }
+
+  public static function dataProviderBrowserStartFailsWhenDirectoryCannotBeCreated(): \Iterator {
+    $chrome = ['google-chrome' => '/usr/bin/google-chrome'];
+
+    yield 'logs directory' => ['.logs', $chrome + ['chromedriver' => '/usr/local/bin/chromedriver']];
+    yield 'chromedriver directory' => ['.chromedriver', $chrome + ['npx' => '/usr/bin/npx']];
   }
 
   public function testBrowserStartAutoDiscoversPort(): void {

@@ -27,7 +27,7 @@ $webserver_host = $webserver['host'];
 $webserver_port = $webserver['port'];
 
 // Drupal profile to use when installing the site.
-$drupal_profile = getenv_default('DRUPAL_PROFILE', 'standard');
+$drupal_profile = drupal_profile();
 
 $root = (string) getcwd();
 
@@ -107,8 +107,8 @@ TASK('Pre-warming caches.');
 @file_get_contents(sprintf('http://%s:%s', $webserver_host, $webserver_port));
 PASS('Caches pre-warmed.');
 
-TASK('Linking browser test output into %s.', '.logs/browser_output');
-link_browser_output($root . '/build/web', $root . '/.logs');
+TASK('Linking browser test output into %s.', LOGS_DIR . '/browser_output');
+link_browser_output($root . '/build/web', $root . '/' . LOGS_DIR);
 PASS('Browser test output linked.');
 
 if (tunnel_enabled()) {
@@ -134,11 +134,11 @@ echo 'One-time login link: ';
 echo drush('uli -l %s' . $uli_options, [$site_url]);
 echo PHP_EOL;
 
-if (file_exists('.ahoy.yml')) {
+if (is_file('.ahoy.yml')) {
   echo 'Run `ahoy` to see available commands.' . PHP_EOL;
 }
 
-if (file_exists('Makefile')) {
+if (is_file('Makefile')) {
   echo 'Run `make help` to see available commands.' . PHP_EOL;
 }
 

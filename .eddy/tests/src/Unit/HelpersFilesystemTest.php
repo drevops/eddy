@@ -11,17 +11,18 @@ use DrevOps\Eddy\Tests\Traits\DirectoryFixtureTrait;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 #[CoversFunction('DrevOps\Eddy\Tooling\remove_dir')]
 #[CoversFunction('DrevOps\Eddy\Tooling\chmod_recursive')]
+#[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersFilesystemTest extends UnitTestCase {
 
   use DirectoryFixtureTrait;
 
   public function testRemoveDirMissing(): void {
-    remove_dir(self::$tmp . '/nonexistent_' . uniqid());
-    $this->expectNotToPerformAssertions();
+    $this->assertTrue(remove_dir(self::$tmp . '/nonexistent_' . uniqid()));
   }
 
   #[DataProvider('dataProviderRemoveDir')]
@@ -33,8 +34,17 @@ final class HelpersFilesystemTest extends UnitTestCase {
       symlink($dir . '/target.txt', $dir . '/subdir/link.txt');
     }
     $this->assertDirectoryExists($dir);
-    remove_dir($dir);
+    $this->assertTrue(remove_dir($dir));
     $this->assertDirectoryDoesNotExist($dir);
+  }
+
+  public function testRemoveDirFailure(): void {
+    $dir = self::$tmp . '/remove_' . uniqid();
+    self::directoryFixtureCreate($dir, ['file.txt' => 'content']);
+    $this->mockFunction('rmdir', fn(): false => FALSE);
+
+    $this->assertFalse(remove_dir($dir));
+    $this->assertDirectoryExists($dir);
   }
 
   public static function dataProviderRemoveDir(): \Iterator {

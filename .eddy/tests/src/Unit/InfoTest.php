@@ -29,8 +29,7 @@ final class InfoTest extends UnitTestCase {
    *   first key found in the command selects the output, and a literal '*'
    *   key is the default for a command no other key matches.
    * @param array<string, bool> $files
-   *   Whether each path exists, keyed by path, for file_exists(), is_file()
-   *   and is_dir().
+   *   Whether each path exists, keyed by path, for is_file() and is_dir().
    * @param string[] $info_files
    *   Files returned from glob('*.info.yml').
    * @param array<string, string> $file_contents
@@ -57,7 +56,6 @@ final class InfoTest extends UnitTestCase {
       return $shell_exec_map['*'] ?? '';
     });
 
-    $this->mockFunction('file_exists', fn(string $path): bool => $files[$path] ?? FALSE);
     $this->mockFunction('is_file', fn(string $path): bool => $files[$path] ?? FALSE);
     $this->mockFunction('is_dir', fn(string $path): bool => $files[$path] ?? FALSE);
     $this->mockFunction('glob', fn(): array => $info_files);
@@ -414,6 +412,28 @@ final class InfoTest extends UnitTestCase {
       'files' => [],
       'expected' => '-',
     ];
+  }
+
+  #[DataProvider('dataProviderInfoDrupalProfileFromDotenv')]
+  public function testInfoDrupalProfileFromDotenv(?string $env_profile, string $expected): void {
+    if ($env_profile !== NULL) {
+      self::envSet('DRUPAL_PROFILE', $env_profile);
+    }
+
+    $this->setupInfoMocks(
+      shell_exec_map: ['*' => ''],
+      files: ['.env' => TRUE],
+      file_contents: ['.env' => "DRUPAL_PROFILE=minimal\n"],
+    );
+
+    $output = $this->runInfoField('drupal-profile', 0);
+
+    $this->assertSame($expected . PHP_EOL, $output);
+  }
+
+  public static function dataProviderInfoDrupalProfileFromDotenv(): \Iterator {
+    yield 'profile from .env' => [NULL, 'minimal'];
+    yield 'environment over .env' => ['testing', 'testing'];
   }
 
   public function testInfoFieldModeUnknownFieldPrintsDashAndExits1(): void {

@@ -250,6 +250,17 @@ abstract class UnitTestCase extends UpstreamUnitTestCase {
   }
 
   /**
+   * Mock is_file() for the files whose reads a test mocks.
+   *
+   * @param array<string, bool> $files
+   *   Whether each path is a file, keyed by path. Any other path is checked
+   *   on disk.
+   */
+  protected function mockIsFile(array $files): void {
+    $this->mockFunction('is_file', fn(string $file): bool => $files[$file] ?? \is_file($file));
+  }
+
+  /**
    * Mock exec() for 1 expected command.
    *
    * @param string $expected_command

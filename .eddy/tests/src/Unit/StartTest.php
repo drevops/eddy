@@ -16,6 +16,7 @@ final class StartTest extends UnitTestCase {
   protected function setUp(): void {
     parent::setUp();
     self::envUnset('CLOUDFLARE_TUNNEL');
+    self::envUnset('XDEBUG');
   }
 
   #[DataProvider('dataProviderStartSuccess')]
@@ -101,6 +102,67 @@ final class StartTest extends UnitTestCase {
     yield 'zero' => ['0'];
     yield 'negative' => ['-5'];
     yield 'not a number' => ['five'];
+  }
+
+  /**
+   * @param array<string, string> $env
+   *   The environment variables to set.
+   * @param string|null $dotenv
+   *   The content of '.env', or NULL for no file.
+   */
+  #[DataProvider('dataProviderStartResolvesSettings')]
+  public function testStartResolvesSettings(array $env, ?string $dotenv, int $expected_timeout, bool $expected_xdebug): void {
+    self::envSetMultiple($env);
+
+    $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
+    $this->mockIsFile(['.env' => $dotenv !== NULL]);
+    $this->mockFunction('file_get_contents', fn(): string => (string) $dotenv);
+
+    $this->mockPortListeners('8000', [], ['php -v 2>/dev/null' => "PHP 8.4.0 (cli)\n    with Xdebug v3.4.0\n"]);
+    $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000', $expected_xdebug)]);
+
+    $this->mockClock();
+
+    $fp = fopen('php://memory', 'r');
+    $this->assertNotFalse($fp);
+    $this->mockFunction('fsockopen', fn() => $fp);
+    $this->mockFunction('fclose', fn(): true => TRUE);
+
+    $context = stream_context_create();
+    $this->mockFunction('stream_context_create', fn() => $context);
+    $this->mockFunction('get_headers', fn(): array => ['HTTP/1.1 200 OK']);
+
+    $output = $this->runCommand('eddy-start');
+
+    $this->assertStringContainsString('Waiting up to ' . $expected_timeout . ' seconds for the server to be ready.', $output);
+    $this->assertSame($expected_xdebug, str_contains($output, 'XDebug extension is loaded.'));
+    $this->assertStringContainsString('XDebug    : ' . ($expected_xdebug ? 'Enabled' : 'Disabled'), $output);
+
+    fclose($fp);
+  }
+
+  public static function dataProviderStartResolvesSettings(): \Iterator {
+    $timeout = "WEBSERVER_PORT=8000\nWEBSERVER_WAIT_TIMEOUT=10\n";
+
+    yield 'defaults' => [['WEBSERVER_PORT' => '8000'], NULL, 5, FALSE];
+    yield 'wait timeout from .env' => [[], $timeout, 10, FALSE];
+    yield 'wait timeout from the environment over .env' => [['WEBSERVER_WAIT_TIMEOUT' => '7'], $timeout, 7, FALSE];
+    yield 'XDebug from the environment' => [['WEBSERVER_PORT' => '8000', 'XDEBUG' => '1'], NULL, 5, TRUE];
+    yield 'XDebug from .env' => [[], "WEBSERVER_PORT=8000\nXDEBUG=1\n", 5, TRUE];
+  }
+
+  public function testStartFailsWithoutXdebugExtension(): void {
+    self::envSet('WEBSERVER_PORT', '8000');
+    self::envSet('XDEBUG', '1');
+
+    $this->mockShellExecOutputs(['php -v 2>/dev/null' => "PHP 8.4.0 (cli)\n"]);
+    $this->mockPassthruNever();
+    $this->mockQuit(1);
+
+    $output = $this->runCommand('eddy-start', 1);
+
+    $this->assertStringContainsString('XDEBUG=1 is set but the XDebug PHP extension is not installed on the host.', $output);
+    $this->assertStringNotContainsString('Starting the PHP webserver', $output);
   }
 
   /**
@@ -330,6 +392,7 @@ final class StartTest extends UnitTestCase {
       return FALSE;
     });
 
+    $this->mockIsFile(['.logs/php.log' => $log !== FALSE]);
     $this->mockFunction('file_get_contents', fn(string $file): string|false => $file === '.logs/php.log' ? $log : FALSE);
 
     $this->mockQuit(1);
@@ -369,7 +432,7 @@ final class StartTest extends UnitTestCase {
       return FALSE;
     });
 
-    $this->mockFunction('file_get_contents', fn(): false => FALSE);
+    $this->mockIsFile(['.logs/php.log' => FALSE]);
 
     $this->mockQuit(1);
 
@@ -385,7 +448,7 @@ final class StartTest extends UnitTestCase {
   public function testStartReadsPortFromDotenvAndDoesNotRewrite(): void {
     $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
 
-    $this->mockFunction('file_exists', fn(string $file): bool => $file === '.env');
+    $this->mockIsFile(['.env' => TRUE]);
     $this->mockFunction('file_get_contents', fn(): string => "WEBSERVER_PORT=8123\n");
 
     $put_called = FALSE;
@@ -428,7 +491,7 @@ final class StartTest extends UnitTestCase {
   public function testStartAutoDiscoversPortAndPersistsToDotenv(): void {
     $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
 
-    $this->mockFunction('file_exists', fn(): false => FALSE);
+    $this->mockIsFile(['.env' => FALSE]);
 
     // In find_free_port(), a successful stream_socket_client() connect means
     // the port is in use and a refused connect means it is free.
@@ -484,7 +547,7 @@ final class StartTest extends UnitTestCase {
 
     // The server binds and is health-checked on the local host:port, but the
     // READY banner reports the public tunnel URL.
-    $this->mockFunction('file_exists', fn(string $file): bool => $file === '.env');
+    $this->mockIsFile(['.env' => TRUE]);
     $this->mockFunction('file_get_contents', fn(): string => "WEBSERVER_PORT=8000\nTUNNEL_URL=" . $tunnel_url . "\n");
 
     $this->mockPortListeners('8000');
@@ -589,8 +652,8 @@ final class StartTest extends UnitTestCase {
     fclose($fp);
   }
 
-  protected static function serverCommand(string $host, string $port): string {
-    return sprintf('nohup php -S %s:%s -t %s %s >%s 2>&1 &', escapeshellarg($host), escapeshellarg($port), escapeshellarg(self::PROJECT_ROOT . '/build/web'), escapeshellarg(self::PROJECT_ROOT . '/build/web/.ht.router.php'), escapeshellarg('.logs/php.log'));
+  protected static function serverCommand(string $host, string $port, bool $xdebug = FALSE): string {
+    return sprintf('nohup php%s -S %s:%s -t %s %s >%s 2>&1 &', $xdebug ? ' -d xdebug.mode=debug -d xdebug.start_with_request=yes' : '', escapeshellarg($host), escapeshellarg($port), escapeshellarg(self::PROJECT_ROOT . '/build/web'), escapeshellarg(self::PROJECT_ROOT . '/build/web/.ht.router.php'), escapeshellarg('.logs/php.log'));
   }
 
 }

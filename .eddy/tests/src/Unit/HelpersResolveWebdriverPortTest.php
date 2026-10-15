@@ -21,7 +21,7 @@ final class HelpersResolveWebdriverPortTest extends UnitTestCase {
   }
 
   public function testDefaultsWhenNothingProvided(): void {
-    $this->mockFunction('file_exists', fn(): bool => FALSE);
+    $this->mockIsFile(['.env' => FALSE]);
 
     $resolved = resolve_webdriver_port();
 
@@ -31,7 +31,7 @@ final class HelpersResolveWebdriverPortTest extends UnitTestCase {
 
   public function testEnvOverridesDotenvAndDefault(): void {
     self::envSet('WEBDRIVER_PORT', '9515');
-    $this->mockFunction('file_exists', fn(): bool => TRUE);
+    $this->mockIsFile(['.env' => TRUE]);
     $this->mockFunction('file_get_contents', fn(): string => "WEBDRIVER_PORT=1234\n");
 
     $resolved = resolve_webdriver_port();
@@ -41,7 +41,7 @@ final class HelpersResolveWebdriverPortTest extends UnitTestCase {
   }
 
   public function testDotenvUsedWhenEnvUnset(): void {
-    $this->mockFunction('file_exists', fn(string $file): bool => $file === '.env');
+    $this->mockIsFile(['.env' => TRUE]);
     $this->mockFunction('file_get_contents', fn(): string => "WEBDRIVER_PORT=4500\n");
 
     $resolved = resolve_webdriver_port();
@@ -51,7 +51,7 @@ final class HelpersResolveWebdriverPortTest extends UnitTestCase {
   }
 
   public function testAutoDiscoveryWritesPortAndUpdatesSource(): void {
-    $this->mockFunction('file_exists', fn(): bool => FALSE);
+    $this->mockIsFile(['.env' => FALSE]);
     $this->mockFunction('stream_socket_client', fn(): false => FALSE);
 
     $persisted = NULL;
@@ -71,7 +71,7 @@ final class HelpersResolveWebdriverPortTest extends UnitTestCase {
   }
 
   public function testAutoDiscoverySkippedWhenDotenvHasPort(): void {
-    $this->mockFunction('file_exists', fn(string $file): bool => $file === '.env');
+    $this->mockIsFile(['.env' => TRUE]);
     $this->mockFunction('file_get_contents', fn(): string => "WEBDRIVER_PORT=4500\n");
 
     $write_called = FALSE;
@@ -97,7 +97,7 @@ final class HelpersResolveWebdriverPortTest extends UnitTestCase {
 
   public function testValidationFailsOnMalformedPort(): void {
     self::envSet('WEBDRIVER_PORT', 'not-a-port');
-    $this->mockFunction('file_exists', fn(): bool => FALSE);
+    $this->mockIsFile(['.env' => FALSE]);
 
     $this->mockQuit(1);
 
@@ -108,7 +108,7 @@ final class HelpersResolveWebdriverPortTest extends UnitTestCase {
 
   public function testValidationSkippedWhenDisabled(): void {
     self::envSet('WEBDRIVER_PORT', 'not-a-port');
-    $this->mockFunction('file_exists', fn(): bool => FALSE);
+    $this->mockIsFile(['.env' => FALSE]);
 
     $resolved = resolve_webdriver_port(validate_port: FALSE);
 
