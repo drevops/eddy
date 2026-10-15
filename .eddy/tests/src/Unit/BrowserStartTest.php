@@ -143,7 +143,7 @@ final class BrowserStartTest extends UnitTestCase {
     $commands = [];
     $this->recordPassthru($commands);
 
-    $output = $this->runBrowserStart($expected_reused ? 0 : 1);
+    $output = $this->runBrowserStart($expected_reused ? NULL : 1);
 
     if ($expected_reused) {
       $this->assertStringContainsString('already running on port 4444', $output);

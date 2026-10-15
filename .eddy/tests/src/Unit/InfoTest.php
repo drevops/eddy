@@ -467,7 +467,7 @@ final class InfoTest extends UnitTestCase {
       cwd: '/test/project',
     );
 
-    $output = $this->runCommand('eddy-info', 0, ['info', '--no-coverage']);
+    $output = $this->runCommand('eddy-info', NULL, ['info', '--no-coverage']);
 
     $this->assertStringContainsString('ENVIRONMENT INFO', $output);
   }

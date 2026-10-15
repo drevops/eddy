@@ -23,7 +23,7 @@ final class QrcodeTest extends UnitTestCase {
       'output' => '[QR-CODE]',
     ]);
 
-    $output = $this->runCommand('eddy-qrcode', 0, ['qrcode', 'https://example.com']);
+    $output = $this->runCommand('eddy-qrcode', NULL, ['qrcode', 'https://example.com']);
 
     $this->assertStringContainsString('[QR-CODE]', $output);
   }
@@ -32,7 +32,7 @@ final class QrcodeTest extends UnitTestCase {
     $this->mockCommandAvailable('qrencode', TRUE);
     $this->mockPassthruNever();
 
-    $output = $this->runCommand('eddy-qrcode', 0, ['qrcode']);
+    $output = $this->runCommand('eddy-qrcode', NULL, ['qrcode']);
 
     $this->assertSame('', $output);
   }
