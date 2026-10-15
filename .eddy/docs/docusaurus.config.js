@@ -4,8 +4,8 @@
 import {darkCodeTheme, lightCodeTheme} from './src/codeThemes.js';
 
 // The release workflow sets the version. Other builds, such as the Netlify
-// development site and pull request previews, stay out of the analytics and
-// the search engines.
+// development site and pull request previews, send no analytics and are not
+// indexed.
 const isRelease = Boolean(process.env.RELEASE_VERSION);
 
 /** @type {import('@docusaurus/types').Config} */

@@ -10,9 +10,6 @@ use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
-/**
- * Tests for the resolve_site_url() helper.
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\resolve_site_url')]
 #[Group('p0')]
 final class HelpersResolveSiteUrlTest extends UnitTestCase {

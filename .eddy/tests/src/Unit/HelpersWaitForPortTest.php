@@ -10,9 +10,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for the wait_for_port() helper.
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\wait_for_port')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]

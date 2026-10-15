@@ -7,9 +7,6 @@ namespace DrevOps\Eddy\Tests\Unit;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for the 'eddy-qrcode' command.
- */
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class QrcodeTest extends UnitTestCase {

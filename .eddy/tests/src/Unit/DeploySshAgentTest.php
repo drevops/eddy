@@ -12,9 +12,9 @@ use Symfony\Component\Process\Process;
 /**
  * Tests that the deploy script loads the key into an SSH agent it starts.
  *
- * The script runs against a real 'ssh-agent', with no agent in its environment
- * and a generated key named by its fingerprint, as a CI that installs keys by
- * fingerprint leaves it. It stops before the push.
+ * The script runs against a real 'ssh-agent' and stops before the push. The
+ * environment has no agent and a generated key named by its fingerprint, as
+ * a CI that installs keys by fingerprint leaves it.
  */
 #[Group('p0')]
 final class DeploySshAgentTest extends UnitTestCase {

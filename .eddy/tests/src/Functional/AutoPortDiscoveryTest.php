@@ -128,8 +128,8 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
     $port = $this->readEnvPort($sut);
     $this->startedPorts[] = $port;
 
-    // A process that holds a client connection to the port, as a browser or a
-    // test in the middle of a request does.
+    // $client holds a connection to the port, as a browser or a test in the
+    // middle of a request does.
     $client = new Process(['php', '-r', sprintf('$c = @stream_socket_client("tcp://localhost:%s"); echo $c === FALSE ? "refused" : "connected"; sleep(60);', $port)]);
     $client->start();
 

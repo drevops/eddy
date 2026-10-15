@@ -20,9 +20,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for the helpers that find and stop the processes listening on a port.
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\port_listener_pids_command')]
 #[CoversFunction('DrevOps\Eddy\Tooling\process_command')]
 #[CoversFunction('DrevOps\Eddy\Tooling\process_cwd')]

@@ -67,9 +67,6 @@ use function tool_specs;
 use function uncomment_line;
 use function workflow_push_branches;
 
-/**
- * Unit tests for helper functions in install.php.
- */
 #[Group('p0')]
 final class InstallHelpersTest extends UnitTestCase {
 
@@ -131,8 +128,8 @@ final class InstallHelpersTest extends UnitTestCase {
   public function testIsBinaryFileMissing(): void {
     // The only caller, 'get_files()', passes files it has just found, so the
     // defensive 'fopen() === FALSE' branch is unreachable from production
-    // code. 'fopen()' is allowed to warn, so suppress 'E_WARNING' to keep
-    // PHPUnit's 'failOnWarning' from aborting the test.
+    // code. 'fopen()' is allowed to warn, so the handler discards 'E_WARNING'
+    // to keep PHPUnit's 'failOnWarning' from aborting the test.
     set_error_handler(static fn(): bool => TRUE, E_WARNING);
     try {
       $this->assertTrue(is_binary_file(self::$sut . '/nonexistent_file'));
@@ -582,9 +579,6 @@ final class InstallHelpersTest extends UnitTestCase {
     }
   }
 
-  /**
-   * Every file in 'extension_type_specs()' is in the template.
-   */
   public function testExtensionTypeSpecsNameTemplateFiles(): void {
     $this->assertSame(['module', 'theme'], array_keys(extension_type_specs()));
 
@@ -1420,9 +1414,6 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'nested build directory' => ['tests/build', TRUE, FALSE];
   }
 
-  /**
-   * Every skill the repository tracks in '.claude/skills' is one of Eddy's.
-   */
   public function testEddySkillsListTrackedSkills(): void {
     $tracked = self::gitRun(self::rootDir(), ['ls-files', '--', '.claude/skills']);
     $paths = $tracked === '' ? [] : explode("\n", $tracked);
@@ -1764,8 +1755,7 @@ final class InstallHelpersTest extends UnitTestCase {
     $result = json_decode(File::read(self::$sut . '/.cspell.json'), TRUE);
     $this->assertIsArray($result);
     /** @var array<string, mixed> $result */
-    // Mixed-case duplicates collapse to the first-seen form: 'Ahoy'/'ahoy'
-    // -> 'Ahoy'; 'force_crystal'/'Force_Crystal' -> 'force_crystal'.
+    // Mixed-case duplicates collapse to the first-seen form.
     $this->assertSame(['Ahoy', 'force_crystal', 'yoyodyne'], $result['words']);
     $this->assertSame(['php'], $result['dictionaries']);
     $this->assertSame(['build/'], $result['ignorePaths']);
@@ -1939,9 +1929,6 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'PHPUnit takes FunctionalJavascript along' => [['phpunit'], ['behat', 'browserkit', 'codecov', 'mikey', 'phpspec', 'vfsstream', ...$functional_javascript]];
   }
 
-  /**
-   * Every word a tool lists is in the 'words' of the template '.cspell.json'.
-   */
   public function testToolSpecsCspellWordsAreTemplateWords(): void {
     $config = json_decode(File::read(self::rootDir() . '/.cspell.json'), TRUE);
     $this->assertIsArray($config);
@@ -1971,10 +1958,6 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'unknown type' => [['profile'], []];
   }
 
-  /**
-   * Every word an extension type lists is in the 'words' of the template
-   * '.cspell.json'.
-   */
   public function testExtensionTypeSpecsCspellWordsAreTemplateWords(): void {
     $config = json_decode(File::read(self::rootDir() . '/.cspell.json'), TRUE);
     $this->assertIsArray($config);

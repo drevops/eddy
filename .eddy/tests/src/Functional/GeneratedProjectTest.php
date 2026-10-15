@@ -13,7 +13,7 @@ use PHPUnit\Framework\Attributes\Group;
  * Tests the projects that 'install.php' generates, through the 'make' wrapper.
  *
  * Each project bundles extensions of the other type: 1 that ships with it and
- * 1 that only its tests use, laid out as the bundled extensions guide shows.
+ * 1 that only its tests use. The layout follows the bundled extensions guide.
  */
 #[Group('p4')]
 final class GeneratedProjectTest extends ToolingTestCase {
@@ -36,8 +36,8 @@ final class GeneratedProjectTest extends ToolingTestCase {
     $this->assertProcessSuccessful();
     $this->assertFileContainsString(self::$sut . '/force_crystal.info.yml', 'type: ' . $type);
 
-    // The bundled extensions, a Kernel test that uses them and a provision
-    // script that enables the one that ships.
+    // The fixture holds the bundled extensions, a Kernel test that uses them
+    // and a provision script that enables the one that ships.
     File::copy(self::fixturesDir() . '/bundled/' . $type, self::$sut);
 
     $this->installTooling();
@@ -74,10 +74,11 @@ final class GeneratedProjectTest extends ToolingTestCase {
   }
 
   public static function dataProviderGeneratedProject(): \Iterator {
-    // The FunctionalJavascript test and the Kernel test of the bundled modules.
+    // The 2 tests are the FunctionalJavascript test and the Kernel test of the
+    // bundled modules.
     yield 'theme bundling modules' => ['theme', 'modules', 'module', 'force_crystal_companion', 2];
-    // The 4 Unit, the Kernel, the Functional and the FunctionalJavascript
-    // tests, and the Kernel test of the bundled themes.
+    // The 8 tests are the 4 Unit, the Kernel, the Functional and the
+    // FunctionalJavascript tests, and the Kernel test of the bundled themes.
     yield 'module bundling themes' => ['module', 'themes', 'theme', 'force_crystal_admin', 8];
   }
 

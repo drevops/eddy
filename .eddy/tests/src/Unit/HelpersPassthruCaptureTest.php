@@ -59,8 +59,6 @@ final class HelpersPassthruCaptureTest extends UnitTestCase {
   }
 
   /**
-   * Register a low-level passthru() mock that records the raw command.
-   *
    * @param string|null &$captured_command
    *   Populated with the exact command string passed to passthru().
    * @param string $output

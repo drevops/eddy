@@ -10,9 +10,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for find_free_port() helper.
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\find_free_port')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
@@ -74,8 +71,6 @@ final class HelpersFindFreePortTest extends UnitTestCase {
   }
 
   /**
-   * Mock stream_socket_client() to simulate per-port connect outcomes.
-   *
    * @param array<int, array{port: int, listening: bool}> $responses
    *   Ordered list of expected calls. listening=TRUE returns a resource
    *   (connect succeeded => port in use); listening=FALSE returns FALSE

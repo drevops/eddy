@@ -16,8 +16,6 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * Tests for the Cloudflare quick tunnel helpers.
- *
  * Each test runs in an empty project root, so the PID file, the log, '.env'
  * and 'settings.php' are real files. Only the process calls are mocked.
  */
@@ -506,9 +504,6 @@ PHP;
     yield 'negative' => [-1, []];
   }
 
-  /**
-   * Build the 'cloudflared' log lines that announce a quick tunnel.
-   */
   protected static function banner(string $url): string {
     return implode(PHP_EOL, [
       '2026-10-08T00:00:00Z INF Requesting new quick Tunnel on trycloudflare.com...',
@@ -518,8 +513,6 @@ PHP;
   }
 
   /**
-   * Mock shell_exec() with the output of each expected command.
-   *
    * @param array<string, string|null> $outputs
    *   Output keyed by command. Any other command fails the test.
    * @param string|null $log
@@ -540,8 +533,6 @@ PHP;
   }
 
   /**
-   * Mock sleep() and count the calls.
-   *
    * @param int $count
    *   Populated by reference with the number of calls.
    * @param array<int, string> $logs

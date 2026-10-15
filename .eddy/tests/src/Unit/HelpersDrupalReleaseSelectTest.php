@@ -9,9 +9,6 @@ use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
-/**
- * Tests for the drupal_release_select() helper.
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\drupal_release_select')]
 #[Group('p0')]
 final class HelpersDrupalReleaseSelectTest extends UnitTestCase {

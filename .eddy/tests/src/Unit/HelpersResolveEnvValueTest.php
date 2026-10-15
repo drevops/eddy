@@ -10,9 +10,6 @@ use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
-/**
- * Tests for the resolve_env_value() helper.
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\resolve_env_value')]
 #[Group('p0')]
 final class HelpersResolveEnvValueTest extends UnitTestCase {

@@ -8,9 +8,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for the 'eddy-deploy' command.
- */
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class DeployTest extends UnitTestCase {
@@ -411,8 +408,8 @@ final class DeployTest extends UnitTestCase {
     self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
     self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd');
     self::envSet('HOME', '/home/testuser');
-    // The socket of an agent the script did not start, such as a forwarded
-    // one, which 'ssh-add -D' would clear.
+    // The socket is of an agent the script did not start, such as a forwarded
+    // one. 'ssh-add -D' would clear that agent.
     self::envSet('SSH_AUTH_SOCK', '/home/testuser/.ssh/agent/s.other');
 
     if ($agent_pid === NULL) {

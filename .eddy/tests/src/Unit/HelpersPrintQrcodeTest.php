@@ -10,12 +10,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for the print_qrcode() helper.
- *
- * Runs in isolated processes so the exec() mock for the `qrencode` probe is
- * not polluted by sibling tests.
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\print_qrcode')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]

@@ -7,9 +7,6 @@ namespace DrevOps\Eddy\Tests\Functional;
 use AlexSkrypnyk\File\File;
 use DrevOps\Eddy\Tests\Traits\WebserverTrait;
 
-/**
- * Base class for tooling functional tests.
- */
 abstract class ToolingTestCase extends FunctionalTestCase {
 
   use WebserverTrait;

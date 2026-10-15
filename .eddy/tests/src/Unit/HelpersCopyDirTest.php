@@ -11,9 +11,6 @@ use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
-/**
- * Tests for copy_dir() function.
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\copy_dir')]
 #[Group('p0')]
 final class HelpersCopyDirTest extends UnitTestCase {

@@ -1,8 +1,7 @@
 import { themes } from 'prism-react-renderer';
 
 // prism-react-renderer merges the styles of a token type in order, so each
-// entry appended here replaces a color that falls below 4.5:1 on the theme's
-// own background.
+// entry appended here replaces a color below 4.5:1 on the theme's background.
 export const lightCodeTheme = {
   ...themes.github,
   styles: [

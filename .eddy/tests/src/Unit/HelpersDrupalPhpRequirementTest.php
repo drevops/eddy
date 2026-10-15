@@ -10,9 +10,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for the drupal_php_requirement() helper.
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\drupal_php_requirement')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]

@@ -14,9 +14,6 @@ use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use DrevOps\Eddy\Tests\Exceptions\QuitSuccessException;
 use DrevOps\Eddy\Tests\Traits\MockTrait;
 
-/**
- * UnitTestCase fixture class.
- */
 abstract class UnitTestCase extends UpstreamUnitTestCase {
 
   use DirectoryAssertionsTrait;

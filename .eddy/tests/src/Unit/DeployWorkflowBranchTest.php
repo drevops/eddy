@@ -209,7 +209,7 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
 
   public function testFetchSendsToken(): void {
     $repository = self::createRepository();
-    // Long enough for 'base64' to wrap the encoded credentials.
+    // The token is long enough for 'base64' to wrap the encoded credentials.
     $token = 'ghs_' . str_repeat('0123456789', 10);
 
     $server = stream_socket_server('tcp://127.0.0.1:0');
@@ -401,7 +401,6 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
     return match ($name) {
       'tagged' => self::gitRun($repository, ['rev-parse', self::DEFAULT_BRANCH . '~1']),
       'tip' => self::gitRun($repository, ['rev-parse', self::DEFAULT_BRANCH]),
-      // A commit the deploy clone does not hold.
       'unknown' => str_repeat('0', 40),
       default => self::fail(sprintf('Unknown commit "%s".', $name)),
     };

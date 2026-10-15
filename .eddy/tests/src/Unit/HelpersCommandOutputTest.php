@@ -11,8 +11,6 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * Tests for the command_output() helper.
- *
  * The commands run as real processes, so the pipe and process handling is
  * exercised the same way the tooling uses it.
  */
@@ -68,8 +66,8 @@ final class HelpersCommandOutputTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderCommandOutputTimesOut')]
   public function testCommandOutputTimesOut(array $command): void {
-    // Sleep 10 ms per poll instead of 100 ms, so the command can set up,
-    // such as its SIGTERM trap, before it is killed.
+    // Sleep 10 ms per poll instead of 100 ms. A real sleep lets the command
+    // set up, such as its SIGTERM trap, before it is killed.
     $sleeps = [];
     $this->mockFunction('usleep', function (int $microseconds) use (&$sleeps): void {
       $sleeps[] = $microseconds;

@@ -9,9 +9,6 @@ use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for the resolve_webdriver_port() helper.
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\resolve_webdriver_port')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]

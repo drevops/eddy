@@ -34,7 +34,8 @@ final class MakefileArgumentsTest extends UnitTestCase {
   ];
 
   /**
-   * The arguments that the 'drush' recipe passes before its own.
+   * The arguments that the 'drush' recipe passes ahead of those of the 'make'
+   * call.
    */
   protected const array DRUSH = ['-l', 'http://localhost:8000'];
 

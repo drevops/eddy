@@ -10,9 +10,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for the composer_show() helper.
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\composer_show')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]

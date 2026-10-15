@@ -9,9 +9,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for the 'eddy-stop' command.
- */
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class StopTest extends UnitTestCase {

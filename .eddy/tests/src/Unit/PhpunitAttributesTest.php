@@ -21,10 +21,9 @@ use Symfony\Component\Yaml\Yaml;
  * attribute classes lazily and PHPUnit 9.6 reads the doc-comment.
  * `phpstan.neon` therefore ignores that message.
  *
- * This test checks each attribute in the shipped tests against the
- * `phpstan.neon` ignore patterns. An unmatched attribute breaks the Drupal 10
- * lint, and without this test the failure appears only after a full Drupal 10
- * assemble in CI.
+ * An attribute that no ignore pattern matches breaks the Drupal 10 lint.
+ * Without this test, the failure appears only after a full Drupal 10 assemble
+ * in CI.
  */
 #[Group('p0')]
 final class PhpunitAttributesTest extends UnitTestCase {

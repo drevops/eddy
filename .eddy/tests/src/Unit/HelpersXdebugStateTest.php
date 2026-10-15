@@ -10,9 +10,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for the xdebug_state() helper.
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\xdebug_state')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]

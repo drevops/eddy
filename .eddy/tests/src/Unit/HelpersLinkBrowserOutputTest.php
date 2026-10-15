@@ -85,8 +85,6 @@ final class HelpersLinkBrowserOutputTest extends UnitTestCase {
   }
 
   /**
-   * Create a throwaway project layout with an assembled web root.
-   *
    * @return array{0: string, 1: string}
    *   Tuple of [webroot, logs_dir] absolute paths.
    */

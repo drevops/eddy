@@ -9,9 +9,6 @@ use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
-/**
- * Tests for version_satisfies().
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\version_satisfies')]
 #[Group('p0')]
 final class HelpersVersionSatisfiesTest extends UnitTestCase {

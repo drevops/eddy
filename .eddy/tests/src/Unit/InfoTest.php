@@ -8,9 +8,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for the 'eddy-info' command.
- */
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class InfoTest extends UnitTestCase {
@@ -28,16 +25,16 @@ final class InfoTest extends UnitTestCase {
    * Set up the standard mocks for an info run.
    *
    * @param array<string, string> $shell_exec_map
-   *   Map of substring → full command output. The first key whose
-   *   substring appears in the requested command wins. A literal
-   *   '*' key acts as a catch-all default.
+   *   The output of shell_exec() keyed by a substring of the command. The
+   *   first key found in the command selects the output, and a literal '*'
+   *   key is the default for a command no other key matches.
    * @param array<string, bool> $files
-   *   Map of file path → existence; used for file_exists, is_file,
-   *   and is_dir lookups.
+   *   Whether each path exists, keyed by path, for file_exists(), is_file()
+   *   and is_dir().
    * @param string[] $info_files
    *   Files returned from glob('*.info.yml').
    * @param array<string, string> $file_contents
-   *   Map of file path → contents, used by file_get_contents.
+   *   The contents file_get_contents() returns, keyed by path.
    * @param string|false $command_php_path
    *   Path returned by command_path('php'); FALSE means not found.
    */
@@ -188,8 +185,6 @@ final class InfoTest extends UnitTestCase {
   }
 
   public function testInfoDrushMissingSuppressesPhpPathSuffixOnlyWhenPhpAlsoMissing(): void {
-    // PHP is detectable but command_path('php') returns FALSE - the path
-    // suffix is omitted.
     $this->setupInfoMocks(
       shell_exec_map: [
         'php -v' => "PHP 8.3.14\n",

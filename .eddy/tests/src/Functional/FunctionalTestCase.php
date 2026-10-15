@@ -9,9 +9,6 @@ use AlexSkrypnyk\PhpunitHelpers\Traits\ProcessTrait;
 use AlexSkrypnyk\PhpunitHelpers\Traits\TuiTrait;
 use DrevOps\Eddy\Tests\Unit\UnitTestCase;
 
-/**
- * FunctionalTestCase fixture class.
- */
 abstract class FunctionalTestCase extends UnitTestCase {
 
   use ProcessTrait;

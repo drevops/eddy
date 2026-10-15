@@ -230,7 +230,8 @@ trait MockTrait {
       // Without DEBUG, passthru_or_fail() and drush() wrap the command in a
       // brace group, "{ <cmd>; } 2>&1", to capture stdout and stderr together.
       // Strip the wrapper before matching so expectations use the logical
-      // command in both captured and streamed (DEBUG=1) runs;
+      // command in both captured and streamed (DEBUG=1) runs.
+      //
       // HelpersPassthruCaptureTest asserts the wrapper format.
       $matched = $command;
       if (str_starts_with($matched, '{ ') && str_ends_with($matched, '; } 2>&1')) {

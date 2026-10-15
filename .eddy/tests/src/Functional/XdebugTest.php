@@ -8,9 +8,6 @@ use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
-/**
- * Tests for the XDebug step-debugging toggle.
- */
 #[Group('p5')]
 final class XdebugTest extends ToolingTestCase {
 

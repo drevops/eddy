@@ -8,9 +8,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for the 'eddy-browser-start' command.
- */
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class BrowserStartTest extends UnitTestCase {
@@ -308,8 +305,8 @@ final class BrowserStartTest extends UnitTestCase {
   }
 
   /**
-   * A WebDriver session belongs to whoever opens it, so a backend of another
-   * project that answers on the port serves this project too.
+   * A WebDriver session belongs to the client that opens it, so a backend of
+   * another project that answers on the port serves this project too.
    *
    * @param array<int, array{0: string, 1: string}> $listeners
    *   The command line and the working directory of each process listening on
@@ -341,8 +338,8 @@ final class BrowserStartTest extends UnitTestCase {
 
   /**
    * A server that answers on the port but is not of the selected backend is
-   * not reused, and it is named rather than stopped when it is not the
-   * project's own.
+   * not reused. When it is not the project's own, it is named rather than
+   * stopped.
    *
    * @param array<int, array{0: string, 1: string}> $listeners
    *   The command line and the working directory of each process listening on

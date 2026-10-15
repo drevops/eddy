@@ -29,9 +29,6 @@ use const DrevOps\Eddy\Assets\END_PAUSE;
 use const DrevOps\Eddy\Assets\FRAME_DELAY;
 use const DrevOps\Eddy\Assets\STEP_DELAY;
 
-/**
- * Unit tests for the asset generator in '.eddy/assets/update-assets.php'.
- */
 #[Group('p0')]
 final class UpdateAssetsTest extends UnitTestCase {
 

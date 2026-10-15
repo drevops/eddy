@@ -10,17 +10,12 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for the drupal_release() helper.
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\drupal_release')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersDrupalReleaseTest extends UnitTestCase {
 
   /**
-   * Mock the Composer call that lists the Drupal releases.
-   *
    * @param array<int, string> $output
    *   The lines Composer prints to stdout.
    * @param int $exit_code

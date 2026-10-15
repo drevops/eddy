@@ -8,9 +8,6 @@ use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
 
-/**
- * Tests for the make-based tooling workflow.
- */
 #[Group('p4')]
 final class MakeTest extends ToolingTestCase {
 
@@ -94,14 +91,15 @@ final class MakeTest extends ToolingTestCase {
     $port = self::webserverPort();
     $this->assertTrue(self::webserverPortAccepts($port), 'The webserver of the project is running.');
 
-    // The WebDriver backend of the project, which runs from the project root.
+    // $browser stands in for the WebDriver backend of the project, which runs
+    // from the project root.
     $webdriver_port = self::webserverFreePort();
     $dotenv = self::$sut . '/.env';
     File::dump($dotenv, (File::exists($dotenv) ? File::read($dotenv) : '') . 'WEBDRIVER_PORT=' . $webdriver_port . "\n");
     $browser = self::webserverStartListener(self::$sut, $webdriver_port);
 
-    // Another PHP process of the same user, such as the webserver of another
-    // project or a Composer run.
+    // $other stands in for another PHP process of the same user, such as the
+    // webserver of another project or a Composer run.
     $other = new Process(['php', '-r', 'sleep(60);']);
     $other->start();
 

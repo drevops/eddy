@@ -10,9 +10,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for validate_timeout_or_fail() helper.
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\validate_timeout_or_fail')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]

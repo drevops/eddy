@@ -10,9 +10,6 @@ use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
-/**
- * Tests for the dev_branch_packages() helper.
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\dev_branch_packages')]
 #[Group('p0')]
 final class HelpersDevBranchPackagesTest extends UnitTestCase {

@@ -10,9 +10,6 @@ use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
-/**
- * Tests for config_platform_php().
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\config_platform_php')]
 #[CoversFunction('DrevOps\Eddy\Tooling\json_file')]
 #[Group('p0')]

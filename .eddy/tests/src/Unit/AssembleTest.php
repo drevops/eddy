@@ -9,9 +9,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for the 'eddy-assemble' command.
- */
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class AssembleTest extends UnitTestCase {
@@ -48,14 +45,12 @@ final class AssembleTest extends UnitTestCase {
    *   drupal_release, releases, releases_result_code, has_build_dir,
    *   has_patches, github_token, suggestions, extension_require,
    *   extension_require_dev, extension_extra, extension_config,
-   *   dev_composer_json,
-   *   has_deprecations_disabled, has_package_lock, has_skip_npm_build,
-   *   has_nvmrc, has_nvm, has_node_modules, tool_files,
+   *   dev_composer_json, has_deprecations_disabled, has_package_lock,
+   *   has_skip_npm_build, has_nvmrc, has_nvm, has_node_modules, tool_files,
    *   has_version_specific_phpunit, has_polyfill_bootstrap,
    *   create_project_result_code, installed_packages, php_requirement,
-   *   expect_php_failure. A NULL drupal_release expects the release
-   *   resolution to fail, and a NULL php_requirement makes the core lookup
-   *   fail.
+   *   expect_php_failure. A NULL drupal_release means the release resolution
+   *   fails, and a NULL php_requirement makes the core lookup fail.
    *
    * @return array
    *   The configuration with defaults applied, plus nvm_dir when has_nvmrc is

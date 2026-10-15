@@ -8,9 +8,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for the 'eddy-browser-stop' command.
- */
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class BrowserStopTest extends UnitTestCase {

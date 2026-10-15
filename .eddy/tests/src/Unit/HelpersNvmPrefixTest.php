@@ -13,8 +13,6 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * Tests for nvm_prefix().
- *
  * The prefix runs in a real shell through passthru_capture(), as the tooling
  * runs npm, with a stub 'nvm.sh' in place of nvm.
  */
@@ -23,9 +21,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class HelpersNvmPrefixTest extends UnitTestCase {
 
-  /**
-   * The prefix that selects the Node.js version of '.nvmrc' with nvm.
-   */
   protected const string PREFIX = '. "$NVM_DIR/nvm.sh"; { nvm use || nvm install; } && ';
 
   protected function setUp(): void {
@@ -132,8 +127,6 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
   }
 
   /**
-   * Create an nvm directory.
-   *
    * @param string|null $script
    *   The content of its 'nvm.sh', or NULL for a directory without one.
    *

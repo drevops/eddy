@@ -10,9 +10,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for nvm_dir().
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\nvm_dir')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]

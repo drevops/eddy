@@ -8,9 +8,6 @@ use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
-/**
- * Tests for the 'eddy-assemble' command.
- */
 #[Group('p2')]
 final class AssembleTest extends ToolingTestCase {
 

@@ -66,7 +66,7 @@ const SETTLE_TIME = 1;
 /**
  * Gap below which a redraw continues the previous step (seconds).
  *
- * It sits well above the gaps within a burst of output and well below
+ * The value is well above the gaps within a burst of output and well below
  * SETTLE_TIME.
  */
 const MERGE_WINDOW = 0.5;
@@ -270,9 +270,10 @@ function main(array $only = []): void {
     throw new \RuntimeException($exception->getMessage() . PHP_EOL . 'Recordings kept in ' . $recordings_dir, 0, $exception);
   }
   finally {
-    // The webserver and the browser outlive their workspace unless they are
-    // stopped before it is removed. A failure is reported, not thrown: a throw
-    // from 'finally' replaces any exception already thrown from the 'try'.
+    // The webserver and the browser keep running after their workspace is
+    // removed unless they are stopped first. A failure is reported, not
+    // thrown: a throw from 'finally' replaces any exception already thrown
+    // from the 'try'.
     foreach (run_cleanups($workspace_dir, $cleanups) as $failure) {
       fwrite(STDERR, 'WARNING: ' . $failure . PHP_EOL);
     }

@@ -9,9 +9,6 @@ use AlexSkrypnyk\Snapshot\Testing\SnapshotTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
-/**
- * Functional tests for install.php script.
- */
 #[Group('p1')]
 final class InstallTest extends FunctionalTestCase {
 
