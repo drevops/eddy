@@ -7,6 +7,7 @@ namespace DrevOps\Eddy\Tests\Unit;
 use function DrevOps\Eddy\Tooling\mkdir_or_fail;
 use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\CoversFunction;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
@@ -15,12 +16,42 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class HelpersMkdirOrFailTest extends UnitTestCase {
 
-  public function testCreatesMissingDirectory(): void {
-    $dir = self::$tmp . '/parent/child';
+  #[DataProvider('dataProviderCreatesMissingDirectory')]
+  public function testCreatesMissingDirectory(?int $mode, int $expected_mode): void {
+    $parent = self::$tmp . '/parent';
+    $dir = $parent . '/child';
+    $umask = umask(0022);
 
-    mkdir_or_fail($dir);
+    try {
+      if ($mode === NULL) {
+        mkdir_or_fail($dir);
+      }
+      else {
+        mkdir_or_fail($dir, $mode);
+      }
+    }
+    finally {
+      umask($umask);
+    }
 
     $this->assertDirectoryExists($dir);
+    $this->assertSame($expected_mode, fileperms($dir) & 0777);
+    $this->assertSame($expected_mode, fileperms($parent) & 0777, 'Every directory created takes the mode.');
+  }
+
+  public static function dataProviderCreatesMissingDirectory(): \Iterator {
+    yield 'default mode' => [NULL, 0755];
+    yield 'owner only' => [0700, 0700];
+  }
+
+  public function testKeepsModeOfExistingDirectory(): void {
+    $dir = self::$tmp . '/existing_mode';
+    File::mkdir($dir, 0755);
+    chmod($dir, 0755);
+
+    mkdir_or_fail($dir, 0700);
+
+    $this->assertSame(0755, fileperms($dir) & 0777);
   }
 
   public function testKeepsExistingDirectory(): void {

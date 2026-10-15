@@ -257,8 +257,7 @@ final class DeployTest extends UnitTestCase {
     self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', $fingerprint);
     self::envSet('HOME', '/home/testuser');
 
-    $this->mockFunction('is_dir', fn(string $path): bool => str_contains($path, '.ssh'));
-
+    $this->mockFunction('mkdir', fn(): true => TRUE);
     $this->mockFunction('file_put_contents', fn(): int => 100);
 
     if ($glob !== NULL) {
@@ -277,7 +276,7 @@ final class DeployTest extends UnitTestCase {
       });
     }
 
-    $this->mockFunction('file_exists', fn(string $file): bool => $file === $key_file);
+    $this->mockFunction('is_file', fn(string $file): bool => $file === $key_file);
 
     // The running agent is reused, so 'ssh-agent' never runs.
     self::envSet('SSH_AGENT_PID', '12345');
@@ -329,7 +328,7 @@ final class DeployTest extends UnitTestCase {
     self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', $fingerprint);
     self::envSet('HOME', '/home/testuser');
 
-    $this->mockFunction('is_dir', fn(): true => TRUE);
+    $this->mockFunction('mkdir', fn(): true => TRUE);
     $this->mockFunction('file_put_contents', fn(): int => 100);
 
     if ($glob !== NULL) {
@@ -348,7 +347,7 @@ final class DeployTest extends UnitTestCase {
       });
     }
 
-    $this->mockFunction('file_exists', fn(): false => FALSE);
+    $this->mockFunction('is_file', fn(): false => FALSE);
 
     $this->mockQuit(1);
 
@@ -373,18 +372,17 @@ final class DeployTest extends UnitTestCase {
     self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd');
     self::envSet('HOME', '/home/testuser');
 
-    $this->mockFunction('is_dir', fn(): false => FALSE);
-
     $mkdir_calls = [];
-    $this->mockFunction('mkdir', function (string $dir) use (&$mkdir_calls): true {
-      $mkdir_calls[] = $dir;
+    $this->mockFunction('mkdir', function (string $dir, int $mode = 0777) use (&$mkdir_calls): true {
+      $mkdir_calls[$dir] = $mode;
+
       return TRUE;
     });
 
     $this->mockFunction('file_put_contents', fn(): int => 100);
 
     $key_file = '/home/testuser/.ssh/id_rsa_aabbccdd';
-    $this->mockFunction('file_exists', fn(string $file): bool => $file === $key_file);
+    $this->mockFunction('is_file', fn(string $file): bool => $file === $key_file);
 
     self::envSet('SSH_AGENT_PID', '12345');
 
@@ -398,7 +396,32 @@ final class DeployTest extends UnitTestCase {
 
     $this->runCommand('eddy-deploy', 0);
 
-    $this->assertContains('/home/testuser/.ssh', $mkdir_calls);
+    $this->assertSame(['/home/testuser/.ssh' => 0700], $mkdir_calls, 'Only the owner may read the SSH directory.');
+  }
+
+  #[DataProvider('dataProviderDeployFailsWhenSshSetupFails')]
+  public function testDeployFailsWhenSshSetupFails(bool $mkdir_succeeds, bool $write_succeeds, string $expected_message): void {
+    self::envSet('DEPLOY_USER_NAME', 'Test User');
+    self::envSet('DEPLOY_USER_EMAIL', 'test@example.com');
+    self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
+    self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd');
+    self::envSet('HOME', '/home/testuser');
+
+    $this->mockFunction('mkdir', fn(): bool => $mkdir_succeeds);
+    $this->mockFunction('is_dir', fn(): false => FALSE);
+    $this->mockFunction('file_put_contents', fn(): int|false => $write_succeeds ? 100 : FALSE);
+    $this->mockPassthruNever();
+    $this->mockQuit(1);
+
+    $output = $this->runCommand('eddy-deploy', 1);
+
+    $this->assertStringContainsString($expected_message, $output);
+    $this->assertStringNotContainsString('SSH key', $output);
+  }
+
+  public static function dataProviderDeployFailsWhenSshSetupFails(): \Iterator {
+    yield 'directory' => [FALSE, TRUE, 'Unable to create directory /home/testuser/.ssh.'];
+    yield 'config' => [TRUE, FALSE, 'Unable to write /home/testuser/.ssh/config.'];
   }
 
   #[DataProvider('dataProviderDeploySshAgentStarted')]
@@ -419,11 +442,11 @@ final class DeployTest extends UnitTestCase {
       self::envSet('SSH_AGENT_PID', $agent_pid);
     }
 
-    $this->mockFunction('is_dir', fn(): true => TRUE);
+    $this->mockFunction('mkdir', fn(): true => TRUE);
     $this->mockFunction('file_put_contents', fn(): int => 100);
 
     $key_file = '/home/testuser/.ssh/id_rsa_aabbccdd';
-    $this->mockFunction('file_exists', fn(string $file): bool => $file === $key_file);
+    $this->mockFunction('is_file', fn(string $file): bool => $file === $key_file);
 
     $this->mockShellExecOutputs(['ssh-agent -s' => "SSH_AUTH_SOCK=/home/testuser/.ssh/agent/s.started; export SSH_AUTH_SOCK;\nSSH_AGENT_PID=4242; export SSH_AGENT_PID;\necho Agent pid 4242;\n"]);
 
@@ -458,9 +481,9 @@ final class DeployTest extends UnitTestCase {
     self::envSet('HOME', '/home/testuser');
     self::envUnset('SSH_AGENT_PID');
 
-    $this->mockFunction('is_dir', fn(): true => TRUE);
+    $this->mockFunction('mkdir', fn(): true => TRUE);
     $this->mockFunction('file_put_contents', fn(): int => 100);
-    $this->mockFunction('file_exists', fn(): true => TRUE);
+    $this->mockFunction('is_file', fn(string $file): bool => $file === '/home/testuser/.ssh/id_rsa_aabbccdd');
 
     $this->mockShellExecOutputs(['ssh-agent -s' => $agent_output]);
     $this->mockPassthruNever();

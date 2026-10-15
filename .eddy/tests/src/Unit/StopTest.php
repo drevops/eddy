@@ -19,7 +19,7 @@ final class StopTest extends UnitTestCase {
       self::envSet('WEBSERVER_PORT', $env_port);
     }
 
-    $this->mockFunction('file_exists', fn(string $file): bool => $dotenv !== NULL && $file === '.env');
+    $this->mockIsFile(['.env' => $dotenv !== NULL]);
 
     if ($dotenv !== NULL) {
       $this->mockFunction('file_get_contents', fn(): string => $dotenv);

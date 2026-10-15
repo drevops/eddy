@@ -6,11 +6,14 @@ namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\link_browser_output;
 use AlexSkrypnyk\File\File;
+use Laravel\SerializableClosure\SerializableClosure;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 #[CoversFunction('DrevOps\Eddy\Tooling\link_browser_output')]
+#[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersLinkBrowserOutputTest extends UnitTestCase {
 
@@ -53,10 +56,10 @@ final class HelpersLinkBrowserOutputTest extends UnitTestCase {
   }
 
   #[DataProvider('dataProviderReplacesExisting')]
-  public function testReplacesExisting(callable $setup): void {
+  public function testReplacesExisting(SerializableClosure $setup): void {
     [$webroot, $logs] = self::createWebroot();
     $link = $webroot . '/sites/simpletest/browser_output';
-    $setup($link);
+    self::cu($setup)($link);
 
     link_browser_output($webroot, $logs);
 
@@ -65,23 +68,39 @@ final class HelpersLinkBrowserOutputTest extends UnitTestCase {
   }
 
   public static function dataProviderReplacesExisting(): \Iterator {
-    yield 'directory' => [static fn(string $link) => File::dump($link . '/stale.html', 'stale')];
+    yield 'directory' => [self::cw(static fn(string $link) => File::dump($link . '/stale.html', 'stale'))];
 
     yield 'symlink' => [
-      static function (string $link): void {
+      self::cw(static function (string $link): void {
         File::mkdir(dirname($link), 0755);
         $other = self::$tmp . '/other_' . uniqid();
         File::mkdir($other, 0755);
         symlink($other, $link);
-      },
+      }),
     ];
 
     yield 'file' => [
-      static function (string $link): void {
+      self::cw(static function (string $link): void {
         File::mkdir(dirname($link), 0755);
         File::dump($link, 'i am a file');
-      },
+      }),
     ];
+  }
+
+  #[DataProvider('dataProviderFailsWhenPathCannotBeCreated')]
+  public function testFailsWhenPathCannotBeCreated(string $function, string $expected_message): void {
+    [$webroot, $logs] = self::createWebroot();
+    $this->mockFunction($function, fn(): false => FALSE);
+    $this->mockQuit(1);
+
+    $output = $this->capture(fn() => link_browser_output($webroot, $logs), 1);
+
+    $this->assertStringContainsString(sprintf($expected_message, $webroot, $logs), $output);
+  }
+
+  public static function dataProviderFailsWhenPathCannotBeCreated(): \Iterator {
+    yield 'logs directory' => ['mkdir', 'Unable to create directory %2$s/browser_output.'];
+    yield 'symlink' => ['symlink', 'Unable to create symlink %1$s/sites/simpletest/browser_output to %2$s/browser_output.'];
   }
 
   /**

@@ -49,8 +49,12 @@ final class AssembleTest extends UnitTestCase {
    *   has_skip_npm_build, has_nvmrc, has_nvm, has_node_modules, tool_files,
    *   has_version_specific_phpunit, has_polyfill_bootstrap,
    *   create_project_result_code, installed_packages, php_requirement,
-   *   expect_php_failure. A NULL drupal_release means the release resolution
-   *   fails, and a NULL php_requirement makes the core lookup fail.
+   *   expect_php_failure, dotenv, failing_call, build_dir_remains. A NULL
+   *   drupal_release means the release resolution fails, and a NULL
+   *   php_requirement makes the core lookup fail. A NULL dotenv means there is
+   *   no '.env'. failing_call names the call that fails: 'unlink' for the lock
+   *   file, 'file_put_contents' for 'build/composer.json', 'mkdir' for the
+   *   module custom directory, 'copy' or 'symlink'.
    *
    * @return array
    *   The configuration with defaults applied, plus nvm_dir when has_nvmrc is
@@ -86,6 +90,9 @@ final class AssembleTest extends UnitTestCase {
       'has_polyfill_bootstrap' => FALSE,
       'create_project_result_code' => 0,
       'installed_packages' => [],
+      'dotenv' => NULL,
+      'failing_call' => NULL,
+      'build_dir_remains' => FALSE,
     ];
 
     $drupal_version_major = explode('.', explode('@', (string) $config['drupal_version'])[0])[0];
@@ -158,12 +165,15 @@ final class AssembleTest extends UnitTestCase {
     });
 
     $all_tool_files = ['.eslintignore', '.eslintrc.json', '.prettierignore', '.prettierrc.json', '.stylelintrc.js', '.twig-cs-fixer.php', 'package-lock.json', 'package.json', 'phpcs.xml', 'phpstan.neon', 'phpmd.xml', 'phpunit.xml', 'rector.php'];
-    $this->mockFunction('file_exists', function (string $file) use ($config, $all_tool_files, $drupal_version_major) {
-      if ($file === 'composer.json') {
+    $this->mockFunction('is_file', function (string $file) use ($config, $all_tool_files, $drupal_version_major): bool {
+      if (in_array($file, ['composer.json', 'composer.dev.json', 'build/composer.json', 'build/composer.lock', 'build/web/index.php'], TRUE)) {
         return TRUE;
       }
       if (str_ends_with($file, '.info.yml')) {
         return TRUE;
+      }
+      if ($file === '.env') {
+        return $config['dotenv'] !== NULL;
       }
       if ($file === 'build/package-lock.json') {
         return $config['has_package_lock'];
@@ -184,7 +194,8 @@ final class AssembleTest extends UnitTestCase {
       if (in_array($file, $all_tool_files, TRUE)) {
         return in_array($file, $config['tool_files'], TRUE);
       }
-      return FALSE;
+      // nvm_prefix() checks for 'nvm.sh' on disk.
+      return \is_file($file);
     });
 
     // The first 'build' check comes from assemble and returns the config
@@ -193,6 +204,9 @@ final class AssembleTest extends UnitTestCase {
     $build_dir_checked = FALSE;
     $this->mockFunction('is_dir', function (string $path) use ($config, &$build_dir_checked) {
       if ($path === 'build') {
+        if ($config['build_dir_remains']) {
+          return TRUE;
+        }
         if (!$build_dir_checked) {
           $build_dir_checked = TRUE;
           return $config['has_build_dir'];
@@ -214,12 +228,15 @@ final class AssembleTest extends UnitTestCase {
       return FALSE;
     });
 
-    $this->mockFunction('mkdir', fn(): true => TRUE);
+    $this->mockFunction('mkdir', fn(string $dir): bool => $config['failing_call'] !== 'mkdir' || $dir !== 'build/web/modules/custom');
 
     $info_content = $config['extension_type'] === 'theme' ? "name: Test\ntype: theme\n" : "name: Test\ntype: module\n";
-    $this->mockFunction('file_get_contents', function (string $file) use ($info_content, $composer_json_str, $build_composer_json, $dev_composer_json, $build_composer_lock) {
+    $this->mockFunction('file_get_contents', function (string $file) use ($config, $info_content, $composer_json_str, $build_composer_json, $dev_composer_json, $build_composer_lock) {
       if (str_ends_with($file, '.info.yml')) {
         return $info_content;
+      }
+      if ($file === '.env') {
+        return (string) $config['dotenv'];
       }
       if ($file === 'composer.json') {
         return $composer_json_str;
@@ -242,17 +259,25 @@ final class AssembleTest extends UnitTestCase {
     });
 
     $this->capturedBuildComposerJson = [];
-    $this->mockFunction('file_put_contents', function (string $file, string $content): int {
+    $this->mockFunction('file_put_contents', function (string $file, string $content) use ($config): int|false {
       if ($file === 'build/composer.json') {
+        if ($config['failing_call'] === 'file_put_contents') {
+          return FALSE;
+        }
+
         $this->capturedBuildComposerJson[] = $content;
       }
       return 100;
     });
 
-    $this->mockFunction('copy', fn(): true => TRUE);
+    $this->mockFunction('copy', fn(): bool => $config['failing_call'] !== 'copy');
 
     $this->symlinkedItems = [];
-    $this->mockFunction('symlink', function (string $target, string $link): bool {
+    $this->mockFunction('symlink', function (string $target, string $link) use ($config): bool {
+      if ($config['failing_call'] === 'symlink') {
+        return FALSE;
+      }
+
       $this->symlinkedItems[] = basename($link);
 
       return TRUE;
@@ -265,7 +290,7 @@ final class AssembleTest extends UnitTestCase {
       return TRUE;
     });
 
-    $this->mockFunction('unlink', fn(): true => TRUE);
+    $this->mockFunction('unlink', fn(string $file): bool => $config['failing_call'] !== 'unlink' || $file !== 'build/composer.lock');
 
     // nvm_prefix() checks for 'nvm.sh' on disk, so NVM_DIR names a real
     // directory.
@@ -284,7 +309,7 @@ final class AssembleTest extends UnitTestCase {
 
     $passthru_responses[] = ['cmd' => 'composer validate --ansi --strict'];
 
-    if ($config['drupal_release'] === NULL || $config['expect_php_failure']) {
+    if ($config['drupal_release'] === NULL || $config['expect_php_failure'] || $config['build_dir_remains']) {
       $this->mockPassthruMultiple($passthru_responses);
 
       return $config;
@@ -292,7 +317,7 @@ final class AssembleTest extends UnitTestCase {
 
     $passthru_responses[] = ['cmd' => sprintf('composer create-project %s build --no-install --no-interaction', escapeshellarg('drupal/recommended-project:' . $config['drupal_release'])), 'result_code' => $config['create_project_result_code']];
 
-    if ($config['create_project_result_code'] !== 0) {
+    if ($config['create_project_result_code'] !== 0 || in_array($config['failing_call'], ['unlink', 'file_put_contents', 'mkdir'], TRUE)) {
       $this->mockPassthruMultiple($passthru_responses);
 
       return $config;
@@ -315,6 +340,12 @@ final class AssembleTest extends UnitTestCase {
       }
 
       $passthru_responses[] = ['cmd' => sprintf('composer --working-dir=build require %s', escapeshellarg((string) $suggest))];
+    }
+
+    if (in_array($config['failing_call'], ['copy', 'symlink'], TRUE)) {
+      $this->mockPassthruMultiple($passthru_responses);
+
+      return $config;
     }
 
     if ($config['has_package_lock'] && !$config['has_skip_npm_build']) {
@@ -831,7 +862,7 @@ final class AssembleTest extends UnitTestCase {
   }
 
   #[DataProvider('dataProviderAssembleDrupalVersionDefault')]
-  public function testAssembleDrupalVersionDefault(?string $env_version, array $extra, string $expected_version, string $expected_release): void {
+  public function testAssembleDrupalVersionDefault(?string $env_version, ?string $dotenv, array $extra, string $expected_version, string $expected_release): void {
     if ($env_version === NULL) {
       self::envUnset('DRUPAL_VERSION');
     }
@@ -846,6 +877,7 @@ final class AssembleTest extends UnitTestCase {
       'drupal_version' => $expected_version,
       'drupal_release' => $expected_release,
       'dev_composer_json' => ['require-dev' => ['drupal/coder' => '^8'], 'extra' => $extra],
+      'dotenv' => $dotenv,
     ]);
 
     $output = $this->runCommand('eddy-assemble');
@@ -855,10 +887,12 @@ final class AssembleTest extends UnitTestCase {
   }
 
   public static function dataProviderAssembleDrupalVersionDefault(): \Iterator {
-    yield 'project default' => [NULL, ['eddy' => ['drupal-version' => '10']], '10', '10.6.18'];
-    yield 'project default with a stability flag' => [NULL, ['eddy' => ['drupal-version' => '12@beta']], '12@beta', '12.0.0-beta1'];
-    yield 'no project default' => [NULL, [], '11', '11.4.8'];
-    yield 'environment overrides the project default' => ['11', ['eddy' => ['drupal-version' => '10']], '11', '11.4.8'];
+    yield 'project default' => [NULL, NULL, ['eddy' => ['drupal-version' => '10']], '10', '10.6.18'];
+    yield 'project default with a stability flag' => [NULL, NULL, ['eddy' => ['drupal-version' => '12@beta']], '12@beta', '12.0.0-beta1'];
+    yield 'no project default' => [NULL, NULL, [], '11', '11.4.8'];
+    yield 'environment overrides the project default' => ['11', NULL, ['eddy' => ['drupal-version' => '10']], '11', '11.4.8'];
+    yield '.env overrides the project default' => [NULL, "DRUPAL_VERSION=10\n", ['eddy' => ['drupal-version' => '11']], '10', '10.6.18'];
+    yield 'environment overrides .env' => ['11', "DRUPAL_VERSION=10\n", [], '11', '11.4.8'];
   }
 
   /**
@@ -914,28 +948,71 @@ final class AssembleTest extends UnitTestCase {
       'Drupal 11.4.8 requires PHP >=8.3, but config.platform.php in composer.dev.json or composer.json resolves the build for PHP 8.1.0. Raise or remove that setting, or set DRUPAL_VERSION to a Drupal version that supports PHP 8.1.0.',
       $build_steps,
     ];
+    yield 'lock file cannot be removed' => ['11', ['failing_call' => 'unlink'], 'Unable to remove build/composer.lock.', ['Drupal project created']];
+    yield 'build/composer.json cannot be written' => ['11', ['failing_call' => 'file_put_contents'], 'Unable to write build/composer.json.', ['Insecure package blocking disabled']];
+    yield 'custom directory cannot be created' => ['11', ['failing_call' => 'mkdir'], 'Unable to create directory build/web/modules/custom.', ['Custom directories created']];
+    yield 'tool configuration cannot be copied' => ['11', ['failing_call' => 'copy'], 'Unable to copy phpcs.xml to build/phpcs.xml.', ['Tools configuration files copied']];
+    yield 'extension code cannot be symlinked' => [
+      '11',
+      ['failing_call' => 'symlink'],
+      'Unable to create symlink build/web/modules/custom/test_extension/src to ' . self::PROJECT_ROOT . '/src.',
+      ["Extension's code symlinked"],
+    ];
   }
 
+  public function testAssembleFailsWhenBuildDirectoryRemains(): void {
+    self::envSet('DRUPAL_VERSION', '11');
+    self::envSet('GITHUB_TOKEN', '');
+    self::envSet('SYMFONY_DEPRECATIONS_HELPER', '');
+
+    // remove_dir() walks the real directory, and the mocked unlink() leaves its
+    // file in place, so rmdir() fails on a directory that is not empty.
+    $project_dir = self::$tmp . '/assemble_' . uniqid();
+    File::dump($project_dir . '/build/composer.json', '{}');
+    chdir($project_dir);
+
+    $this->setupAssembleMocks(['build_dir_remains' => TRUE]);
+    $this->mockQuit(1);
+
+    $output = $this->runCommand('eddy-assemble', 1);
+
+    $this->assertStringContainsString('Unable to remove directory build.', $output);
+    $this->assertStringNotContainsString('Existing build directory removed', $output);
+    $this->assertStringNotContainsString('Creating Drupal', $output);
+  }
+
+  /**
+   * @param string|null $dotenv
+   *   The content of '.env', or NULL for no file.
+   * @param string|null $expected_auth
+   *   The COMPOSER_AUTH that the command exports, or NULL for none.
+   */
   #[DataProvider('dataProviderAssembleComposerAuth')]
-  public function testAssembleComposerAuth(string $github_token, string $composer_auth, ?string $expected_auth): void {
+  public function testAssembleComposerAuth(string $github_token, string $composer_auth, ?string $dotenv, ?string $expected_auth, bool $expected_token_passed): void {
     self::envSet('DRUPAL_VERSION', '11');
     self::envSet('GITHUB_TOKEN', $github_token);
     self::envSet('COMPOSER_AUTH', $composer_auth);
     self::envSet('SYMFONY_DEPRECATIONS_HELPER', '');
 
-    $this->setupAssembleMocks(['github_token' => $github_token]);
+    $this->setupAssembleMocks(['github_token' => $github_token, 'dotenv' => $dotenv]);
 
     $output = $this->runCommand('eddy-assemble');
 
     $auth_calls = array_values(array_filter($this->putenvCalls, static fn(string $assignment): bool => str_starts_with($assignment, 'COMPOSER_AUTH=')));
     $this->assertSame($expected_auth === NULL ? [] : ['COMPOSER_AUTH=' . $expected_auth], $auth_calls);
-    $this->assertSame($expected_auth !== NULL, str_contains($output, 'GitHub token passed to Composer.'));
+    $this->assertSame($expected_token_passed, str_contains($output, 'GitHub token passed to Composer.'));
   }
 
   public static function dataProviderAssembleComposerAuth(): \Iterator {
-    yield 'token' => ['ghp_test123', '', '{"github-oauth":{"github.com":"ghp_test123"}}'];
-    yield "token next to the caller's COMPOSER_AUTH" => ['ghp_test123', '{"github-oauth":{"github.com":"own"}}', NULL];
-    yield 'no token' => ['', '', NULL];
+    $own = '{"github-oauth":{"github.com":"own"}}';
+    $dotenv_auth = '{"github-oauth":{"github.com":"dotenv"}}';
+
+    yield 'token' => ['ghp_test123', '', NULL, '{"github-oauth":{"github.com":"ghp_test123"}}', TRUE];
+    yield "token next to the caller's COMPOSER_AUTH" => ['ghp_test123', $own, NULL, NULL, FALSE];
+    yield 'no token' => ['', '', NULL, NULL, FALSE];
+    yield 'token from .env' => ['', '', "GITHUB_TOKEN=ghp_dotenv\n", '{"github-oauth":{"github.com":"ghp_dotenv"}}', TRUE];
+    yield 'COMPOSER_AUTH from .env' => ['ghp_test123', '', 'COMPOSER_AUTH=' . $dotenv_auth . "\n", $dotenv_auth, FALSE];
+    yield "the caller's COMPOSER_AUTH over .env" => ['', $own, 'COMPOSER_AUTH=' . $dotenv_auth . "\n", NULL, FALSE];
   }
 
   #[DataProvider('dataProviderAssemblePhpRequirement')]
@@ -1002,7 +1079,7 @@ final class AssembleTest extends UnitTestCase {
     self::envUnset('GITHUB_TOKEN');
     self::envUnset('SYMFONY_DEPRECATIONS_HELPER');
 
-    $this->mockFunction('file_exists', fn(string $file): false => FALSE);
+    $this->mockFunction('is_file', fn(): false => FALSE);
 
     $this->mockQuit(1);
 

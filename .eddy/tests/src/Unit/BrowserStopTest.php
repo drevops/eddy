@@ -23,7 +23,7 @@ final class BrowserStopTest extends UnitTestCase {
   public function testBrowserStop(array $env, ?string $dotenv, bool $docker, string $expected_port): void {
     self::envSetMultiple($env);
 
-    $this->mockFunction('file_exists', fn(string $file): bool => $dotenv !== NULL && $file === '.env');
+    $this->mockIsFile(['.env' => $dotenv !== NULL]);
     $this->mockFunction('file_get_contents', fn(string $file): string|false => $file === '.env' && $dotenv !== NULL ? $dotenv : FALSE);
 
     $written = FALSE;
@@ -175,7 +175,7 @@ final class BrowserStopTest extends UnitTestCase {
 
   public function testBrowserStopFailsOnInvalidPort(): void {
     self::envSet('WEBDRIVER_PORT', '99999');
-    $this->mockFunction('file_exists', fn(): false => FALSE);
+    $this->mockIsFile(['.env' => FALSE]);
     $this->mockCommandAvailable('docker', TRUE);
     $this->mockPassthruNever();
     $this->mockQuit(1);

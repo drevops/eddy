@@ -27,7 +27,7 @@ require_once __DIR__ . '/helpers.php';
 // -----------------------------------------------------------------------------
 
 // Drupal core version to use.
-$drupal_version = getenv_default('DRUPAL_VERSION', default_drupal_version());
+$drupal_version = resolve_env_value('DRUPAL_VERSION', default_drupal_version())['value'];
 
 // The running PHP version, without a distribution suffix such as '-1ubuntu1'.
 $php_version = sprintf('%d.%d.%d', PHP_MAJOR_VERSION, PHP_MINOR_VERSION, PHP_RELEASE_VERSION);
@@ -44,7 +44,7 @@ $build_dir = 'build';
 TASK('Validating scaffold.');
 $composer_json = 'composer.json';
 
-if (!file_exists($composer_json)) {
+if (!is_file($composer_json)) {
   FAIL('Missing composer.json file in the extension root directory.');
 }
 
@@ -55,17 +55,23 @@ $type_dir = $extension_info['type'] === 'theme' ? 'themes' : 'modules';
 PASS('Scaffold is valid.');
 
 TASK('Validating tools.');
-command_must_exist('composer');
+command_exists_or_fail('composer');
 PASS('Tools are valid.');
 
 TASK('Validating Composer configuration.');
 passthru_or_fail('composer validate --ansi --strict');
 PASS('Composer configuration is valid.');
 
-$github_token = getenv_default('GITHUB_TOKEN', '');
+$github_token = resolve_env_value('GITHUB_TOKEN', '')['value'];
+['value' => $composer_auth, 'source' => $composer_auth_source] = resolve_env_value('COMPOSER_AUTH', '');
+
+// Composer reads COMPOSER_AUTH from its environment only.
+if ($composer_auth_source === '.env') {
+  putenv('COMPOSER_AUTH=' . $composer_auth);
+}
 
 // A COMPOSER_AUTH that is already set holds the caller's own credentials.
-if ($github_token !== '' && getenv_default('COMPOSER_AUTH', '') === '') {
+if ($github_token !== '' && $composer_auth === '') {
   TASK('Passing the GitHub token to Composer.');
   putenv('COMPOSER_AUTH=' . json_encode(['github-oauth' => ['github.com' => $github_token]], JSON_THROW_ON_ERROR));
   PASS('GitHub token passed to Composer.');
@@ -105,8 +111,12 @@ else {
 // Reset the environment.
 if (is_dir($build_dir)) {
   TASK('Removing existing build directory.');
-  @chmod_recursive($build_dir, 0777);
-  remove_dir($build_dir);
+  chmod_recursive($build_dir, 0777);
+
+  if (!remove_dir($build_dir)) {
+    FAIL('Unable to remove directory %s.', $build_dir);
+  }
+
   PASS('Existing build directory removed.');
 }
 
@@ -114,7 +124,15 @@ $drupal_version_major = explode('.', explode('@', $drupal_version)[0])[0];
 
 TASK('Creating Drupal %s project.', $drupal_version);
 passthru_or_fail(sprintf('composer create-project %s build --no-install --no-interaction', escapeshellarg('drupal/recommended-project:' . $drupal_release)), 'Unable to create the Drupal %s project.', $drupal_release);
-@unlink($build_dir . '/composer.lock');
+
+// Composer installs from a lock file when one exists, so the version pins
+// below would have no effect.
+$build_composer_lock = $build_dir . '/composer.lock';
+
+if (is_file($build_composer_lock) && !unlink($build_composer_lock)) {
+  FAIL('Unable to remove %s.', $build_composer_lock);
+}
+
 PASS('Drupal project created.');
 
 // Disable blocking of packages with security advisories to allow installing
@@ -122,7 +140,7 @@ PASS('Drupal project created.');
 TASK('Disabling blocking of insecure packages.');
 $build_json = json_file($build_composer_json);
 $build_json['config']['audit']['block-insecure'] = FALSE;
-file_put_contents($build_composer_json, json_encode($build_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+json_file_write($build_composer_json, $build_json);
 PASS('Insecure package blocking disabled.');
 
 TASK('Pinning Drupal core packages to a specific version %s.', $drupal_release);
@@ -180,7 +198,7 @@ if ((int) $drupal_version_major >= 12) {
   $build_json['config']['preferred-install'] = ['drupal/core' => 'source'];
 }
 
-file_put_contents($build_composer_json, json_encode($build_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+json_file_write($build_composer_json, $build_json);
 PASS('Test dependencies configured.');
 
 TASK('Merging configuration from composer.dev.json.');
@@ -190,14 +208,14 @@ $dev_json = json_file('composer.dev.json');
 unset($dev_json['require-dev']['drevops/eddy-tooling'], $dev_json['extra']['patches']['drevops/eddy-tooling'], $dev_json['extra']['eddy']);
 $build_json = json_file($build_composer_json);
 $merged = array_replace_recursive($dev_json, $build_json);
-file_put_contents($build_composer_json, json_encode($merged, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+json_file_write($build_composer_json, $merged);
 PASS('Configuration from composer.dev.json merged.');
 
 TASK("Merging configuration from extension's composer.json.");
 $extension_json = json_file('composer.json');
 $build_json = json_file($build_composer_json);
 $merged = array_replace_recursive($extension_json, $build_json);
-file_put_contents($build_composer_json, json_encode($merged, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+json_file_write($build_composer_json, $merged);
 PASS("Configuration from extension's composer.json merged.");
 
 TASK('Pinning the PHP platform.');
@@ -205,30 +223,18 @@ $build_json = json_file($build_composer_json);
 // Composer applies a global 'config.platform.php' to a project that sets
 // none, so the build would resolve for another PHP version.
 $build_json['config']['platform']['php'] = $platform_php ?? $php_version;
-file_put_contents($build_composer_json, json_encode($build_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+json_file_write($build_composer_json, $build_json);
 PASS('PHP platform set to %s.', $platform_php ?? $php_version);
 
 if (is_dir('patches')) {
   TASK('Copying patches.');
-
-  if (!is_dir($build_dir . '/patches')) {
-    mkdir($build_dir . '/patches', 0755, TRUE);
-  }
-
   copy_dir('patches', $build_dir . '/patches');
   PASS('Patches copied.');
 }
 
 TASK('Creating custom directories.');
-
-if (!is_dir($build_dir . '/web/modules/custom')) {
-  mkdir($build_dir . '/web/modules/custom', 0755, TRUE);
-}
-
-if (!is_dir($build_dir . '/web/themes/custom')) {
-  mkdir($build_dir . '/web/themes/custom', 0755, TRUE);
-}
-
+mkdir_or_fail($build_dir . '/web/modules/custom');
+mkdir_or_fail($build_dir . '/web/themes/custom');
 PASS('Custom directories created.');
 
 // Make sure Composer doesn't run out of memory.
@@ -280,13 +286,13 @@ if ($dev_branch_packages !== []) {
 if (getenv('SYMFONY_DEPRECATIONS_HELPER') === 'disabled') {
   TASK('Disabling deprecation notices in functional tests.');
 
-  file_put_contents($build_dir . '/web/sites/default/default.settings.php', "error_reporting(E_ALL & ~E_DEPRECATED);\n", FILE_APPEND);
+  file_write_or_fail($build_dir . '/web/sites/default/default.settings.php', "error_reporting(E_ALL & ~E_DEPRECATED);\n", FILE_APPEND);
 
   replace_in_file($build_dir . '/web/index.php', '/^<\?php/', '<?php error_reporting(E_ALL & ~E_DEPRECATED);');
 
   $bootstrap_file = $build_dir . '/vendor/symfony/polyfill-php83/bootstrap.php';
 
-  if (file_exists($bootstrap_file)) {
+  if (is_file($bootstrap_file)) {
     replace_in_file($bootstrap_file, '/string \$request_data = null, array \$controls = null/', 'string $request_data, array $controls');
   }
 
@@ -313,15 +319,15 @@ $tool_files = [
 ];
 
 foreach ($tool_files as $tool_file) {
-  if (file_exists($tool_file)) {
-    copy($tool_file, $build_dir . '/' . $tool_file);
+  if (is_file($tool_file)) {
+    copy_or_fail($tool_file, $build_dir . '/' . $tool_file);
   }
 }
 
 $version_specific_phpunit = 'phpunit.d' . $drupal_version_major . '.xml';
 
-if (file_exists($version_specific_phpunit)) {
-  copy($version_specific_phpunit, $build_dir . '/phpunit.xml');
+if (is_file($version_specific_phpunit)) {
+  copy_or_fail($version_specific_phpunit, $build_dir . '/phpunit.xml');
 }
 
 PASS('Tools configuration files copied.');
@@ -334,7 +340,7 @@ if (is_dir($custom_dir)) {
 }
 
 $extension_dir = $custom_dir . '/' . $extension_name;
-mkdir($extension_dir, 0755, TRUE);
+mkdir_or_fail($extension_dir);
 
 $root = (string) getcwd();
 
@@ -344,7 +350,7 @@ foreach (glob($root . '/*') ?: [] as $item) {
   // The build directory and the project-root 'vendor' directory, which holds
   // the tooling, are not part of the extension.
   if (!in_array($basename, [$build_dir, 'vendor'], TRUE)) {
-    symlink($item, $extension_dir . '/' . $basename);
+    symlink_or_fail($item, $extension_dir . '/' . $basename);
   }
 }
 
@@ -355,7 +361,7 @@ PASS("Extension's code symlinked.");
 // Add a .skip_npm_build file to the project root to skip this step, which
 // will also disable JS/CSS linting (ESLint, Stylelint, Prettier) and the Jest
 // tests.
-if (file_exists($build_dir . '/package-lock.json') && !file_exists('.skip_npm_build')) {
+if (is_file($build_dir . '/package-lock.json') && !is_file('.skip_npm_build')) {
   TASK('Processing front-end dependencies.');
 
   $nvm = nvm_prefix();

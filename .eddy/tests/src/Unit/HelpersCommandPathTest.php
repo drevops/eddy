@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use function DrevOps\Eddy\Tooling\command_exists_or_fail;
 use function DrevOps\Eddy\Tooling\command_path;
-use function DrevOps\Eddy\Tooling\command_must_exist;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 #[CoversFunction('DrevOps\Eddy\Tooling\command_path')]
-#[CoversFunction('DrevOps\Eddy\Tooling\command_must_exist')]
+#[CoversFunction('DrevOps\Eddy\Tooling\command_exists_or_fail')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersCommandPathTest extends UnitTestCase {
@@ -40,15 +40,15 @@ final class HelpersCommandPathTest extends UnitTestCase {
     yield 'command with subshell' => ['command' => '$(whoami)', 'expect_found' => FALSE];
   }
 
-  public function testCommandMustExistAvailable(): void {
-    command_must_exist('php');
+  public function testCommandExistsOrFailAvailable(): void {
+    command_exists_or_fail('php');
     $this->expectNotToPerformAssertions();
   }
 
-  public function testCommandMustExistUnavailable(): void {
+  public function testCommandExistsOrFailUnavailable(): void {
     $this->mockQuit(1);
 
-    $output = $this->capture(fn() => command_must_exist('nonexistent_command_12345'), 1);
+    $output = $this->capture(fn() => command_exists_or_fail('nonexistent_command_12345'), 1);
 
     $this->assertStringContainsString("Command 'nonexistent_command_12345' is not available", $output);
   }

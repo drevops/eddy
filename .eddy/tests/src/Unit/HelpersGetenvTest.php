@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\getenv_default;
-use function DrevOps\Eddy\Tooling\getenv_required;
+use function DrevOps\Eddy\Tooling\getenv_or_fail;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 #[CoversFunction('DrevOps\Eddy\Tooling\getenv_default')]
-#[CoversFunction('DrevOps\Eddy\Tooling\getenv_required')]
+#[CoversFunction('DrevOps\Eddy\Tooling\getenv_or_fail')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersGetenvTest extends UnitTestCase {
@@ -103,14 +103,14 @@ final class HelpersGetenvTest extends UnitTestCase {
     getenv_default('SINGLE_ARG');
   }
 
-  #[DataProvider('dataProviderGetenvRequired')]
-  public function testGetenvRequired(array $env_vars, array $args, string $expected): void {
+  #[DataProvider('dataProviderGetenvOrFail')]
+  public function testGetenvOrFail(array $env_vars, array $args, string $expected): void {
     self::envSetMultiple($env_vars);
-    $result = getenv_required(...$args);
+    $result = getenv_or_fail(...$args);
     $this->assertSame($expected, $result);
   }
 
-  public static function dataProviderGetenvRequired(): \Iterator {
+  public static function dataProviderGetenvOrFail(): \Iterator {
     yield 'first var set' => [
       'env_vars' => ['FIRST_VAR' => 'first_value'],
       'args' => ['FIRST_VAR', 'SECOND_VAR'],
@@ -148,17 +148,17 @@ final class HelpersGetenvTest extends UnitTestCase {
     ];
   }
 
-  #[DataProvider('dataProviderGetenvRequiredFails')]
-  public function testGetenvRequiredFails(array $env_vars, array $args, string $expected_message): void {
+  #[DataProvider('dataProviderGetenvOrFailMissingValue')]
+  public function testGetenvOrFailMissingValue(array $env_vars, array $args, string $expected_message): void {
     self::envSetMultiple($env_vars);
     $this->mockQuit(1);
 
-    $output = $this->capture(fn(): string => getenv_required(...$args), 1);
+    $output = $this->capture(fn(): string => getenv_or_fail(...$args), 1);
 
     $this->assertStringContainsString($expected_message, $output);
   }
 
-  public static function dataProviderGetenvRequiredFails(): \Iterator {
+  public static function dataProviderGetenvOrFailMissingValue(): \Iterator {
     yield 'no vars set' => [
       'env_vars' => [],
       'args' => ['UNSET_VAR_1', 'UNSET_VAR_2'],
@@ -176,10 +176,10 @@ final class HelpersGetenvTest extends UnitTestCase {
     ];
   }
 
-  public function testGetenvRequiredInvalidArgumentsThrowsException(): void {
+  public function testGetenvOrFailInvalidArgumentsThrowsException(): void {
     $this->expectException(\InvalidArgumentException::class);
-    $this->expectExceptionMessage('getenv_required() requires at least 1 argument');
-    getenv_required();
+    $this->expectExceptionMessage('getenv_or_fail() requires at least 1 argument');
+    getenv_or_fail();
   }
 
 }

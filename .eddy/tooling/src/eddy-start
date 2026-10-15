@@ -25,21 +25,21 @@ $webserver_host = $webserver['host'];
 $webserver_port = $webserver['port'];
 
 // Webserver wait timeout.
-$webserver_wait_timeout = validate_timeout_or_fail(getenv_default('WEBSERVER_WAIT_TIMEOUT', '5'), 'WEBSERVER_WAIT_TIMEOUT');
+$webserver_wait_timeout = validate_timeout_or_fail(resolve_env_value('WEBSERVER_WAIT_TIMEOUT', '5')['value'], 'WEBSERVER_WAIT_TIMEOUT');
 
 // Webserver log file.
-$webserver_log = '.logs/php.log';
+$webserver_log = LOGS_DIR . '/php.log';
 
 // The docroot identifies the webserver of this project among the processes
 // that listen on the port.
 $root = (string) getcwd();
 $docroot = $root . '/build/web';
 
-// Enable XDebug when XDebug env var is set. XDebug extension must be installed
-// and configured on host environment (php -v should show `with Xdebug`).
-// The flags apply only to the development server, so test commands keep pcov
-// as the coverage driver.
-$xdebug_enabled = getenv_default('XDEBUG', '') !== '';
+// Enable XDebug when XDEBUG is set in the environment or '.env'. XDebug
+// extension must be installed and configured on host environment (php -v
+// should show `with Xdebug`). The flags apply only to the development server,
+// so test commands keep pcov as the coverage driver.
+$xdebug_enabled = resolve_env_value('XDEBUG', '')['value'] !== '';
 $xdebug_flags = $xdebug_enabled ? ' -d xdebug.mode=debug -d xdebug.start_with_request=yes' : '';
 
 // -----------------------------------------------------------------------------
@@ -76,7 +76,7 @@ passthru(sprintf('nohup php%s -S %s:%s -t %s %s >%s 2>&1 &', $xdebug_flags, esca
 NOTE('Waiting up to %s seconds for the server to be ready.', (string) $webserver_wait_timeout);
 
 if (!wait_for_port($webserver_host, $webserver_port, $webserver_wait_timeout)) {
-  $content = @file_get_contents($webserver_log) ?: '';
+  $content = file_read($webserver_log);
   FAIL('Unable to start inbuilt PHP server.%s', $content !== '' ? "\n" . $content : '');
 }
 

@@ -29,10 +29,17 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
     chdir(self::$sut);
   }
 
+  /**
+   * @param string $nvmrc
+   *   What '.nvmrc' is: 'file', 'directory' or 'none'.
+   */
   #[DataProvider('dataProviderNvmPrefix')]
-  public function testNvmPrefix(bool $has_nvmrc, bool $has_nvm, string $expected_prefix, string $expected_note): void {
-    if ($has_nvmrc) {
+  public function testNvmPrefix(string $nvmrc, bool $has_nvm, string $expected_prefix, string $expected_note): void {
+    if ($nvmrc === 'file') {
       File::dump('.nvmrc', "22\n");
+    }
+    elseif ($nvmrc === 'directory') {
+      File::mkdir('.nvmrc', 0755);
     }
 
     $nvm_dir = self::createNvmDir($has_nvm ? 'nvm() { :; }' : NULL);
@@ -55,10 +62,11 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
   }
 
   public static function dataProviderNvmPrefix(): \Iterator {
-    yield 'no .nvmrc' => [FALSE, TRUE, '', ''];
-    yield 'no .nvmrc and no nvm' => [FALSE, FALSE, '', ''];
-    yield '.nvmrc without nvm' => [TRUE, FALSE, '', 'nvm is not installed in %s; using the Node.js on PATH, not the version in .nvmrc.'];
-    yield '.nvmrc with nvm' => [TRUE, TRUE, self::PREFIX, 'Using the Node.js version in .nvmrc with nvm from %s.'];
+    yield 'no .nvmrc' => ['none', TRUE, '', ''];
+    yield 'no .nvmrc and no nvm' => ['none', FALSE, '', ''];
+    yield '.nvmrc directory' => ['directory', TRUE, '', ''];
+    yield '.nvmrc without nvm' => ['file', FALSE, '', 'nvm is not installed in %s; using the Node.js on PATH, not the version in .nvmrc.'];
+    yield '.nvmrc with nvm' => ['file', TRUE, self::PREFIX, 'Using the Node.js version in .nvmrc with nvm from %s.'];
   }
 
   #[DataProvider('dataProviderNvmPrefixRunsInShell')]

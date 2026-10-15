@@ -55,16 +55,27 @@ final class HelpersReplaceInFileTest extends UnitTestCase {
   public function testReplaceInFileMissingFile(): void {
     $file = self::$tmp . '/nonexistent_' . uniqid() . '.txt';
     $this->mockQuit(1);
-    set_error_handler(static fn(): bool => TRUE);
 
-    try {
-      $output = $this->capture(fn(): string => replace_in_file($file, '/foo/', 'bar'), 1);
-    }
-    finally {
-      restore_error_handler();
-    }
+    $output = $this->capture(fn(): string => replace_in_file($file, '/foo/', 'bar'), 1);
 
-    $this->assertStringContainsString('Unable to read ', $output);
+    $this->assertStringContainsString('Unable to read ' . $file . '.', $output);
+  }
+
+  #[DataProvider('dataProviderReplaceInFileFails')]
+  public function testReplaceInFileFails(string $function, string $expected_message): void {
+    $file = self::$tmp . '/replace_' . uniqid() . '.txt';
+    File::dump($file, 'Hello World');
+    $this->mockFunction($function, fn(): false => FALSE);
+    $this->mockQuit(1);
+
+    $output = $this->capture(fn(): string => replace_in_file($file, '/World/', 'PHP'), 1);
+
+    $this->assertStringContainsString(sprintf($expected_message, $file), $output);
+  }
+
+  public static function dataProviderReplaceInFileFails(): \Iterator {
+    yield 'reading the file' => ['file_get_contents', 'Unable to read %s.'];
+    yield 'writing the file' => ['file_put_contents', 'Unable to write %s.'];
   }
 
   public function testReplaceInFileInvalidRegex(): void {

@@ -17,6 +17,7 @@ final class ProvisionTest extends UnitTestCase {
   protected function setUp(): void {
     parent::setUp();
     self::envUnset('CLOUDFLARE_TUNNEL');
+    self::envUnset('DRUPAL_PROFILE');
   }
 
   protected static function drushPrefix(string $cwd): string {
@@ -27,10 +28,10 @@ final class ProvisionTest extends UnitTestCase {
    * @return array<int, array{cmd: string, output?: string}>
    *   The drush commands of a provision into a new database, in order.
    */
-  protected static function drushCommands(string $prefix, string $db_file, string $site_url, string $drush_version = '13.8.0', string $uli_options = ' --no-browser', string $extension_name = 'test_extension'): array {
+  protected static function drushCommands(string $prefix, string $db_file, string $site_url, string $drush_version = '13.8.0', string $uli_options = ' --no-browser', string $extension_name = 'test_extension', string $profile = 'standard'): array {
     return [
       ['cmd' => $prefix . 'status --field=db-status', 'output' => ''],
-      ['cmd' => $prefix . sprintf('site-install %s -y --db-url=%s --account-name=admin install_configure_form.enable_update_status_module=NULL install_configure_form.enable_update_status_emails=NULL', escapeshellarg('standard'), escapeshellarg('sqlite://localhost/' . $db_file))],
+      ['cmd' => $prefix . sprintf('site-install %s -y --db-url=%s --account-name=admin install_configure_form.enable_update_status_module=NULL install_configure_form.enable_update_status_emails=NULL', escapeshellarg($profile), escapeshellarg('sqlite://localhost/' . $db_file))],
       ['cmd' => $prefix . 'status'],
       ['cmd' => $prefix . 'pm:enable ' . escapeshellarg($extension_name)],
       ['cmd' => $prefix . 'cr'],
@@ -97,15 +98,14 @@ final class ProvisionTest extends UnitTestCase {
       return '';
     });
 
-    $this->mockFunction('file_exists', function (string $file) use ($has_ahoy, $has_makefile): bool {
-      if ($file === '.ahoy.yml') {
-        return $has_ahoy;
-      }
-      if ($file === 'Makefile') {
-        return $has_makefile;
-      }
-      return FALSE;
-    });
+    $this->mockIsFile([
+      $extension_name . '.info.yml' => TRUE,
+      'composer.json' => TRUE,
+      'build/composer.lock' => $locked_types !== NULL,
+      '.env' => FALSE,
+      '.ahoy.yml' => $has_ahoy,
+      'Makefile' => $has_makefile,
+    ]);
 
     $prefix = self::drushPrefix($cwd);
     $passthru_responses = [];
@@ -308,7 +308,7 @@ final class ProvisionTest extends UnitTestCase {
    *   The strings the output does not contain.
    */
   #[DataProvider('dataProviderProvisionReadsDotenv')]
-  public function testProvisionReadsDotenv(string $dotenv, string $site_url, array $expected_present, array $expected_absent): void {
+  public function testProvisionReadsDotenv(string $dotenv, string $site_url, string $expected_profile, array $expected_present, array $expected_absent): void {
     $extension_name = 'test_extension';
     $info_content = "name: Test\ntype: module\n";
 
@@ -332,11 +332,11 @@ final class ProvisionTest extends UnitTestCase {
       return '';
     });
 
-    $this->mockFunction('file_exists', fn(string $file): bool => $file === '.env');
+    $this->mockIsFile([$extension_name . '.info.yml' => TRUE, 'composer.json' => TRUE, '.env' => TRUE]);
 
     $prefix = self::drushPrefix(self::PROJECT_ROOT);
     $db_file = site_db_file($extension_name);
-    $this->mockPassthruMultiple(self::drushCommands($prefix, $db_file, $site_url));
+    $this->mockPassthruMultiple(self::drushCommands($prefix, $db_file, $site_url, profile: $expected_profile));
 
     $output = $this->runCommand('eddy-provision');
 
@@ -350,15 +350,17 @@ final class ProvisionTest extends UnitTestCase {
   }
 
   public static function dataProviderProvisionReadsDotenv(): \Iterator {
-    yield 'port from .env' => ["WEBSERVER_PORT=8123\n", 'http://localhost:8123', ['http://localhost:8123'], []];
+    yield 'port from .env' => ["WEBSERVER_PORT=8123\n", 'http://localhost:8123', 'standard', ['http://localhost:8123'], []];
     // The pre-warm still hits the local host:port, but the login link and the
     // completion banner report the public tunnel URL.
     yield 'tunnel URL from .env' => [
       "WEBSERVER_PORT=8000\nTUNNEL_URL=https://abc.trycloudflare.com\n",
       'https://abc.trycloudflare.com',
+      'standard',
       ['Site URL:            https://abc.trycloudflare.com'],
       ['Site URL:            http://'],
     ];
+    yield 'profile from .env' => ["DRUPAL_PROFILE=minimal\n", 'http://localhost:8000', 'minimal', ['PROVISION COMPLETE'], []];
   }
 
   #[DataProvider('dataProviderProvisionLoginLinkOptions')]
@@ -383,7 +385,7 @@ final class ProvisionTest extends UnitTestCase {
       return '';
     });
 
-    $this->mockFunction('file_exists', fn(): bool => FALSE);
+    $this->mockIsFile([$extension_name . '.info.yml' => TRUE, 'composer.json' => TRUE, '.env' => FALSE]);
 
     $prefix = self::drushPrefix(self::PROJECT_ROOT);
     $db_file = site_db_file($extension_name);
@@ -427,7 +429,7 @@ final class ProvisionTest extends UnitTestCase {
       return (string) \file_get_contents($file);
     });
 
-    $this->mockFunction('file_exists', fn(): bool => FALSE);
+    $this->mockIsFile([$extension_name . '.info.yml' => TRUE, 'composer.json' => TRUE, '.env' => FALSE]);
 
     $prefix = self::drushPrefix($cwd);
     $db_file = site_db_file($extension_name);

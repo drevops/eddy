@@ -30,13 +30,13 @@ require_once __DIR__ . '/helpers.php';
 // -----------------------------------------------------------------------------
 
 // Name of the user who will be committing to a remote repository.
-$deploy_user_name = getenv_required('DEPLOY_USER_NAME');
+$deploy_user_name = getenv_or_fail('DEPLOY_USER_NAME');
 
 // Email address of the user who will be committing to a remote repository.
-$deploy_user_email = getenv_required('DEPLOY_USER_EMAIL');
+$deploy_user_email = getenv_or_fail('DEPLOY_USER_EMAIL');
 
 // Remote repository to push code to.
-$deploy_remote = getenv_required('DEPLOY_REMOTE');
+$deploy_remote = getenv_or_fail('DEPLOY_REMOTE');
 
 // Git branch to deploy. If not provided - current branch will be used.
 $deploy_branch = getenv_default('DEPLOY_BRANCH', '');
@@ -64,12 +64,8 @@ if ($deploy_ssh_key_fingerprint !== '') {
 
   $home = getenv('HOME') ?: '';
   $ssh_dir = $home . '/.ssh';
-
-  if (!is_dir($ssh_dir)) {
-    mkdir($ssh_dir, 0700, TRUE);
-  }
-
-  file_put_contents($ssh_dir . '/config', "\nHost *\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile /dev/null\n");
+  mkdir_or_fail($ssh_dir, 0700);
+  file_write_or_fail($ssh_dir . '/config', "\nHost *\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile /dev/null\n");
 
   // Find the MD5 hash if the DEPLOY_SSH_KEY_FINGERPRINT starts with SHA256.
   if (str_starts_with($deploy_ssh_key_fingerprint, 'SHA256:')) {
@@ -97,7 +93,7 @@ if ($deploy_ssh_key_fingerprint !== '') {
   $fingerprint_clean = str_replace([':', '"'], '', $deploy_ssh_key_fingerprint);
   $key_file = $home . '/.ssh/id_rsa_' . $fingerprint_clean;
 
-  if (!file_exists($key_file)) {
+  if (!is_file($key_file)) {
     FAIL('Unable to find SSH key file %s.', $key_file);
   }
 

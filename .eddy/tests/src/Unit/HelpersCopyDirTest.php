@@ -10,8 +10,10 @@ use DrevOps\Eddy\Tests\Traits\DirectoryFixtureTrait;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 #[CoversFunction('DrevOps\Eddy\Tooling\copy_dir')]
+#[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersCopyDirTest extends UnitTestCase {
 
@@ -159,6 +161,28 @@ final class HelpersCopyDirTest extends UnitTestCase {
     copy_dir($src, $dst);
 
     $this->assertSame('new content', File::read($dst . '/file.txt'));
+  }
+
+  #[DataProvider('dataProviderCopyDirFails')]
+  public function testCopyDirFails(string $function, string $expected_message): void {
+    $src = self::$tmp . '/src_' . uniqid();
+    $dst = self::$tmp . '/dst_' . uniqid();
+
+    self::directoryFixtureCreate($src, [
+      'file.txt' => 'content',
+    ]);
+
+    $this->mockFunction($function, fn(): false => FALSE);
+    $this->mockQuit(1);
+
+    $output = $this->capture(fn() => copy_dir($src, $dst), 1);
+
+    $this->assertStringContainsString(sprintf($expected_message, $src, $dst), $output);
+  }
+
+  public static function dataProviderCopyDirFails(): \Iterator {
+    yield 'creating the destination' => ['mkdir', 'Unable to create directory %2$s.'];
+    yield 'copying a file' => ['copy', 'Unable to copy %1$s/file.txt to %2$s/file.txt.'];
   }
 
 }

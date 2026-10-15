@@ -51,4 +51,16 @@ final class HelpersExtensionInfoTest extends UnitTestCase {
     $this->assertStringContainsString('No .info.yml file found', $output);
   }
 
+  public function testExtensionInfoUnreadableFile(): void {
+    $dir = self::$tmp . '/ext_unreadable_' . uniqid();
+    File::dump($dir . '/my_theme.info.yml', "name: My Theme\ntype: theme\n");
+    chdir($dir);
+    $this->mockFunction('file_get_contents', fn(): false => FALSE);
+    $this->mockQuit(1);
+
+    $output = $this->capture(fn(): array => extension_info(), 1);
+
+    $this->assertStringContainsString('Unable to read my_theme.info.yml.', $output);
+  }
+
 }
