@@ -975,7 +975,8 @@ if (getenv('SCRIPT_RUN_SKIP') !== '1') {
   ini_set('display_errors', '1');
 
   if (PHP_SAPI !== 'cli' || !empty($_SERVER['REMOTE_ADDR'])) {
-    die('This script can be only ran from the command line.');
+    print 'This script can only be run from the command line.' . PHP_EOL;
+    exit(1);
   }
 
   set_error_handler(function (int $severity, string $message, string $file, int $line): bool {
