@@ -470,7 +470,7 @@ final class UpdateAssetsTest extends UnitTestCase {
   #[DataProvider('dataProviderPathReplacements')]
   public function testPathReplacements(string|false $home, array $expected): void {
     $workspace_dir = self::$sut . '/workspace';
-    File::mkdir($workspace_dir);
+    File::mkdir($workspace_dir, 0755);
     putenv($home === FALSE ? 'HOME' : 'HOME=' . $home);
 
     $replacements = path_replacements($workspace_dir);
@@ -611,7 +611,7 @@ final class UpdateAssetsTest extends UnitTestCase {
     preg_match_all("/Prompty::(?:text|select|multiselect|confirm)\(\s*'([^']+)'/", $install, $labels);
     preg_match_all('/^expect "([^"]+)"$/m', install_steps(), $patterns);
 
-    $this->assertNotEmpty($labels[1]);
+    $this->assertNotSame([], $labels[1]);
     $this->assertCount(count($labels[1]), $patterns[1], 'Every install prompt has 1 expect statement, in order.');
 
     foreach ($labels[1] as $index => $label) {

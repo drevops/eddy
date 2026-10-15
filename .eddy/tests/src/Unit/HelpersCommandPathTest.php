@@ -41,8 +41,8 @@ final class HelpersCommandPathTest extends UnitTestCase {
   }
 
   public function testCommandMustExistAvailable(): void {
-    $this->expectNotToPerformAssertions();
     command_must_exist('php');
+    $this->expectNotToPerformAssertions();
   }
 
   public function testCommandMustExistUnavailable(): void {

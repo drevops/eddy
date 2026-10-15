@@ -1032,7 +1032,7 @@ final class InstallHelpersTest extends UnitTestCase {
       self::gitRun(self::$sut, $command);
     }
 
-    File::mkdir(self::$sut . '/' . $directory);
+    File::mkdir(self::$sut . '/' . $directory, 0755);
     chdir(self::$sut . '/' . $directory);
 
     $this->assertSame($expected, origin_github_repository());
@@ -1830,7 +1830,7 @@ final class InstallHelpersTest extends UnitTestCase {
   }
 
   public static function dataProviderRemoveCspellEddyPaths(): \Iterator {
-    $cspell = static fn(array $paths): string => (string) json_encode(['files' => ['**'], 'ignorePaths' => $paths]);
+    $cspell = static fn(array $paths): string => json_encode(['files' => ['**'], 'ignorePaths' => $paths], JSON_THROW_ON_ERROR);
 
     yield 'eddy paths go' => [$cspell(['build/', '.eddy/docs/', '.eddy/tests/fixtures/', 'vendor/']), ['build/', 'vendor/']];
     yield 'anchored eddy path goes' => [$cspell(['/.eddy/docs/', 'build/']), ['build/']];
@@ -1874,7 +1874,7 @@ final class InstallHelpersTest extends UnitTestCase {
   }
 
   public static function dataProviderRemoveUnusedCspellWords(): \Iterator {
-    $cspell = static fn(array $words): string => (string) json_encode(['files' => ['**'], 'words' => $words]);
+    $cspell = static fn(array $words): string => json_encode(['files' => ['**'], 'words' => $words], JSON_THROW_ON_ERROR);
 
     yield 'unused word goes' => [$cspell(['ahoy', 'lullabot']), ['Makefile' => 'ahoy'], ['lullabot'], ['ahoy']];
     yield 'word in another case goes' => [$cspell(['Lullabot', 'phpcs']), ['phpcs.xml' => 'phpcs'], ['lullabot'], ['phpcs']];

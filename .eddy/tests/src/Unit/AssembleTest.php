@@ -277,7 +277,7 @@ final class AssembleTest extends UnitTestCase {
     // directory.
     if ($config['has_nvmrc']) {
       $config['nvm_dir'] = self::$tmp . '/nvm';
-      File::mkdir($config['nvm_dir']);
+      File::mkdir($config['nvm_dir'], 0755);
 
       if ($config['has_nvm']) {
         File::dump($config['nvm_dir'] . '/nvm.sh');
@@ -358,7 +358,7 @@ final class AssembleTest extends UnitTestCase {
     // RecursiveDirectoryIterator and cannot be mocked.
     $temp_dirs = [];
     if ($config['has_patches'] ?? FALSE) {
-      File::mkdir('patches');
+      File::mkdir('patches', 0755);
       $temp_dirs[] = 'patches';
     }
 
@@ -382,7 +382,7 @@ final class AssembleTest extends UnitTestCase {
     $this->assertStringContainsString('ASSEMBLE COMPLETE', $output);
 
     $this->assertStringContainsString('Test dependencies configured', $output);
-    $this->assertNotEmpty($this->capturedBuildComposerJson, 'Expected at least one write to build/composer.json');
+    $this->assertNotSame([], $this->capturedBuildComposerJson, 'Expected at least one write to build/composer.json');
     $all_writes = implode("\n", $this->capturedBuildComposerJson);
     $this->assertStringContainsString('symfony/phpunit-bridge', $all_writes);
 
@@ -713,7 +713,7 @@ final class AssembleTest extends UnitTestCase {
     $last_write = end($this->capturedBuildComposerJson);
     $this->assertIsString($last_write);
 
-    $build_json = json_decode($last_write, TRUE, 512, JSON_THROW_ON_ERROR);
+    $build_json = json_decode($last_write, TRUE);
     $this->assertIsArray($build_json);
     /** @var array{'minimum-stability': string, 'prefer-stable': bool, require: array<string, string>, 'require-dev': array<string, string>, config: array<string, mixed>} $build_json */
 
@@ -748,7 +748,7 @@ final class AssembleTest extends UnitTestCase {
     self::envSet('GITHUB_TOKEN', '');
     self::envSet('SYMFONY_DEPRECATIONS_HELPER', '');
 
-    $dev_composer_json = json_decode(File::read(self::rootDir() . '/composer.dev.json'), TRUE, 512, JSON_THROW_ON_ERROR);
+    $dev_composer_json = json_decode(File::read(self::rootDir() . '/composer.dev.json'), TRUE);
     $this->assertIsArray($dev_composer_json);
     /** @var array{extra: array<string, mixed>} $dev_composer_json */
     $dev_composer_json['extra']['patches'] = ['drupal/core' => ['Patch from composer.dev.json' => 'patches/dev.patch']];
@@ -763,7 +763,7 @@ final class AssembleTest extends UnitTestCase {
     $last_write = end($this->capturedBuildComposerJson);
     $this->assertIsString($last_write);
 
-    $build_json = json_decode($last_write, TRUE, 512, JSON_THROW_ON_ERROR);
+    $build_json = json_decode($last_write, TRUE);
     $this->assertIsArray($build_json);
     /** @var array{'require-dev': array<string, string>, config: array{'allow-plugins': array<string, bool>}, extra: array{patches: array<string, array<string, string>>}} $build_json */
 
@@ -826,7 +826,7 @@ final class AssembleTest extends UnitTestCase {
 
     $last_write = end($this->capturedBuildComposerJson);
     $this->assertIsString($last_write);
-    $build_json = json_decode($last_write, TRUE, 512, JSON_THROW_ON_ERROR);
+    $build_json = json_decode($last_write, TRUE);
     $this->assertIsArray($build_json);
     /** @var array{'require-dev': array<string, string>, extra: array<string, mixed>} $build_json */
 
@@ -985,7 +985,7 @@ final class AssembleTest extends UnitTestCase {
 
     $last_write = end($this->capturedBuildComposerJson);
     $this->assertIsString($last_write);
-    $build_json = json_decode($last_write, TRUE, 512, JSON_THROW_ON_ERROR);
+    $build_json = json_decode($last_write, TRUE);
     $this->assertIsArray($build_json);
     /** @var array{config: array{platform: array{php: string}}} $build_json */
 

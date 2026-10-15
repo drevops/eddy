@@ -481,7 +481,7 @@ final class BrowserStartTest extends UnitTestCase {
     $this->assertStringContainsString('Using installed chromedriver at /usr/local/bin/chromedriver', $output);
     $this->assertStringContainsString('chromedriver is ready on port 4444', $output);
     $this->assertSame([['/usr/bin/google-chrome', '--version'], ['/usr/local/bin/chromedriver', '--version']], $this->probes, 'Each binary must be probed by its resolved path, without a shell.');
-    $this->assertNotEmpty($commands);
+    $this->assertNotSame([], $commands);
     $this->assertStringContainsString('nohup', $commands[0]);
     $this->assertStringContainsString('--port=', $commands[0]);
     $this->assertStringContainsString(">'.logs/chromedriver.log' 2>&1", $commands[0], 'chromedriver must log to the project logs directory.');
@@ -503,8 +503,8 @@ final class BrowserStartTest extends UnitTestCase {
 
     $this->assertStringContainsString('does not match Chrome 150.0.7871.129', $output);
     $this->assertStringContainsString('chromedriver is ready on port 4444', $output);
-    $this->assertTrue((bool) array_filter($commands, fn(string $c): bool => str_contains($c, 'npx')), 'A version mismatch must trigger an npx download.');
-    $this->assertTrue((bool) array_filter($commands, fn(string $c): bool => str_contains($c, 'nohup') && str_contains($c, '/cache/chromedriver')), 'The freshly fetched binary must be launched.');
+    $this->assertNotSame([], array_filter($commands, fn(string $c): bool => str_contains($c, 'npx')), 'A version mismatch must trigger an npx download.');
+    $this->assertNotSame([], array_filter($commands, fn(string $c): bool => str_contains($c, 'nohup') && str_contains($c, '/cache/chromedriver')), 'The freshly fetched binary must be launched.');
   }
 
   public function testBrowserStartFallsBackToNpxWhenDriverProbeTimesOut(): void {
@@ -522,8 +522,8 @@ final class BrowserStartTest extends UnitTestCase {
     $this->assertStringContainsString("If macOS has quarantined it, clear the flag with: xattr -d com.apple.quarantine '/usr/local/bin/chromedriver'", $output);
     $this->assertStringNotContainsString('Using installed chromedriver', $output);
     $this->assertStringContainsString('chromedriver is ready on port 4444', $output);
-    $this->assertTrue((bool) array_filter($commands, fn(string $c): bool => str_contains($c, 'npx')), 'A chromedriver that does not answer must trigger an npx download.');
-    $this->assertTrue((bool) array_filter($commands, fn(string $c): bool => str_contains($c, 'nohup') && str_contains($c, '/cache/chromedriver')), 'The freshly fetched binary must be launched, not the one that did not answer.');
+    $this->assertNotSame([], array_filter($commands, fn(string $c): bool => str_contains($c, 'npx')), 'A chromedriver that does not answer must trigger an npx download.');
+    $this->assertNotSame([], array_filter($commands, fn(string $c): bool => str_contains($c, 'nohup') && str_contains($c, '/cache/chromedriver')), 'The freshly fetched binary must be launched, not the one that did not answer.');
   }
 
   public function testBrowserStartFailsWhenChromeProbeTimesOut(): void {
@@ -674,7 +674,7 @@ final class BrowserStartTest extends UnitTestCase {
 
     $this->assertStringContainsString('chromedriver is ready on port 4445', $output);
     $this->assertSame('4445', $persisted, 'The discovered port must be persisted to .env.');
-    $this->assertNotEmpty($commands);
+    $this->assertNotSame([], $commands);
     $this->assertStringContainsString("--port='4445'", $commands[0], 'chromedriver must bind the discovered port, not the occupied default.');
   }
 
@@ -800,9 +800,9 @@ final class BrowserStartTest extends UnitTestCase {
     $output = $this->runBrowserStart();
 
     $this->assertStringContainsString('Selenium is ready on port 4444', $output);
-    $this->assertTrue((bool) array_filter($commands, fn(string $c): bool => str_contains($c, 'docker rm -f')), 'A stale container must be removed before starting a new one.');
+    $this->assertNotSame([], array_filter($commands, fn(string $c): bool => str_contains($c, 'docker rm -f')), 'A stale container must be removed before starting a new one.');
     $run_commands = array_filter($commands, fn(string $c): bool => str_contains($c, 'docker run'));
-    $this->assertNotEmpty($run_commands, 'The Selenium container must be started.');
+    $this->assertNotSame([], $run_commands, 'The Selenium container must be started.');
     $run_command = (string) reset($run_commands);
     $this->assertStringContainsString("'4444':4444", $run_command, 'The container must publish the resolved WebDriver port.');
     $this->assertStringContainsString('--shm-size=2g', $run_command, 'The container must get the shared memory size Chromium needs.');
@@ -826,11 +826,11 @@ final class BrowserStartTest extends UnitTestCase {
     $this->assertStringContainsString('Selenium is ready on port 4445', $output);
     $this->assertSame('4445', $persisted, 'The discovered port must be persisted to .env.');
     $run_commands = array_filter($commands, fn(string $c): bool => str_contains($c, 'docker run'));
-    $this->assertNotEmpty($run_commands, 'The Selenium container must be started.');
+    $this->assertNotSame([], $run_commands, 'The Selenium container must be started.');
     $run_command = (string) reset($run_commands);
     $this->assertStringContainsString("'4445':4444", $run_command, 'The container must publish the discovered port, not the occupied default.');
     $this->assertStringContainsString("--name 'selenium-4445'", $run_command, "The container name must be scoped to the endpoint port, or a second project removes the first project's container.");
-    $this->assertTrue((bool) array_filter($commands, fn(string $c): bool => str_contains($c, "docker rm -f 'selenium-4445'")), "Only this project's stale container may be removed before starting a new one.");
+    $this->assertNotSame([], array_filter($commands, fn(string $c): bool => str_contains($c, "docker rm -f 'selenium-4445'")), "Only this project's stale container may be removed before starting a new one.");
   }
 
   public function testBrowserStartSeleniumFailsWithoutDocker(): void {

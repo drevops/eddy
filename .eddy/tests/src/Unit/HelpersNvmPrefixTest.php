@@ -153,7 +153,7 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
    */
   protected static function createNvmDir(?string $script): string {
     $dir = self::$tmp . '/nvm';
-    File::mkdir($dir);
+    File::mkdir($dir, 0755);
 
     if ($script !== NULL) {
       File::dump($dir . '/nvm.sh', $script . PHP_EOL);

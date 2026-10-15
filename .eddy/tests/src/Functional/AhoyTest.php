@@ -248,7 +248,7 @@ final class AhoyTest extends ToolingTestCase {
     // so a relative sys_get_temp_dir() resolves against build/ and tempnam()
     // fails. The wrapper resolves TMPDIR to an absolute path first, so
     // linting still passes when TMPDIR is relative.
-    File::mkdir(self::$sut . '/.logs/relative-tmp');
+    File::mkdir(self::$sut . '/.logs/relative-tmp', 0755);
     $this->processRun('ahoy', ['lint'], [], ['TMPDIR' => '.logs/relative-tmp'], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
 

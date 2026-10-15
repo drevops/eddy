@@ -121,7 +121,7 @@ final class AssembleTest extends ToolingTestCase {
     File::dump(self::$sut . '/patches/' . $name, $diff);
 
     $manifest_path = self::$sut . '/' . $manifest;
-    $config = json_decode(File::read($manifest_path), TRUE, 512, JSON_THROW_ON_ERROR);
+    $config = json_decode(File::read($manifest_path), TRUE);
     $this->assertIsArray($config);
     /** @var array{extra?: array{patches?: array<string, array<string, string>>}} $config */
     $config['extra']['patches']['drupal/core'][$name] = 'patches/' . $name;

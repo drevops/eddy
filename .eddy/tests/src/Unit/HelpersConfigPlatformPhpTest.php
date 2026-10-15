@@ -32,7 +32,7 @@ final class HelpersConfigPlatformPhpTest extends UnitTestCase {
   }
 
   public static function dataProviderConfigPlatformPhp(): \Iterator {
-    $platform = static fn(mixed $php): string => (string) json_encode(['config' => ['platform' => ['php' => $php]]]);
+    $platform = static fn(mixed $php): string => json_encode(['config' => ['platform' => ['php' => $php]]], JSON_THROW_ON_ERROR);
 
     yield 'no manifests' => [NULL, NULL, NULL];
     yield 'no platform' => ['{"config": {"sort-packages": true}}', '{}', NULL];

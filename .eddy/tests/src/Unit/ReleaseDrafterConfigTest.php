@@ -29,7 +29,7 @@ final class ReleaseDrafterConfigTest extends UnitTestCase {
     $categories = self::config()['categories'] ?? NULL;
 
     if (!is_array($categories)) {
-      self::fail('The release drafter configuration declares no `categories`.');
+      $this->fail('The release drafter configuration declares no `categories`.');
     }
 
     $increments = [];

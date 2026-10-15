@@ -215,13 +215,13 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
     $server = stream_socket_server('tcp://127.0.0.1:0');
 
     if ($server === FALSE) {
-      self::fail('Unable to listen on a local port.');
+      $this->fail('Unable to listen on a local port.');
     }
 
     $address = stream_socket_get_name($server, FALSE);
 
     if ($address === FALSE) {
-      self::fail('Unable to read the address of the local port.');
+      $this->fail('Unable to read the address of the local port.');
     }
 
     self::gitRun($repository, ['remote', 'set-url', 'origin', sprintf('http://%s/repository.git', $address)]);

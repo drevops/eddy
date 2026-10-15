@@ -85,7 +85,7 @@ final class ToolingInstallerTest extends UnitTestCase {
     $this->assertStringContainsString('[ OK ] Installed drevops/eddy-tooling.', $output);
     $this->assertStringNotContainsString('Composer progress', $output, 'Composer output is shown only on failure.');
     $this->assertSame([self::COMMAND . ' 2>&1'], $this->commands);
-    $this->assertSame(json_encode($expected_manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL, File::read('vendor/eddy-tooling.json'));
+    $this->assertSame(json_encode($expected_manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL, File::read('vendor/eddy-tooling.json'));
   }
 
   public static function dataProviderInstall(): \Iterator {

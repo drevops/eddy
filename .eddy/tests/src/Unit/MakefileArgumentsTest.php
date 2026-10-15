@@ -125,7 +125,7 @@ final class MakefileArgumentsTest extends UnitTestCase {
     sort($listed);
     sort($defined);
 
-    $this->assertNotEmpty($defined);
+    $this->assertNotSame([], $defined);
     $this->assertSame($defined, $listed);
   }
 
@@ -172,7 +172,7 @@ final class MakefileArgumentsTest extends UnitTestCase {
     $lines = preg_split('/\R/', File::read($file), -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
     return array_map(static function (string $line): array {
-      $arguments = json_decode($line, TRUE, 512, JSON_THROW_ON_ERROR);
+      $arguments = json_decode($line, TRUE);
 
       if (!is_array($arguments)) {
         throw new \RuntimeException(sprintf('The stub logged "%s", which holds no arguments.', $line));
