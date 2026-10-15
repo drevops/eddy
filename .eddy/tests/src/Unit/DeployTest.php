@@ -77,7 +77,7 @@ final class DeployTest extends UnitTestCase {
     }
 
     $shell_exec_calls = [];
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', function (string $command) use (&$shell_exec_calls, $git_user_name, $git_user_email): string {
+    $this->mockFunction('shell_exec', function (string $command) use (&$shell_exec_calls, $git_user_name, $git_user_email): string {
       $shell_exec_calls[] = $command;
       if (str_contains($command, 'user.name')) {
         return $git_user_name;
@@ -156,7 +156,7 @@ final class DeployTest extends UnitTestCase {
     self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
     self::envSet('DEPLOY_PROCEED', '1');
 
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(string $command): ?string => match ($command) {
+    $this->mockFunction('shell_exec', fn(string $command): ?string => match ($command) {
       'git symbolic-ref --quiet --short HEAD' => NULL,
       default => throw new \RuntimeException(sprintf('Unexpected command "%s".', $command)),
     });
@@ -188,7 +188,7 @@ final class DeployTest extends UnitTestCase {
     self::envSet('DEPLOY_PROCEED', '1');
     self::envSet('DEPLOY_BRANCH', '1.x');
 
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(): string => 'Existing');
+    $this->mockFunction('shell_exec', fn(): string => 'Existing');
 
     $this->mockPassthruMultiple([
       ['cmd' => 'git config --global push.default matching'],
@@ -228,7 +228,7 @@ final class DeployTest extends UnitTestCase {
       self::envSet('DEPLOY_BRANCH', $deploy_branch);
     }
 
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(string $command): string => str_contains($command, 'symbolic-ref') ? throw new \RuntimeException('A tag deployment must not resolve a branch.') : 'Existing');
+    $this->mockFunction('shell_exec', fn(string $command): string => str_contains($command, 'symbolic-ref') ? throw new \RuntimeException('A tag deployment must not resolve a branch.') : 'Existing');
 
     // A branch push or a push of every tag would be an unexpected call.
     $this->mockPassthruMultiple([
@@ -267,7 +267,7 @@ final class DeployTest extends UnitTestCase {
     self::envSet('DEPLOY_PROCEED', '1');
     self::envSet('DEPLOY_TAG', '1.2.0');
 
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(): string => 'Existing');
+    $this->mockFunction('shell_exec', fn(): string => 'Existing');
 
     $this->mockPassthruMultiple([
       ['cmd' => 'git config --global push.default matching'],
@@ -322,14 +322,14 @@ final class DeployTest extends UnitTestCase {
     self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd:ee:ff');
     self::envSet('HOME', '/home/testuser');
 
-    $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(string $path): bool => str_contains($path, '.ssh'));
+    $this->mockFunction('is_dir', fn(string $path): bool => str_contains($path, '.ssh'));
 
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): int => 100);
+    $this->mockFunction('file_put_contents', fn(): int => 100);
 
     // The fingerprint is cleaned to 'aabbccddeeff'.
     $key_file = '/home/testuser/.ssh/id_rsa_aabbccddeeff';
 
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $file === $key_file);
+    $this->mockFunction('file_exists', fn(string $file): bool => $file === $key_file);
 
     // The running agent is reused, so 'ssh-agent' never runs.
     self::envSet('SSH_AGENT_PID', '12345');
@@ -376,14 +376,14 @@ final class DeployTest extends UnitTestCase {
     self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'SHA256:abcdef123456');
     self::envSet('HOME', '/home/testuser');
 
-    $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(string $path): bool => str_contains($path, '.ssh'));
+    $this->mockFunction('is_dir', fn(string $path): bool => str_contains($path, '.ssh'));
 
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): int => 100);
+    $this->mockFunction('file_put_contents', fn(): int => 100);
 
-    $this->registerMock('glob', 'DrevOps\\Eddy\\Tooling', fn(): array => ['/home/testuser/.ssh/id_rsa_test']);
+    $this->mockFunction('glob', fn(): array => ['/home/testuser/.ssh/id_rsa_test']);
 
     $exec_calls = 0;
-    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $command, ?array &$output = NULL) use (&$exec_calls): int {
+    $this->mockFunction('exec', function (string $command, ?array &$output = NULL) use (&$exec_calls): int {
       $exec_calls++;
       $output ??= [];
       if (str_contains($command, '-E sha256')) {
@@ -398,7 +398,7 @@ final class DeployTest extends UnitTestCase {
     // The MD5 fingerprint is extracted and cleaned to 'aabbccdd'.
     $key_file = '/home/testuser/.ssh/id_rsa_aabbccdd';
 
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $file === $key_file);
+    $this->mockFunction('file_exists', fn(string $file): bool => $file === $key_file);
 
     self::envSet('SSH_AGENT_PID', '12345');
 
@@ -431,10 +431,10 @@ final class DeployTest extends UnitTestCase {
     self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd');
     self::envSet('HOME', '/home/testuser');
 
-    $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): int => 100);
+    $this->mockFunction('is_dir', fn(): true => TRUE);
+    $this->mockFunction('file_put_contents', fn(): int => 100);
 
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
+    $this->mockFunction('file_exists', fn(): false => FALSE);
 
     $this->mockQuit(1);
 
@@ -460,18 +460,18 @@ final class DeployTest extends UnitTestCase {
     self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd');
     self::envSet('HOME', '/home/testuser');
 
-    $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
+    $this->mockFunction('is_dir', fn(): false => FALSE);
 
     $mkdir_calls = [];
-    $this->registerMock('mkdir', 'DrevOps\\Eddy\\Tooling', function (string $dir) use (&$mkdir_calls): true {
+    $this->mockFunction('mkdir', function (string $dir) use (&$mkdir_calls): true {
       $mkdir_calls[] = $dir;
       return TRUE;
     });
 
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): int => 100);
+    $this->mockFunction('file_put_contents', fn(): int => 100);
 
     $key_file = '/home/testuser/.ssh/id_rsa_aabbccdd';
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $file === $key_file);
+    $this->mockFunction('file_exists', fn(string $file): bool => $file === $key_file);
 
     self::envSet('SSH_AGENT_PID', '12345');
 
@@ -516,11 +516,11 @@ final class DeployTest extends UnitTestCase {
       self::envSet('SSH_AGENT_PID', $agent_pid);
     }
 
-    $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): int => 100);
+    $this->mockFunction('is_dir', fn(): true => TRUE);
+    $this->mockFunction('file_put_contents', fn(): int => 100);
 
     $key_file = '/home/testuser/.ssh/id_rsa_aabbccdd';
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $file === $key_file);
+    $this->mockFunction('file_exists', fn(string $file): bool => $file === $key_file);
 
     $this->mockShellExecOutputs(['ssh-agent -s' => "SSH_AUTH_SOCK=/home/testuser/.ssh/agent/s.started; export SSH_AUTH_SOCK;\nSSH_AGENT_PID=4242; export SSH_AGENT_PID;\necho Agent pid 4242;\n"]);
 
@@ -564,9 +564,9 @@ final class DeployTest extends UnitTestCase {
     self::envSet('HOME', '/home/testuser');
     self::envUnset('SSH_AGENT_PID');
 
-    $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): int => 100);
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
+    $this->mockFunction('is_dir', fn(): true => TRUE);
+    $this->mockFunction('file_put_contents', fn(): int => 100);
+    $this->mockFunction('file_exists', fn(): true => TRUE);
 
     $this->mockShellExecOutputs(['ssh-agent -s' => $agent_output]);
     $this->mockPassthruNever();
@@ -600,12 +600,12 @@ final class DeployTest extends UnitTestCase {
     self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'SHA256:nomatch');
     self::envSet('HOME', '/home/testuser');
 
-    $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): int => 100);
+    $this->mockFunction('is_dir', fn(): true => TRUE);
+    $this->mockFunction('file_put_contents', fn(): int => 100);
 
-    $this->registerMock('glob', 'DrevOps\\Eddy\\Tooling', fn(): array => ['/home/testuser/.ssh/id_rsa_test']);
+    $this->mockFunction('glob', fn(): array => ['/home/testuser/.ssh/id_rsa_test']);
 
-    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $command, ?array &$output = NULL): int {
+    $this->mockFunction('exec', function (string $command, ?array &$output = NULL): int {
       $output ??= [];
       if (str_contains($command, '-E sha256')) {
         $output[] = '2048 SHA256:differenthash testuser@host (RSA)';
@@ -614,7 +614,7 @@ final class DeployTest extends UnitTestCase {
     });
 
     // The unconverted fingerprint cleans to 'SHA256nomatch'.
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
+    $this->mockFunction('file_exists', fn(): false => FALSE);
 
     $this->mockQuit(1);
 
@@ -640,13 +640,13 @@ final class DeployTest extends UnitTestCase {
     self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'SHA256:abcdef');
     self::envSet('HOME', '/home/testuser');
 
-    $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): int => 100);
+    $this->mockFunction('is_dir', fn(): true => TRUE);
+    $this->mockFunction('file_put_contents', fn(): int => 100);
 
-    $this->registerMock('glob', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
+    $this->mockFunction('glob', fn(): false => FALSE);
 
     // The SHA256 fingerprint is not converted, so no key file matches.
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
+    $this->mockFunction('file_exists', fn(): false => FALSE);
 
     $this->mockQuit(1);
 
@@ -672,17 +672,17 @@ final class DeployTest extends UnitTestCase {
     self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'SHA256:abcdef');
     self::envSet('HOME', '/home/testuser');
 
-    $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): int => 100);
+    $this->mockFunction('is_dir', fn(): true => TRUE);
+    $this->mockFunction('file_put_contents', fn(): int => 100);
 
-    $this->registerMock('glob', 'DrevOps\\Eddy\\Tooling', fn(): array => ['/home/testuser/.ssh/id_rsa_test']);
+    $this->mockFunction('glob', fn(): array => ['/home/testuser/.ssh/id_rsa_test']);
 
-    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $command, ?array &$output = NULL): int {
+    $this->mockFunction('exec', function (string $command, ?array &$output = NULL): int {
       $output ??= [];
       return 0;
     });
 
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
+    $this->mockFunction('file_exists', fn(): false => FALSE);
 
     $this->mockQuit(1);
 

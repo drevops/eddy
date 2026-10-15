@@ -28,10 +28,10 @@ final class DeployWorkflowConcurrencyTest extends UnitTestCase {
 
   #[DataProvider('dataProviderConcurrency')]
   public function testConcurrency(string $key, string|bool $expected, string $message): void {
-    $concurrency = self::child(self::deployJob(), 'concurrency');
+    $concurrency = self::deployChild(self::deployJob(), 'concurrency');
 
     $this->assertIsArray($concurrency, 'The deploy job must declare a concurrency group.');
-    $this->assertSame($expected, self::child($concurrency, $key), $message);
+    $this->assertSame($expected, self::deployChild($concurrency, $key), $message);
   }
 
   public static function dataProviderConcurrency(): \Iterator {

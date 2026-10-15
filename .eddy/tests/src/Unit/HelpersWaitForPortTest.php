@@ -48,10 +48,10 @@ final class HelpersWaitForPortTest extends UnitTestCase {
 
       return FALSE;
     };
-    $this->registerMock('fsockopen', 'DrevOps\\Eddy\\Tooling', $fsockopen);
+    $this->mockFunction('fsockopen', $fsockopen);
 
     $closed = [];
-    $this->registerMock('fclose', 'DrevOps\\Eddy\\Tooling', function (mixed $stream) use (&$closed): true {
+    $this->mockFunction('fclose', function (mixed $stream) use (&$closed): true {
       $closed[] = $stream;
 
       return TRUE;

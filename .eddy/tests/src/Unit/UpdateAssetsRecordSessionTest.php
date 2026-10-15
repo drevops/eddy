@@ -20,6 +20,8 @@ use function DrevOps\Eddy\Assets\record_session;
 #[Group('p0')]
 final class UpdateAssetsRecordSessionTest extends UnitTestCase {
 
+  protected const string NAMESPACE = 'DrevOps\\Eddy\\Assets';
+
   protected function setUp(): void {
     parent::setUp();
     self::envSet('SCRIPT_RUN_SKIP', '1');
@@ -99,7 +101,7 @@ final class UpdateAssetsRecordSessionTest extends UnitTestCase {
   public function testRecordSessionFailsWithoutExpectScript(): void {
     $expect_script = self::$sut . '/missing.exp';
 
-    $this->getFunctionMock('DrevOps\\Eddy\\Assets', 'exec')->expects($this->never());
+    $this->getFunctionMock(self::NAMESPACE, 'exec')->expects($this->never());
 
     $this->expectException(\RuntimeException::class);
     $this->expectExceptionMessage('Missing expect script: ' . $expect_script);
@@ -122,7 +124,7 @@ final class UpdateAssetsRecordSessionTest extends UnitTestCase {
    *   Lines asciinema prints.
    */
   protected function mockAsciinema(string $cast_file, ?string $cast, int $exit_code, ?string $expected_command = NULL, array $output = []): void {
-    $exec = $this->getFunctionMock('DrevOps\\Eddy\\Assets', 'exec');
+    $exec = $this->getFunctionMock(self::NAMESPACE, 'exec');
     $exec->expects($this->once())->willReturnCallback(function (string $command, ?array &$lines = NULL, ?int &$result_code = NULL) use ($cast_file, $cast, $exit_code, $expected_command, $output): string {
       if ($expected_command !== NULL) {
         $this->assertSame($expected_command, $command);

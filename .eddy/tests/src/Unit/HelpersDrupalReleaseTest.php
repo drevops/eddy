@@ -28,7 +28,7 @@ final class HelpersDrupalReleaseTest extends UnitTestCase {
    *   The exit code Composer returns.
    */
   protected function mockReleaseList(array $output, int $exit_code = 0): void {
-    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $command, ?array &$exec_output = NULL, ?int &$result_code = NULL) use ($output, $exit_code): string {
+    $this->mockFunction('exec', function (string $command, ?array &$exec_output = NULL, ?int &$result_code = NULL) use ($output, $exit_code): string {
       $this->assertSame("composer show --all --format=json 'drupal/recommended-project'", $command);
       $exec_output = $output;
       $result_code = $exit_code;

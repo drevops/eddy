@@ -73,8 +73,6 @@ final class HelpersSeleniumContainerTest extends UnitTestCase {
     $this->mockPassthru(['cmd' => $expected]);
 
     selenium_container_remove($port);
-
-    $this->mockPassthruAssertAllMocksConsumed();
   }
 
   public static function dataProviderSeleniumContainerRemove(): \Iterator {

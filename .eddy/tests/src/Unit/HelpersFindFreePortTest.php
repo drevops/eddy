@@ -135,14 +135,14 @@ final class HelpersFindFreePortTest extends UnitTestCase {
    *   (connect refused => port free).
    */
   protected function mockStreamSocketClient(array $responses): void {
-    $this->addMockResponses('stream_socket_client', $responses);
+    $this->mockAddResponses('stream_socket_client', $responses);
 
     if (isset($this->mocks['stream_socket_client'])) {
       return;
     }
 
-    $this->registerMock('stream_socket_client', 'DrevOps\\Eddy\\Tooling', function (string $address, &$errno = NULL, &$errstr = NULL, ?float $timeout = NULL) {
-      $response = $this->getNextMockResponse('stream_socket_client');
+    $this->mockFunction('stream_socket_client', function (string $address, &$errno = NULL, &$errstr = NULL, ?float $timeout = NULL) {
+      $response = $this->mockNextResponse('stream_socket_client');
       if (!is_int($response['port']) || !is_bool($response['listening'])) {
         throw new \RuntimeException('Mocked stream_socket_client response must have int "port" and bool "listening".');
       }

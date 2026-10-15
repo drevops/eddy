@@ -22,7 +22,7 @@ final class BrowserStopTest extends UnitTestCase {
     parent::setUp();
     self::envUnset('WEBDRIVER_PORT');
     self::envUnset('WEBDRIVER_BACKEND');
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => self::ROOT);
+    $this->mockFunction('getcwd', fn(): string => self::ROOT);
   }
 
   #[DataProvider('dataProviderBrowserStop')]
@@ -31,18 +31,18 @@ final class BrowserStopTest extends UnitTestCase {
       self::envSet($name, $value);
     }
 
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $dotenv !== NULL && $file === '.env');
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(string $file): string|false => $file === '.env' && $dotenv !== NULL ? $dotenv : FALSE);
+    $this->mockFunction('file_exists', fn(string $file): bool => $dotenv !== NULL && $file === '.env');
+    $this->mockFunction('file_get_contents', fn(string $file): string|false => $file === '.env' && $dotenv !== NULL ? $dotenv : FALSE);
 
     $written = FALSE;
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', function (string $file, string $content) use (&$written): int {
+    $this->mockFunction('file_put_contents', function (string $file, string $content) use (&$written): int {
       $written = TRUE;
 
       return strlen($content);
     });
 
     $probed = FALSE;
-    $this->registerMock('stream_socket_client', 'DrevOps\\Eddy\\Tooling', function () use (&$probed): false {
+    $this->mockFunction('stream_socket_client', function () use (&$probed): false {
       $probed = TRUE;
 
       return FALSE;
@@ -187,7 +187,7 @@ final class BrowserStopTest extends UnitTestCase {
 
   public function testBrowserStopFailsOnInvalidPort(): void {
     self::envSet('WEBDRIVER_PORT', '99999');
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
+    $this->mockFunction('file_exists', fn(): false => FALSE);
     $this->mockCommandAvailable('docker', TRUE);
     $this->mockPassthruNever();
     $this->mockQuit(1);

@@ -59,7 +59,7 @@ final class BrowserStartTest extends UnitTestCase {
     self::envUnset('WEBDRIVER_PORT');
     self::envUnset('WEBDRIVER_BACKEND');
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => '/test/project');
+    $this->mockFunction('getcwd', fn(): string => '/test/project');
 
     // Nothing listens on either port the tests resolve, and neither has a
     // Selenium container. A test replaces these outputs to add either.
@@ -68,8 +68,8 @@ final class BrowserStartTest extends UnitTestCase {
 
     // The mocked '.env' supplies port 4444, so the port resolves without the
     // free-port probe.
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $file === '.env');
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', function (string $file): string|false {
+    $this->mockFunction('file_exists', fn(string $file): bool => $file === '.env');
+    $this->mockFunction('file_get_contents', function (string $file): string|false {
       if ($file === '.env') {
         return $this->envFileContent;
       }
@@ -87,7 +87,7 @@ final class BrowserStartTest extends UnitTestCase {
 
       return FALSE;
     });
-    $this->registerMock('mkdir', 'DrevOps\\Eddy\\Tooling', function (string $dir): true {
+    $this->mockFunction('mkdir', function (string $dir): true {
       $this->createdDirs[] = $dir;
 
       return TRUE;
@@ -926,7 +926,7 @@ final class BrowserStartTest extends UnitTestCase {
    *   Ports that answer a connect probe; every other port reads as free.
    */
   protected function mockPortsInUse(array $ports): void {
-    $this->registerMock('stream_socket_client', 'DrevOps\\Eddy\\Tooling', function (string $address, &$errno = NULL, &$errstr = NULL, ?float $timeout = NULL) use ($ports) {
+    $this->mockFunction('stream_socket_client', function (string $address, &$errno = NULL, &$errstr = NULL, ?float $timeout = NULL) use ($ports) {
       if (preg_match('/:(\d+)$/', $address, $matches) !== 1 || !in_array((int) $matches[1], $ports, TRUE)) {
         $errno = 61;
         $errstr = 'Connection refused';
@@ -948,7 +948,7 @@ final class BrowserStartTest extends UnitTestCase {
    *   Populated by reference with the WEBDRIVER_PORT value written to '.env'.
    */
   protected function recordDotenvWrites(?string &$persisted): void {
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', function (string $file, string $content) use (&$persisted): int {
+    $this->mockFunction('file_put_contents', function (string $file, string $content) use (&$persisted): int {
       if (preg_match('/WEBDRIVER_PORT=(\d+)/', $content, $matches) === 1) {
         $persisted = $matches[1];
       }
@@ -958,7 +958,7 @@ final class BrowserStartTest extends UnitTestCase {
   }
 
   protected function mockChrome(bool $mac_present): void {
-    $this->registerMock('is_executable', 'DrevOps\\Eddy\\Tooling', fn(): bool => $mac_present);
+    $this->mockFunction('is_executable', fn(): bool => $mac_present);
   }
 
   /**
@@ -966,7 +966,7 @@ final class BrowserStartTest extends UnitTestCase {
    *   Command name => resolved path for commands that are present.
    */
   protected function mockCommands(array $map): void {
-    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $command, &$output = NULL, &$result_code = NULL) use ($map): string {
+    $this->mockFunction('exec', function (string $command, &$output = NULL, &$result_code = NULL) use ($map): string {
       $output = [];
       $result_code = 1;
       if (preg_match('/command -v (\S+)/', $command, $matches) === 1 && isset($map[$matches[1]])) {
@@ -987,7 +987,7 @@ final class BrowserStartTest extends UnitTestCase {
    *   Paths of binaries whose probe never answers.
    */
   protected function mockVersions(string $chrome, string $driver, array $hanging = []): void {
-    $this->registerMock('proc_open', 'DrevOps\\Eddy\\Tooling', function (array $command, array $descriptors, &$pipes) use ($chrome, $driver, $hanging) {
+    $this->mockFunction('proc_open', function (array $command, array $descriptors, &$pipes) use ($chrome, $driver, $hanging) {
       $this->probes[] = $command;
       $this->probeHangs = in_array($command[0], $hanging, TRUE);
       $version = str_contains($command[0], 'chromedriver') ? $driver : $chrome;
@@ -997,7 +997,7 @@ final class BrowserStartTest extends UnitTestCase {
 
     // Skip the poll interval for a hanging probe, so its time limit expires at
     // once. An answering probe sleeps for real, so its process can exit.
-    $this->registerMock('usleep', 'DrevOps\\Eddy\\Tooling', function (int $microseconds): void {
+    $this->mockFunction('usleep', function (int $microseconds): void {
       if (!$this->probeHangs) {
         \usleep($microseconds);
       }
@@ -1009,7 +1009,7 @@ final class BrowserStartTest extends UnitTestCase {
    *   Populated by reference with every passthru() command line.
    */
   protected function recordPassthru(array &$commands, int $npx_exit = 0, int $docker_run_exit = 0, int $docker_rm_exit = 0): void {
-    $this->registerMock('passthru', 'DrevOps\\Eddy\\Tooling', function (string $command, &$result_code = NULL) use (&$commands, $npx_exit, $docker_run_exit, $docker_rm_exit): void {
+    $this->mockFunction('passthru', function (string $command, &$result_code = NULL) use (&$commands, $npx_exit, $docker_run_exit, $docker_rm_exit): void {
       $commands[] = $command;
       if (str_contains($command, 'npx')) {
         $result_code = $npx_exit;

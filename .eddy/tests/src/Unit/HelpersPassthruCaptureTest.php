@@ -69,7 +69,7 @@ final class HelpersPassthruCaptureTest extends UnitTestCase {
    *   Exit code the mocked command reports.
    */
   protected function mockRawPassthru(?string &$captured_command, string $output, int $result_code): void {
-    $this->registerMock('passthru', 'DrevOps\\Eddy\\Tooling', function ($command, &...$args) use (&$captured_command, $output, $result_code): null {
+    $this->mockFunction('passthru', function ($command, &...$args) use (&$captured_command, $output, $result_code): null {
       $captured_command = $command;
       echo $output;
       if (count($args) > 0) {

@@ -30,7 +30,7 @@ trait DeployWorkflowTrait {
    */
   protected static function deployJob(): array {
     $path = self::deployWorkflowPath();
-    $job = self::child(self::child(Yaml::parse(File::read($path)), 'jobs'), 'deploy');
+    $job = self::deployChild(self::deployChild(Yaml::parse(File::read($path)), 'jobs'), 'deploy');
 
     if (!is_array($job)) {
       self::fail(sprintf('%s has no "deploy" job.', basename($path)));
@@ -46,7 +46,7 @@ trait DeployWorkflowTrait {
    *   The step definitions.
    */
   protected static function deploySteps(): array {
-    $steps = self::child(self::deployJob(), 'steps');
+    $steps = self::deployChild(self::deployJob(), 'steps');
 
     if (!is_array($steps)) {
       self::fail(sprintf('The deploy job of %s declares no steps.', basename(self::deployWorkflowPath())));
@@ -70,7 +70,7 @@ trait DeployWorkflowTrait {
         continue;
       }
 
-      if (self::child($step, 'name') !== $name) {
+      if (self::deployChild($step, 'name') !== $name) {
         continue;
       }
 
@@ -91,7 +91,7 @@ trait DeployWorkflowTrait {
    * @return mixed
    *   The child, or NULL when the node does not hold it.
    */
-  protected static function child(mixed $node, string $key): mixed {
+  protected static function deployChild(mixed $node, string $key): mixed {
     return is_array($node) && array_key_exists($key, $node) ? $node[$key] : NULL;
   }
 

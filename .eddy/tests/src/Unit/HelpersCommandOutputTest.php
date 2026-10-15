@@ -71,7 +71,7 @@ final class HelpersCommandOutputTest extends UnitTestCase {
     // Sleep 10 ms per poll instead of 100 ms, so the command can set up,
     // such as its SIGTERM trap, before it is killed.
     $sleeps = [];
-    $this->registerMock('usleep', 'DrevOps\\Eddy\\Tooling', function (int $microseconds) use (&$sleeps): void {
+    $this->mockFunction('usleep', function (int $microseconds) use (&$sleeps): void {
       $sleeps[] = $microseconds;
       \usleep(10000);
     });

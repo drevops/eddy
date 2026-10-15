@@ -148,7 +148,7 @@ abstract class UnitTestCase extends UpstreamUnitTestCase {
       return;
     }
 
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', function (string $command): ?string {
+    $this->mockFunction('shell_exec', function (string $command): ?string {
       if (!array_key_exists($command, $this->mockShellExecOutputs)) {
         throw new \RuntimeException(sprintf('shell_exec() called with unexpected command "%s".', $command));
       }

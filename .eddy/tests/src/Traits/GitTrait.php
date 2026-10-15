@@ -22,7 +22,7 @@ trait GitTrait {
    * @return string
    *   The trimmed standard output.
    */
-  protected function git(string $repository, array $arguments): string {
+  protected function gitRun(string $repository, array $arguments): string {
     $process = new Process(array_merge(['git'], $arguments), $repository, self::gitEnvironment());
     $process->run();
 

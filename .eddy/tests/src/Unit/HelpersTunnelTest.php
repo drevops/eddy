@@ -122,7 +122,7 @@ final class HelpersTunnelTest extends UnitTestCase {
     File::dump('.env', 'TUNNEL_URL=' . self::URL . "\nOTHER=1\n");
     $this->mockCommandAvailable('cloudflared', FALSE);
     $this->mockShellExec([self::PS => $command]);
-    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
+    $this->mockFunction('get_headers', fn(): false => FALSE);
     $this->mockPassthruMultiple($kills);
 
     $output = $this->capture(static fn() => tunnel_start('8000'));
@@ -144,7 +144,7 @@ final class HelpersTunnelTest extends UnitTestCase {
     // changed.
     $this->mockCommandAvailable('cloudflared', FALSE);
     $this->mockShellExec([self::PS => "cloudflared tunnel --url http://localhost:8000 --no-autoupdate\n"]);
-    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): array => ['HTTP/1.1 200 OK']);
+    $this->mockFunction('get_headers', fn(): array => ['HTTP/1.1 200 OK']);
     $this->mockPassthruNever();
 
     $output = $this->capture(static fn() => tunnel_start('8000'));
@@ -250,7 +250,7 @@ final class HelpersTunnelTest extends UnitTestCase {
 
     $requested = NULL;
     $options = NULL;
-    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', function (string $url, bool $associative, mixed $context) use (&$requested, &$options, $headers): array|false {
+    $this->mockFunction('get_headers', function (string $url, bool $associative, mixed $context) use (&$requested, &$options, $headers): array|false {
       $requested = $url;
       $options = is_resource($context) ? stream_context_get_options($context) : NULL;
 
@@ -301,7 +301,7 @@ final class HelpersTunnelTest extends UnitTestCase {
     $this->mockCommandAvailable('cloudflared', TRUE);
     $this->mockShellExec([self::PS => "cloudflared tunnel --url http://localhost:8000 --no-autoupdate\n", self::LAUNCH => "5151\n"], self::banner(self::NEW_URL));
     $this->mockPassthru(['cmd' => 'kill 4242 >/dev/null 2>&1']);
-    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', function (): never {
+    $this->mockFunction('get_headers', function (): never {
       throw new \RuntimeException('A tunnel without a URL must not be requested.');
     });
 
@@ -320,7 +320,7 @@ final class HelpersTunnelTest extends UnitTestCase {
     $this->mockShellExec([self::PS => $command, self::LAUNCH => "5151\n"], self::banner(self::NEW_URL));
     $this->mockPassthru(['cmd' => 'kill 4242 >/dev/null 2>&1']);
     // Whatever listens on the other port now can answer requests to the URL.
-    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', function (): never {
+    $this->mockFunction('get_headers', function (): never {
       throw new \RuntimeException('A tunnel to another port must not be requested.');
     });
 
@@ -484,7 +484,7 @@ PHP;
   public function testTunnelWriteSettingsWriteFailure(): void {
     $file = 'build/web/sites/default/settings.php';
     File::dump($file, "<?php\n");
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
+    $this->mockFunction('file_put_contents', fn(): false => FALSE);
     $this->mockQuit(1);
 
     ob_start();
@@ -509,7 +509,7 @@ PHP;
   #[DataProvider('dataProviderTunnelKill')]
   public function testTunnelKill(int $pid, array $expected): void {
     $commands = [];
-    $this->registerMock('passthru', 'DrevOps\\Eddy\\Tooling', function (string $command) use (&$commands): void {
+    $this->mockFunction('passthru', function (string $command) use (&$commands): void {
       $commands[] = $command;
     });
 
@@ -559,7 +559,7 @@ PHP;
    *   prints its banner.
    */
   protected function mockShellExec(array $outputs, ?string $log = NULL): void {
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', function (string $command) use ($outputs, $log): ?string {
+    $this->mockFunction('shell_exec', function (string $command) use ($outputs, $log): ?string {
       if (!array_key_exists($command, $outputs)) {
         throw new \RuntimeException(sprintf('shell_exec() called with unexpected command "%s".', $command));
       }
@@ -582,7 +582,7 @@ PHP;
    *   banner while the command waits.
    */
   protected function mockSleepCounted(int &$count, array $logs = []): void {
-    $this->registerMock('sleep', 'DrevOps\\Eddy\\Tooling', function () use (&$count, $logs): int {
+    $this->mockFunction('sleep', function () use (&$count, $logs): int {
       $count++;
 
       if (isset($logs[$count])) {

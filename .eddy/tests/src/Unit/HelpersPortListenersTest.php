@@ -53,7 +53,7 @@ final class HelpersPortListenersTest extends UnitTestCase {
 
   #[DataProvider('dataProviderProcessCommand')]
   public function testProcessCommand(?string $ps_output, string $expected): void {
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(string $command): ?string => $command === 'ps -p 1234 -o command= 2>/dev/null' ? $ps_output : throw new \RuntimeException(sprintf('shell_exec() called with unexpected command "%s".', $command)));
+    $this->mockFunction('shell_exec', fn(string $command): ?string => $command === 'ps -p 1234 -o command= 2>/dev/null' ? $ps_output : throw new \RuntimeException(sprintf('shell_exec() called with unexpected command "%s".', $command)));
 
     $this->assertSame($expected, process_command(1234));
   }
@@ -66,7 +66,7 @@ final class HelpersPortListenersTest extends UnitTestCase {
 
   #[DataProvider('dataProviderProcessCwd')]
   public function testProcessCwd(?string $lsof_output, string $expected): void {
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(string $command): ?string => $command === 'lsof -a -p 1234 -d cwd -Fn 2>/dev/null' ? $lsof_output : throw new \RuntimeException(sprintf('shell_exec() called with unexpected command "%s".', $command)));
+    $this->mockFunction('shell_exec', fn(string $command): ?string => $command === 'lsof -a -p 1234 -d cwd -Fn 2>/dev/null' ? $lsof_output : throw new \RuntimeException(sprintf('shell_exec() called with unexpected command "%s".', $command)));
 
     $this->assertSame($expected, process_cwd(1234));
   }
@@ -113,7 +113,7 @@ final class HelpersPortListenersTest extends UnitTestCase {
     $replacements = ['{project}' => $project, '{link}' => self::$tmp . '/link', '{other}' => $other];
 
     $lsof_output = $cwd === NULL ? '' : sprintf("p1234\nfcwd\nn%s\n", strtr($cwd, $replacements));
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(string $command): string => $command === 'lsof -a -p 1234 -d cwd -Fn 2>/dev/null' ? $lsof_output : throw new \RuntimeException(sprintf('shell_exec() called with unexpected command "%s".', $command)));
+    $this->mockFunction('shell_exec', fn(string $command): string => $command === 'lsof -a -p 1234 -d cwd -Fn 2>/dev/null' ? $lsof_output : throw new \RuntimeException(sprintf('shell_exec() called with unexpected command "%s".', $command)));
 
     $this->assertSame($expected, webserver_serves(strtr($command, $replacements), $project . '/build/web', $pid));
   }
@@ -257,7 +257,7 @@ final class HelpersPortListenersTest extends UnitTestCase {
   #[DataProvider('dataProviderWebserverListenersIgnoresOutput')]
   public function testWebserverListenersIgnoresOutput(?string $lsof_output): void {
     // Only the process ID 1234 reaches 'ps'.
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(string $command): ?string => match ($command) {
+    $this->mockFunction('shell_exec', fn(string $command): ?string => match ($command) {
       "lsof -ti tcp:'8000' -sTCP:LISTEN 2>/dev/null" => $lsof_output,
       'ps -p 1234 -o command= 2>/dev/null' => self::SERVER . "\n",
       default => throw new \RuntimeException(sprintf('shell_exec() called with unexpected command "%s".', $command)),
@@ -288,8 +288,6 @@ final class HelpersPortListenersTest extends UnitTestCase {
     }
 
     kill_processes($pids);
-
-    $this->mockPassthruAssertAllMocksConsumed();
   }
 
   public static function dataProviderKillProcesses(): \Iterator {

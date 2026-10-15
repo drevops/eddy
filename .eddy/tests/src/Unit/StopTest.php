@@ -17,7 +17,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 final class StopTest extends UnitTestCase {
 
   public function testStopDefaultPortWhenNoEnvAndNoDotenv(): void {
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
+    $this->mockFunction('file_exists', fn(): false => FALSE);
 
     $this->mockPortListeners('8000');
     $this->mockPassthruNever();
@@ -52,8 +52,8 @@ final class StopTest extends UnitTestCase {
   }
 
   public function testStopReadsPortFromDotenvWhenEnvUnset(): void {
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $file === '.env');
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(): string => "WEBSERVER_PORT=8123\n");
+    $this->mockFunction('file_exists', fn(string $file): bool => $file === '.env');
+    $this->mockFunction('file_get_contents', fn(): string => "WEBSERVER_PORT=8123\n");
 
     $this->mockPortListeners('8123');
     $this->mockPassthruNever();
@@ -81,7 +81,7 @@ final class StopTest extends UnitTestCase {
   public function testStopKillsOnlyOwnServer(array $listeners, array $expected_killed, array $expected_left): void {
     self::envSet('WEBSERVER_PORT', '8000');
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => '/test/project');
+    $this->mockFunction('getcwd', fn(): string => '/test/project');
 
     $this->mockPortListeners('8000', $listeners);
 

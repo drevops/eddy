@@ -53,9 +53,9 @@ final class InfoTest extends UnitTestCase {
     array $file_contents = [],
     string|false $command_php_path = '/usr/bin/php',
   ): void {
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => $cwd);
 
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', function (string $command) use ($shell_exec_map): string {
+    $this->mockFunction('shell_exec', function (string $command) use ($shell_exec_map): string {
       foreach ($shell_exec_map as $needle => $output) {
         if ($needle !== '*' && str_contains($command, $needle)) {
           return $output;
@@ -65,13 +65,13 @@ final class InfoTest extends UnitTestCase {
       return $shell_exec_map['*'] ?? '';
     });
 
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $path): bool => $files[$path] ?? FALSE);
-    $this->registerMock('is_file', 'DrevOps\\Eddy\\Tooling', fn(string $path): bool => $files[$path] ?? FALSE);
-    $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(string $path): bool => $files[$path] ?? FALSE);
-    $this->registerMock('glob', 'DrevOps\\Eddy\\Tooling', fn(): array => $info_files);
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(string $file): string => $file_contents[$file] ?? '');
+    $this->mockFunction('file_exists', fn(string $path): bool => $files[$path] ?? FALSE);
+    $this->mockFunction('is_file', fn(string $path): bool => $files[$path] ?? FALSE);
+    $this->mockFunction('is_dir', fn(string $path): bool => $files[$path] ?? FALSE);
+    $this->mockFunction('glob', fn(): array => $info_files);
+    $this->mockFunction('file_get_contents', fn(string $file): string => $file_contents[$file] ?? '');
 
-    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $command, ?array &$output = NULL, ?int &$result_code = NULL) use ($command_php_path): bool {
+    $this->mockFunction('exec', function (string $command, ?array &$output = NULL, ?int &$result_code = NULL) use ($command_php_path): bool {
       $output ??= [];
       if ($command_php_path !== FALSE && str_contains($command, 'command -v php')) {
         $output[] = $command_php_path;

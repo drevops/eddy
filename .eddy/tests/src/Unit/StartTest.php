@@ -30,7 +30,7 @@ final class StartTest extends UnitTestCase {
 
     $cwd = '/test/project';
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => $cwd);
 
     $this->mockPortListeners($expected_port);
     $this->mockPassthru(['cmd' => self::serverCommand($expected_host, $expected_port, $cwd)]);
@@ -41,18 +41,18 @@ final class StartTest extends UnitTestCase {
     $this->assertNotFalse($fp);
 
     $probes = [];
-    $this->registerMock('fsockopen', 'DrevOps\\Eddy\\Tooling', function (string $host, int $port) use (&$probes, $fp) {
+    $this->mockFunction('fsockopen', function (string $host, int $port) use (&$probes, $fp) {
       $probes[] = $host . ':' . $port;
 
       return $fp;
     });
 
-    $this->registerMock('fclose', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
+    $this->mockFunction('fclose', fn(): true => TRUE);
 
     $context = stream_context_create();
-    $this->registerMock('stream_context_create', 'DrevOps\\Eddy\\Tooling', fn() => $context);
+    $this->mockFunction('stream_context_create', fn() => $context);
 
-    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): array => ['HTTP/1.1 200 OK']);
+    $this->mockFunction('get_headers', fn(): array => ['HTTP/1.1 200 OK']);
 
     ob_start();
     require self::toolingDir() . '/src/eddy-start';
@@ -98,7 +98,7 @@ final class StartTest extends UnitTestCase {
     self::envSet('WEBSERVER_PORT', '8000');
     self::envSet('WEBSERVER_WAIT_TIMEOUT', $timeout);
 
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(string $command): never => throw new \RuntimeException(sprintf('shell_exec() called with unexpected command "%s".', $command)));
+    $this->mockFunction('shell_exec', fn(string $command): never => throw new \RuntimeException(sprintf('shell_exec() called with unexpected command "%s".', $command)));
     $this->mockPassthruNever();
     $this->mockQuit(1);
 
@@ -128,7 +128,7 @@ final class StartTest extends UnitTestCase {
     self::envSet('WEBSERVER_PORT', '8000');
     $cwd = '/test/project';
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => $cwd);
 
     $this->mockPortListeners('8000');
     $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000', $cwd)]);
@@ -137,13 +137,13 @@ final class StartTest extends UnitTestCase {
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
-    $this->registerMock('fsockopen', 'DrevOps\\Eddy\\Tooling', fn() => $fp);
-    $this->registerMock('fclose', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
+    $this->mockFunction('fsockopen', fn() => $fp);
+    $this->mockFunction('fclose', fn(): true => TRUE);
 
     $context = stream_context_create();
-    $this->registerMock('stream_context_create', 'DrevOps\\Eddy\\Tooling', fn() => $context);
+    $this->mockFunction('stream_context_create', fn() => $context);
 
-    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): array => ['HTTP/1.1 302 Found']);
+    $this->mockFunction('get_headers', fn(): array => ['HTTP/1.1 302 Found']);
 
     ob_start();
     require self::toolingDir() . '/src/eddy-start';
@@ -160,7 +160,7 @@ final class StartTest extends UnitTestCase {
     self::envSet('WEBSERVER_PORT', '8000');
     $cwd = '/test/project';
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => $cwd);
 
     $this->mockPortListeners('8000');
     $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000', $cwd)]);
@@ -172,16 +172,16 @@ final class StartTest extends UnitTestCase {
 
     // The server refuses the first 2 probes, as it does while it is binding.
     $probes = 0;
-    $this->registerMock('fsockopen', 'DrevOps\\Eddy\\Tooling', function () use (&$probes, $fp) {
+    $this->mockFunction('fsockopen', function () use (&$probes, $fp) {
       $probes++;
 
       return $probes < 3 ? FALSE : $fp;
     });
-    $this->registerMock('fclose', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
+    $this->mockFunction('fclose', fn(): true => TRUE);
 
     $context = stream_context_create();
-    $this->registerMock('stream_context_create', 'DrevOps\\Eddy\\Tooling', fn() => $context);
-    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): array => ['HTTP/1.1 200 OK']);
+    $this->mockFunction('stream_context_create', fn() => $context);
+    $this->mockFunction('get_headers', fn(): array => ['HTTP/1.1 200 OK']);
 
     ob_start();
     require self::toolingDir() . '/src/eddy-start';
@@ -198,7 +198,7 @@ final class StartTest extends UnitTestCase {
     self::envSet('WEBSERVER_PORT', '8000');
     $cwd = '/test/project';
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => $cwd);
 
     // The order of the calls is asserted: the running server and its worker
     // are stopped before the new server is launched.
@@ -212,12 +212,12 @@ final class StartTest extends UnitTestCase {
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
-    $this->registerMock('fsockopen', 'DrevOps\\Eddy\\Tooling', fn() => $fp);
-    $this->registerMock('fclose', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
+    $this->mockFunction('fsockopen', fn() => $fp);
+    $this->mockFunction('fclose', fn(): true => TRUE);
 
     $context = stream_context_create();
-    $this->registerMock('stream_context_create', 'DrevOps\\Eddy\\Tooling', fn() => $context);
-    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): array => ['HTTP/1.1 200 OK']);
+    $this->mockFunction('stream_context_create', fn() => $context);
+    $this->mockFunction('get_headers', fn(): array => ['HTTP/1.1 200 OK']);
 
     ob_start();
     require self::toolingDir() . '/src/eddy-start';
@@ -239,7 +239,7 @@ final class StartTest extends UnitTestCase {
   public function testStartFailsWhenAnotherProcessHoldsPort(array $listeners, array $expected_processes): void {
     self::envSet('WEBSERVER_PORT', '8000');
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => '/test/project');
+    $this->mockFunction('getcwd', fn(): string => '/test/project');
 
     $this->mockPortListeners('8000', $listeners);
     $this->mockPassthruNever();
@@ -284,7 +284,7 @@ final class StartTest extends UnitTestCase {
     self::envSet('WEBSERVER_PORT', '8000');
     $cwd = '/test/project';
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => $cwd);
 
     $this->mockPortListeners('8000');
     $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000', $cwd)]);
@@ -293,12 +293,12 @@ final class StartTest extends UnitTestCase {
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
-    $this->registerMock('fsockopen', 'DrevOps\\Eddy\\Tooling', fn() => $fp);
-    $this->registerMock('fclose', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
+    $this->mockFunction('fsockopen', fn() => $fp);
+    $this->mockFunction('fclose', fn(): true => TRUE);
 
     $context = stream_context_create();
-    $this->registerMock('stream_context_create', 'DrevOps\\Eddy\\Tooling', fn() => $context);
-    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): array => ['HTTP/1.1 200 OK']);
+    $this->mockFunction('stream_context_create', fn() => $context);
+    $this->mockFunction('get_headers', fn(): array => ['HTTP/1.1 200 OK']);
 
     ob_start();
     require self::toolingDir() . '/src/eddy-start';
@@ -344,7 +344,7 @@ final class StartTest extends UnitTestCase {
     self::envSet('WEBSERVER_PORT', '8000');
     $cwd = '/test/project';
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => $cwd);
 
     $this->mockPortListeners('8000');
     $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000', $cwd)]);
@@ -352,13 +352,13 @@ final class StartTest extends UnitTestCase {
     $this->mockClock();
 
     $probes = 0;
-    $this->registerMock('fsockopen', 'DrevOps\\Eddy\\Tooling', function () use (&$probes): false {
+    $this->mockFunction('fsockopen', function () use (&$probes): false {
       $probes++;
 
       return FALSE;
     });
 
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(string $file): string|false => $file === '.logs/php.log' ? 'PHP Fatal error: some error' : FALSE);
+    $this->mockFunction('file_get_contents', fn(string $file): string|false => $file === '.logs/php.log' ? 'PHP Fatal error: some error' : FALSE);
 
     $this->mockQuit(1);
 
@@ -386,16 +386,16 @@ final class StartTest extends UnitTestCase {
     self::envSet('WEBSERVER_PORT', '8000');
     $cwd = '/test/project';
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => $cwd);
 
     $this->mockPortListeners('8000');
     $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000', $cwd)]);
 
     $this->mockClock();
 
-    $this->registerMock('fsockopen', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
+    $this->mockFunction('fsockopen', fn(): false => FALSE);
 
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
+    $this->mockFunction('file_get_contents', fn(): false => FALSE);
 
     $this->mockQuit(1);
 
@@ -418,7 +418,7 @@ final class StartTest extends UnitTestCase {
     self::envSet('WEBSERVER_PORT', '8000');
     $cwd = '/test/project';
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => $cwd);
 
     $this->mockPortListeners('8000');
     $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000', $cwd)]);
@@ -428,14 +428,14 @@ final class StartTest extends UnitTestCase {
     // Each connection attempt lasts its whole timeout, as it does when the
     // host drops connection attempts.
     $probes = 0;
-    $this->registerMock('fsockopen', 'DrevOps\\Eddy\\Tooling', function (string $host, int $port, &$errno = NULL, &$errstr = NULL, ?float $timeout = NULL) use (&$probes): false {
+    $this->mockFunction('fsockopen', function (string $host, int $port, &$errno = NULL, &$errstr = NULL, ?float $timeout = NULL) use (&$probes): false {
       $probes++;
       $this->mockClockNanoseconds += (int) round((float) $timeout * 1000000000);
 
       return FALSE;
     });
 
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
+    $this->mockFunction('file_get_contents', fn(): false => FALSE);
 
     $this->mockQuit(1);
 
@@ -462,7 +462,7 @@ final class StartTest extends UnitTestCase {
     self::envSet('WEBSERVER_PORT', '8000');
     $cwd = '/test/project';
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => $cwd);
 
     $this->mockPortListeners('8000');
     $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000', $cwd)]);
@@ -471,13 +471,13 @@ final class StartTest extends UnitTestCase {
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
-    $this->registerMock('fsockopen', 'DrevOps\\Eddy\\Tooling', fn() => $fp);
-    $this->registerMock('fclose', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
+    $this->mockFunction('fsockopen', fn() => $fp);
+    $this->mockFunction('fclose', fn(): true => TRUE);
 
     $context = stream_context_create();
-    $this->registerMock('stream_context_create', 'DrevOps\\Eddy\\Tooling', fn() => $context);
+    $this->mockFunction('stream_context_create', fn() => $context);
 
-    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
+    $this->mockFunction('get_headers', fn(): false => FALSE);
 
     $this->mockQuit(1);
 
@@ -503,7 +503,7 @@ final class StartTest extends UnitTestCase {
     self::envSet('WEBSERVER_PORT', '8000');
     $cwd = '/test/project';
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => $cwd);
 
     $this->mockPortListeners('8000');
     $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000', $cwd)]);
@@ -512,13 +512,13 @@ final class StartTest extends UnitTestCase {
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
-    $this->registerMock('fsockopen', 'DrevOps\\Eddy\\Tooling', fn() => $fp);
-    $this->registerMock('fclose', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
+    $this->mockFunction('fsockopen', fn() => $fp);
+    $this->mockFunction('fclose', fn(): true => TRUE);
 
     $context = stream_context_create();
-    $this->registerMock('stream_context_create', 'DrevOps\\Eddy\\Tooling', fn() => $context);
+    $this->mockFunction('stream_context_create', fn() => $context);
 
-    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): array => ['HTTP/1.1 500 Internal Server Error']);
+    $this->mockFunction('get_headers', fn(): array => ['HTTP/1.1 500 Internal Server Error']);
 
     $this->mockQuit(1);
 
@@ -542,20 +542,20 @@ final class StartTest extends UnitTestCase {
   public function testStartReadsPortFromDotenvAndDoesNotRewrite(): void {
     $cwd = '/test/project';
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => $cwd);
 
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $file === '.env');
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(): string => "WEBSERVER_PORT=8123\n");
+    $this->mockFunction('file_exists', fn(string $file): bool => $file === '.env');
+    $this->mockFunction('file_get_contents', fn(): string => "WEBSERVER_PORT=8123\n");
 
     $put_called = FALSE;
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', function () use (&$put_called): false {
+    $this->mockFunction('file_put_contents', function () use (&$put_called): false {
       $put_called = TRUE;
 
       return FALSE;
     });
 
     $stream_called = FALSE;
-    $this->registerMock('stream_socket_server', 'DrevOps\\Eddy\\Tooling', function () use (&$stream_called): false {
+    $this->mockFunction('stream_socket_server', function () use (&$stream_called): false {
       $stream_called = TRUE;
 
       return FALSE;
@@ -568,12 +568,12 @@ final class StartTest extends UnitTestCase {
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
-    $this->registerMock('fsockopen', 'DrevOps\\Eddy\\Tooling', fn() => $fp);
-    $this->registerMock('fclose', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
+    $this->mockFunction('fsockopen', fn() => $fp);
+    $this->mockFunction('fclose', fn(): true => TRUE);
 
     $context = stream_context_create();
-    $this->registerMock('stream_context_create', 'DrevOps\\Eddy\\Tooling', fn() => $context);
-    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): array => ['HTTP/1.1 200 OK']);
+    $this->mockFunction('stream_context_create', fn() => $context);
+    $this->mockFunction('get_headers', fn(): array => ['HTTP/1.1 200 OK']);
 
     ob_start();
     require self::toolingDir() . '/src/eddy-start';
@@ -590,14 +590,14 @@ final class StartTest extends UnitTestCase {
   public function testStartAutoDiscoversPortAndPersistsToDotenv(): void {
     $cwd = '/test/project';
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => $cwd);
 
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
+    $this->mockFunction('file_exists', fn(): false => FALSE);
 
     // In find_free_port(), a successful stream_socket_client() connect means
     // the port is in use and a refused connect means it is free.
     $port_attempts = 0;
-    $this->registerMock('stream_socket_client', 'DrevOps\\Eddy\\Tooling', function (string $address) use (&$port_attempts) {
+    $this->mockFunction('stream_socket_client', function (string $address) use (&$port_attempts) {
       $port_attempts++;
       if (str_contains($address, ':8000')) {
         return fopen('php://memory', 'r');
@@ -608,7 +608,7 @@ final class StartTest extends UnitTestCase {
 
     $persisted_port = NULL;
     $persisted_file = NULL;
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', function (string $file, string $content) use (&$persisted_port, &$persisted_file): int {
+    $this->mockFunction('file_put_contents', function (string $file, string $content) use (&$persisted_port, &$persisted_file): int {
       $persisted_file = $file;
       if (preg_match('/WEBSERVER_PORT=(\d+)/', $content, $matches)) {
         $persisted_port = $matches[1];
@@ -624,12 +624,12 @@ final class StartTest extends UnitTestCase {
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
-    $this->registerMock('fsockopen', 'DrevOps\\Eddy\\Tooling', fn() => $fp);
-    $this->registerMock('fclose', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
+    $this->mockFunction('fsockopen', fn() => $fp);
+    $this->mockFunction('fclose', fn(): true => TRUE);
 
     $context = stream_context_create();
-    $this->registerMock('stream_context_create', 'DrevOps\\Eddy\\Tooling', fn() => $context);
-    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): array => ['HTTP/1.1 200 OK']);
+    $this->mockFunction('stream_context_create', fn() => $context);
+    $this->mockFunction('get_headers', fn(): array => ['HTTP/1.1 200 OK']);
 
     ob_start();
     require self::toolingDir() . '/src/eddy-start';
@@ -648,12 +648,12 @@ final class StartTest extends UnitTestCase {
     $cwd = '/test/project';
     $tunnel_url = 'https://random-words.trycloudflare.com';
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => $cwd);
 
     // The server binds and is health-checked on the local host:port, but the
     // READY banner reports the public tunnel URL.
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $file === '.env');
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(): string => "WEBSERVER_PORT=8000\nTUNNEL_URL=" . $tunnel_url . "\n");
+    $this->mockFunction('file_exists', fn(string $file): bool => $file === '.env');
+    $this->mockFunction('file_get_contents', fn(): string => "WEBSERVER_PORT=8000\nTUNNEL_URL=" . $tunnel_url . "\n");
 
     $this->mockPortListeners('8000');
     $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000', $cwd)]);
@@ -662,12 +662,12 @@ final class StartTest extends UnitTestCase {
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
-    $this->registerMock('fsockopen', 'DrevOps\\Eddy\\Tooling', fn() => $fp);
-    $this->registerMock('fclose', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
+    $this->mockFunction('fsockopen', fn() => $fp);
+    $this->mockFunction('fclose', fn(): true => TRUE);
 
     $context = stream_context_create();
-    $this->registerMock('stream_context_create', 'DrevOps\\Eddy\\Tooling', fn() => $context);
-    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): array => ['HTTP/1.1 200 OK']);
+    $this->mockFunction('stream_context_create', fn() => $context);
+    $this->mockFunction('get_headers', fn(): array => ['HTTP/1.1 200 OK']);
 
     ob_start();
     require self::toolingDir() . '/src/eddy-start';
@@ -689,7 +689,7 @@ final class StartTest extends UnitTestCase {
     $cwd = '/test/project';
     $tunnel_url = 'https://seasonal-deck-organisms-sf.trycloudflare.com';
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => $cwd);
 
     $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000', $cwd)]);
 
@@ -697,12 +697,12 @@ final class StartTest extends UnitTestCase {
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
-    $this->registerMock('fsockopen', 'DrevOps\\Eddy\\Tooling', fn() => $fp);
-    $this->registerMock('fclose', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
+    $this->mockFunction('fsockopen', fn() => $fp);
+    $this->mockFunction('fclose', fn(): true => TRUE);
 
     $context = stream_context_create();
-    $this->registerMock('stream_context_create', 'DrevOps\\Eddy\\Tooling', fn() => $context);
-    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): array => ['HTTP/1.1 200 OK']);
+    $this->mockFunction('stream_context_create', fn() => $context);
+    $this->mockFunction('get_headers', fn(): array => ['HTTP/1.1 200 OK']);
 
     $this->mockCommandAvailable('cloudflared', TRUE);
     $launch = "nohup cloudflared tunnel --url 'http://localhost:8000' --no-autoupdate >'.logs/cloudflared.log' 2>&1 & echo \$!";
@@ -737,7 +737,7 @@ final class StartTest extends UnitTestCase {
     self::envSet('WEBSERVER_PORT', '8000');
     $cwd = '/test/project';
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => $cwd);
 
     $this->mockPortListeners('8000');
     $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000', $cwd)]);
@@ -746,12 +746,12 @@ final class StartTest extends UnitTestCase {
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
-    $this->registerMock('fsockopen', 'DrevOps\\Eddy\\Tooling', fn() => $fp);
-    $this->registerMock('fclose', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
+    $this->mockFunction('fsockopen', fn() => $fp);
+    $this->mockFunction('fclose', fn(): true => TRUE);
 
     $context = stream_context_create();
-    $this->registerMock('stream_context_create', 'DrevOps\\Eddy\\Tooling', fn() => $context);
-    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): array => ['HTTP/1.1 200 OK']);
+    $this->mockFunction('stream_context_create', fn() => $context);
+    $this->mockFunction('get_headers', fn(): array => ['HTTP/1.1 200 OK']);
 
     $this->mockCommandAvailable('cloudflared', FALSE);
 
@@ -770,7 +770,7 @@ final class StartTest extends UnitTestCase {
     self::envSet('WEBSERVER_PORT', '8000');
     $cwd = '/test/project';
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => $cwd);
 
     $this->mockPortListeners('8000');
     $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000', $cwd)]);
@@ -779,13 +779,13 @@ final class StartTest extends UnitTestCase {
 
     $fp = fopen('php://memory', 'r');
     $this->assertNotFalse($fp);
-    $this->registerMock('fsockopen', 'DrevOps\\Eddy\\Tooling', fn() => $fp);
-    $this->registerMock('fclose', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
+    $this->mockFunction('fsockopen', fn() => $fp);
+    $this->mockFunction('fclose', fn(): true => TRUE);
 
     $context = stream_context_create();
-    $this->registerMock('stream_context_create', 'DrevOps\\Eddy\\Tooling', fn() => $context);
+    $this->mockFunction('stream_context_create', fn() => $context);
 
-    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): array => []);
+    $this->mockFunction('get_headers', fn(): array => []);
 
     $this->mockQuit(1);
 

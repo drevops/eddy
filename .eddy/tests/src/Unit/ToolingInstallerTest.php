@@ -451,7 +451,7 @@ final class ToolingInstallerTest extends UnitTestCase {
     // The color check calls posix_isatty() once per printed line, or never
     // when it short-circuits, so the mock returns a fixed answer, not queued
     // responses.
-    $this->registerMock('posix_isatty', self::NAMESPACE, fn(): bool => $tty);
+    $this->mockFunction('posix_isatty', fn(): bool => $tty, self::NAMESPACE);
     $this->writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
     $this->mockComposer();
 
@@ -507,7 +507,7 @@ final class ToolingInstallerTest extends UnitTestCase {
    *   Paths whose existence is recorded when Composer runs.
    */
   protected function mockComposer(int $exit_code = 0, string $output = '', array $bins = self::BINS, array $watched_paths = []): void {
-    $this->registerMock('passthru', self::NAMESPACE, function (string $command, mixed &...$args) use ($exit_code, $output, $bins, $watched_paths): null {
+    $this->mockFunction('passthru', function (string $command, mixed &...$args) use ($exit_code, $output, $bins, $watched_paths): null {
       $this->commands[] = $command;
 
       foreach ($watched_paths as $path) {
@@ -530,7 +530,7 @@ final class ToolingInstallerTest extends UnitTestCase {
       }
 
       return NULL;
-    });
+    }, self::NAMESPACE);
   }
 
 }

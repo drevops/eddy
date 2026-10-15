@@ -30,7 +30,7 @@ final class DeployWorkflowCheckoutTest extends UnitTestCase {
   protected const string CHECKOUT_ACTION = 'actions/checkout@';
 
   public function testCheckoutNamesTheTestedCommit(): void {
-    $ref = self::child(self::child(self::deployStep(self::STEP), 'with'), 'ref');
+    $ref = self::deployChild(self::deployChild(self::deployStep(self::STEP), 'with'), 'ref');
 
     $this->assertSame('${{ github.event.workflow_run.head_sha }}', $ref, sprintf('The "%s" step must check out the commit that triggered the run, otherwise the deployment publishes default-branch code.', self::STEP));
   }
@@ -39,7 +39,7 @@ final class DeployWorkflowCheckoutTest extends UnitTestCase {
     $unnamed = [];
 
     foreach (self::deploySteps() as $step) {
-      $uses = self::child($step, 'uses');
+      $uses = self::deployChild($step, 'uses');
 
       if (!is_string($uses)) {
         continue;
@@ -49,8 +49,8 @@ final class DeployWorkflowCheckoutTest extends UnitTestCase {
         continue;
       }
 
-      if (!is_string(self::child(self::child($step, 'with'), 'ref'))) {
-        $name = self::child($step, 'name');
+      if (!is_string(self::deployChild(self::deployChild($step, 'with'), 'ref'))) {
+        $name = self::deployChild($step, 'name');
         $unnamed[] = is_string($name) ? $name : $uses;
       }
     }
@@ -59,7 +59,7 @@ final class DeployWorkflowCheckoutTest extends UnitTestCase {
   }
 
   public function testCheckoutFetchesFullHistory(): void {
-    $fetch_depth = self::child(self::child(self::deployStep(self::STEP), 'with'), 'fetch-depth');
+    $fetch_depth = self::deployChild(self::deployChild(self::deployStep(self::STEP), 'with'), 'fetch-depth');
 
     $this->assertSame(0, $fetch_depth, sprintf('The "%s" step must fetch every branch and tag: the deploy step compares the commit with its branch tip, detects tag pushes and pushes every tag.', self::STEP));
   }
@@ -97,7 +97,7 @@ final class DeployWorkflowCheckoutTest extends UnitTestCase {
    *   The condition, with its folded whitespace collapsed.
    */
   protected static function deployCondition(): string {
-    $condition = self::child(self::deployJob(), 'if');
+    $condition = self::deployChild(self::deployJob(), 'if');
 
     if (!is_string($condition)) {
       self::fail(sprintf('The deploy job of %s declares no condition.', basename(self::deployWorkflowPath())));

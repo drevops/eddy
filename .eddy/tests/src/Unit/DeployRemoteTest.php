@@ -30,7 +30,7 @@ final class DeployRemoteTest extends UnitTestCase {
   public function testBranchDeployment(): void {
     $clone = $this->createClone();
     $remote = $this->createRemote();
-    $this->git($clone, ['checkout', '--quiet', '--detach', 'main']);
+    $this->gitRun($clone, ['checkout', '--quiet', '--detach', 'main']);
 
     $output = $this->runDeploy($clone, $remote, ['DEPLOY_BRANCH' => self::BRANCH]);
 
@@ -45,11 +45,11 @@ final class DeployRemoteTest extends UnitTestCase {
     $remote = $this->createRemote();
 
     // The remote branch is ahead of the release, as after a later deployment.
-    $this->git($clone, ['push', '--quiet', $remote, 'main:refs/heads/' . self::BRANCH]);
+    $this->gitRun($clone, ['push', '--quiet', $remote, 'main:refs/heads/' . self::BRANCH]);
 
-    $this->git($clone, ['branch', self::RELEASE_TAG, 'main']);
+    $this->gitRun($clone, ['branch', self::RELEASE_TAG, 'main']);
 
-    $this->git($clone, ['checkout', '--quiet', '--detach', 'refs/tags/' . self::RELEASE_TAG . '^{commit}']);
+    $this->gitRun($clone, ['checkout', '--quiet', '--detach', 'refs/tags/' . self::RELEASE_TAG . '^{commit}']);
 
     $output = $this->runDeploy($clone, $remote, ['DEPLOY_TAG' => self::RELEASE_TAG]);
 
@@ -63,7 +63,7 @@ final class DeployRemoteTest extends UnitTestCase {
   public function testRefusedTagIsReported(): void {
     $clone = $this->createClone();
     $remote = $this->createRemote();
-    $this->git($clone, ['checkout', '--quiet', '--detach', 'main']);
+    $this->gitRun($clone, ['checkout', '--quiet', '--detach', 'main']);
 
     // The update hook refuses the later tag and accepts every other ref.
     $hook = $remote . '/hooks/update';
@@ -132,18 +132,18 @@ final class DeployRemoteTest extends UnitTestCase {
     $clone = self::$tmp . '/clone';
     File::mkdir($clone, 0755);
 
-    $this->git($clone, ['init', '--quiet', '--initial-branch=main']);
-    $this->git($clone, ['config', 'user.name', 'Test User']);
-    $this->git($clone, ['config', 'user.email', 'test@example.com']);
+    $this->gitRun($clone, ['init', '--quiet', '--initial-branch=main']);
+    $this->gitRun($clone, ['config', 'user.name', 'Test User']);
+    $this->gitRun($clone, ['config', 'user.email', 'test@example.com']);
 
     File::dump($clone . '/file.txt', 'first');
-    $this->git($clone, ['add', '--all']);
-    $this->git($clone, ['commit', '--quiet', '--message', 'First commit']);
-    $this->git($clone, ['tag', '--annotate', self::RELEASE_TAG, '--message', 'Release']);
+    $this->gitRun($clone, ['add', '--all']);
+    $this->gitRun($clone, ['commit', '--quiet', '--message', 'First commit']);
+    $this->gitRun($clone, ['tag', '--annotate', self::RELEASE_TAG, '--message', 'Release']);
 
     File::dump($clone . '/file.txt', 'second');
-    $this->git($clone, ['commit', '--quiet', '--all', '--message', 'Second commit']);
-    $this->git($clone, ['tag', self::LATER_TAG]);
+    $this->gitRun($clone, ['commit', '--quiet', '--all', '--message', 'Second commit']);
+    $this->gitRun($clone, ['tag', self::LATER_TAG]);
 
     return $clone;
   }
@@ -152,7 +152,7 @@ final class DeployRemoteTest extends UnitTestCase {
     $remote = self::$tmp . '/remote.git';
     File::mkdir($remote, 0755);
 
-    $this->git($remote, ['init', '--quiet', '--bare']);
+    $this->gitRun($remote, ['init', '--quiet', '--bare']);
 
     return $remote;
   }
@@ -170,8 +170,8 @@ final class DeployRemoteTest extends UnitTestCase {
    */
   protected function commit(string $clone, string $name): string {
     return match ($name) {
-      'released' => $this->git($clone, ['rev-parse', 'refs/tags/' . self::RELEASE_TAG . '^{commit}']),
-      'tip' => $this->git($clone, ['rev-parse', 'refs/heads/main']),
+      'released' => $this->gitRun($clone, ['rev-parse', 'refs/tags/' . self::RELEASE_TAG . '^{commit}']),
+      'tip' => $this->gitRun($clone, ['rev-parse', 'refs/heads/main']),
       default => self::fail(sprintf('Unknown commit "%s".', $name)),
     };
   }
