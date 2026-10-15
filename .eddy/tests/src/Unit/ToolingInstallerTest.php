@@ -52,10 +52,10 @@ final class ToolingInstallerTest extends UnitTestCase {
     $this->originalCwd = File::cwd();
     chdir(self::$sut);
 
-    $this->envUnset('DEBUG');
-    $this->envUnset('GITHUB_TOKEN');
-    $this->envUnset('COMPOSER_AUTH');
-    $this->envUnset('TERM');
+    self::envUnset('DEBUG');
+    self::envUnset('GITHUB_TOKEN');
+    self::envUnset('COMPOSER_AUTH');
+    self::envUnset('TERM');
   }
 
   protected function tearDown(): void {
@@ -399,7 +399,7 @@ final class ToolingInstallerTest extends UnitTestCase {
 
   #[DataProvider('dataProviderDebug')]
   public function testDebug(int $exit_code): void {
-    $this->envSet('DEBUG', '1');
+    self::envSet('DEBUG', '1');
     $this->writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
     $this->mockComposer($exit_code, 'Composer progress');
 
@@ -417,11 +417,11 @@ final class ToolingInstallerTest extends UnitTestCase {
   #[DataProvider('dataProviderGithubToken')]
   public function testGithubToken(?string $token, ?string $auth, string|false $expected_auth): void {
     if ($token !== NULL) {
-      $this->envSet('GITHUB_TOKEN', $token);
+      self::envSet('GITHUB_TOKEN', $token);
     }
 
     if ($auth !== NULL) {
-      $this->envSet('COMPOSER_AUTH', $auth);
+      self::envSet('COMPOSER_AUTH', $auth);
     }
 
     $this->writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
@@ -445,7 +445,7 @@ final class ToolingInstallerTest extends UnitTestCase {
   #[DataProvider('dataProviderOutputColor')]
   public function testOutputColor(?string $term, bool $tty, bool $expected_color): void {
     if ($term !== NULL) {
-      $this->envSet('TERM', $term);
+      self::envSet('TERM', $term);
     }
 
     // The color check calls posix_isatty() once per printed line, or never

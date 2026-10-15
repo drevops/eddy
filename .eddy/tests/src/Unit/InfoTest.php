@@ -21,10 +21,10 @@ final class InfoTest extends UnitTestCase {
     parent::setUp();
     require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
 
-    $this->envUnset('WEBSERVER_HOST');
-    $this->envUnset('WEBSERVER_PORT');
-    $this->envUnset('WEBDRIVER_PORT');
-    $this->envUnset('DRUPAL_PROFILE');
+    self::envUnset('WEBSERVER_HOST');
+    self::envUnset('WEBSERVER_PORT');
+    self::envUnset('WEBDRIVER_PORT');
+    self::envUnset('DRUPAL_PROFILE');
   }
 
   /**
@@ -87,9 +87,9 @@ final class InfoTest extends UnitTestCase {
   }
 
   public function testInfoFullyPopulatedEnvironment(): void {
-    $this->envSet('WEBSERVER_HOST', 'example.com');
-    $this->envSet('WEBSERVER_PORT', '9001');
-    $this->envSet('DRUPAL_PROFILE', 'minimal');
+    self::envSet('WEBSERVER_HOST', 'example.com');
+    self::envSet('WEBSERVER_PORT', '9001');
+    self::envSet('DRUPAL_PROFILE', 'minimal');
 
     $cwd = '/test/project';
     $drush_bin = 'build/vendor/bin/drush';
@@ -276,7 +276,7 @@ final class InfoTest extends UnitTestCase {
   #[DataProvider('dataProviderInfoWebdriverPort')]
   public function testInfoWebdriverPort(bool $has_functional_javascript): void {
     $cwd = '/test/project';
-    $this->envSet('WEBDRIVER_PORT', '4455');
+    self::envSet('WEBDRIVER_PORT', '4455');
 
     $this->setupInfoMocks(
       shell_exec_map: ['*' => ''],

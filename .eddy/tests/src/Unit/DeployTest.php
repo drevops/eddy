@@ -23,9 +23,9 @@ final class DeployTest extends UnitTestCase {
   }
 
   public function testDeploySkipWhenProceedNotSet(): void {
-    $this->envSet('DEPLOY_USER_NAME', 'Test User');
-    $this->envSet('DEPLOY_USER_EMAIL', 'test@example.com');
-    $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
+    self::envSet('DEPLOY_USER_NAME', 'Test User');
+    self::envSet('DEPLOY_USER_EMAIL', 'test@example.com');
+    self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
 
     $this->mockQuit(0);
 
@@ -46,10 +46,10 @@ final class DeployTest extends UnitTestCase {
   }
 
   public function testDeploySkipWhenProceedExplicitlyZero(): void {
-    $this->envSet('DEPLOY_USER_NAME', 'Test User');
-    $this->envSet('DEPLOY_USER_EMAIL', 'test@example.com');
-    $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    $this->envSet('DEPLOY_PROCEED', '0');
+    self::envSet('DEPLOY_USER_NAME', 'Test User');
+    self::envSet('DEPLOY_USER_EMAIL', 'test@example.com');
+    self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
+    self::envSet('DEPLOY_PROCEED', '0');
 
     $this->mockQuit(0);
 
@@ -72,13 +72,13 @@ final class DeployTest extends UnitTestCase {
   public function testDeployProceed(string $deploy_branch, string $git_user_name, string $git_user_email): void {
     $deploy_remote = 'git@git.drupal.org:project/test.git';
 
-    $this->envSet('DEPLOY_USER_NAME', 'Deploy Bot');
-    $this->envSet('DEPLOY_USER_EMAIL', 'deploy@example.com');
-    $this->envSet('DEPLOY_REMOTE', $deploy_remote);
-    $this->envSet('DEPLOY_PROCEED', '1');
+    self::envSet('DEPLOY_USER_NAME', 'Deploy Bot');
+    self::envSet('DEPLOY_USER_EMAIL', 'deploy@example.com');
+    self::envSet('DEPLOY_REMOTE', $deploy_remote);
+    self::envSet('DEPLOY_PROCEED', '1');
 
     if ($deploy_branch !== '') {
-      $this->envSet('DEPLOY_BRANCH', $deploy_branch);
+      self::envSet('DEPLOY_BRANCH', $deploy_branch);
     }
 
     $shell_exec_calls = [];
@@ -156,10 +156,10 @@ final class DeployTest extends UnitTestCase {
   }
 
   public function testDeployDetachedHeadWithoutBranch(): void {
-    $this->envSet('DEPLOY_USER_NAME', 'Deploy Bot');
-    $this->envSet('DEPLOY_USER_EMAIL', 'deploy@example.com');
-    $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    $this->envSet('DEPLOY_PROCEED', '1');
+    self::envSet('DEPLOY_USER_NAME', 'Deploy Bot');
+    self::envSet('DEPLOY_USER_EMAIL', 'deploy@example.com');
+    self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
+    self::envSet('DEPLOY_PROCEED', '1');
 
     $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(string $command): ?string => match ($command) {
       'git symbolic-ref --quiet --short HEAD' => NULL,
@@ -187,11 +187,11 @@ final class DeployTest extends UnitTestCase {
   public function testDeployRefusedTags(): void {
     $deploy_remote = 'git@git.drupal.org:project/test.git';
 
-    $this->envSet('DEPLOY_USER_NAME', 'Deploy Bot');
-    $this->envSet('DEPLOY_USER_EMAIL', 'deploy@example.com');
-    $this->envSet('DEPLOY_REMOTE', $deploy_remote);
-    $this->envSet('DEPLOY_PROCEED', '1');
-    $this->envSet('DEPLOY_BRANCH', '1.x');
+    self::envSet('DEPLOY_USER_NAME', 'Deploy Bot');
+    self::envSet('DEPLOY_USER_EMAIL', 'deploy@example.com');
+    self::envSet('DEPLOY_REMOTE', $deploy_remote);
+    self::envSet('DEPLOY_PROCEED', '1');
+    self::envSet('DEPLOY_BRANCH', '1.x');
 
     $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(): string => 'Existing');
 
@@ -223,14 +223,14 @@ final class DeployTest extends UnitTestCase {
   public function testDeployTag(string $deploy_branch): void {
     $deploy_remote = 'git@git.drupal.org:project/test.git';
 
-    $this->envSet('DEPLOY_USER_NAME', 'Deploy Bot');
-    $this->envSet('DEPLOY_USER_EMAIL', 'deploy@example.com');
-    $this->envSet('DEPLOY_REMOTE', $deploy_remote);
-    $this->envSet('DEPLOY_PROCEED', '1');
-    $this->envSet('DEPLOY_TAG', '1.2.0');
+    self::envSet('DEPLOY_USER_NAME', 'Deploy Bot');
+    self::envSet('DEPLOY_USER_EMAIL', 'deploy@example.com');
+    self::envSet('DEPLOY_REMOTE', $deploy_remote);
+    self::envSet('DEPLOY_PROCEED', '1');
+    self::envSet('DEPLOY_TAG', '1.2.0');
 
     if ($deploy_branch !== '') {
-      $this->envSet('DEPLOY_BRANCH', $deploy_branch);
+      self::envSet('DEPLOY_BRANCH', $deploy_branch);
     }
 
     $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(string $command): string => str_contains($command, 'symbolic-ref') ? throw new \RuntimeException('A tag deployment must not resolve a branch.') : 'Existing');
@@ -266,11 +266,11 @@ final class DeployTest extends UnitTestCase {
   public function testDeployTagPushFailure(): void {
     $deploy_remote = 'git@git.drupal.org:project/test.git';
 
-    $this->envSet('DEPLOY_USER_NAME', 'Deploy Bot');
-    $this->envSet('DEPLOY_USER_EMAIL', 'deploy@example.com');
-    $this->envSet('DEPLOY_REMOTE', $deploy_remote);
-    $this->envSet('DEPLOY_PROCEED', '1');
-    $this->envSet('DEPLOY_TAG', '1.2.0');
+    self::envSet('DEPLOY_USER_NAME', 'Deploy Bot');
+    self::envSet('DEPLOY_USER_EMAIL', 'deploy@example.com');
+    self::envSet('DEPLOY_REMOTE', $deploy_remote);
+    self::envSet('DEPLOY_PROCEED', '1');
+    self::envSet('DEPLOY_TAG', '1.2.0');
 
     $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(): string => 'Existing');
 
@@ -321,11 +321,11 @@ final class DeployTest extends UnitTestCase {
   }
 
   public function testDeploySshKeyMd5Fingerprint(): void {
-    $this->envSet('DEPLOY_USER_NAME', 'Test User');
-    $this->envSet('DEPLOY_USER_EMAIL', 'test@example.com');
-    $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    $this->envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd:ee:ff');
-    $this->envSet('HOME', '/home/testuser');
+    self::envSet('DEPLOY_USER_NAME', 'Test User');
+    self::envSet('DEPLOY_USER_EMAIL', 'test@example.com');
+    self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
+    self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd:ee:ff');
+    self::envSet('HOME', '/home/testuser');
 
     $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(string $path): bool => str_contains($path, '.ssh'));
 
@@ -337,7 +337,7 @@ final class DeployTest extends UnitTestCase {
     $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $file === $key_file);
 
     // The running agent is reused, so 'ssh-agent' never runs.
-    $this->envSet('SSH_AGENT_PID', '12345');
+    self::envSet('SSH_AGENT_PID', '12345');
     $this->mockShellExecOutputs([]);
 
     $this->mockPassthruMultiple([
@@ -375,11 +375,11 @@ final class DeployTest extends UnitTestCase {
   }
 
   public function testDeploySshKeySha256Fingerprint(): void {
-    $this->envSet('DEPLOY_USER_NAME', 'Test User');
-    $this->envSet('DEPLOY_USER_EMAIL', 'test@example.com');
-    $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    $this->envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'SHA256:abcdef123456');
-    $this->envSet('HOME', '/home/testuser');
+    self::envSet('DEPLOY_USER_NAME', 'Test User');
+    self::envSet('DEPLOY_USER_EMAIL', 'test@example.com');
+    self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
+    self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'SHA256:abcdef123456');
+    self::envSet('HOME', '/home/testuser');
 
     $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(string $path): bool => str_contains($path, '.ssh'));
 
@@ -405,7 +405,7 @@ final class DeployTest extends UnitTestCase {
 
     $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $file === $key_file);
 
-    $this->envSet('SSH_AGENT_PID', '12345');
+    self::envSet('SSH_AGENT_PID', '12345');
 
     $this->mockPassthruMultiple([
       ['cmd' => 'ssh-add -D'],
@@ -430,11 +430,11 @@ final class DeployTest extends UnitTestCase {
   }
 
   public function testDeploySshKeyNotFound(): void {
-    $this->envSet('DEPLOY_USER_NAME', 'Test User');
-    $this->envSet('DEPLOY_USER_EMAIL', 'test@example.com');
-    $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    $this->envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd');
-    $this->envSet('HOME', '/home/testuser');
+    self::envSet('DEPLOY_USER_NAME', 'Test User');
+    self::envSet('DEPLOY_USER_EMAIL', 'test@example.com');
+    self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
+    self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd');
+    self::envSet('HOME', '/home/testuser');
 
     $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
     $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): int => 100);
@@ -459,11 +459,11 @@ final class DeployTest extends UnitTestCase {
   }
 
   public function testDeploySshCreatesSshDir(): void {
-    $this->envSet('DEPLOY_USER_NAME', 'Test User');
-    $this->envSet('DEPLOY_USER_EMAIL', 'test@example.com');
-    $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    $this->envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd');
-    $this->envSet('HOME', '/home/testuser');
+    self::envSet('DEPLOY_USER_NAME', 'Test User');
+    self::envSet('DEPLOY_USER_EMAIL', 'test@example.com');
+    self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
+    self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd');
+    self::envSet('HOME', '/home/testuser');
 
     $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
 
@@ -478,7 +478,7 @@ final class DeployTest extends UnitTestCase {
     $key_file = '/home/testuser/.ssh/id_rsa_aabbccdd';
     $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $file === $key_file);
 
-    $this->envSet('SSH_AGENT_PID', '12345');
+    self::envSet('SSH_AGENT_PID', '12345');
 
     $this->mockPassthruMultiple([
       ['cmd' => 'ssh-add -D'],
@@ -505,20 +505,20 @@ final class DeployTest extends UnitTestCase {
 
   #[DataProvider('dataProviderDeploySshAgentStarted')]
   public function testDeploySshAgentStarted(?string $agent_pid): void {
-    $this->envSet('DEPLOY_USER_NAME', 'Test User');
-    $this->envSet('DEPLOY_USER_EMAIL', 'test@example.com');
-    $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    $this->envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd');
-    $this->envSet('HOME', '/home/testuser');
+    self::envSet('DEPLOY_USER_NAME', 'Test User');
+    self::envSet('DEPLOY_USER_EMAIL', 'test@example.com');
+    self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
+    self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd');
+    self::envSet('HOME', '/home/testuser');
     // The socket of an agent the script did not start, such as a forwarded
     // one, which 'ssh-add -D' would clear.
-    $this->envSet('SSH_AUTH_SOCK', '/home/testuser/.ssh/agent/s.other');
+    self::envSet('SSH_AUTH_SOCK', '/home/testuser/.ssh/agent/s.other');
 
     if ($agent_pid === NULL) {
-      $this->envUnset('SSH_AGENT_PID');
+      self::envUnset('SSH_AGENT_PID');
     }
     else {
-      $this->envSet('SSH_AGENT_PID', $agent_pid);
+      self::envSet('SSH_AGENT_PID', $agent_pid);
     }
 
     $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
@@ -562,12 +562,12 @@ final class DeployTest extends UnitTestCase {
 
   #[DataProvider('dataProviderDeploySshAgentStartFailure')]
   public function testDeploySshAgentStartFailure(string $agent_output): void {
-    $this->envSet('DEPLOY_USER_NAME', 'Test User');
-    $this->envSet('DEPLOY_USER_EMAIL', 'test@example.com');
-    $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    $this->envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd');
-    $this->envSet('HOME', '/home/testuser');
-    $this->envUnset('SSH_AGENT_PID');
+    self::envSet('DEPLOY_USER_NAME', 'Test User');
+    self::envSet('DEPLOY_USER_EMAIL', 'test@example.com');
+    self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
+    self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd');
+    self::envSet('HOME', '/home/testuser');
+    self::envUnset('SSH_AGENT_PID');
 
     $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
     $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): int => 100);
@@ -599,11 +599,11 @@ final class DeployTest extends UnitTestCase {
   }
 
   public function testDeploySshSha256NoMatch(): void {
-    $this->envSet('DEPLOY_USER_NAME', 'Test User');
-    $this->envSet('DEPLOY_USER_EMAIL', 'test@example.com');
-    $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    $this->envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'SHA256:nomatch');
-    $this->envSet('HOME', '/home/testuser');
+    self::envSet('DEPLOY_USER_NAME', 'Test User');
+    self::envSet('DEPLOY_USER_EMAIL', 'test@example.com');
+    self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
+    self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'SHA256:nomatch');
+    self::envSet('HOME', '/home/testuser');
 
     $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
     $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): int => 100);
@@ -639,11 +639,11 @@ final class DeployTest extends UnitTestCase {
   }
 
   public function testDeploySshSha256EmptyGlob(): void {
-    $this->envSet('DEPLOY_USER_NAME', 'Test User');
-    $this->envSet('DEPLOY_USER_EMAIL', 'test@example.com');
-    $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    $this->envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'SHA256:abcdef');
-    $this->envSet('HOME', '/home/testuser');
+    self::envSet('DEPLOY_USER_NAME', 'Test User');
+    self::envSet('DEPLOY_USER_EMAIL', 'test@example.com');
+    self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
+    self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'SHA256:abcdef');
+    self::envSet('HOME', '/home/testuser');
 
     $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
     $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): int => 100);
@@ -671,11 +671,11 @@ final class DeployTest extends UnitTestCase {
   }
 
   public function testDeploySshSha256EmptyExecOutput(): void {
-    $this->envSet('DEPLOY_USER_NAME', 'Test User');
-    $this->envSet('DEPLOY_USER_EMAIL', 'test@example.com');
-    $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    $this->envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'SHA256:abcdef');
-    $this->envSet('HOME', '/home/testuser');
+    self::envSet('DEPLOY_USER_NAME', 'Test User');
+    self::envSet('DEPLOY_USER_EMAIL', 'test@example.com');
+    self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
+    self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'SHA256:abcdef');
+    self::envSet('HOME', '/home/testuser');
 
     $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
     $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): int => 100);

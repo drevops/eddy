@@ -26,7 +26,7 @@ final class HelpersFormatterTest extends UnitTestCase {
   #[DataProvider('dataProviderOutputFormatters')]
   public function testOutputFormatters(string $function, ?bool $is_tty, string $expected_output): void {
     if ($is_tty !== NULL) {
-      $this->envSet('TERM', 'xterm-256color');
+      self::envSet('TERM', 'xterm-256color');
       $this->mockPosixIsatty($is_tty);
     }
     require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
@@ -55,7 +55,7 @@ final class HelpersFormatterTest extends UnitTestCase {
 
   #[DataProvider('dataProviderFail')]
   public function testFail(bool $is_tty, string $expected_output): void {
-    $this->envSet('TERM', 'xterm-256color');
+    self::envSet('TERM', 'xterm-256color');
     $this->mockPosixIsatty($is_tty);
     $this->mockQuit(1);
     require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
@@ -83,10 +83,10 @@ final class HelpersFormatterTest extends UnitTestCase {
   public function testTermSupportsColor(string|bool $term_value, bool $expected): void {
     require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
     if ($term_value === FALSE) {
-      $this->envUnset('TERM');
+      self::envUnset('TERM');
     }
     else {
-      $this->envSet('TERM', (string) $term_value);
+      self::envSet('TERM', (string) $term_value);
     }
     $result = term_supports_color();
     $this->assertSame($expected, $result);

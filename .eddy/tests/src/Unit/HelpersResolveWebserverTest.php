@@ -22,8 +22,8 @@ final class HelpersResolveWebserverTest extends UnitTestCase {
     parent::setUp();
     require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
 
-    $this->envUnset('WEBSERVER_HOST');
-    $this->envUnset('WEBSERVER_PORT');
+    self::envUnset('WEBSERVER_HOST');
+    self::envUnset('WEBSERVER_PORT');
   }
 
   public function testDefaultsWhenNothingProvided(): void {
@@ -38,8 +38,8 @@ final class HelpersResolveWebserverTest extends UnitTestCase {
   }
 
   public function testEnvOverridesDotenvAndDefault(): void {
-    $this->envSet('WEBSERVER_HOST', '0.0.0.0');
-    $this->envSet('WEBSERVER_PORT', '9001');
+    self::envSet('WEBSERVER_HOST', '0.0.0.0');
+    self::envSet('WEBSERVER_PORT', '9001');
     $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): bool => TRUE);
     $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(): string => "WEBSERVER_HOST=ignored\nWEBSERVER_PORT=1234\n");
 
@@ -111,7 +111,7 @@ final class HelpersResolveWebserverTest extends UnitTestCase {
   }
 
   public function testValidationFailsOnMalformedPort(): void {
-    $this->envSet('WEBSERVER_PORT', 'not-a-port');
+    self::envSet('WEBSERVER_PORT', 'not-a-port');
     $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): bool => FALSE);
 
     $this->mockQuit(1);
@@ -132,7 +132,7 @@ final class HelpersResolveWebserverTest extends UnitTestCase {
   }
 
   public function testValidationSkippedWhenDisabled(): void {
-    $this->envSet('WEBSERVER_PORT', 'not-a-port');
+    self::envSet('WEBSERVER_PORT', 'not-a-port');
     $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): bool => FALSE);
 
     $resolved = resolve_webserver(validate_port: FALSE);

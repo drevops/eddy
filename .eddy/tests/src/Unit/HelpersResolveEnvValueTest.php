@@ -25,7 +25,7 @@ final class HelpersResolveEnvValueTest extends UnitTestCase {
   public function testEnvWinsOverDotenv(): void {
     $file = self::$tmp . '/resolve_env_' . uniqid();
     File::dump($file, "FOO=from_dotenv\n");
-    $this->envSet('FOO', 'from_env');
+    self::envSet('FOO', 'from_env');
 
     ['value' => $value, 'source' => $source] = resolve_env_value('FOO', 'fallback', $file);
 
@@ -56,7 +56,7 @@ final class HelpersResolveEnvValueTest extends UnitTestCase {
   public function testEnvSkippedWhenValueIsEmpty(): void {
     $file = self::$tmp . '/resolve_env_' . uniqid();
     File::dump($file, "FOO=from_dotenv\n");
-    $this->envSet('FOO', '');
+    self::envSet('FOO', '');
 
     ['value' => $value, 'source' => $source] = resolve_env_value('FOO', 'fallback', $file);
 

@@ -21,10 +21,10 @@ final class HelpersIsDebugTest extends UnitTestCase {
   #[DataProvider('dataProviderIsDebug')]
   public function testIsDebug(string|false $env_value, bool $expected): void {
     if ($env_value === FALSE) {
-      $this->envUnset('DEBUG');
+      self::envUnset('DEBUG');
     }
     else {
-      $this->envSet('DEBUG', $env_value);
+      self::envSet('DEBUG', $env_value);
     }
     $this->assertSame($expected, is_debug());
   }

@@ -22,7 +22,7 @@ final class HelpersResolveWebdriverPortTest extends UnitTestCase {
     parent::setUp();
     require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
 
-    $this->envUnset('WEBDRIVER_PORT');
+    self::envUnset('WEBDRIVER_PORT');
   }
 
   public function testDefaultsWhenNothingProvided(): void {
@@ -35,7 +35,7 @@ final class HelpersResolveWebdriverPortTest extends UnitTestCase {
   }
 
   public function testEnvOverridesDotenvAndDefault(): void {
-    $this->envSet('WEBDRIVER_PORT', '9515');
+    self::envSet('WEBDRIVER_PORT', '9515');
     $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): bool => TRUE);
     $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(): string => "WEBDRIVER_PORT=1234\n");
 
@@ -101,7 +101,7 @@ final class HelpersResolveWebdriverPortTest extends UnitTestCase {
   }
 
   public function testValidationFailsOnMalformedPort(): void {
-    $this->envSet('WEBDRIVER_PORT', 'not-a-port');
+    self::envSet('WEBDRIVER_PORT', 'not-a-port');
     $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): bool => FALSE);
 
     $this->mockQuit(1);
@@ -122,7 +122,7 @@ final class HelpersResolveWebdriverPortTest extends UnitTestCase {
   }
 
   public function testValidationSkippedWhenDisabled(): void {
-    $this->envSet('WEBDRIVER_PORT', 'not-a-port');
+    self::envSet('WEBDRIVER_PORT', 'not-a-port');
     $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): bool => FALSE);
 
     $resolved = resolve_webdriver_port(validate_port: FALSE);

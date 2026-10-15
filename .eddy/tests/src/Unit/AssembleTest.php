@@ -289,7 +289,7 @@ final class AssembleTest extends UnitTestCase {
         file_put_contents($config['nvm_dir'] . '/nvm.sh', '');
       }
 
-      $this->envSet('NVM_DIR', $config['nvm_dir']);
+      self::envSet('NVM_DIR', $config['nvm_dir']);
     }
 
     $passthru_responses = [];
@@ -345,19 +345,19 @@ final class AssembleTest extends UnitTestCase {
   #[DataProvider('dataProviderAssembleSuccess')]
   public function testAssembleSuccess(array $env, array $config): void {
     foreach ($env as $name => $value) {
-      $this->envSet($name, $value);
+      self::envSet($name, $value);
     }
 
     // An explicit empty value overrides GITHUB_TOKEN and COMPOSER_AUTH
     // inherited from the environment.
-    $this->envSet('GITHUB_TOKEN', $config['github_token'] ?? '');
-    $this->envSet('COMPOSER_AUTH', '');
+    self::envSet('GITHUB_TOKEN', $config['github_token'] ?? '');
+    self::envSet('COMPOSER_AUTH', '');
 
     if ($config['has_deprecations_disabled'] ?? FALSE) {
-      $this->envSet('SYMFONY_DEPRECATIONS_HELPER', 'disabled');
+      self::envSet('SYMFONY_DEPRECATIONS_HELPER', 'disabled');
     }
     else {
-      $this->envSet('SYMFONY_DEPRECATIONS_HELPER', '');
+      self::envSet('SYMFONY_DEPRECATIONS_HELPER', '');
     }
 
     $config = $this->setupAssembleMocks($config);
@@ -711,9 +711,9 @@ final class AssembleTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderAssembleDependencyResolution')]
   public function testAssembleDependencyResolution(string $drupal_version, array $releases, string $expected_release, ?string $expected_phpunit, ?array $expected_preferred_install): void {
-    $this->envSet('DRUPAL_VERSION', $drupal_version);
-    $this->envSet('GITHUB_TOKEN', '');
-    $this->envSet('SYMFONY_DEPRECATIONS_HELPER', '');
+    self::envSet('DRUPAL_VERSION', $drupal_version);
+    self::envSet('GITHUB_TOKEN', '');
+    self::envSet('SYMFONY_DEPRECATIONS_HELPER', '');
 
     $this->setupAssembleMocks(['drupal_version' => $drupal_version, 'drupal_release' => $expected_release, 'releases' => $releases]);
 
@@ -757,9 +757,9 @@ final class AssembleTest extends UnitTestCase {
   }
 
   public function testAssembleConfiguresDependencyPatches(): void {
-    $this->envSet('DRUPAL_VERSION', '11');
-    $this->envSet('GITHUB_TOKEN', '');
-    $this->envSet('SYMFONY_DEPRECATIONS_HELPER', '');
+    self::envSet('DRUPAL_VERSION', '11');
+    self::envSet('GITHUB_TOKEN', '');
+    self::envSet('SYMFONY_DEPRECATIONS_HELPER', '');
 
     $dev_composer_json = json_decode(File::read(dirname(__DIR__, 4) . '/composer.dev.json'), TRUE, 512, JSON_THROW_ON_ERROR);
     $this->assertIsArray($dev_composer_json);
@@ -793,9 +793,9 @@ final class AssembleTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderAssembleListsDevelopmentBranches')]
   public function testAssembleListsDevelopmentBranches(array $installed_packages, array $expected_lines): void {
-    $this->envSet('DRUPAL_VERSION', '12');
-    $this->envSet('GITHUB_TOKEN', '');
-    $this->envSet('SYMFONY_DEPRECATIONS_HELPER', '');
+    self::envSet('DRUPAL_VERSION', '12');
+    self::envSet('GITHUB_TOKEN', '');
+    self::envSet('SYMFONY_DEPRECATIONS_HELPER', '');
 
     $this->setupAssembleMocks(['drupal_version' => '12', 'drupal_release' => '12.0.0-beta1', 'installed_packages' => $installed_packages]);
 
@@ -824,9 +824,9 @@ final class AssembleTest extends UnitTestCase {
   }
 
   public function testAssembleLeavesToolingOutOfBuild(): void {
-    $this->envSet('DRUPAL_VERSION', '11');
-    $this->envSet('GITHUB_TOKEN', '');
-    $this->envSet('SYMFONY_DEPRECATIONS_HELPER', '');
+    self::envSet('DRUPAL_VERSION', '11');
+    self::envSet('GITHUB_TOKEN', '');
+    self::envSet('SYMFONY_DEPRECATIONS_HELPER', '');
 
     $patch = ['Fix' => 'patches/fix.patch'];
     $this->setupAssembleMocks([
@@ -858,14 +858,14 @@ final class AssembleTest extends UnitTestCase {
   #[DataProvider('dataProviderAssembleDrupalVersionDefault')]
   public function testAssembleDrupalVersionDefault(?string $env_version, array $extra, string $expected_version, string $expected_release): void {
     if ($env_version === NULL) {
-      $this->envUnset('DRUPAL_VERSION');
+      self::envUnset('DRUPAL_VERSION');
     }
     else {
-      $this->envSet('DRUPAL_VERSION', $env_version);
+      self::envSet('DRUPAL_VERSION', $env_version);
     }
 
-    $this->envSet('GITHUB_TOKEN', '');
-    $this->envSet('SYMFONY_DEPRECATIONS_HELPER', '');
+    self::envSet('GITHUB_TOKEN', '');
+    self::envSet('SYMFONY_DEPRECATIONS_HELPER', '');
 
     $this->setupAssembleMocks([
       'drupal_version' => $expected_version,
@@ -890,9 +890,9 @@ final class AssembleTest extends UnitTestCase {
 
   #[DataProvider('dataProviderAssembleReleaseFailure')]
   public function testAssembleReleaseFailure(string $drupal_version, int $releases_result_code, string $expected_message): void {
-    $this->envSet('DRUPAL_VERSION', $drupal_version);
-    $this->envSet('GITHUB_TOKEN', '');
-    $this->envSet('SYMFONY_DEPRECATIONS_HELPER', '');
+    self::envSet('DRUPAL_VERSION', $drupal_version);
+    self::envSet('GITHUB_TOKEN', '');
+    self::envSet('SYMFONY_DEPRECATIONS_HELPER', '');
 
     $this->setupAssembleMocks(['drupal_version' => $drupal_version, 'drupal_release' => NULL, 'releases_result_code' => $releases_result_code, 'has_build_dir' => TRUE]);
 
@@ -921,9 +921,9 @@ final class AssembleTest extends UnitTestCase {
   }
 
   public function testAssembleCreateProjectFailure(): void {
-    $this->envSet('DRUPAL_VERSION', '11');
-    $this->envSet('GITHUB_TOKEN', '');
-    $this->envSet('SYMFONY_DEPRECATIONS_HELPER', '');
+    self::envSet('DRUPAL_VERSION', '11');
+    self::envSet('GITHUB_TOKEN', '');
+    self::envSet('SYMFONY_DEPRECATIONS_HELPER', '');
 
     $this->setupAssembleMocks(['create_project_result_code' => 1]);
 
@@ -947,10 +947,10 @@ final class AssembleTest extends UnitTestCase {
 
   #[DataProvider('dataProviderAssembleComposerAuth')]
   public function testAssembleComposerAuth(string $github_token, string $composer_auth, ?string $expected_auth): void {
-    $this->envSet('DRUPAL_VERSION', '11');
-    $this->envSet('GITHUB_TOKEN', $github_token);
-    $this->envSet('COMPOSER_AUTH', $composer_auth);
-    $this->envSet('SYMFONY_DEPRECATIONS_HELPER', '');
+    self::envSet('DRUPAL_VERSION', '11');
+    self::envSet('GITHUB_TOKEN', $github_token);
+    self::envSet('COMPOSER_AUTH', $composer_auth);
+    self::envSet('SYMFONY_DEPRECATIONS_HELPER', '');
 
     $this->setupAssembleMocks(['github_token' => $github_token]);
 
@@ -971,9 +971,9 @@ final class AssembleTest extends UnitTestCase {
 
   #[DataProvider('dataProviderAssemblePhpRequirement')]
   public function testAssemblePhpRequirement(?string $php_requirement, string $expected_message): void {
-    $this->envSet('DRUPAL_VERSION', '11');
-    $this->envSet('GITHUB_TOKEN', '');
-    $this->envSet('SYMFONY_DEPRECATIONS_HELPER', '');
+    self::envSet('DRUPAL_VERSION', '11');
+    self::envSet('GITHUB_TOKEN', '');
+    self::envSet('SYMFONY_DEPRECATIONS_HELPER', '');
 
     $this->setupAssembleMocks(['php_requirement' => $php_requirement]);
 
@@ -997,9 +997,9 @@ final class AssembleTest extends UnitTestCase {
   }
 
   public function testAssemblePhpRequirementFailure(): void {
-    $this->envSet('DRUPAL_VERSION', '12');
-    $this->envSet('GITHUB_TOKEN', '');
-    $this->envSet('SYMFONY_DEPRECATIONS_HELPER', '');
+    self::envSet('DRUPAL_VERSION', '12');
+    self::envSet('GITHUB_TOKEN', '');
+    self::envSet('SYMFONY_DEPRECATIONS_HELPER', '');
 
     $this->setupAssembleMocks(['drupal_version' => '12', 'drupal_release' => '12.0.0-beta1', 'php_requirement' => '>=99', 'expect_php_failure' => TRUE, 'has_build_dir' => TRUE]);
 
@@ -1024,9 +1024,9 @@ final class AssembleTest extends UnitTestCase {
 
   #[DataProvider('dataProviderAssemblePinsPhpPlatform')]
   public function testAssemblePinsPhpPlatform(array $extension_config, array $dev_composer_json, ?string $expected_platform): void {
-    $this->envSet('DRUPAL_VERSION', '11');
-    $this->envSet('GITHUB_TOKEN', '');
-    $this->envSet('SYMFONY_DEPRECATIONS_HELPER', '');
+    self::envSet('DRUPAL_VERSION', '11');
+    self::envSet('GITHUB_TOKEN', '');
+    self::envSet('SYMFONY_DEPRECATIONS_HELPER', '');
 
     $this->setupAssembleMocks(['extension_config' => $extension_config, 'dev_composer_json' => $dev_composer_json]);
 
@@ -1060,9 +1060,9 @@ final class AssembleTest extends UnitTestCase {
   }
 
   public function testAssemblePlatformRequirementFailure(): void {
-    $this->envSet('DRUPAL_VERSION', '11');
-    $this->envSet('GITHUB_TOKEN', '');
-    $this->envSet('SYMFONY_DEPRECATIONS_HELPER', '');
+    self::envSet('DRUPAL_VERSION', '11');
+    self::envSet('GITHUB_TOKEN', '');
+    self::envSet('SYMFONY_DEPRECATIONS_HELPER', '');
 
     $this->setupAssembleMocks(['extension_config' => ['platform' => ['php' => '8.1.0']], 'php_requirement' => '>=8.3', 'expect_php_failure' => TRUE, 'has_build_dir' => TRUE]);
 
@@ -1086,8 +1086,8 @@ final class AssembleTest extends UnitTestCase {
   }
 
   public function testAssembleMissingComposerJson(): void {
-    $this->envUnset('GITHUB_TOKEN');
-    $this->envUnset('SYMFONY_DEPRECATIONS_HELPER');
+    self::envUnset('GITHUB_TOKEN');
+    self::envUnset('SYMFONY_DEPRECATIONS_HELPER');
 
     $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): false => FALSE);
 

@@ -20,13 +20,13 @@ final class StartTest extends UnitTestCase {
   protected function setUp(): void {
     parent::setUp();
     require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-    $this->envUnset('CLOUDFLARE_TUNNEL');
+    self::envUnset('CLOUDFLARE_TUNNEL');
   }
 
   #[DataProvider('dataProviderStartSuccess')]
   public function testStartSuccess(array $env, string $expected_host, string $expected_port, int $expected_timeout): void {
     foreach ($env as $name => $value) {
-      $this->envSet($name, $value);
+      self::envSet($name, $value);
     }
 
     $cwd = '/test/project';
@@ -96,8 +96,8 @@ final class StartTest extends UnitTestCase {
 
   #[DataProvider('dataProviderStartFailsOnInvalidWaitTimeout')]
   public function testStartFailsOnInvalidWaitTimeout(string $timeout): void {
-    $this->envSet('WEBSERVER_PORT', '8000');
-    $this->envSet('WEBSERVER_WAIT_TIMEOUT', $timeout);
+    self::envSet('WEBSERVER_PORT', '8000');
+    self::envSet('WEBSERVER_WAIT_TIMEOUT', $timeout);
 
     $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(string $command): never => throw new \RuntimeException(sprintf('shell_exec() called with unexpected command "%s".', $command)));
     $this->mockPassthruNever();
@@ -126,7 +126,7 @@ final class StartTest extends UnitTestCase {
   }
 
   public function testStartServerWith302Response(): void {
-    $this->envSet('WEBSERVER_PORT', '8000');
+    self::envSet('WEBSERVER_PORT', '8000');
     $cwd = '/test/project';
 
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
@@ -158,7 +158,7 @@ final class StartTest extends UnitTestCase {
   }
 
   public function testStartWaitsUntilServerAccepts(): void {
-    $this->envSet('WEBSERVER_PORT', '8000');
+    self::envSet('WEBSERVER_PORT', '8000');
     $cwd = '/test/project';
 
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
@@ -196,7 +196,7 @@ final class StartTest extends UnitTestCase {
   }
 
   public function testStartStopsOwnServerBeforeLaunch(): void {
-    $this->envSet('WEBSERVER_PORT', '8000');
+    self::envSet('WEBSERVER_PORT', '8000');
     $cwd = '/test/project';
 
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
@@ -238,7 +238,7 @@ final class StartTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderStartFailsWhenAnotherProcessHoldsPort')]
   public function testStartFailsWhenAnotherProcessHoldsPort(array $listeners, array $expected_processes): void {
-    $this->envSet('WEBSERVER_PORT', '8000');
+    self::envSet('WEBSERVER_PORT', '8000');
 
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => '/test/project');
 
@@ -282,7 +282,7 @@ final class StartTest extends UnitTestCase {
     File::mkdir($project_dir, 0755);
     chdir($project_dir);
 
-    $this->envSet('WEBSERVER_PORT', '8000');
+    self::envSet('WEBSERVER_PORT', '8000');
     $cwd = '/test/project';
 
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
@@ -317,7 +317,7 @@ final class StartTest extends UnitTestCase {
     chdir($project_dir);
     File::dump('.logs', '');
 
-    $this->envSet('WEBSERVER_PORT', '8000');
+    self::envSet('WEBSERVER_PORT', '8000');
 
     // The running server of the project is stopped, and the new one is not
     // launched without its log directory.
@@ -342,7 +342,7 @@ final class StartTest extends UnitTestCase {
   }
 
   public function testStartFsockopenFailure(): void {
-    $this->envSet('WEBSERVER_PORT', '8000');
+    self::envSet('WEBSERVER_PORT', '8000');
     $cwd = '/test/project';
 
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
@@ -384,7 +384,7 @@ final class StartTest extends UnitTestCase {
   }
 
   public function testStartFsockopenFailureNoLog(): void {
-    $this->envSet('WEBSERVER_PORT', '8000');
+    self::envSet('WEBSERVER_PORT', '8000');
     $cwd = '/test/project';
 
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
@@ -416,7 +416,7 @@ final class StartTest extends UnitTestCase {
   }
 
   public function testStartWaitEndsAtTimeoutWhenConnectionsAreDropped(): void {
-    $this->envSet('WEBSERVER_PORT', '8000');
+    self::envSet('WEBSERVER_PORT', '8000');
     $cwd = '/test/project';
 
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
@@ -460,7 +460,7 @@ final class StartTest extends UnitTestCase {
   }
 
   public function testStartGetHeadersFailure(): void {
-    $this->envSet('WEBSERVER_PORT', '8000');
+    self::envSet('WEBSERVER_PORT', '8000');
     $cwd = '/test/project';
 
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
@@ -501,7 +501,7 @@ final class StartTest extends UnitTestCase {
   }
 
   public function testStartGetHeadersNon200Non302(): void {
-    $this->envSet('WEBSERVER_PORT', '8000');
+    self::envSet('WEBSERVER_PORT', '8000');
     $cwd = '/test/project';
 
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
@@ -734,8 +734,8 @@ final class StartTest extends UnitTestCase {
   }
 
   public function testStartSkipsTunnelWithoutCloudflared(): void {
-    $this->envSet('CLOUDFLARE_TUNNEL', '1');
-    $this->envSet('WEBSERVER_PORT', '8000');
+    self::envSet('CLOUDFLARE_TUNNEL', '1');
+    self::envSet('WEBSERVER_PORT', '8000');
     $cwd = '/test/project';
 
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
@@ -768,7 +768,7 @@ final class StartTest extends UnitTestCase {
   }
 
   public function testStartGetHeadersEmptyArray(): void {
-    $this->envSet('WEBSERVER_PORT', '8000');
+    self::envSet('WEBSERVER_PORT', '8000');
     $cwd = '/test/project';
 
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);

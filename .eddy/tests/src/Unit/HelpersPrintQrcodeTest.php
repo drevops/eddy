@@ -57,7 +57,7 @@ final class HelpersPrintQrcodeTest extends UnitTestCase {
   public function testRendersCodeRegardlessOfLoginOptIn(): void {
     // Whether to draw a code is decided by the caller, so the login opt-in
     // has no bearing on this helper.
-    $this->envSet('LOGIN_QRCODE', '');
+    self::envSet('LOGIN_QRCODE', '');
     $this->mockCommandAvailable('qrencode', TRUE);
     $this->mockPassthru([
       'cmd' => "qrencode -t ANSIUTF8 'https://example.com'",

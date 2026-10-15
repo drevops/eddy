@@ -21,15 +21,15 @@ final class BrowserStopTest extends UnitTestCase {
   protected function setUp(): void {
     parent::setUp();
     require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-    $this->envUnset('WEBDRIVER_PORT');
-    $this->envUnset('WEBDRIVER_BACKEND');
+    self::envUnset('WEBDRIVER_PORT');
+    self::envUnset('WEBDRIVER_BACKEND');
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => self::ROOT);
   }
 
   #[DataProvider('dataProviderBrowserStop')]
   public function testBrowserStop(array $env, ?string $dotenv, bool $docker, string $expected_port): void {
     foreach ($env as $name => $value) {
-      $this->envSet($name, $value);
+      self::envSet($name, $value);
     }
 
     $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $dotenv !== NULL && $file === '.env');
@@ -136,7 +136,7 @@ final class BrowserStopTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderBrowserStopStopsOnlyOwnBackend')]
   public function testBrowserStopStopsOnlyOwnBackend(?string $container, array $listeners, bool $expected_removed, array $expected_killed, array $expected_notes, bool $running = TRUE): void {
-    $this->envSet('WEBDRIVER_PORT', '4444');
+    self::envSet('WEBDRIVER_PORT', '4444');
     $this->mockCommandAvailable('docker', TRUE);
     $this->mockPortListeners('4444', $listeners, self::seleniumContainerOutputs('4444', $container, $running));
 
@@ -187,7 +187,7 @@ final class BrowserStopTest extends UnitTestCase {
   }
 
   public function testBrowserStopFailsOnInvalidPort(): void {
-    $this->envSet('WEBDRIVER_PORT', '99999');
+    self::envSet('WEBDRIVER_PORT', '99999');
     $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
     $this->mockCommandAvailable('docker', TRUE);
     $this->mockPassthruNever();

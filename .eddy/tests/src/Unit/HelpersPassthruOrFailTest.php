@@ -84,10 +84,10 @@ final class HelpersPassthruOrFailTest extends UnitTestCase {
   #[DataProvider('dataProviderOutputVisibility')]
   public function testOutputVisibility(bool $debug, int $result_code, bool $expect_visible): void {
     if ($debug) {
-      $this->envSet('DEBUG', '1');
+      self::envSet('DEBUG', '1');
     }
     else {
-      $this->envUnset('DEBUG');
+      self::envUnset('DEBUG');
     }
 
     $this->mockPassthru(['cmd' => 'run-tool', 'output' => 'TOOL_NOISE', 'result_code' => $result_code]);

@@ -40,7 +40,7 @@ final class StopTest extends UnitTestCase {
   }
 
   public function testStopCustomPortFromEnv(): void {
-    $this->envSet('WEBSERVER_PORT', '9000');
+    self::envSet('WEBSERVER_PORT', '9000');
 
     $this->mockPortListeners('9000');
     $this->mockPassthruNever();
@@ -84,7 +84,7 @@ final class StopTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderStopKillsOnlyOwnServer')]
   public function testStopKillsOnlyOwnServer(array $listeners, array $expected_killed, array $expected_left): void {
-    $this->envSet('WEBSERVER_PORT', '8000');
+    self::envSet('WEBSERVER_PORT', '8000');
 
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => '/test/project');
 

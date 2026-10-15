@@ -93,7 +93,7 @@ final class HelpersDrushTest extends UnitTestCase {
   }
 
   public function testDrushFailurePrintsCapturedOutputInDebugMode(): void {
-    $this->envSet('DEBUG', '1');
+    self::envSet('DEBUG', '1');
     $cwd = File::cwd();
     $expected_command = 'build/vendor/bin/drush -r ' . escapeshellarg($cwd . '/build/web') . ' -y bad-command';
     $this->mockPassthru(['cmd' => $expected_command, 'output' => 'Command "bad-command" is not defined.', 'result_code' => 1]);
@@ -115,7 +115,7 @@ final class HelpersDrushTest extends UnitTestCase {
   }
 
   public function testDrushStreamsLiveInDebugMode(): void {
-    $this->envSet('DEBUG', '1');
+    self::envSet('DEBUG', '1');
     $cwd = File::cwd();
     $expected_command = 'build/vendor/bin/drush -r ' . escapeshellarg($cwd . '/build/web') . ' -y status';
     $this->mockPassthru(['cmd' => $expected_command, 'output' => 'Drupal version : 11', 'result_code' => 0]);

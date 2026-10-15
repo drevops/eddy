@@ -23,7 +23,7 @@ abstract class FunctionalTestCase extends UnitTestCase {
   protected function setUp(): void {
     parent::setUp();
 
-    static::locationsCopy('../../', static::$sut, [], [
+    self::locationsCopy('../../', self::$sut, [], [
       '*.png',
       '.idea',
       '.logs',
@@ -36,20 +36,20 @@ abstract class FunctionalTestCase extends UnitTestCase {
 
     // The exclusions match directories only, so git-ignored root files are
     // removed after the copy.
-    File::remove([static::$sut . '/.env', static::$sut . '/composer.lock']);
+    File::remove([self::$sut . '/.env', self::$sut . '/composer.lock']);
 
-    chdir(static::$sut);
+    chdir(self::$sut);
   }
 
   /**
    * {@inheritdoc}
    */
   protected function tearDown(): void {
-    if (empty(static::$fixtures)) {
+    if (empty(self::$fixtures)) {
       throw new \RuntimeException('Fixtures directory is not set.');
     }
 
-    static::processTearDown();
+    $this->processTearDown();
 
     parent::tearDown();
   }

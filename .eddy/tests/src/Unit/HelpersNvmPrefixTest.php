@@ -52,7 +52,7 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
     }
 
     $nvm_dir = $this->createNvmDir($has_nvm ? 'nvm() { :; }' : NULL);
-    $this->envSet('NVM_DIR', $nvm_dir);
+    self::envSet('NVM_DIR', $nvm_dir);
 
     ob_start();
     $prefix = nvm_prefix();
@@ -79,7 +79,7 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
   #[DataProvider('dataProviderNvmPrefixRunsInShell')]
   public function testNvmPrefixRunsInShell(string $nvm_script, string $expected_output, int $expected_exit_code): void {
     file_put_contents('.nvmrc', "22\n");
-    $this->envSet('NVM_DIR', $this->createNvmDir($nvm_script));
+    self::envSet('NVM_DIR', $this->createNvmDir($nvm_script));
 
     ob_start();
     $prefix = nvm_prefix();
@@ -101,7 +101,7 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
 
   public function testNvmPrefixFailsWithoutNvmFunction(): void {
     file_put_contents('.nvmrc', "22\n");
-    $this->envSet('NVM_DIR', $this->createNvmDir('NVM_LOADED=1'));
+    self::envSet('NVM_DIR', $this->createNvmDir('NVM_LOADED=1'));
 
     ob_start();
     $prefix = nvm_prefix();
@@ -122,9 +122,9 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
     mkdir($home . '/.nvm', 0755, TRUE);
     file_put_contents($home . '/.nvm/nvm.sh', 'nvm() { echo "nvm $* from $NVM_DIR"; }' . PHP_EOL);
 
-    $this->envUnset('NVM_DIR');
-    $this->envUnset('XDG_CONFIG_HOME');
-    $this->envSet('HOME', $home);
+    self::envUnset('NVM_DIR');
+    self::envUnset('XDG_CONFIG_HOME');
+    self::envSet('HOME', $home);
 
     ob_start();
     $prefix = nvm_prefix();

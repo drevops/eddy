@@ -22,7 +22,7 @@ final class QrcodeTest extends UnitTestCase {
 
   public function testQrcodeRendersQrcodeForUrlArgument(): void {
     // Invoking the command is an explicit request, so no opt-in is consulted.
-    $this->envSet('LOGIN_QRCODE', '');
+    self::envSet('LOGIN_QRCODE', '');
     $this->mockCommandAvailable('qrencode', TRUE);
     $this->mockPassthru([
       'cmd' => "qrencode -t ANSIUTF8 'https://example.com'",

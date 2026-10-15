@@ -20,7 +20,7 @@ final class ProvisionTest extends UnitTestCase {
   protected function setUp(): void {
     parent::setUp();
     require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-    $this->envUnset('CLOUDFLARE_TUNNEL');
+    self::envUnset('CLOUDFLARE_TUNNEL');
   }
 
   protected static function drushPrefix(string $cwd): string {
@@ -50,7 +50,7 @@ final class ProvisionTest extends UnitTestCase {
   #[DataProvider('dataProviderProvisionSuccess')]
   public function testProvisionSuccess(array $env, string $extension_type, string $db_status, array $suggested, ?array $locked_types, array $expected_enabled, bool $has_ahoy, bool $has_makefile): void {
     foreach ($env as $name => $value) {
-      $this->envSet($name, $value);
+      self::envSet($name, $value);
     }
 
     $expected_host = $env['WEBSERVER_HOST'] ?? 'localhost';
@@ -448,7 +448,7 @@ final class ProvisionTest extends UnitTestCase {
   }
 
   public function testProvisionAddsTunnelSettingsWhenEnabled(): void {
-    $this->envSet('CLOUDFLARE_TUNNEL', '1');
+    self::envSet('CLOUDFLARE_TUNNEL', '1');
 
     $extension_name = 'test_extension';
     $cwd = self::$tmp . '/provision_tunnel_' . uniqid();

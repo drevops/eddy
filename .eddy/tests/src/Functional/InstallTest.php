@@ -34,7 +34,7 @@ final class InstallTest extends FunctionalTestCase {
 
   #[DataProvider('dataProviderInstall')]
   public function testInstall(array $answers = []): void {
-    self::$fixtures = static::locationsFixtureDir();
+    self::$fixtures = $this->locationsFixtureDir();
 
     $answers = array_replace(self::defaultAnswers(), $answers);
 

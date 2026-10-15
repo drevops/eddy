@@ -31,10 +31,10 @@ final class HelpersNvmDirTest extends UnitTestCase {
   public function testNvmDir(array $env, string $expected): void {
     foreach ($env as $name => $value) {
       if ($value === NULL) {
-        $this->envUnset($name);
+        self::envUnset($name);
       }
       else {
-        $this->envSet($name, $value);
+        self::envSet($name, $value);
       }
     }
 

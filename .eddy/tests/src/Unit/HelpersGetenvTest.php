@@ -23,7 +23,7 @@ final class HelpersGetenvTest extends UnitTestCase {
   #[DataProvider('dataProviderGetenvDefault')]
   public function testGetenvDefault(array $env_vars, array $args, string $expected): void {
     foreach ($env_vars as $name => $value) {
-      $this->envSet($name, $value);
+      self::envSet($name, $value);
     }
     $result = getenv_default(...$args);
     $this->assertSame($expected, $result);
@@ -111,7 +111,7 @@ final class HelpersGetenvTest extends UnitTestCase {
   #[DataProvider('dataProviderGetenvRequired')]
   public function testGetenvRequired(array $env_vars, array $args, string $expected): void {
     foreach ($env_vars as $name => $value) {
-      $this->envSet($name, $value);
+      self::envSet($name, $value);
     }
     $result = getenv_required(...$args);
     $this->assertSame($expected, $result);
@@ -158,7 +158,7 @@ final class HelpersGetenvTest extends UnitTestCase {
   #[DataProvider('dataProviderGetenvRequiredFails')]
   public function testGetenvRequiredFails(array $env_vars, array $args, string $expected_message): void {
     foreach ($env_vars as $name => $value) {
-      $this->envSet($name, $value);
+      self::envSet($name, $value);
     }
     $this->mockQuit(1);
     ob_start();

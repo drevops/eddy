@@ -53,7 +53,7 @@ final class HelpersTunnelTest extends UnitTestCase {
     parent::setUp();
     require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
 
-    $this->envUnset('CLOUDFLARE_TUNNEL');
+    self::envUnset('CLOUDFLARE_TUNNEL');
 
     $this->originalCwd = File::cwd();
     $project_dir = self::$tmp . '/tunnel_' . uniqid();
@@ -69,7 +69,7 @@ final class HelpersTunnelTest extends UnitTestCase {
   #[DataProvider('dataProviderTunnelEnabled')]
   public function testTunnelEnabled(?string $env, ?string $dotenv, bool $expected): void {
     if ($env !== NULL) {
-      $this->envSet('CLOUDFLARE_TUNNEL', $env);
+      self::envSet('CLOUDFLARE_TUNNEL', $env);
     }
 
     if ($dotenv !== NULL) {

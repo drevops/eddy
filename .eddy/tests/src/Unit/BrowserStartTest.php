@@ -57,8 +57,8 @@ final class BrowserStartTest extends UnitTestCase {
   protected function setUp(): void {
     parent::setUp();
     require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-    $this->envUnset('WEBDRIVER_PORT');
-    $this->envUnset('WEBDRIVER_BACKEND');
+    self::envUnset('WEBDRIVER_PORT');
+    self::envUnset('WEBDRIVER_BACKEND');
 
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => '/test/project');
 
@@ -97,7 +97,7 @@ final class BrowserStartTest extends UnitTestCase {
   }
 
   public function testBrowserStartFailsOnUnknownBackend(): void {
-    $this->envSet('WEBDRIVER_BACKEND', 'firefox');
+    self::envSet('WEBDRIVER_BACKEND', 'firefox');
     $commands = [];
     $this->recordPassthru($commands);
 
@@ -108,7 +108,7 @@ final class BrowserStartTest extends UnitTestCase {
   }
 
   public function testBrowserStartFailsOnInvalidPort(): void {
-    $this->envSet('WEBDRIVER_PORT', '99999');
+    self::envSet('WEBDRIVER_PORT', '99999');
     $commands = [];
     $this->recordPassthru($commands);
 
@@ -137,7 +137,7 @@ final class BrowserStartTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderBrowserStartReusesOnlyServerOfBackend')]
   public function testBrowserStartReusesOnlyServerOfBackend(string $backend, string|false $body, bool $expected_reused): void {
-    $this->envSet('WEBDRIVER_BACKEND', $backend);
+    self::envSet('WEBDRIVER_BACKEND', $backend);
     $this->mockChrome(FALSE);
     $this->mockCommands(['docker' => '/usr/bin/docker', 'google-chrome' => '/usr/bin/google-chrome', 'chromedriver' => '/usr/local/bin/chromedriver']);
     $this->mockVersions('Google Chrome 150.0.7871.129', 'ChromeDriver 150.0.7871.129 (abc)');
@@ -310,7 +310,7 @@ final class BrowserStartTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderBrowserStartReusesRunningBackendOfAnotherProject')]
   public function testBrowserStartReusesRunningBackendOfAnotherProject(string $backend, array $listeners, ?string $container, string $expected): void {
-    $this->envSet('WEBDRIVER_BACKEND', $backend);
+    self::envSet('WEBDRIVER_BACKEND', $backend);
     $this->mockCommands(['docker' => '/usr/bin/docker']);
     $this->mockPortListeners('4444', $listeners, self::seleniumContainerOutputs('4444', $container));
     $this->mockStatus([$backend]);
@@ -345,7 +345,7 @@ final class BrowserStartTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderBrowserStartFailsWhenOtherServerAnswersOnPort')]
   public function testBrowserStartFailsWhenOtherServerAnswersOnPort(string $backend, string $status, array $listeners, ?string $container, array $expected): void {
-    $this->envSet('WEBDRIVER_BACKEND', $backend);
+    self::envSet('WEBDRIVER_BACKEND', $backend);
     $this->mockCommands(['docker' => '/usr/bin/docker']);
     $this->mockPortListeners('4444', $listeners, self::seleniumContainerOutputs('4444', $container));
     $this->mockStatus([$status]);
@@ -377,7 +377,7 @@ final class BrowserStartTest extends UnitTestCase {
 
   #[DataProvider('dataProviderBrowserStartFailsWhenAnotherProcessHoldsPort')]
   public function testBrowserStartFailsWhenAnotherProcessHoldsPort(string $backend, string $cwd): void {
-    $this->envSet('WEBDRIVER_BACKEND', $backend);
+    self::envSet('WEBDRIVER_BACKEND', $backend);
     $this->mockCommands(['docker' => '/usr/bin/docker']);
     $this->mockPortListeners('4444', [5678 => ['node server.js --port=4444', $cwd]]);
     $this->mockStatus([NULL]);
@@ -400,7 +400,7 @@ final class BrowserStartTest extends UnitTestCase {
 
   #[DataProvider('dataProviderBrowserStartFailsWhenAnotherProjectContainerHoldsPort')]
   public function testBrowserStartFailsWhenAnotherProjectContainerHoldsPort(string $backend): void {
-    $this->envSet('WEBDRIVER_BACKEND', $backend);
+    self::envSet('WEBDRIVER_BACKEND', $backend);
     $this->mockCommands(['docker' => '/usr/bin/docker']);
     $this->mockPortListeners('4444', [9999 => ['/Applications/Docker.app/Contents/MacOS/com.docker.backend', '/']], self::seleniumContainerOutputs('4444', '/www/other'));
     $this->mockStatus([NULL]);
@@ -425,7 +425,7 @@ final class BrowserStartTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderBrowserStartFailsWhenAnotherProcessHoldsPortBesideStoppedContainer')]
   public function testBrowserStartFailsWhenAnotherProcessHoldsPortBesideStoppedContainer(string $backend, string $container): void {
-    $this->envSet('WEBDRIVER_BACKEND', $backend);
+    self::envSet('WEBDRIVER_BACKEND', $backend);
     $this->mockCommands(['docker' => '/usr/bin/docker']);
     $this->mockPortListeners('4444', [5678 => ['node /www/other/server.js --port=4444', '/www/other']], self::seleniumContainerOutputs('4444', $container, FALSE));
     $this->mockStatus([NULL]);
@@ -681,7 +681,7 @@ final class BrowserStartTest extends UnitTestCase {
   }
 
   public function testBrowserStartSeleniumAlreadyRunning(): void {
-    $this->envSet('WEBDRIVER_BACKEND', 'selenium');
+    self::envSet('WEBDRIVER_BACKEND', 'selenium');
     $this->mockCommands(['docker' => '/usr/bin/docker']);
     $this->mockStatus(['selenium']);
 
@@ -692,7 +692,7 @@ final class BrowserStartTest extends UnitTestCase {
 
   #[DataProvider('dataProviderBrowserStartSeleniumReusesOwnContainer')]
   public function testBrowserStartSeleniumReusesOwnContainer(string $project): void {
-    $this->envSet('WEBDRIVER_BACKEND', 'selenium');
+    self::envSet('WEBDRIVER_BACKEND', 'selenium');
     $this->mockCommands(['docker' => '/usr/bin/docker']);
     $this->mockPortListeners('4444', [9999 => ['/Applications/Docker.app/Contents/MacOS/com.docker.backend', '/']], self::seleniumContainerOutputs('4444', $project));
     $this->mockStatus(['selenium']);
@@ -716,7 +716,7 @@ final class BrowserStartTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderBrowserStartSeleniumReplacesOwnContainerThatDoesNotAnswer')]
   public function testBrowserStartSeleniumReplacesOwnContainerThatDoesNotAnswer(string $project): void {
-    $this->envSet('WEBDRIVER_BACKEND', 'selenium');
+    self::envSet('WEBDRIVER_BACKEND', 'selenium');
     $this->mockCommands(['docker' => '/usr/bin/docker']);
     $this->mockPortListeners('4444', [9999 => ['/Applications/Docker.app/Contents/MacOS/com.docker.backend', '/']], self::seleniumContainerOutputs('4444', $project));
     $this->mockStatus([NULL, 'selenium']);
@@ -742,7 +742,7 @@ final class BrowserStartTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderBrowserStartSeleniumReplacesOwnChromedriver')]
   public function testBrowserStartSeleniumReplacesOwnChromedriver(?string $status, ?string $container): void {
-    $this->envSet('WEBDRIVER_BACKEND', 'selenium');
+    self::envSet('WEBDRIVER_BACKEND', 'selenium');
     $this->mockCommands(['docker' => '/usr/bin/docker']);
     $this->mockPortListeners('4444', [1234 => ['/usr/local/bin/chromedriver --port=4444', '/test/project']], self::seleniumContainerOutputs('4444', $container));
     $this->mockStatus([$status, 'selenium']);
@@ -771,7 +771,7 @@ final class BrowserStartTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderBrowserStartSeleniumReplacesStaleContainer')]
   public function testBrowserStartSeleniumReplacesStaleContainer(string $project, bool $running): void {
-    $this->envSet('WEBDRIVER_BACKEND', 'selenium');
+    self::envSet('WEBDRIVER_BACKEND', 'selenium');
     $this->mockCommands(['docker' => '/usr/bin/docker']);
     $this->mockPortListeners('4444', [], self::seleniumContainerOutputs('4444', $project, $running));
     $this->mockStatus([NULL, 'selenium']);
@@ -793,7 +793,7 @@ final class BrowserStartTest extends UnitTestCase {
   }
 
   public function testBrowserStartSeleniumStartsContainer(): void {
-    $this->envSet('WEBDRIVER_BACKEND', 'selenium');
+    self::envSet('WEBDRIVER_BACKEND', 'selenium');
     $this->mockCommands(['docker' => '/usr/bin/docker']);
     $this->mockStatus([NULL, 'selenium']);
     $commands = [];
@@ -814,7 +814,7 @@ final class BrowserStartTest extends UnitTestCase {
 
   public function testBrowserStartSeleniumAutoDiscoversPort(): void {
     $this->envFileContent = "WEBSERVER_PORT=8000\n";
-    $this->envSet('WEBDRIVER_BACKEND', 'selenium');
+    self::envSet('WEBDRIVER_BACKEND', 'selenium');
     $this->mockCommands(['docker' => '/usr/bin/docker']);
     $this->mockPortsInUse([4444]);
     $persisted = NULL;
@@ -836,7 +836,7 @@ final class BrowserStartTest extends UnitTestCase {
   }
 
   public function testBrowserStartSeleniumFailsWithoutDocker(): void {
-    $this->envSet('WEBDRIVER_BACKEND', 'selenium');
+    self::envSet('WEBDRIVER_BACKEND', 'selenium');
     $this->mockCommands([]);
     $this->mockStatus([NULL]);
 
@@ -846,7 +846,7 @@ final class BrowserStartTest extends UnitTestCase {
   }
 
   public function testBrowserStartSeleniumFailsWhenDockerRunFails(): void {
-    $this->envSet('WEBDRIVER_BACKEND', 'selenium');
+    self::envSet('WEBDRIVER_BACKEND', 'selenium');
     $this->mockCommands(['docker' => '/usr/bin/docker']);
     $this->mockStatus([NULL]);
     $commands = [];
@@ -858,7 +858,7 @@ final class BrowserStartTest extends UnitTestCase {
   }
 
   public function testBrowserStartSeleniumFailsWhenNeverReady(): void {
-    $this->envSet('WEBDRIVER_BACKEND', 'selenium');
+    self::envSet('WEBDRIVER_BACKEND', 'selenium');
     $this->mockCommands(['docker' => '/usr/bin/docker']);
     $this->mockStatus([NULL]);
     $commands = [];
