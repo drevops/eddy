@@ -239,8 +239,8 @@ final class ToolingInstallerTest extends UnitTestCase {
     $this->mockComposer();
     $this->runMain(0);
 
-    foreach ($write as $path => $contents) {
-      File::dump($path, $contents);
+    foreach ($write as $path => $content) {
+      File::dump($path, $content);
     }
 
     foreach ($remove as $path) {
@@ -274,7 +274,7 @@ final class ToolingInstallerTest extends UnitTestCase {
   }
 
   #[DataProvider('dataProviderLocalPatchChange')]
-  public function testLocalPatchChange(?string $contents, bool $expected_reinstall): void {
+  public function testLocalPatchChange(?string $content, bool $expected_reinstall): void {
     $this->writeFiles(['patches/fix.patch' => 'fix']);
     $this->writeDevManifest([
       'require-dev' => ['drevops/eddy-tooling' => '~1.0.0'],
@@ -283,11 +283,11 @@ final class ToolingInstallerTest extends UnitTestCase {
     $this->mockComposer();
     $this->runMain(0);
 
-    if ($contents === NULL) {
+    if ($content === NULL) {
       File::remove('patches/fix.patch');
     }
     else {
-      File::dump('patches/fix.patch', $contents);
+      File::dump('patches/fix.patch', $content);
     }
 
     $output = $this->runMain(0);
@@ -348,9 +348,9 @@ final class ToolingInstallerTest extends UnitTestCase {
   }
 
   #[DataProvider('dataProviderFailsWithoutConstraint')]
-  public function testFailsWithoutConstraint(?string $contents, string $expected_message): void {
-    if ($contents !== NULL) {
-      File::dump('composer.dev.json', $contents);
+  public function testFailsWithoutConstraint(?string $content, string $expected_message): void {
+    if ($content !== NULL) {
+      File::dump('composer.dev.json', $content);
     }
 
     $this->mockPassthruNever(self::NAMESPACE);
@@ -481,8 +481,8 @@ final class ToolingInstallerTest extends UnitTestCase {
     return $output;
   }
 
-  protected function writeDevManifest(array $contents): void {
-    File::dump('composer.dev.json', json_encode($contents, JSON_THROW_ON_ERROR));
+  protected function writeDevManifest(array $content): void {
+    File::dump('composer.dev.json', json_encode($content, JSON_THROW_ON_ERROR));
   }
 
   /**
@@ -492,8 +492,8 @@ final class ToolingInstallerTest extends UnitTestCase {
    *   File contents, keyed by path.
    */
   protected function writeFiles(array $files): void {
-    foreach ($files as $path => $contents) {
-      File::dump($path, $contents);
+    foreach ($files as $path => $content) {
+      File::dump($path, $content);
     }
   }
 

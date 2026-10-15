@@ -26,11 +26,11 @@ final class HelpersDefaultDrupalVersionTest extends UnitTestCase {
   }
 
   #[DataProvider('dataProviderDefaultDrupalVersion')]
-  public function testDefaultDrupalVersion(?string $contents, string $expected): void {
+  public function testDefaultDrupalVersion(?string $content, string $expected): void {
     $file = self::$tmp . '/composer.dev.json';
 
-    if ($contents !== NULL) {
-      File::dump($file, $contents);
+    if ($content !== NULL) {
+      File::dump($file, $content);
     }
 
     $this->assertSame($expected, default_drupal_version($file));

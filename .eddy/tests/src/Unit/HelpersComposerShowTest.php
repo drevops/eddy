@@ -31,10 +31,10 @@ final class HelpersComposerShowTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderComposerShow')]
   public function testComposerShow(string $package, string $version, string $expected_command, array $output, int $exit_code, ?array $expected): void {
-    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $cmd, ?array &$exec_output = NULL, ?int &$code = NULL) use ($expected_command, $output, $exit_code): string {
-      $this->assertSame($expected_command, $cmd);
+    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $command, ?array &$exec_output = NULL, ?int &$result_code = NULL) use ($expected_command, $output, $exit_code): string {
+      $this->assertSame($expected_command, $command);
       $exec_output = $output;
-      $code = $exit_code;
+      $result_code = $exit_code;
 
       return '';
     });

@@ -114,8 +114,8 @@ final class TemplateMarkersTest extends UnitTestCase {
    * @param array<int, array{direction: string, token: string}|null> $expected
    */
   #[DataProvider('dataProviderMarkers')]
-  public function testMarkers(string $contents, array $expected): void {
-    $this->assertSame($expected, self::markers($contents));
+  public function testMarkers(string $content, array $expected): void {
+    $this->assertSame($expected, self::markers($content));
   }
 
   public static function dataProviderMarkers(): \Iterator {
@@ -139,8 +139,8 @@ final class TemplateMarkersTest extends UnitTestCase {
    * @param array<int, string> $expected
    */
   #[DataProvider('dataProviderUnclosedBlocks')]
-  public function testUnclosedBlocks(string $contents, array $expected): void {
-    $this->assertSame($expected, self::unclosedBlocks(self::markers($contents)));
+  public function testUnclosedBlocks(string $content, array $expected): void {
+    $this->assertSame($expected, self::unclosedBlocks(self::markers($content)));
   }
 
   public static function dataProviderUnclosedBlocks(): \Iterator {
@@ -175,8 +175,8 @@ final class TemplateMarkersTest extends UnitTestCase {
    * @param array<int, string> $expected
    */
   #[DataProvider('dataProviderDrupalMajors')]
-  public function testDrupalMajors(string $contents, array $expected): void {
-    $this->assertSame($expected, self::drupalMajors(self::markers($contents)));
+  public function testDrupalMajors(string $content, array $expected): void {
+    $this->assertSame($expected, self::drupalMajors(self::markers($content)));
   }
 
   public static function dataProviderDrupalMajors(): \Iterator {
@@ -218,9 +218,9 @@ final class TemplateMarkersTest extends UnitTestCase {
         continue;
       }
 
-      $contents = File::read($file->getPathname());
+      $content = File::read($file->getPathname());
 
-      if (!str_contains($contents, "\0") && str_contains($contents, '#;')) {
+      if (!str_contains($content, "\0") && str_contains($content, '#;')) {
         $paths[] = $file->getPathname();
       }
     }
@@ -237,17 +237,17 @@ final class TemplateMarkersTest extends UnitTestCase {
   /**
    * Parse the lines of a file that hold '#;'.
    *
-   * @param string $contents
+   * @param string $content
    *   The file contents.
    *
    * @return array<int, array{direction: string, token: string}|null>
    *   The marker on each such line, keyed by line number, or NULL for a line
    *   that holds more than a marker.
    */
-  protected static function markers(string $contents): array {
+  protected static function markers(string $content): array {
     $markers = [];
 
-    foreach (explode("\n", $contents) as $index => $line) {
+    foreach (explode("\n", $content) as $index => $line) {
       if (str_contains($line, '#;')) {
         $markers[$index + 1] = self::marker($line);
       }

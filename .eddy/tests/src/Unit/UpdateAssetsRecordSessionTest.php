@@ -116,24 +116,24 @@ final class UpdateAssetsRecordSessionTest extends UnitTestCase {
    *   Recording to write, or NULL to write none.
    * @param int $exit_code
    *   Exit code asciinema returns.
-   * @param string|null $command
+   * @param string|null $expected_command
    *   Command line expected, or NULL to accept any.
    * @param list<string> $output
    *   Lines asciinema prints.
    */
-  protected function mockAsciinema(string $cast_file, ?string $cast, int $exit_code, ?string $command = NULL, array $output = []): void {
+  protected function mockAsciinema(string $cast_file, ?string $cast, int $exit_code, ?string $expected_command = NULL, array $output = []): void {
     $exec = $this->getFunctionMock('DrevOps\\Eddy\\Assets', 'exec');
-    $exec->expects($this->once())->willReturnCallback(function (string $cmd, ?array &$cmd_output = NULL, ?int &$cmd_exit_code = NULL) use ($cast_file, $cast, $exit_code, $command, $output): string {
-      if ($command !== NULL) {
-        $this->assertSame($command, $cmd);
+    $exec->expects($this->once())->willReturnCallback(function (string $command, ?array &$lines = NULL, ?int &$result_code = NULL) use ($cast_file, $cast, $exit_code, $expected_command, $output): string {
+      if ($expected_command !== NULL) {
+        $this->assertSame($expected_command, $command);
       }
 
       if ($cast !== NULL) {
         File::dump($cast_file, $cast);
       }
 
-      $cmd_output = $output;
-      $cmd_exit_code = $exit_code;
+      $lines = $output;
+      $result_code = $exit_code;
 
       return (string) end($output);
     });

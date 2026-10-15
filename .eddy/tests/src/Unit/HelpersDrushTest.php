@@ -21,10 +21,10 @@ final class HelpersDrushTest extends UnitTestCase {
   }
 
   #[DataProvider('dataProviderDrush')]
-  public function testDrush(string $command, string|array|null $args, string $expected_cmd_suffix, string $mock_output, string $expected_output): void {
+  public function testDrush(string $command, string|array|null $args, string $expected_command_suffix, string $mock_output, string $expected_output): void {
     $cwd = File::cwd();
-    $expected_cmd = 'build/vendor/bin/drush -r ' . escapeshellarg($cwd . '/build/web') . ' -y ' . $expected_cmd_suffix;
-    $this->mockPassthru(['cmd' => $expected_cmd, 'output' => $mock_output, 'result_code' => 0]);
+    $expected_command = 'build/vendor/bin/drush -r ' . escapeshellarg($cwd . '/build/web') . ' -y ' . $expected_command_suffix;
+    $this->mockPassthru(['cmd' => $expected_command, 'output' => $mock_output, 'result_code' => 0]);
     $exit_code = 0;
     $result = drush($command, $args, $exit_code);
     $this->assertSame($expected_output, $result);
@@ -35,28 +35,28 @@ final class HelpersDrushTest extends UnitTestCase {
     yield 'no args' => [
       'command' => 'status',
       'args' => NULL,
-      'expected_cmd_suffix' => 'status',
+      'expected_command_suffix' => 'status',
       'mock_output' => 'Drupal version : 10',
       'expected_output' => 'Drupal version : 10',
     ];
     yield 'string args' => [
       'command' => 'pm:enable %s',
       'args' => 'my_module',
-      'expected_cmd_suffix' => 'pm:enable ' . escapeshellarg('my_module'),
+      'expected_command_suffix' => 'pm:enable ' . escapeshellarg('my_module'),
       'mock_output' => '',
       'expected_output' => '',
     ];
     yield 'array args' => [
       'command' => 'config:set %s %s',
       'args' => ['system.site', 'name'],
-      'expected_cmd_suffix' => 'config:set ' . escapeshellarg('system.site') . ' ' . escapeshellarg('name'),
+      'expected_command_suffix' => 'config:set ' . escapeshellarg('system.site') . ' ' . escapeshellarg('name'),
       'mock_output' => 'Set',
       'expected_output' => 'Set',
     ];
     yield 'empty array args' => [
       'command' => 'status',
       'args' => [],
-      'expected_cmd_suffix' => 'status',
+      'expected_command_suffix' => 'status',
       'mock_output' => 'OK',
       'expected_output' => 'OK',
     ];
@@ -64,8 +64,8 @@ final class HelpersDrushTest extends UnitTestCase {
 
   public function testDrushFailsWithoutExitCodeRef(): void {
     $cwd = File::cwd();
-    $expected_cmd = 'build/vendor/bin/drush -r ' . escapeshellarg($cwd . '/build/web') . ' -y bad-command';
-    $this->mockPassthru(['cmd' => $expected_cmd, 'output' => '', 'result_code' => 1]);
+    $expected_command = 'build/vendor/bin/drush -r ' . escapeshellarg($cwd . '/build/web') . ' -y bad-command';
+    $this->mockPassthru(['cmd' => $expected_command, 'output' => '', 'result_code' => 1]);
     $this->mockQuit(1);
     ob_start();
     try {
@@ -84,8 +84,8 @@ final class HelpersDrushTest extends UnitTestCase {
 
   public function testDrushFailsWithExitCodeRefDoesNotExit(): void {
     $cwd = File::cwd();
-    $expected_cmd = 'build/vendor/bin/drush -r ' . escapeshellarg($cwd . '/build/web') . ' -y bad-command';
-    $this->mockPassthru(['cmd' => $expected_cmd, 'output' => '', 'result_code' => 2]);
+    $expected_command = 'build/vendor/bin/drush -r ' . escapeshellarg($cwd . '/build/web') . ' -y bad-command';
+    $this->mockPassthru(['cmd' => $expected_command, 'output' => '', 'result_code' => 2]);
     $exit_code = 0;
     $result = drush('bad-command', NULL, $exit_code);
     $this->assertSame('', $result);
@@ -95,8 +95,8 @@ final class HelpersDrushTest extends UnitTestCase {
   public function testDrushFailurePrintsCapturedOutputInDebugMode(): void {
     $this->envSet('DEBUG', '1');
     $cwd = File::cwd();
-    $expected_cmd = 'build/vendor/bin/drush -r ' . escapeshellarg($cwd . '/build/web') . ' -y bad-command';
-    $this->mockPassthru(['cmd' => $expected_cmd, 'output' => 'Command "bad-command" is not defined.', 'result_code' => 1]);
+    $expected_command = 'build/vendor/bin/drush -r ' . escapeshellarg($cwd . '/build/web') . ' -y bad-command';
+    $this->mockPassthru(['cmd' => $expected_command, 'output' => 'Command "bad-command" is not defined.', 'result_code' => 1]);
     $this->mockQuit(1);
     ob_start();
     try {
@@ -117,8 +117,8 @@ final class HelpersDrushTest extends UnitTestCase {
   public function testDrushStreamsLiveInDebugMode(): void {
     $this->envSet('DEBUG', '1');
     $cwd = File::cwd();
-    $expected_cmd = 'build/vendor/bin/drush -r ' . escapeshellarg($cwd . '/build/web') . ' -y status';
-    $this->mockPassthru(['cmd' => $expected_cmd, 'output' => 'Drupal version : 11', 'result_code' => 0]);
+    $expected_command = 'build/vendor/bin/drush -r ' . escapeshellarg($cwd . '/build/web') . ' -y status';
+    $this->mockPassthru(['cmd' => $expected_command, 'output' => 'Drupal version : 11', 'result_code' => 0]);
     $exit_code = 0;
     $result = drush('status', NULL, $exit_code);
     $this->assertSame('Drupal version : 11', $result);

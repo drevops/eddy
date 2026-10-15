@@ -56,7 +56,7 @@ final class HelpersResolveWebserverTest extends UnitTestCase {
   }
 
   public function testDotenvUsedWhenEnvUnset(): void {
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $f): bool => $f === '.env');
+    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $file === '.env');
     $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(): string => "WEBSERVER_HOST=internal\nWEBSERVER_PORT=8123\n");
 
     $resolved = resolve_webserver();
@@ -72,12 +72,12 @@ final class HelpersResolveWebserverTest extends UnitTestCase {
     $this->registerMock('stream_socket_client', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
 
     $persisted = NULL;
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', function (string $f, string $body) use (&$persisted): int {
-      if (preg_match('/WEBSERVER_PORT=(\d+)/', $body, $m)) {
+    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', function (string $file, string $content) use (&$persisted): int {
+      if (preg_match('/WEBSERVER_PORT=(\d+)/', $content, $m)) {
         $persisted = $m[1];
       }
 
-      return strlen($body);
+      return strlen($content);
     });
 
     $resolved = resolve_webserver(auto_discover: TRUE);
@@ -90,7 +90,7 @@ final class HelpersResolveWebserverTest extends UnitTestCase {
   }
 
   public function testAutoDiscoverySkippedWhenDotenvHasPort(): void {
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $f): bool => $f === '.env');
+    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $file === '.env');
     $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(): string => "WEBSERVER_PORT=8123\n");
 
     $write_called = FALSE;

@@ -82,8 +82,8 @@ final class VariableNamesTest extends UnitTestCase {
    * @param array<int, string> $expected
    */
   #[DataProvider('dataProviderProjectNames')]
-  public function testProjectNames(string $contents, array $expected): void {
-    $this->assertSame($expected, self::projectNames($contents));
+  public function testProjectNames(string $content, array $expected): void {
+    $this->assertSame($expected, self::projectNames($content));
   }
 
   public static function dataProviderProjectNames(): \Iterator {
@@ -131,14 +131,14 @@ final class VariableNamesTest extends UnitTestCase {
   /**
    * Collect the names with a project segment.
    *
-   * @param string $contents
+   * @param string $content
    *   The text to search.
    *
    * @return array<int, string>
    *   The distinct names, in order of appearance.
    */
-  protected static function projectNames(string $contents): array {
-    preg_match_all(self::PROJECT_SEGMENT, $contents, $matches);
+  protected static function projectNames(string $content): array {
+    preg_match_all(self::PROJECT_SEGMENT, $content, $matches);
 
     return array_values(array_unique($matches[0]));
   }

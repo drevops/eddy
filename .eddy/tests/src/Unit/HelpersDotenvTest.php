@@ -32,10 +32,10 @@ final class HelpersDotenvTest extends UnitTestCase {
   }
 
   #[DataProvider('dataProviderDotenvRead')]
-  public function testDotenvRead(?string $contents, array $expected): void {
+  public function testDotenvRead(?string $content, array $expected): void {
     $file = self::$tmp . '/dotenv_read_' . uniqid();
-    if ($contents !== NULL) {
-      File::dump($file, $contents);
+    if ($content !== NULL) {
+      File::dump($file, $content);
     }
 
     $result = dotenv_read($file);
@@ -44,67 +44,67 @@ final class HelpersDotenvTest extends UnitTestCase {
 
   public static function dataProviderDotenvRead(): \Iterator {
     yield 'file does not exist' => [
-      'contents' => NULL,
+      'content' => NULL,
       'expected' => [],
     ];
     yield 'empty file' => [
-      'contents' => '',
+      'content' => '',
       'expected' => [],
     ];
     yield 'single variable' => [
-      'contents' => "FOO=bar\n",
+      'content' => "FOO=bar\n",
       'expected' => ['FOO' => 'bar'],
     ];
     yield 'multiple variables' => [
-      'contents' => "FOO=bar\nBAZ=qux\nWEBSERVER_PORT=8123\n",
+      'content' => "FOO=bar\nBAZ=qux\nWEBSERVER_PORT=8123\n",
       'expected' => ['FOO' => 'bar', 'BAZ' => 'qux', 'WEBSERVER_PORT' => '8123'],
     ];
     yield 'comments and blank lines are ignored' => [
-      'contents' => "# This is a comment\n\nFOO=bar\n  # indented comment\nBAZ=qux\n\n",
+      'content' => "# This is a comment\n\nFOO=bar\n  # indented comment\nBAZ=qux\n\n",
       'expected' => ['FOO' => 'bar', 'BAZ' => 'qux'],
     ];
     yield 'whitespace around keys and values is trimmed' => [
-      'contents' => "  FOO  =  bar  \n",
+      'content' => "  FOO  =  bar  \n",
       'expected' => ['FOO' => 'bar'],
     ];
     yield 'value can be empty' => [
-      'contents' => "FOO=\n",
+      'content' => "FOO=\n",
       'expected' => ['FOO' => ''],
     ];
     yield 'value with equals sign preserved' => [
-      'contents' => "URL=http://example.com/?a=1&b=2\n",
+      'content' => "URL=http://example.com/?a=1&b=2\n",
       'expected' => ['URL' => 'http://example.com/?a=1&b=2'],
     ];
     yield 'double quoted value is unquoted' => [
-      'contents' => "FOO=\"bar baz\"\n",
+      'content' => "FOO=\"bar baz\"\n",
       'expected' => ['FOO' => 'bar baz'],
     ];
     yield 'single quoted value is unquoted' => [
-      'contents' => "FOO='bar baz'\n",
+      'content' => "FOO='bar baz'\n",
       'expected' => ['FOO' => 'bar baz'],
     ];
     yield 'mismatched quotes left intact' => [
-      'contents' => "FOO=\"bar'\n",
+      'content' => "FOO=\"bar'\n",
       'expected' => ['FOO' => '"bar\''],
     ];
     yield 'lines without equals are ignored' => [
-      'contents' => "FOO=bar\ninvalid_line\nBAZ=qux\n",
+      'content' => "FOO=bar\ninvalid_line\nBAZ=qux\n",
       'expected' => ['FOO' => 'bar', 'BAZ' => 'qux'],
     ];
     yield 'empty key is ignored' => [
-      'contents' => "=value\nFOO=bar\n",
+      'content' => "=value\nFOO=bar\n",
       'expected' => ['FOO' => 'bar'],
     ];
     yield 'CRLF line endings' => [
-      'contents' => "FOO=bar\r\nBAZ=qux\r\n",
+      'content' => "FOO=bar\r\nBAZ=qux\r\n",
       'expected' => ['FOO' => 'bar', 'BAZ' => 'qux'],
     ];
     yield 'CR line endings' => [
-      'contents' => "FOO=bar\rBAZ=qux\r",
+      'content' => "FOO=bar\rBAZ=qux\r",
       'expected' => ['FOO' => 'bar', 'BAZ' => 'qux'],
     ];
     yield 'last assignment wins for duplicate keys' => [
-      'contents' => "FOO=first\nFOO=second\n",
+      'content' => "FOO=first\nFOO=second\n",
       'expected' => ['FOO' => 'second'],
     ];
   }
@@ -177,9 +177,9 @@ final class HelpersDotenvTest extends UnitTestCase {
   }
 
   #[DataProvider('dataProviderDotenvUnsetVar')]
-  public function testDotenvUnsetVar(string $contents, string $expected): void {
+  public function testDotenvUnsetVar(string $content, string $expected): void {
     $file = self::$tmp . '/dotenv_unset_' . uniqid();
-    File::dump($file, $contents);
+    File::dump($file, $content);
 
     dotenv_unset_var('TUNNEL_URL', $file);
 
@@ -189,35 +189,35 @@ final class HelpersDotenvTest extends UnitTestCase {
 
   public static function dataProviderDotenvUnsetVar(): \Iterator {
     yield 'only assignment' => [
-      'contents' => "TUNNEL_URL=https://abc.trycloudflare.com\n",
+      'content' => "TUNNEL_URL=https://abc.trycloudflare.com\n",
       'expected' => '',
     ];
     yield 'other variables keep their order' => [
-      'contents' => "WEBSERVER_PORT=8123\nTUNNEL_URL=https://abc.trycloudflare.com\nOTHER=1\n",
+      'content' => "WEBSERVER_PORT=8123\nTUNNEL_URL=https://abc.trycloudflare.com\nOTHER=1\n",
       'expected' => "WEBSERVER_PORT=8123\nOTHER=1\n",
     ];
     yield 'every duplicate is removed' => [
-      'contents' => "TUNNEL_URL=first\nOTHER=1\nTUNNEL_URL=second\n",
+      'content' => "TUNNEL_URL=first\nOTHER=1\nTUNNEL_URL=second\n",
       'expected' => "OTHER=1\n",
     ];
     yield 'comments and blank lines are kept' => [
-      'contents' => "# TUNNEL_URL=commented\n\nTUNNEL_URL=active\nOTHER=1\n",
+      'content' => "# TUNNEL_URL=commented\n\nTUNNEL_URL=active\nOTHER=1\n",
       'expected' => "# TUNNEL_URL=commented\n\nOTHER=1\n",
     ];
     yield 'whitespace around the key' => [
-      'contents' => "  TUNNEL_URL = active\nOTHER=1\n",
+      'content' => "  TUNNEL_URL = active\nOTHER=1\n",
       'expected' => "OTHER=1\n",
     ];
     yield 'empty value' => [
-      'contents' => "TUNNEL_URL=\nOTHER=1\n",
+      'content' => "TUNNEL_URL=\nOTHER=1\n",
       'expected' => "OTHER=1\n",
     ];
     yield 'keys sharing the name are kept' => [
-      'contents' => "TUNNEL_URL_PREVIOUS=a\nMY_TUNNEL_URL=b\nTUNNEL_URL=c\n",
+      'content' => "TUNNEL_URL_PREVIOUS=a\nMY_TUNNEL_URL=b\nTUNNEL_URL=c\n",
       'expected' => "TUNNEL_URL_PREVIOUS=a\nMY_TUNNEL_URL=b\n",
     ];
     yield 'file without trailing newline' => [
-      'contents' => "OTHER=1\nTUNNEL_URL=active",
+      'content' => "OTHER=1\nTUNNEL_URL=active",
       'expected' => 'OTHER=1',
     ];
   }

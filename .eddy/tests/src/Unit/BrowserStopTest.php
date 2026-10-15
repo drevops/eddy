@@ -39,10 +39,10 @@ final class BrowserStopTest extends UnitTestCase {
     $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(string $file): string|false => $file === '.env' && $dotenv !== NULL ? $dotenv : FALSE);
 
     $written = FALSE;
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', function (string $file, string $contents) use (&$written): int {
+    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', function (string $file, string $content) use (&$written): int {
       $written = TRUE;
 
-      return strlen($contents);
+      return strlen($content);
     });
 
     $probed = FALSE;

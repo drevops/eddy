@@ -662,11 +662,11 @@ final class InstallHelpersTest extends UnitTestCase {
   }
 
   #[DataProvider('dataProviderReadComposerDevJson')]
-  public function testReadComposerDevJson(?string $contents, ?array $expected): void {
+  public function testReadComposerDevJson(?string $content, ?array $expected): void {
     chdir(self::$sut);
 
-    if ($contents !== NULL) {
-      File::dump('composer.dev.json', $contents);
+    if ($content !== NULL) {
+      File::dump('composer.dev.json', $content);
     }
 
     $this->assertSame($expected, read_composer_dev_json());
@@ -680,11 +680,11 @@ final class InstallHelpersTest extends UnitTestCase {
   }
 
   #[DataProvider('dataProviderSetComposerDevEddyValue')]
-  public function testSetComposerDevEddyValue(?string $contents, string $key, string $value, ?string $expected): void {
+  public function testSetComposerDevEddyValue(?string $content, string $key, string $value, ?string $expected): void {
     chdir(self::$sut);
 
-    if ($contents !== NULL) {
-      File::dump('composer.dev.json', $contents);
+    if ($content !== NULL) {
+      File::dump('composer.dev.json', $content);
     }
 
     set_composer_dev_eddy_value($key, $value);
@@ -1197,7 +1197,7 @@ final class InstallHelpersTest extends UnitTestCase {
     chdir(self::$sut);
     $setup(self::$sut);
     $files = get_files();
-    $basenames = array_map(static fn(string $f): string => str_replace(self::$sut . '/', '', $f), $files);
+    $basenames = array_map(static fn(string $file): string => str_replace(self::$sut . '/', '', $file), $files);
 
     foreach ($expected_present as $expected_filename) {
       $this->assertContains($expected_filename, $basenames, 'Expected file not found: ' . $expected_filename);

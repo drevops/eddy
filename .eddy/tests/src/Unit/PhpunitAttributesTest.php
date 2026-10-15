@@ -34,9 +34,9 @@ final class PhpunitAttributesTest extends UnitTestCase {
 
   #[DataProvider('dataProviderShippedAttributesAreIgnored')]
   public function testShippedAttributesAreIgnored(string $path): void {
-    $contents = File::read($path);
+    $content = File::read($path);
 
-    preg_match_all('/PHPUnit\\\\Framework\\\\Attributes\\\\(\w+)/', $contents, $matches);
+    preg_match_all('/PHPUnit\\\\Framework\\\\Attributes\\\\(\w+)/', $content, $matches);
 
     $patterns = self::ignorePatterns();
     $uncovered = [];

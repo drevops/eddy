@@ -59,9 +59,9 @@ final class InfoTest extends UnitTestCase {
   ): void {
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
 
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', function (string $cmd) use ($shell_exec_map): string {
+    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', function (string $command) use ($shell_exec_map): string {
       foreach ($shell_exec_map as $needle => $output) {
-        if ($needle !== '*' && str_contains($cmd, $needle)) {
+        if ($needle !== '*' && str_contains($command, $needle)) {
           return $output;
         }
       }
@@ -75,15 +75,15 @@ final class InfoTest extends UnitTestCase {
     $this->registerMock('glob', 'DrevOps\\Eddy\\Tooling', fn(): array => $info_files);
     $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(string $file): string => $file_contents[$file] ?? '');
 
-    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $cmd, ?array &$output = NULL, ?int &$code = NULL) use ($command_php_path): bool {
+    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $command, ?array &$output = NULL, ?int &$result_code = NULL) use ($command_php_path): bool {
       $output ??= [];
-      if ($command_php_path !== FALSE && str_contains($cmd, 'command -v php')) {
+      if ($command_php_path !== FALSE && str_contains($command, 'command -v php')) {
         $output[] = $command_php_path;
-        $code = 0;
+        $result_code = 0;
 
         return TRUE;
       }
-      $code = 1;
+      $result_code = 1;
 
       return FALSE;
     });

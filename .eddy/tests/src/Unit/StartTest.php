@@ -612,13 +612,13 @@ final class StartTest extends UnitTestCase {
 
     $persisted_port = NULL;
     $persisted_file = NULL;
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', function (string $file, string $contents) use (&$persisted_port, &$persisted_file): int {
+    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', function (string $file, string $content) use (&$persisted_port, &$persisted_file): int {
       $persisted_file = $file;
-      if (preg_match('/WEBSERVER_PORT=(\d+)/', $contents, $matches)) {
+      if (preg_match('/WEBSERVER_PORT=(\d+)/', $content, $matches)) {
         $persisted_port = $matches[1];
       }
 
-      return strlen($contents);
+      return strlen($content);
     });
 
     $this->mockPortListeners('8001');

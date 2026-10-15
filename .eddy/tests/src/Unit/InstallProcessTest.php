@@ -1298,14 +1298,14 @@ final class InstallProcessTest extends UnitTestCase {
   public function testProcessSetsBuildDefault(array $drupal_versions, string $expected_default): void {
     process('My Extension', 'my_extension', 'module', $drupal_versions, ['ahoy'], [], FALSE, FALSE);
 
-    $raw = File::read(self::$sut . '/composer.dev.json');
-    $config = json_decode($raw, TRUE);
+    $content = File::read(self::$sut . '/composer.dev.json');
+    $config = json_decode($content, TRUE);
     $this->assertIsArray($config);
     /** @var array{'require-dev'?: array<string, string>, extra?: array{eddy?: array{'drupal-version'?: string}}} $config */
 
     $this->assertSame($expected_default, $config['extra']['eddy']['drupal-version'] ?? NULL);
     $this->assertArrayHasKey('drevops/eddy-tooling', $config['require-dev'] ?? [], 'The tooling constraint is kept.');
-    $this->assertStringContainsString('"patches": {}', $raw, 'The empty patches map stays a JSON object.');
+    $this->assertStringContainsString('"patches": {}', $content, 'The empty patches map stays a JSON object.');
   }
 
   public static function dataProviderProcessSetsBuildDefault(): \Iterator {

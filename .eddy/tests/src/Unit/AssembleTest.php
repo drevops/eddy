@@ -145,19 +145,19 @@ final class AssembleTest extends UnitTestCase {
 
     $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
 
-    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $cmd, ?array &$output = NULL, ?int &$code = NULL) use ($config): string {
+    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $command, ?array &$output = NULL, ?int &$result_code = NULL) use ($config): string {
       $output ??= [];
-      $code = 0;
-      if (str_contains($cmd, 'command -v composer')) {
+      $result_code = 0;
+      if (str_contains($command, 'command -v composer')) {
         $output[] = '/usr/bin/composer';
       }
-      if ($cmd === self::composerShowCommand('drupal/recommended-project')) {
+      if ($command === self::composerShowCommand('drupal/recommended-project')) {
         $output = explode("\n", json_encode(['name' => 'drupal/recommended-project', 'versions' => $config['releases']], JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
-        $code = $config['releases_result_code'];
+        $result_code = $config['releases_result_code'];
       }
-      if ($cmd === self::composerShowCommand('drupal/core', (string) $config['drupal_release'])) {
+      if ($command === self::composerShowCommand('drupal/core', (string) $config['drupal_release'])) {
         $output = is_string($config['php_requirement']) ? explode("\n", json_encode(['name' => 'drupal/core', 'requires' => ['php' => $config['php_requirement']]], JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR)) : [];
-        $code = is_string($config['php_requirement']) ? 0 : 1;
+        $result_code = is_string($config['php_requirement']) ? 0 : 1;
       }
       return '';
     });

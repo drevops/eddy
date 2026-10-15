@@ -85,15 +85,15 @@ final class DeployTest extends UnitTestCase {
     }
 
     $shell_exec_calls = [];
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', function (string $cmd) use (&$shell_exec_calls, $git_user_name, $git_user_email): string {
-      $shell_exec_calls[] = $cmd;
-      if (str_contains($cmd, 'user.name')) {
+    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', function (string $command) use (&$shell_exec_calls, $git_user_name, $git_user_email): string {
+      $shell_exec_calls[] = $command;
+      if (str_contains($command, 'user.name')) {
         return $git_user_name;
       }
-      if (str_contains($cmd, 'user.email')) {
+      if (str_contains($command, 'user.email')) {
         return $git_user_email;
       }
-      if (str_contains($cmd, 'symbolic-ref')) {
+      if (str_contains($command, 'symbolic-ref')) {
         return 'main';
       }
       return '';
@@ -164,9 +164,9 @@ final class DeployTest extends UnitTestCase {
     $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
     $this->envSet('DEPLOY_PROCEED', '1');
 
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(string $cmd): ?string => match ($cmd) {
+    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(string $command): ?string => match ($command) {
       'git symbolic-ref --quiet --short HEAD' => NULL,
-      default => throw new \RuntimeException(sprintf('Unexpected command "%s".', $cmd)),
+      default => throw new \RuntimeException(sprintf('Unexpected command "%s".', $command)),
     });
 
     $this->mockPassthruNever();
@@ -236,7 +236,7 @@ final class DeployTest extends UnitTestCase {
       $this->envSet('DEPLOY_BRANCH', $deploy_branch);
     }
 
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(string $cmd): string => str_contains($cmd, 'symbolic-ref') ? throw new \RuntimeException('A tag deployment must not resolve a branch.') : 'Existing');
+    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(string $command): string => str_contains($command, 'symbolic-ref') ? throw new \RuntimeException('A tag deployment must not resolve a branch.') : 'Existing');
 
     // A branch push or a push of every tag would be an unexpected call.
     $this->mockPassthruMultiple([
@@ -391,13 +391,13 @@ final class DeployTest extends UnitTestCase {
     $this->registerMock('glob', 'DrevOps\\Eddy\\Tooling', fn(): array => ['/home/testuser/.ssh/id_rsa_test']);
 
     $exec_calls = 0;
-    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $cmd, ?array &$output = NULL) use (&$exec_calls): int {
+    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $command, ?array &$output = NULL) use (&$exec_calls): int {
       $exec_calls++;
       $output ??= [];
-      if (str_contains($cmd, '-E sha256')) {
+      if (str_contains($command, '-E sha256')) {
         $output[] = '2048 SHA256:abcdef123456 testuser@host (RSA)';
       }
-      elseif (str_contains($cmd, '-E md5')) {
+      elseif (str_contains($command, '-E md5')) {
         $output[] = '2048 MD5:aa:bb:cc:dd testuser@host (RSA)';
       }
       return 0;
@@ -613,9 +613,9 @@ final class DeployTest extends UnitTestCase {
 
     $this->registerMock('glob', 'DrevOps\\Eddy\\Tooling', fn(): array => ['/home/testuser/.ssh/id_rsa_test']);
 
-    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $cmd, ?array &$output = NULL): int {
+    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $command, ?array &$output = NULL): int {
       $output ??= [];
-      if (str_contains($cmd, '-E sha256')) {
+      if (str_contains($command, '-E sha256')) {
         $output[] = '2048 SHA256:differenthash testuser@host (RSA)';
       }
       return 0;
@@ -685,7 +685,7 @@ final class DeployTest extends UnitTestCase {
 
     $this->registerMock('glob', 'DrevOps\\Eddy\\Tooling', fn(): array => ['/home/testuser/.ssh/id_rsa_test']);
 
-    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $cmd, ?array &$output = NULL): int {
+    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $command, ?array &$output = NULL): int {
       $output ??= [];
       return 0;
     });

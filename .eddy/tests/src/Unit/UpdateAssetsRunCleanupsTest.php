@@ -46,10 +46,10 @@ final class UpdateAssetsRunCleanupsTest extends UnitTestCase {
   #[DataProvider('dataProviderRunCleanups')]
   public function testRunCleanups(array $cleanups, array $results, array $expected_commands, array $expected_failures): void {
     $exec = $this->getFunctionMock('DrevOps\\Eddy\\Assets', 'exec');
-    $exec->expects($this->exactly(count($expected_commands)))->willReturnCallback(function (string $cmd, ?array &$output = NULL, ?int &$exit_code = NULL) use ($results): string {
-      $this->commands[] = $cmd;
-      $command = (string) preg_replace("/^cd '[^']*' && (.*) 2>&1$/", '$1', $cmd);
-      [$exit_code, $output] = $results[$command] ?? [0, []];
+    $exec->expects($this->exactly(count($expected_commands)))->willReturnCallback(function (string $command, ?array &$output = NULL, ?int &$result_code = NULL) use ($results): string {
+      $this->commands[] = $command;
+      $cleanup = (string) preg_replace("/^cd '[^']*' && (.*) 2>&1$/", '$1', $command);
+      [$result_code, $output] = $results[$cleanup] ?? [0, []];
 
       return (string) end($output);
     });

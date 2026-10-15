@@ -31,10 +31,10 @@ final class HelpersDrupalPhpRequirementTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderDrupalPhpRequirement')]
   public function testDrupalPhpRequirement(array $output, int $exit_code, ?string $expected): void {
-    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $cmd, ?array &$exec_output = NULL, ?int &$code = NULL) use ($output, $exit_code): string {
-      $this->assertSame("composer show --all --format=json 'drupal/core' '12.0.0-beta1'", $cmd);
+    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $command, ?array &$exec_output = NULL, ?int &$result_code = NULL) use ($output, $exit_code): string {
+      $this->assertSame("composer show --all --format=json 'drupal/core' '12.0.0-beta1'", $command);
       $exec_output = $output;
-      $code = $exit_code;
+      $result_code = $exit_code;
 
       return '';
     });

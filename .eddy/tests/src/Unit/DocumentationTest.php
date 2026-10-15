@@ -104,12 +104,12 @@ final class DocumentationTest extends UnitTestCase {
 
   #[DataProvider('dataProviderPhpunitCorePathsUseDocrootPrefix')]
   public function testPhpunitCorePathsUseDocrootPrefix(string $path): void {
-    $contents = File::read($path);
+    $content = File::read($path);
 
     // These configs are run from the build root, not the Drupal root, so the
     // docroot prefix in `bootstrap` applies to every other core-relative path.
     // Paths inside comments are included.
-    preg_match('/bootstrap="([^"]+)"/', $contents, $bootstrap);
+    preg_match('/bootstrap="([^"]+)"/', $content, $bootstrap);
     $bootstrap_path = $bootstrap[1] ?? '';
 
     $this->assertNotSame('', $bootstrap_path, sprintf('%s declares no bootstrap attribute.', basename($path)));
@@ -121,7 +121,7 @@ final class DocumentationTest extends UnitTestCase {
 
     $unprefixed = [];
 
-    foreach (explode("\n", $contents) as $index => $line) {
+    foreach (explode("\n", $content) as $index => $line) {
       // Match each reference together with the path segments leading into it,
       // so the prefix can be compared by value. A lookbehind cannot serve
       // here: PCRE requires a fixed-length one, and the prefix is derived.
