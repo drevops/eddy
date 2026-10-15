@@ -49,9 +49,9 @@ if (!file_exists($composer_json)) {
 }
 
 $build_composer_json = $build_dir . '/composer.json';
-$ext_info = extension_info();
-$extension_name = $ext_info['name'];
-$type_dir = $ext_info['type'] === 'theme' ? 'themes' : 'modules';
+$extension_info = extension_info();
+$extension_name = $extension_info['name'];
+$type_dir = $extension_info['type'] === 'theme' ? 'themes' : 'modules';
 PASS('Scaffold is valid.');
 
 TASK('Validating tools.');
@@ -194,9 +194,9 @@ file_put_contents($build_composer_json, json_encode($merged, JSON_PRETTY_PRINT |
 PASS('Configuration from composer.dev.json merged.');
 
 TASK("Merging configuration from extension's composer.json.");
-$ext_json = (array) json_decode((string) file_get_contents('composer.json'), TRUE);
+$extension_json = (array) json_decode((string) file_get_contents('composer.json'), TRUE);
 $build_json = (array) json_decode((string) file_get_contents($build_composer_json), TRUE);
-$merged = array_replace_recursive($ext_json, $build_json);
+$merged = array_replace_recursive($extension_json, $build_json);
 file_put_contents($build_composer_json, json_encode($merged, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
 PASS("Configuration from extension's composer.json merged.");
 
@@ -241,11 +241,11 @@ PASS('Dependencies installed.');
 // Suggested dependencies allow to install them for testing without requiring
 // them in extension's composer.json.
 TASK("Installing suggested dependencies from extension's composer.json.");
-$ext_json = (array) json_decode((string) file_get_contents('composer.json'), TRUE);
+$extension_json = (array) json_decode((string) file_get_contents('composer.json'), TRUE);
 $build_json = (array) json_decode((string) file_get_contents($build_composer_json), TRUE);
 
-if (isset($ext_json['suggest']) && is_array($ext_json['suggest'])) {
-  foreach (array_keys($ext_json['suggest']) as $suggest) {
+if (isset($extension_json['suggest']) && is_array($extension_json['suggest'])) {
+  foreach (array_keys($extension_json['suggest']) as $suggest) {
     if (isset($build_json['require'][$suggest]) || isset($build_json['require-dev'][$suggest])) {
       NOTE('Skipping %s (already in require or require-dev).', $suggest);
       continue;
@@ -336,9 +336,9 @@ if (is_dir($custom_dir)) {
 $extension_dir = $custom_dir . '/' . $extension_name;
 mkdir($extension_dir, 0755, TRUE);
 
-$cwd = getcwd();
+$root = (string) getcwd();
 
-foreach (glob($cwd . '/*') ?: [] as $item) {
+foreach (glob($root . '/*') ?: [] as $item) {
   $basename = basename($item);
 
   // The build directory and the project-root 'vendor' directory, which holds

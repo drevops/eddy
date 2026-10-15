@@ -285,13 +285,13 @@ function detect_chrome_version(): string {
     return '';
   }
 
-  $raw = command_output([$binary, '--version'], VERSION_PROBE_TIMEOUT);
+  $output = command_output([$binary, '--version'], VERSION_PROBE_TIMEOUT);
 
-  if ($raw === NULL) {
+  if ($output === NULL) {
     FAIL('The browser at %s did not report its version within %d seconds. Run it with --version to see why, or set WEBDRIVER_BACKEND=selenium to use Docker.', $binary, VERSION_PROBE_TIMEOUT);
   }
 
-  return preg_match('/(\d+(?:\.\d+){3})/', (string) $raw, $matches) === 1 ? $matches[1] : '';
+  return preg_match('/(\d+(?:\.\d+){3})/', (string) $output, $matches) === 1 ? $matches[1] : '';
 }
 
 /**
@@ -364,9 +364,9 @@ function detect_matching_chromedriver(string $chrome_version): string {
     return '';
   }
 
-  $raw = command_output([$path, '--version'], VERSION_PROBE_TIMEOUT);
+  $output = command_output([$path, '--version'], VERSION_PROBE_TIMEOUT);
 
-  if ($raw === NULL) {
+  if ($output === NULL) {
     NOTE('Installed chromedriver at %s did not report its version within %d seconds; fetching a matching build.', $path, VERSION_PROBE_TIMEOUT);
     // cspell:ignore xattr
     NOTE('If macOS has quarantined it, clear the flag with: xattr -d com.apple.quarantine %s', escapeshellarg($path));
@@ -374,7 +374,7 @@ function detect_matching_chromedriver(string $chrome_version): string {
     return '';
   }
 
-  if (preg_match('/(\d+)\./', $raw, $matches) !== 1 || $matches[1] !== explode('.', $chrome_version)[0]) {
+  if (preg_match('/(\d+)\./', $output, $matches) !== 1 || $matches[1] !== explode('.', $chrome_version)[0]) {
     NOTE('Installed chromedriver does not match Chrome %s; fetching a matching build.', $chrome_version);
 
     return '';
@@ -392,13 +392,13 @@ function detect_matching_chromedriver(string $chrome_version): string {
  * may contain spaces, so everything after the first field is kept verbatim.
  */
 function parse_installed_binary(string $log): string {
-  $contents = @file_get_contents($log);
+  $content = @file_get_contents($log);
 
-  if ($contents === FALSE) {
+  if ($content === FALSE) {
     return '';
   }
 
-  $lines = array_values(array_filter(preg_split('/\r\n|\r|\n/', trim($contents)) ?: []));
+  $lines = array_values(array_filter(preg_split('/\r\n|\r|\n/', trim($content)) ?: []));
 
   if ($lines === []) {
     return '';

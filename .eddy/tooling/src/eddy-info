@@ -41,9 +41,9 @@ $port_source = $webserver['port_source'];
 
 $drupal_profile = getenv_default('DRUPAL_PROFILE', 'standard');
 
-$cwd = (string) getcwd();
-$build_dir = is_dir($cwd . '/build') ? $cwd . '/build' : '-';
-$has_functional_javascript = is_dir($cwd . '/tests/src/FunctionalJavascript');
+$root = (string) getcwd();
+$build_dir = is_dir($root . '/build') ? $root . '/build' : '-';
+$has_functional_javascript = is_dir($root . '/tests/src/FunctionalJavascript');
 
 $info_files = glob('*.info.yml');
 $extension_name = (is_array($info_files) && $info_files !== []) ? basename($info_files[0], '.info.yml') : '';
@@ -57,7 +57,7 @@ $has_drush = is_file($drush_bin);
 // -----------------------------------------------------------------------------
 
 $fields = [
-  'drupal-version' => fn(): string => $has_drush ? info_drupal_version($drush_bin) : '-',
+  'drupal-version' => fn(): string => $has_drush ? info_drupal_version($drush_bin, $root) : '-',
   'php-version' => info_php_version(...),
   'composer' => fn(): string => info_tool_version('composer --version 2>/dev/null', '/Composer(?:\s+version)?\s+(\S+)/i'),
   'drush' => fn(): string => $has_drush ? info_tool_version(escapeshellarg($drush_bin) . ' --version 2>/dev/null', '/(\d+\.\d+\.\d+)/') : '-',
@@ -66,7 +66,7 @@ $fields = [
   'webserver-host' => fn(): string => $webserver_host,
   'webserver-port' => fn(): string => $webserver_port,
   'site-url' => fn(): string => resolve_site_url($webserver_host, $webserver_port),
-  'xdebug' => fn(): string => xdebug_state($webserver_port, $cwd . '/build/web'),
+  'xdebug' => fn(): string => xdebug_state($webserver_port, $root . '/build/web'),
   'webdriver-port' => fn(): string => resolve_webdriver_port(validate_port: FALSE)['port'],
   'build-dir' => fn(): string => $build_dir,
   'database' => fn(): string => $db_file,
@@ -129,9 +129,9 @@ echo PHP_EOL;
  * Get the host PHP version, or '-' if it cannot be parsed.
  */
 function info_php_version(): string {
-  $out = (string) @shell_exec('php -v 2>/dev/null');
+  $output = (string) @shell_exec('php -v 2>/dev/null');
 
-  if ($out === '' || !preg_match('/^PHP\s+(\S+)/m', $out, $matches)) {
+  if ($output === '' || !preg_match('/^PHP\s+(\S+)/m', $output, $matches)) {
     return '-';
   }
 
@@ -144,10 +144,10 @@ function info_php_version(): string {
  * Returns '-' if the command produces no output or the pattern does
  * not match.
  */
-function info_tool_version(string $cmd, string $pattern): string {
-  $out = trim((string) @shell_exec($cmd));
+function info_tool_version(string $command, string $pattern): string {
+  $output = trim((string) @shell_exec($command));
 
-  if ($out === '' || !preg_match($pattern, $out, $matches)) {
+  if ($output === '' || !preg_match($pattern, $output, $matches)) {
     return '-';
   }
 
@@ -157,13 +157,13 @@ function info_tool_version(string $cmd, string $pattern): string {
 /**
  * Get the installed Drupal version via drush, or '-' if unavailable.
  */
-function info_drupal_version(string $drush_bin): string {
+function info_drupal_version(string $drush_bin, string $root): string {
   // Intentionally bypasses drush(): outside debug mode that helper merges
   // stderr into its return value, which would leak any stray notice into
   // the version string returned here. This probe
   // instead discards stderr so it always yields either a clean value or '-'.
-  $cmd = escapeshellarg($drush_bin) . ' -r ' . escapeshellarg(getcwd() . '/build/web') . ' status --field=drupal-version 2>/dev/null';
-  $out = trim((string) @shell_exec($cmd));
+  $command = escapeshellarg($drush_bin) . ' -r ' . escapeshellarg($root . '/build/web') . ' status --field=drupal-version 2>/dev/null';
+  $output = trim((string) @shell_exec($command));
 
-  return $out === '' ? '-' : $out;
+  return $output === '' ? '-' : $output;
 }

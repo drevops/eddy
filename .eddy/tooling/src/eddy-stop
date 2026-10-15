@@ -21,7 +21,8 @@ $webserver_port = resolve_webserver()['port'];
 
 // The docroot identifies the webserver of this project among the processes
 // that listen on the port.
-$docroot = getcwd() . '/build/web';
+$root = (string) getcwd();
+$docroot = $root . '/build/web';
 
 // -----------------------------------------------------------------------------
 

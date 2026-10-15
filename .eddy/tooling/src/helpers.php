@@ -70,15 +70,15 @@ function dotenv_read(string $dotenv_file = '.env'): array {
     return [];
   }
 
-  $contents = file_get_contents($dotenv_file);
+  $content = file_get_contents($dotenv_file);
 
-  if ($contents === FALSE) {
+  if ($content === FALSE) {
     return [];
   }
 
   $vars = [];
 
-  foreach (preg_split('/\r\n|\r|\n/', $contents) ?: [] as $line) {
+  foreach (preg_split('/\r\n|\r|\n/', $content) ?: [] as $line) {
     $trimmed = trim($line);
 
     if ($trimmed === '') {
@@ -142,9 +142,9 @@ function dotenv_write_var(string $key, string $value, string $dotenv_file = '.en
     return;
   }
 
-  $contents = file_get_contents($dotenv_file);
+  $content = file_get_contents($dotenv_file);
 
-  if ($contents === FALSE) {
+  if ($content === FALSE) {
     FAIL('Unable to read %s', $dotenv_file);
 
     // @codeCoverageIgnoreStart
@@ -152,8 +152,8 @@ function dotenv_write_var(string $key, string $value, string $dotenv_file = '.en
     // @codeCoverageIgnoreEnd
   }
 
-  $lines = preg_split('/\r\n|\r|\n/', $contents) ?: [];
-  $trailing_newline = $contents !== '' && (str_ends_with($contents, "\n") || str_ends_with($contents, "\r"));
+  $lines = preg_split('/\r\n|\r|\n/', $content) ?: [];
+  $trailing_newline = $content !== '' && (str_ends_with($content, "\n") || str_ends_with($content, "\r"));
 
   if ($trailing_newline && end($lines) === '') {
     array_pop($lines);
@@ -613,13 +613,13 @@ function find_free_port(int $start = 8000, int $max_attempts = 100): int {
   }
 
   for ($port = $start; $port < $start + $max_attempts; $port++) {
-    $conn = @stream_socket_client(sprintf('tcp://localhost:%d', $port), $errno, $errstr, 0.2);
+    $fp = @stream_socket_client(sprintf('tcp://localhost:%d', $port), $errno, $errstr, 0.2);
 
-    if ($conn === FALSE) {
+    if ($fp === FALSE) {
       return $port;
     }
 
-    fclose($conn);
+    fclose($fp);
   }
 
   FAIL('Unable to find a free port in range %d-%d', $start, $start + $max_attempts - 1);
@@ -943,9 +943,9 @@ function command_path(string $command): string|false {
     return FALSE;
   }
 
-  exec(sprintf('command -v %s 2>/dev/null', $command), $output, $code);
+  exec(sprintf('command -v %s 2>/dev/null', $command), $output, $exit_code);
 
-  return $code === 0 && !empty($output[0]) ? trim($output[0]) : FALSE;
+  return $exit_code === 0 && !empty($output[0]) ? trim($output[0]) : FALSE;
 }
 
 /**
@@ -2041,11 +2041,11 @@ if (!function_exists('DrevOps\Eddy\Tooling\quit') && !class_exists('PHPUnit\\Fra
    * Wrapper around exit() to allow mocking in tests since exit() cannot be
    * directly mocked despite being a function in PHP 8.4+.
    *
-   * @param int $code
+   * @param int $exit_code
    *   Exit code (0 for success, non-zero for error).
    */
-  function quit(int $code = 0): void {
-    exit($code);
+  function quit(int $exit_code = 0): void {
+    exit($exit_code);
   }
 
 }
