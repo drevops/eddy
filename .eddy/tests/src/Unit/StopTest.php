@@ -59,7 +59,7 @@ final class StopTest extends UnitTestCase {
   public function testStopKillsOnlyOwnServer(array $listeners, array $expected_killed, array $expected_left): void {
     self::envSet('WEBSERVER_PORT', '8000');
 
-    $this->mockFunction('getcwd', fn(): string => '/test/project');
+    $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
 
     $this->mockPortListeners('8000', $listeners);
 
@@ -88,11 +88,11 @@ final class StopTest extends UnitTestCase {
       $this->assertStringContainsString($process, $output);
     }
 
-    $this->assertStringNotContainsString('/test/project/build/web', $output, 'The project server is not reported as left running.');
+    $this->assertStringNotContainsString(self::PROJECT_ROOT . '/build/web', $output, 'The project server is not reported as left running.');
   }
 
   public static function dataProviderStopKillsOnlyOwnServer(): \Iterator {
-    $own = self::webserverCommandLine('/test/project');
+    $own = self::webserverCommandLine(self::PROJECT_ROOT);
     $other = self::webserverCommandLine('/www/other');
 
     yield 'nothing listens' => [[], [], []];

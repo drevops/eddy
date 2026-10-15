@@ -314,9 +314,8 @@ final class ProvisionTest extends UnitTestCase {
   public function testProvisionReadsDotenv(string $dotenv, string $site_url, array $expected_present, array $expected_absent): void {
     $extension_name = 'test_extension';
     $info_content = "name: Test\ntype: module\n";
-    $cwd = '/test/project';
 
-    $this->mockFunction('getcwd', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
     $this->mockFunction('glob', fn(): array => [$extension_name . '.info.yml']);
 
     $this->mockFunction('file_get_contents', function (string $file) use ($info_content, $dotenv): string {
@@ -338,7 +337,7 @@ final class ProvisionTest extends UnitTestCase {
 
     $this->mockFunction('file_exists', fn(string $file): bool => $file === '.env');
 
-    $prefix = self::drushPrefix($cwd);
+    $prefix = self::drushPrefix(self::PROJECT_ROOT);
     $db_file = site_db_file($extension_name);
     $this->mockPassthruMultiple(self::drushCommands($prefix, $db_file, $site_url));
 
@@ -368,10 +367,9 @@ final class ProvisionTest extends UnitTestCase {
   #[DataProvider('dataProviderProvisionLoginLinkOptions')]
   public function testProvisionLoginLinkOptions(string $drush_version, string $expected_options): void {
     $extension_name = 'test_extension';
-    $cwd = '/test/project';
     $site_url = 'http://localhost:8000';
 
-    $this->mockFunction('getcwd', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
     $this->mockFunction('glob', fn(): array => [$extension_name . '.info.yml']);
 
     $this->mockFunction('file_get_contents', function (string $file): string {
@@ -390,7 +388,7 @@ final class ProvisionTest extends UnitTestCase {
 
     $this->mockFunction('file_exists', fn(): bool => FALSE);
 
-    $prefix = self::drushPrefix($cwd);
+    $prefix = self::drushPrefix(self::PROJECT_ROOT);
     $db_file = site_db_file($extension_name);
     $this->mockPassthruMultiple(self::drushCommands($prefix, $db_file, $site_url, $drush_version . "\n", $expected_options));
 

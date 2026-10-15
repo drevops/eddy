@@ -93,7 +93,6 @@ final class AssembleTest extends UnitTestCase {
       'installed_packages' => [],
     ];
 
-    $cwd = '/test/project';
     $drupal_version_major = explode('.', explode('@', (string) $config['drupal_version'])[0])[0];
 
     $composer_json = ['name' => 'drupal/' . $config['extension_name']];
@@ -134,7 +133,7 @@ final class AssembleTest extends UnitTestCase {
     }
     $build_composer_lock = json_encode(['packages' => $installed_packages], JSON_THROW_ON_ERROR);
 
-    $this->mockFunction('getcwd', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
 
     $this->mockFunction('exec', function (string $command, ?array &$output = NULL, ?int &$result_code = NULL) use ($config): string {
       $output ??= [];
@@ -153,12 +152,12 @@ final class AssembleTest extends UnitTestCase {
       return '';
     });
 
-    $this->mockFunction('glob', function (string $pattern) use ($config, $cwd): array {
+    $this->mockFunction('glob', function (string $pattern) use ($config): array {
       if ($pattern === '*.info.yml') {
         return [$config['extension_name'] . '.info.yml'];
       }
-      if ($pattern === $cwd . '/*') {
-        return [$cwd . '/src', $cwd . '/composer.json', $cwd . '/vendor', $cwd . '/build'];
+      if ($pattern === self::PROJECT_ROOT . '/*') {
+        return [self::PROJECT_ROOT . '/src', self::PROJECT_ROOT . '/composer.json', self::PROJECT_ROOT . '/vendor', self::PROJECT_ROOT . '/build'];
       }
       return [];
     });

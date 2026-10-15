@@ -26,6 +26,11 @@ abstract class UnitTestCase extends UpstreamUnitTestCase {
   use SerializableClosureTrait;
 
   /**
+   * A project root that exists only in mocked filesystem calls.
+   */
+  protected const string PROJECT_ROOT = '/test/project';
+
+  /**
    * The output of each command that mockShellExecOutputs() answers.
    *
    * @var array<string, string|\Closure|null>

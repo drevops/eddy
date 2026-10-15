@@ -25,12 +25,10 @@ final class StartTest extends UnitTestCase {
   public function testStartSuccess(array $env, string $expected_host, string $expected_port, int $expected_timeout): void {
     self::envSetMultiple($env);
 
-    $cwd = '/test/project';
-
-    $this->mockFunction('getcwd', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
 
     $this->mockPortListeners($expected_port);
-    $this->mockPassthru(['cmd' => self::serverCommand($expected_host, $expected_port, $cwd)]);
+    $this->mockPassthru(['cmd' => self::serverCommand($expected_host, $expected_port)]);
 
     $this->mockClock();
 
@@ -59,7 +57,7 @@ final class StartTest extends UnitTestCase {
     $this->assertStringContainsString('Server started successfully', $output);
     $this->assertStringContainsString('Server can serve content', $output);
     $this->assertStringContainsString('ENVIRONMENT READY', $output);
-    $this->assertStringContainsString($cwd . '/build/web', $output);
+    $this->assertStringContainsString(self::PROJECT_ROOT . '/build/web', $output);
     $this->assertStringContainsString('http://' . $expected_host . ':' . $expected_port, $output);
     $this->assertStringNotContainsString('Cloudflare', $output);
 
@@ -115,12 +113,11 @@ final class StartTest extends UnitTestCase {
   #[DataProvider('dataProviderStartChecksServedContent')]
   public function testStartChecksServedContent(array|false $headers, bool $expected_served): void {
     self::envSet('WEBSERVER_PORT', '8000');
-    $cwd = '/test/project';
 
-    $this->mockFunction('getcwd', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
 
     $this->mockPortListeners('8000');
-    $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000', $cwd)]);
+    $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000')]);
 
     $this->mockClock();
 
@@ -161,12 +158,11 @@ final class StartTest extends UnitTestCase {
 
   public function testStartWaitsUntilServerAccepts(): void {
     self::envSet('WEBSERVER_PORT', '8000');
-    $cwd = '/test/project';
 
-    $this->mockFunction('getcwd', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
 
     $this->mockPortListeners('8000');
-    $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000', $cwd)]);
+    $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000')]);
 
     $this->mockClock();
 
@@ -197,16 +193,15 @@ final class StartTest extends UnitTestCase {
 
   public function testStartStopsOwnServerBeforeLaunch(): void {
     self::envSet('WEBSERVER_PORT', '8000');
-    $cwd = '/test/project';
 
-    $this->mockFunction('getcwd', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
 
     // The order of the calls is asserted: the running server and its worker
     // are stopped before the new server is launched.
-    $this->mockPortListeners('8000', [1234 => self::webserverCommandLine($cwd), 1235 => self::webserverCommandLine($cwd)]);
+    $this->mockPortListeners('8000', [1234 => self::webserverCommandLine(self::PROJECT_ROOT), 1235 => self::webserverCommandLine(self::PROJECT_ROOT)]);
     $this->mockPassthruMultiple([
       ['cmd' => self::killProcessesCommand(1234, 1235)],
-      ['cmd' => self::serverCommand('localhost', '8000', $cwd)],
+      ['cmd' => self::serverCommand('localhost', '8000')],
     ]);
 
     $this->mockClock();
@@ -238,7 +233,7 @@ final class StartTest extends UnitTestCase {
   public function testStartFailsWhenAnotherProcessHoldsPort(array $listeners, array $expected_processes): void {
     self::envSet('WEBSERVER_PORT', '8000');
 
-    $this->mockFunction('getcwd', fn(): string => '/test/project');
+    $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
 
     $this->mockPortListeners('8000', $listeners);
     $this->mockPassthruNever();
@@ -252,7 +247,7 @@ final class StartTest extends UnitTestCase {
       $this->assertStringContainsString($process, $output);
     }
 
-    $this->assertStringNotContainsString('/test/project/build/web', $output, 'The failure names only the processes of other projects.');
+    $this->assertStringNotContainsString(self::PROJECT_ROOT . '/build/web', $output, 'The failure names only the processes of other projects.');
     $this->assertStringNotContainsString('Starting the PHP webserver', $output);
   }
 
@@ -262,7 +257,7 @@ final class StartTest extends UnitTestCase {
     yield 'the server of another project' => [[5678 => $other], ['5678 ' . $other]];
     yield 'the server of another project with a worker' => [[5678 => $other, 5679 => $other], ['5678 ' . $other, '5679 ' . $other]];
     yield 'another program' => [[5678 => 'node server.js --port 8000'], ['5678 node server.js --port 8000']];
-    yield 'the project server and another' => [[1234 => self::webserverCommandLine('/test/project'), 5678 => $other], ['5678 ' . $other]];
+    yield 'the project server and another' => [[1234 => self::webserverCommandLine(self::PROJECT_ROOT), 5678 => $other], ['5678 ' . $other]];
   }
 
   public function testStartCreatesLogsDirectory(): void {
@@ -271,12 +266,11 @@ final class StartTest extends UnitTestCase {
     chdir($project_dir);
 
     self::envSet('WEBSERVER_PORT', '8000');
-    $cwd = '/test/project';
 
-    $this->mockFunction('getcwd', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
 
     $this->mockPortListeners('8000');
-    $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000', $cwd)]);
+    $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000')]);
 
     $this->mockClock();
 
@@ -324,12 +318,11 @@ final class StartTest extends UnitTestCase {
   #[DataProvider('dataProviderStartFailsWhenServerNeverAccepts')]
   public function testStartFailsWhenServerNeverAccepts(string|false $log, array $expected_output): void {
     self::envSet('WEBSERVER_PORT', '8000');
-    $cwd = '/test/project';
 
-    $this->mockFunction('getcwd', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
 
     $this->mockPortListeners('8000');
-    $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000', $cwd)]);
+    $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000')]);
 
     $this->mockClock();
 
@@ -361,12 +354,11 @@ final class StartTest extends UnitTestCase {
 
   public function testStartWaitEndsAtTimeoutWhenConnectionsAreDropped(): void {
     self::envSet('WEBSERVER_PORT', '8000');
-    $cwd = '/test/project';
 
-    $this->mockFunction('getcwd', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
 
     $this->mockPortListeners('8000');
-    $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000', $cwd)]);
+    $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000')]);
 
     $this->mockClock();
 
@@ -394,9 +386,7 @@ final class StartTest extends UnitTestCase {
   }
 
   public function testStartReadsPortFromDotenvAndDoesNotRewrite(): void {
-    $cwd = '/test/project';
-
-    $this->mockFunction('getcwd', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
 
     $this->mockFunction('file_exists', fn(string $file): bool => $file === '.env');
     $this->mockFunction('file_get_contents', fn(): string => "WEBSERVER_PORT=8123\n");
@@ -416,7 +406,7 @@ final class StartTest extends UnitTestCase {
     });
 
     $this->mockPortListeners('8123');
-    $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8123', $cwd)]);
+    $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8123')]);
 
     $this->mockClock();
 
@@ -439,9 +429,7 @@ final class StartTest extends UnitTestCase {
   }
 
   public function testStartAutoDiscoversPortAndPersistsToDotenv(): void {
-    $cwd = '/test/project';
-
-    $this->mockFunction('getcwd', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
 
     $this->mockFunction('file_exists', fn(): false => FALSE);
 
@@ -469,7 +457,7 @@ final class StartTest extends UnitTestCase {
     });
 
     $this->mockPortListeners('8001');
-    $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8001', $cwd)]);
+    $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8001')]);
 
     $this->mockClock();
 
@@ -493,10 +481,9 @@ final class StartTest extends UnitTestCase {
   }
 
   public function testStartDisplaysTunnelUrlWhenSet(): void {
-    $cwd = '/test/project';
     $tunnel_url = 'https://random-words.trycloudflare.com';
 
-    $this->mockFunction('getcwd', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
 
     // The server binds and is health-checked on the local host:port, but the
     // READY banner reports the public tunnel URL.
@@ -504,7 +491,7 @@ final class StartTest extends UnitTestCase {
     $this->mockFunction('file_get_contents', fn(): string => "WEBSERVER_PORT=8000\nTUNNEL_URL=" . $tunnel_url . "\n");
 
     $this->mockPortListeners('8000');
-    $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000', $cwd)]);
+    $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000')]);
 
     $this->mockClock();
 
@@ -531,12 +518,11 @@ final class StartTest extends UnitTestCase {
     chdir($project_dir);
     File::dump('.env', "WEBSERVER_PORT=8000\nCLOUDFLARE_TUNNEL=1\n");
 
-    $cwd = '/test/project';
     $tunnel_url = 'https://seasonal-deck-organisms-sf.trycloudflare.com';
 
-    $this->mockFunction('getcwd', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
 
-    $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000', $cwd)]);
+    $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000')]);
 
     $this->mockClock();
 
@@ -578,12 +564,11 @@ final class StartTest extends UnitTestCase {
   public function testStartSkipsTunnelWithoutCloudflared(): void {
     self::envSet('CLOUDFLARE_TUNNEL', '1');
     self::envSet('WEBSERVER_PORT', '8000');
-    $cwd = '/test/project';
 
-    $this->mockFunction('getcwd', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
 
     $this->mockPortListeners('8000');
-    $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000', $cwd)]);
+    $this->mockPassthru(['cmd' => self::serverCommand('localhost', '8000')]);
 
     $this->mockClock();
 
@@ -607,8 +592,8 @@ final class StartTest extends UnitTestCase {
     fclose($fp);
   }
 
-  protected static function serverCommand(string $host, string $port, string $cwd): string {
-    return sprintf('nohup php -S %s:%s -t %s %s >%s 2>&1 &', escapeshellarg($host), escapeshellarg($port), escapeshellarg($cwd . '/build/web'), escapeshellarg($cwd . '/build/web/.ht.router.php'), escapeshellarg('.logs/php.log'));
+  protected static function serverCommand(string $host, string $port): string {
+    return sprintf('nohup php -S %s:%s -t %s %s >%s 2>&1 &', escapeshellarg($host), escapeshellarg($port), escapeshellarg(self::PROJECT_ROOT . '/build/web'), escapeshellarg(self::PROJECT_ROOT . '/build/web/.ht.router.php'), escapeshellarg('.logs/php.log'));
   }
 
 }

@@ -36,8 +36,6 @@ final class InfoTest extends UnitTestCase {
    *   and is_dir lookups.
    * @param string[] $info_files
    *   Files returned from glob('*.info.yml').
-   * @param string $cwd
-   *   Value to return from getcwd().
    * @param array<string, string> $file_contents
    *   Map of file path → contents, used by file_get_contents.
    * @param string|false $command_php_path
@@ -47,11 +45,10 @@ final class InfoTest extends UnitTestCase {
     array $shell_exec_map,
     array $files = [],
     array $info_files = [],
-    string $cwd = '/test/project',
     array $file_contents = [],
     string|false $command_php_path = '/usr/bin/php',
   ): void {
-    $this->mockFunction('getcwd', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
 
     $this->mockFunction('shell_exec', function (string $command) use ($shell_exec_map): string {
       foreach ($shell_exec_map as $needle => $output) {
@@ -77,7 +74,6 @@ final class InfoTest extends UnitTestCase {
     self::envSet('WEBSERVER_PORT', '9001');
     self::envSet('DRUPAL_PROFILE', 'minimal');
 
-    $cwd = '/test/project';
     $drush_bin = 'build/vendor/bin/drush';
 
     $this->setupInfoMocks(
@@ -93,10 +89,9 @@ final class InfoTest extends UnitTestCase {
       ],
       files: [
         $drush_bin => TRUE,
-        $cwd . '/build' => TRUE,
+        self::PROJECT_ROOT . '/build' => TRUE,
       ],
       info_files: ['your_extension.info.yml'],
-      cwd: $cwd,
     );
 
     $output = $this->runInfo();
@@ -117,8 +112,6 @@ final class InfoTest extends UnitTestCase {
   }
 
   public function testInfoReadsPortFromDotenvWithFileSource(): void {
-    $cwd = '/test/project';
-
     $this->setupInfoMocks(
       shell_exec_map: [
         'php -v' => "PHP 8.3.14\n",
@@ -129,7 +122,6 @@ final class InfoTest extends UnitTestCase {
       ],
       files: ['.env' => TRUE],
       info_files: [],
-      cwd: $cwd,
       file_contents: ['.env' => "WEBSERVER_PORT=8123\n"],
     );
 
@@ -141,14 +133,12 @@ final class InfoTest extends UnitTestCase {
   }
 
   public function testInfoSiteUrlPrefersTunnelUrl(): void {
-    $cwd = '/test/project';
     $tunnel_url = 'https://random-words.trycloudflare.com';
 
     $this->setupInfoMocks(
       shell_exec_map: ['*' => ''],
       files: ['.env' => TRUE],
       info_files: [],
-      cwd: $cwd,
       file_contents: ['.env' => "WEBSERVER_PORT=8000\nTUNNEL_URL=" . $tunnel_url . "\n"],
     );
 
@@ -165,7 +155,6 @@ final class InfoTest extends UnitTestCase {
       shell_exec_map: ['*' => ''],
       files: ['.env' => TRUE],
       info_files: [],
-      cwd: '/test/project',
       file_contents: ['.env' => 'TUNNEL_URL=' . $tunnel_url . "\n"],
     );
 
@@ -175,13 +164,10 @@ final class InfoTest extends UnitTestCase {
   }
 
   public function testInfoFallsBackToDefaultsWhenNothingResolves(): void {
-    $cwd = '/test/project';
-
     $this->setupInfoMocks(
       shell_exec_map: ['*' => ''],
       files: [],
       info_files: [],
-      cwd: $cwd,
       command_php_path: FALSE,
     );
 
@@ -204,8 +190,6 @@ final class InfoTest extends UnitTestCase {
   public function testInfoDrushMissingSuppressesPhpPathSuffixOnlyWhenPhpAlsoMissing(): void {
     // PHP is detectable but command_path('php') returns FALSE - the path
     // suffix is omitted.
-    $cwd = '/test/project';
-
     $this->setupInfoMocks(
       shell_exec_map: [
         'php -v' => "PHP 8.3.14\n",
@@ -213,7 +197,6 @@ final class InfoTest extends UnitTestCase {
       ],
       files: [],
       info_files: [],
-      cwd: $cwd,
       command_php_path: FALSE,
     );
 
@@ -225,8 +208,6 @@ final class InfoTest extends UnitTestCase {
 
   #[DataProvider('dataProviderInfoXdebugStateDetection')]
   public function testInfoXdebugStateDetection(?string $listener, string $expected_state): void {
-    $cwd = '/test/project';
-
     $this->setupInfoMocks(
       shell_exec_map: [
         'lsof -ti' => $listener === NULL ? '' : "1234\n",
@@ -235,7 +216,6 @@ final class InfoTest extends UnitTestCase {
       ],
       files: [],
       info_files: [],
-      cwd: $cwd,
     );
 
     $output = $this->runInfo();
@@ -246,7 +226,7 @@ final class InfoTest extends UnitTestCase {
   public static function dataProviderInfoXdebugStateDetection(): \Iterator {
     yield 'no server listening' => ['listener' => NULL, 'expected_state' => '-'];
     yield 'server running without xdebug' => [
-      'listener' => self::webserverCommandLine('/test/project'),
+      'listener' => self::webserverCommandLine(self::PROJECT_ROOT),
       'expected_state' => 'disabled',
     ];
     yield 'server running with xdebug' => [
@@ -261,14 +241,12 @@ final class InfoTest extends UnitTestCase {
 
   #[DataProvider('dataProviderInfoWebdriverPort')]
   public function testInfoWebdriverPort(bool $has_functional_javascript): void {
-    $cwd = '/test/project';
     self::envSet('WEBDRIVER_PORT', '4455');
 
     $this->setupInfoMocks(
       shell_exec_map: ['*' => ''],
-      files: [$cwd . '/tests/src/FunctionalJavascript' => $has_functional_javascript],
+      files: [self::PROJECT_ROOT . '/tests/src/FunctionalJavascript' => $has_functional_javascript],
       info_files: [],
-      cwd: $cwd,
     );
 
     $output = $this->runInfo();
@@ -287,7 +265,6 @@ final class InfoTest extends UnitTestCase {
   public function testInfoDrushDrupalVersionFallbackWhenStatusReturnsNothing(): void {
     // The drush binary exists but `drush status --field=drupal-version`
     // returns empty, for example before the site is installed.
-    $cwd = '/test/project';
     $drush_bin = 'build/vendor/bin/drush';
 
     $this->setupInfoMocks(
@@ -300,7 +277,6 @@ final class InfoTest extends UnitTestCase {
         $drush_bin => TRUE,
       ],
       info_files: [],
-      cwd: $cwd,
     );
 
     $output = $this->runInfo();
@@ -315,7 +291,6 @@ final class InfoTest extends UnitTestCase {
       shell_exec_map: $shell_exec_map,
       files: $files,
       info_files: ['your_extension.info.yml'],
-      cwd: '/test/project',
     );
 
     $output = $this->runInfoField($field, 0);
@@ -381,8 +356,8 @@ final class InfoTest extends UnitTestCase {
     yield 'build-dir present' => [
       'field' => 'build-dir',
       'shell_exec_map' => ['*' => ''],
-      'files' => ['/test/project/build' => TRUE],
-      'expected' => '/test/project/build',
+      'files' => [self::PROJECT_ROOT . '/build' => TRUE],
+      'expected' => self::PROJECT_ROOT . '/build',
     ];
     yield 'build-dir absent' => [
       'field' => 'build-dir',
@@ -451,7 +426,6 @@ final class InfoTest extends UnitTestCase {
       shell_exec_map: ['*' => ''],
       files: [],
       info_files: [],
-      cwd: '/test/project',
     );
 
     $output = $this->runInfoField('not-a-field', 1);
@@ -464,7 +438,6 @@ final class InfoTest extends UnitTestCase {
       shell_exec_map: ['*' => ''],
       files: [],
       info_files: [],
-      cwd: '/test/project',
     );
 
     $output = $this->runCommand('eddy-info', NULL, ['info', '--no-coverage']);

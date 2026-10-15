@@ -58,7 +58,7 @@ final class BrowserStartTest extends UnitTestCase {
     self::envUnset('WEBDRIVER_PORT');
     self::envUnset('WEBDRIVER_BACKEND');
 
-    $this->mockFunction('getcwd', fn(): string => '/test/project');
+    $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
 
     // Nothing listens on either port the tests resolve, and neither has a
     // Selenium container. A test replaces these outputs to add either.
@@ -189,7 +189,7 @@ final class BrowserStartTest extends UnitTestCase {
 
   public function testBrowserStartReusesOwnChromedriver(): void {
     $this->mockCommandPaths([]);
-    $this->mockPortListeners('4444', [1234 => ['/usr/local/bin/chromedriver --port=4444', '/test/project']]);
+    $this->mockPortListeners('4444', [1234 => ['/usr/local/bin/chromedriver --port=4444', self::PROJECT_ROOT]]);
     $this->mockStatus(['chromedriver']);
     $commands = [];
     $this->recordPassthru($commands);
@@ -204,7 +204,7 @@ final class BrowserStartTest extends UnitTestCase {
     $this->mockChrome(FALSE);
     $this->mockCommandPaths(['google-chrome' => '/usr/bin/google-chrome', 'chromedriver' => '/usr/local/bin/chromedriver']);
     $this->mockVersions('Google Chrome 150.0.7871.129', 'ChromeDriver 150.0.7871.129 (abc)');
-    $this->mockPortListeners('4444', [1234 => ['/usr/local/bin/chromedriver --port=4444', '/test/project']]);
+    $this->mockPortListeners('4444', [1234 => ['/usr/local/bin/chromedriver --port=4444', self::PROJECT_ROOT]]);
     $this->mockStatus([NULL, 'chromedriver']);
     $commands = [];
     $this->recordPassthru($commands);
@@ -241,10 +241,10 @@ final class BrowserStartTest extends UnitTestCase {
   }
 
   public static function dataProviderBrowserStartChromedriverReplacesOwnContainer(): \Iterator {
-    yield 'answering container of the project' => ['/test/project', 'selenium'];
+    yield 'answering container of the project' => [self::PROJECT_ROOT, 'selenium'];
     yield 'answering container without the label' => ['', 'selenium'];
-    yield 'booting container of the project' => ['/test/project', 'selenium booting'];
-    yield 'container of the project that does not answer' => ['/test/project', NULL];
+    yield 'booting container of the project' => [self::PROJECT_ROOT, 'selenium booting'];
+    yield 'container of the project that does not answer' => [self::PROJECT_ROOT, NULL];
     yield 'container without the label that does not answer' => ['', NULL];
   }
 
@@ -252,7 +252,7 @@ final class BrowserStartTest extends UnitTestCase {
     $this->mockChrome(FALSE);
     $this->mockCommandPaths(['docker' => '/usr/bin/docker', 'google-chrome' => '/usr/bin/google-chrome', 'chromedriver' => '/usr/local/bin/chromedriver']);
     $this->mockVersions('Google Chrome 150.0.7871.129', 'ChromeDriver 150.0.7871.129 (abc)');
-    $this->mockPortListeners('4444', [9999 => ['/Applications/Docker.app/Contents/MacOS/com.docker.backend', '/']], self::seleniumContainerOutputs('4444', '/test/project'));
+    $this->mockPortListeners('4444', [9999 => ['/Applications/Docker.app/Contents/MacOS/com.docker.backend', '/']], self::seleniumContainerOutputs('4444', self::PROJECT_ROOT));
     $this->mockStatus(['selenium']);
     $commands = [];
     $this->recordPassthru($commands, docker_rm_exit: 1);
@@ -277,8 +277,8 @@ final class BrowserStartTest extends UnitTestCase {
     $this->mockChrome(FALSE);
     $this->mockCommandPaths(['docker' => '/usr/bin/docker'] + $available);
     $this->mockVersions('Google Chrome 150.0.7871.129', $driver_version);
-    $listeners = $container ? [9999 => ['/Applications/Docker.app/Contents/MacOS/com.docker.backend', '/']] : [1234 => ['/usr/local/bin/chromedriver --port=4444', '/test/project']];
-    $this->mockPortListeners('4444', $listeners, self::seleniumContainerOutputs('4444', $container ? '/test/project' : NULL));
+    $listeners = $container ? [9999 => ['/Applications/Docker.app/Contents/MacOS/com.docker.backend', '/']] : [1234 => ['/usr/local/bin/chromedriver --port=4444', self::PROJECT_ROOT]];
+    $this->mockPortListeners('4444', $listeners, self::seleniumContainerOutputs('4444', $container ? self::PROJECT_ROOT : NULL));
     $this->mockStatus([$container ? 'selenium' : NULL]);
     $commands = [];
     $this->recordPassthru($commands, npx_exit: $npx_exit);
@@ -401,8 +401,8 @@ final class BrowserStartTest extends UnitTestCase {
   public static function dataProviderBrowserStartFailsWhenAnotherProcessHoldsPort(): \Iterator {
     yield 'chromedriver backend, a program of another project' => ['chromedriver', '/www/other'];
     yield 'selenium backend, a program of another project' => ['selenium', '/www/other'];
-    yield 'chromedriver backend, another program started from the project root' => ['chromedriver', '/test/project'];
-    yield 'selenium backend, another program started from the project root' => ['selenium', '/test/project'];
+    yield 'chromedriver backend, another program started from the project root' => ['chromedriver', self::PROJECT_ROOT];
+    yield 'selenium backend, another program started from the project root' => ['selenium', self::PROJECT_ROOT];
   }
 
   #[DataProvider('dataProviderBrowserStartFailsWhenAnotherProjectContainerHoldsPort')]
@@ -447,8 +447,8 @@ final class BrowserStartTest extends UnitTestCase {
   }
 
   public static function dataProviderBrowserStartFailsWhenAnotherProcessHoldsPortBesideStoppedContainer(): \Iterator {
-    yield 'container of the project, chromedriver backend' => ['chromedriver', '/test/project'];
-    yield 'container of the project, selenium backend' => ['selenium', '/test/project'];
+    yield 'container of the project, chromedriver backend' => ['chromedriver', self::PROJECT_ROOT];
+    yield 'container of the project, selenium backend' => ['selenium', self::PROJECT_ROOT];
     yield 'container without the label, chromedriver backend' => ['chromedriver', ''];
     yield 'container without the label, selenium backend' => ['selenium', ''];
     yield 'container of another project, chromedriver backend' => ['chromedriver', '/www/other'];
@@ -473,7 +473,7 @@ final class BrowserStartTest extends UnitTestCase {
   }
 
   public static function dataProviderBrowserStartStartsChromedriverBesideStoppedContainer(): \Iterator {
-    yield 'container of the project' => ['/test/project'];
+    yield 'container of the project' => [self::PROJECT_ROOT];
     yield 'container of another project' => ['/www/other'];
   }
 
@@ -696,7 +696,7 @@ final class BrowserStartTest extends UnitTestCase {
   }
 
   public static function dataProviderBrowserStartSeleniumReusesOwnContainer(): \Iterator {
-    yield 'labelled with the project root' => ['/test/project'];
+    yield 'labelled with the project root' => [self::PROJECT_ROOT];
     yield 'without the label' => [''];
   }
 
@@ -722,7 +722,7 @@ final class BrowserStartTest extends UnitTestCase {
   }
 
   public static function dataProviderBrowserStartSeleniumReplacesOwnContainerThatDoesNotAnswer(): \Iterator {
-    yield 'labelled with the project root' => ['/test/project'];
+    yield 'labelled with the project root' => [self::PROJECT_ROOT];
     yield 'without the label' => [''];
   }
 
@@ -734,7 +734,7 @@ final class BrowserStartTest extends UnitTestCase {
   public function testBrowserStartSeleniumReplacesOwnChromedriver(?string $status, ?string $container): void {
     self::envSet('WEBDRIVER_BACKEND', 'selenium');
     $this->mockCommandPaths(['docker' => '/usr/bin/docker']);
-    $this->mockPortListeners('4444', [1234 => ['/usr/local/bin/chromedriver --port=4444', '/test/project']], self::seleniumContainerOutputs('4444', $container));
+    $this->mockPortListeners('4444', [1234 => ['/usr/local/bin/chromedriver --port=4444', self::PROJECT_ROOT]], self::seleniumContainerOutputs('4444', $container));
     $this->mockStatus([$status, 'selenium']);
     $commands = [];
     $this->recordPassthru($commands);
@@ -752,7 +752,7 @@ final class BrowserStartTest extends UnitTestCase {
   public static function dataProviderBrowserStartSeleniumReplacesOwnChromedriver(): \Iterator {
     yield 'answering chromedriver' => ['chromedriver', NULL];
     yield 'chromedriver that does not answer' => [NULL, NULL];
-    yield 'answering chromedriver beside the container of the project' => ['chromedriver', '/test/project'];
+    yield 'answering chromedriver beside the container of the project' => ['chromedriver', self::PROJECT_ROOT];
   }
 
   /**
@@ -776,9 +776,9 @@ final class BrowserStartTest extends UnitTestCase {
   }
 
   public static function dataProviderBrowserStartSeleniumReplacesStaleContainer(): \Iterator {
-    yield 'running container of the project' => ['/test/project', TRUE];
+    yield 'running container of the project' => [self::PROJECT_ROOT, TRUE];
     yield 'running container without the label' => ['', TRUE];
-    yield 'stopped container of the project' => ['/test/project', FALSE];
+    yield 'stopped container of the project' => [self::PROJECT_ROOT, FALSE];
     yield 'stopped container of another project' => ['/www/other', FALSE];
   }
 

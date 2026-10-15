@@ -15,13 +15,11 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class BrowserStopTest extends UnitTestCase {
 
-  protected const string ROOT = '/test/project';
-
   protected function setUp(): void {
     parent::setUp();
     self::envUnset('WEBDRIVER_PORT');
     self::envUnset('WEBDRIVER_BACKEND');
-    $this->mockFunction('getcwd', fn(): string => self::ROOT);
+    $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
   }
 
   #[DataProvider('dataProviderBrowserStop')]
@@ -47,7 +45,7 @@ final class BrowserStopTest extends UnitTestCase {
 
     $this->mockCommandAvailable('docker', $docker);
 
-    $this->mockPortListeners($expected_port, [1234 => ['/usr/local/bin/chromedriver --port=' . $expected_port, self::ROOT]], $docker ? self::seleniumContainerOutputs($expected_port, self::ROOT) : []);
+    $this->mockPortListeners($expected_port, [1234 => ['/usr/local/bin/chromedriver --port=' . $expected_port, self::PROJECT_ROOT]], $docker ? self::seleniumContainerOutputs($expected_port, self::PROJECT_ROOT) : []);
 
     $commands = [];
     if ($docker) {
@@ -160,7 +158,7 @@ final class BrowserStopTest extends UnitTestCase {
   }
 
   public static function dataProviderBrowserStopStopsOnlyOwnBackend(): \Iterator {
-    $own_driver = ['/usr/local/bin/chromedriver --port=4444', self::ROOT];
+    $own_driver = ['/usr/local/bin/chromedriver --port=4444', self::PROJECT_ROOT];
     $other_driver = ['/usr/local/bin/chromedriver --port=4444', '/www/other'];
     $docker_backend = ['/Applications/Docker.app/Contents/MacOS/com.docker.backend', '/'];
 
@@ -169,12 +167,12 @@ final class BrowserStopTest extends UnitTestCase {
     yield 'the chromedriver of the project with a child on the port' => [NULL, [1234 => $own_driver, 1235 => $own_driver], FALSE, [1234, 1235], []];
     yield 'a process whose working directory cannot be read' => [NULL, [5678 => ['/usr/local/bin/chromedriver --port=4444', '']], FALSE, [], ['Port 4444 is still in use by another process, which was left running:', '5678 /usr/local/bin/chromedriver --port=4444']];
     yield 'the chromedriver of another project' => [NULL, [5678 => $other_driver], FALSE, [], ['Port 4444 is still in use by another process, which was left running:', '5678 /usr/local/bin/chromedriver --port=4444']];
-    yield 'another program started from the project root' => [NULL, [5678 => ['node server.js --port=4444', self::ROOT]], FALSE, [], ['Port 4444 is still in use by another process, which was left running:', '5678 node server.js --port=4444']];
+    yield 'another program started from the project root' => [NULL, [5678 => ['node server.js --port=4444', self::PROJECT_ROOT]], FALSE, [], ['Port 4444 is still in use by another process, which was left running:', '5678 node server.js --port=4444']];
     yield 'the chromedriver of the project and of another project' => [NULL, [1234 => $own_driver, 5678 => $other_driver], FALSE, [1234], ['5678 /usr/local/bin/chromedriver --port=4444']];
-    yield 'the container of the project' => [self::ROOT, [], TRUE, [], []];
+    yield 'the container of the project' => [self::PROJECT_ROOT, [], TRUE, [], []];
     yield 'a container without the project label' => ['', [], TRUE, [], []];
     yield 'the container of another project' => ['/www/other', [9999 => $docker_backend], FALSE, [], ['The Selenium container selenium-4444 belongs to /www/other and was left running.', '9999 /Applications/Docker.app/Contents/MacOS/com.docker.backend']];
-    yield 'a stopped container of the project' => [self::ROOT, [], TRUE, [], [], FALSE];
+    yield 'a stopped container of the project' => [self::PROJECT_ROOT, [], TRUE, [], [], FALSE];
     yield 'a stopped container of another project' => ['/www/other', [], FALSE, [], [], FALSE];
   }
 
