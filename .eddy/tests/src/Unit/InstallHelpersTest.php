@@ -76,22 +76,10 @@ final class InstallHelpersTest extends UnitTestCase {
   use CiJobsTrait;
   use GitTrait;
 
-  protected string $originalCwd;
-
   public static function setUpBeforeClass(): void {
     self::envSet('SCRIPT_RUN_SKIP', '1');
     require_once self::rootDir() . '/install.php';
     parent::setUpBeforeClass();
-  }
-
-  protected function setUp(): void {
-    parent::setUp();
-    $this->originalCwd = File::cwd();
-  }
-
-  protected function tearDown(): void {
-    chdir($this->originalCwd);
-    parent::tearDown();
   }
 
   #[DataProvider('dataProviderConvertString')]

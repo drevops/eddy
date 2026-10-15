@@ -46,22 +46,14 @@ final class HelpersTunnelTest extends UnitTestCase {
 
   protected const string API_ERROR = '2026-10-08T00:00:01Z ERR failed to request quick Tunnel: Post "https://api.trycloudflare.com/tunnel": dial tcp: lookup api.trycloudflare.com: no such host' . PHP_EOL;
 
-  protected string $originalCwd;
-
   protected function setUp(): void {
     parent::setUp();
 
     self::envUnset('CLOUDFLARE_TUNNEL');
 
-    $this->originalCwd = File::cwd();
     $project_dir = self::$tmp . '/tunnel_' . uniqid();
     File::mkdir($project_dir, 0755);
     chdir($project_dir);
-  }
-
-  protected function tearDown(): void {
-    chdir($this->originalCwd);
-    parent::tearDown();
   }
 
   #[DataProvider('dataProviderTunnelEnabled')]

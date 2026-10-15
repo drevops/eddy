@@ -20,15 +20,9 @@ final class HelpersExtensionInfoTest extends UnitTestCase {
   public function testExtensionInfo(string $filename, string $content, string $expected_name, string $expected_type): void {
     $dir = self::$tmp . '/ext_' . uniqid();
     File::dump($dir . '/' . $filename, $content);
-    $original = File::cwd();
     chdir($dir);
-    try {
-      $result = extension_info();
-      $this->assertSame(['name' => $expected_name, 'type' => $expected_type], $result);
-    }
-    finally {
-      chdir($original);
-    }
+
+    $this->assertSame(['name' => $expected_name, 'type' => $expected_type], extension_info());
   }
 
   public static function dataProviderExtensionInfo(): \Iterator {
@@ -49,16 +43,10 @@ final class HelpersExtensionInfoTest extends UnitTestCase {
   public function testExtensionInfoMissingFile(): void {
     $dir = self::$tmp . '/ext_empty_' . uniqid();
     File::mkdir($dir, 0755);
-    $original = File::cwd();
     chdir($dir);
     $this->mockQuit(1);
 
-    try {
-      $output = $this->capture(fn(): array => extension_info(), 1);
-    }
-    finally {
-      chdir($original);
-    }
+    $output = $this->capture(fn(): array => extension_info(), 1);
 
     $this->assertStringContainsString('No .info.yml file found', $output);
   }

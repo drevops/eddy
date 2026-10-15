@@ -42,26 +42,17 @@ final class ToolingInstallerTest extends UnitTestCase {
    */
   protected array $pathsAtComposerRun = [];
 
-  protected string $originalCwd = '';
-
   protected function setUp(): void {
     parent::setUp();
 
     require_once self::rootDir() . '/scripts/eddy-tooling';
 
-    $this->originalCwd = File::cwd();
     chdir(self::$sut);
 
     self::envUnset('DEBUG');
     self::envUnset('GITHUB_TOKEN');
     self::envUnset('COMPOSER_AUTH');
     self::envUnset('TERM');
-  }
-
-  protected function tearDown(): void {
-    chdir($this->originalCwd);
-
-    parent::tearDown();
   }
 
   /**

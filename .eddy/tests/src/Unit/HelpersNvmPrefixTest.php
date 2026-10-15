@@ -28,21 +28,10 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
    */
   protected const string PREFIX = '. "$NVM_DIR/nvm.sh"; { nvm use || nvm install; } && ';
 
-  /**
-   * The working directory before the test changed into the project.
-   */
-  protected string $originalDir;
-
   protected function setUp(): void {
     parent::setUp();
 
-    $this->originalDir = File::cwd();
     chdir(self::$sut);
-  }
-
-  protected function tearDown(): void {
-    chdir($this->originalDir);
-    parent::tearDown();
   }
 
   #[DataProvider('dataProviderNvmPrefix')]

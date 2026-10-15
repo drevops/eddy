@@ -32,8 +32,6 @@ final class InstallProcessTest extends UnitTestCase {
 
   use GitTrait;
 
-  protected string $originalCwd;
-
   public static function setUpBeforeClass(): void {
     self::envSet('SCRIPT_RUN_SKIP', '1');
     require_once self::rootDir() . '/install.php';
@@ -42,7 +40,6 @@ final class InstallProcessTest extends UnitTestCase {
 
   protected function setUp(): void {
     parent::setUp();
-    $this->originalCwd = File::cwd();
     $project_root = self::rootDir();
     self::locationsCopy($project_root, self::$sut, [], [
       '.idea',
@@ -52,11 +49,6 @@ final class InstallProcessTest extends UnitTestCase {
       'build',
     ]);
     chdir(self::$sut);
-  }
-
-  protected function tearDown(): void {
-    chdir($this->originalCwd);
-    parent::tearDown();
   }
 
   /**

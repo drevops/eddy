@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use AlexSkrypnyk\File\File;
 use AlexSkrypnyk\File\Testing\DirectoryAssertionsTrait;
 use AlexSkrypnyk\File\Testing\FileAssertionsTrait;
 use AlexSkrypnyk\PhpunitHelpers\Traits\EnvTrait;
@@ -31,12 +32,19 @@ abstract class UnitTestCase extends UpstreamUnitTestCase {
    */
   protected array $mockShellExecOutputs = [];
 
+  /**
+   * The working directory that tearDown() restores.
+   */
+  protected string $originalCwd;
+
   protected function setUp(): void {
     parent::setUp();
+    $this->originalCwd = File::cwd();
     require_once self::toolingDir() . '/src/helpers.php';
   }
 
   protected function tearDown(): void {
+    chdir($this->originalCwd);
     // Reset before the mock assertions so a failed mock expectation cannot
     // leave environment variables set for the next test.
     self::envReset();
