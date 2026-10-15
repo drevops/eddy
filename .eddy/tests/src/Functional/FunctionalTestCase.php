@@ -45,10 +45,6 @@ abstract class FunctionalTestCase extends UnitTestCase {
    * {@inheritdoc}
    */
   protected function tearDown(): void {
-    if (empty(self::$fixtures)) {
-      throw new \RuntimeException('Fixtures directory is not set.');
-    }
-
     $this->processTearDown();
 
     parent::tearDown();

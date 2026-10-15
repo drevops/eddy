@@ -34,7 +34,8 @@ final class InstallTest extends FunctionalTestCase {
 
   #[DataProvider('dataProviderInstall')]
   public function testInstall(array $answers = []): void {
-    self::$fixtures = $this->locationsFixtureDir();
+    $fixtures = $this->locationsFixtureDir();
+    self::$fixtures = $fixtures;
 
     $answers = array_replace(self::defaultAnswers(), $answers);
 
@@ -58,13 +59,10 @@ final class InstallTest extends FunctionalTestCase {
       $this->assertProcessOutputContains('Eddy - project installation.');
     }
 
-    $baseline = File::dir(self::$fixtures . '/../' . self::BASELINE_DIR);
+    $baseline = File::dir($fixtures . '/../' . self::BASELINE_DIR);
     $this->replaceVersions(self::$sut);
 
-    if (!is_string(self::$fixtures)) {
-      throw new \RuntimeException('Fixtures directory is not set.');
-    }
-    $this->assertSnapshotMatchesBaseline($baseline, self::$fixtures, self::$sut);
+    $this->assertSnapshotMatchesBaseline($baseline, $fixtures, self::$sut);
   }
 
   public static function dataProviderInstall(): \Iterator {

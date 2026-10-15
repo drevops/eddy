@@ -41,15 +41,7 @@ abstract class ToolingTestCase extends FunctionalTestCase {
       @exec('chmod -Rf 777 build');
     }
 
-    self::envReset();
-    $this->processTearDown();
-
-    // Skip FunctionalTestCase::tearDown() which requires self::$fixtures.
-    // Manually call what the grandparent chain provides.
-    $this->mockTearDown();
-    if ($this->tearDownShouldCleanup()) {
-      $this->locationsTearDown();
-    }
+    parent::tearDown();
   }
 
   /**
