@@ -130,6 +130,28 @@ final class HelpersDotenvTest extends UnitTestCase {
     yield 'file without a trailing newline' => ['EXISTING=value', 'NEW', 'data', "EXISTING=value\nNEW=data\n"];
   }
 
+  #[DataProvider('dataProviderDotenvWriteVarFails')]
+  public function testDotenvWriteVarFails(?string $existing, string $function, string $expected_message): void {
+    $file = self::$tmp . '/dotenv_write_' . uniqid();
+
+    if ($existing !== NULL) {
+      File::dump($file, $existing);
+    }
+
+    $this->mockFunction($function, fn(): false => FALSE);
+    $this->mockQuit(1);
+
+    $output = $this->capture(fn() => dotenv_write_var('FOO', 'new', $file), 1);
+
+    $this->assertStringContainsString(sprintf($expected_message, $file), $output);
+  }
+
+  public static function dataProviderDotenvWriteVarFails(): \Iterator {
+    yield 'creating the file' => [NULL, 'file_put_contents', 'Unable to write %s.'];
+    yield 'reading the file' => ["FOO=old\n", 'file_get_contents', 'Unable to read %s.'];
+    yield 'rewriting the file' => ["FOO=old\n", 'file_put_contents', 'Unable to write %s.'];
+  }
+
   public function testDotenvWriteVarAndReadRoundTrip(): void {
     $file = self::$tmp . '/dotenv_roundtrip_' . uniqid();
 
