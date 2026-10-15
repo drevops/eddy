@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import SearchBar from '@theme-original/SearchBar';
 
 // The search plugin's autocomplete widget follows the ARIA 1.1 combobox
@@ -19,7 +19,7 @@ export const patchSearchMarkup = (root) => {
     message.setAttribute('aria-disabled', 'true');
   });
 
-  root.querySelectorAll('[class*="searchClearButton"]:not([aria-label])').forEach((button) => {
+  root.querySelectorAll('[class*="searchClearButton_"]:not([aria-label])').forEach((button) => {
     button.setAttribute('aria-label', 'Clear search');
   });
 };

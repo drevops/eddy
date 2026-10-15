@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Img from '@theme/MDXComponents/Img';
 import styles from './PausableImage.module.css';
 

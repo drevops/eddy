@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 // A table wider than the page scrolls sideways, and the keyboard can only
 // scroll an element that takes focus.

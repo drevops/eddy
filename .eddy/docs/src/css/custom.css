@@ -72,7 +72,7 @@
 }
 
 /* WCAG 2.5.8 minimum target size. */
-.navbar__search [class*='searchClearButton'] {
+.navbar__search [class*='searchClearButton_'] {
   min-width: 24px;
   min-height: 24px;
 }
