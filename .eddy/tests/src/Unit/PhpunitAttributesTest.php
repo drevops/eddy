@@ -21,22 +21,18 @@ use Symfony\Component\Yaml\Yaml;
  * attribute classes lazily and PHPUnit 9.6 reads the doc-comment.
  * `phpstan.neon` therefore ignores that message.
  *
- * This test checks each attribute in the shipped tests against the
- * `phpstan.neon` ignore patterns. An unmatched attribute breaks the Drupal 10
- * lint, and without this test the failure appears only after a full Drupal 10
- * assemble in CI.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
+ * An attribute that no ignore pattern matches breaks the Drupal 10 lint.
+ * Without this test, the failure appears only after a full Drupal 10 assemble
+ * in CI.
  */
 #[Group('p0')]
 final class PhpunitAttributesTest extends UnitTestCase {
 
   #[DataProvider('dataProviderShippedAttributesAreIgnored')]
   public function testShippedAttributesAreIgnored(string $path): void {
-    $contents = File::read($path);
+    $content = File::read($path);
 
-    preg_match_all('/PHPUnit\\\\Framework\\\\Attributes\\\\(\w+)/', $contents, $matches);
+    preg_match_all('/PHPUnit\\\\Framework\\\\Attributes\\\\(\w+)/', $content, $matches);
 
     $patterns = self::ignorePatterns();
     $uncovered = [];
@@ -103,10 +99,6 @@ final class PhpunitAttributesTest extends UnitTestCase {
     }
 
     return $patterns;
-  }
-
-  protected static function rootDir(): string {
-    return dirname(__DIR__, 4);
   }
 
 }

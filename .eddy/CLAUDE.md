@@ -204,12 +204,12 @@ Plain PHP stays where `File` has no method, or where the native behavior is what
 
 - `chmod()`, `fileperms()`, `is_executable()`, `symlink()`, `readlink()`, `is_link()` and `rename()`.
 - `glob()`. `File::scandir()` walks every directory below the one it lists, which a pattern such as `phpunit*.xml` in the repository root doesn't need.
-- The `RecursiveDirectoryIterator` in `TemplateMarkersTest`, which skips directories by name. `File::scandir()` skips paths by substring, so skipping `/build/` would also skip a checkout that sits under a `build` directory.
+- The `RecursiveDirectoryIterator` in `TemplateMarkersTest` and in `DocumentationTest::markdownFiles()`, which skip directories by name. `File::scandir()` skips paths by substring, so skipping `/build/` would also skip a checkout that sits under a `build` directory.
 - `chdir()`, streams such as `php://memory` and sockets, and `file_get_contents()` of a URL.
 - `putenv()` and `getenv()` that save and restore a variable the environment already holds, such as `HOME` in `UpdateAssetsTest`. `envReset()` unsets every variable set through `EnvTrait` instead of restoring its earlier value.
 - Symfony `Process` for a command run through `PHP_BINARY`, a process started in the background, and helper commands such as `git` and `tar`. `processRun()` accepts only letters, digits, `.`, `-`, `_` and `/` in the command name, and a Homebrew `PHP_BINARY` such as `/opt/homebrew/Cellar/php@8.4/8.4.17/bin/php` holds an `@`.
 - PHP that a test writes into a file as a string, such as the stub commands of `MakefileArgumentsTest`, since it runs without the packages.
-- The functions that a mock stands in for: the names passed to `registerMock()` and `getFunctionMock()`, and the native call that a mock falls back to, such as `\file_get_contents()` in `ProvisionTest`. The code under test expects the native return values, such as `FALSE` for a missing file. A mock intercepts only the calls from its namespace, such as `DrevOps\Eddy\Tooling`, so the `File` calls of a test never reach it.
+- The functions that a mock stands in for: the names passed to `mockFunction()` and `getFunctionMock()`, and the native call that a mock falls back to, such as `\file_get_contents()` in `ProvisionTest`. The code under test expects the native return values, such as `FALSE` for a missing file. A mock intercepts only the calls from its namespace, such as `DrevOps\Eddy\Tooling`, so the `File` calls of a test never reach it.
 
 ## Regenerating snapshot fixtures
 

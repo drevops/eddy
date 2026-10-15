@@ -8,12 +8,6 @@ use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
 
-/**
- * Tests for the ahoy-based tooling workflow.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
- */
 #[Group('p3')]
 final class AhoyTest extends ToolingTestCase {
 
@@ -94,17 +88,18 @@ final class AhoyTest extends ToolingTestCase {
     $this->assertProcessSuccessful();
     $this->assertProcessAnyOutputContains('ENVIRONMENT READY');
 
-    $port = $this->webserverPort();
+    $port = self::webserverPort();
     $this->assertTrue(self::webserverPortAccepts($port), 'The webserver of the project is running.');
 
-    // The WebDriver backend of the project, which runs from the project root.
+    // $browser stands in for the WebDriver backend of the project, which runs
+    // from the project root.
     $webdriver_port = self::webserverFreePort();
     $dotenv = self::$sut . '/.env';
     File::dump($dotenv, (File::exists($dotenv) ? File::read($dotenv) : '') . 'WEBDRIVER_PORT=' . $webdriver_port . "\n");
     $browser = self::webserverStartListener(self::$sut, $webdriver_port);
 
-    // Another PHP process of the same user, such as the webserver of another
-    // project or a Composer run.
+    // $other stands in for another PHP process of the same user, such as the
+    // webserver of another project or a Composer run.
     $other = new Process(['php', '-r', 'sleep(60);']);
     $other->start();
 
@@ -251,7 +246,7 @@ final class AhoyTest extends ToolingTestCase {
     // so a relative sys_get_temp_dir() resolves against build/ and tempnam()
     // fails. The wrapper resolves TMPDIR to an absolute path first, so
     // linting still passes when TMPDIR is relative.
-    File::mkdir(self::$sut . '/.logs/relative-tmp');
+    File::mkdir(self::$sut . '/.logs/relative-tmp', 0755);
     $this->processRun('ahoy', ['lint'], [], ['TMPDIR' => '.logs/relative-tmp'], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
 

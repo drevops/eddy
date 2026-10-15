@@ -2,8 +2,9 @@
 /**
  * Custom svg-term renderer with configurable lineHeight.
  *
- * This script uses svg-term as a library to have full control over the theme,
- * specifically setting lineHeight to fix box-drawing character rendering.
+ * The script uses svg-term as a library, which lets it set the whole theme.
+ * In particular, the theme's lineHeight fixes box-drawing character
+ * rendering.
  *
  * Usage:
  *   node svg-term-render.js <input.json> <output.svg> [options]

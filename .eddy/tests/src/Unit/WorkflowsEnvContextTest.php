@@ -14,30 +14,27 @@ use Symfony\Component\Yaml\Yaml;
  *
  * The `env` context resolves an undefined name to an empty string. A typo or a
  * self-reference then silently disables the value instead of failing the run.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class WorkflowsEnvContextTest extends UnitTestCase {
 
   #[DataProvider('dataProviderEnvReferencesAreDefined')]
   public function testEnvReferencesAreDefined(string $path): void {
-    $contents = File::read($path);
+    $content = File::read($path);
 
-    $parsed = Yaml::parse($contents);
+    $parsed = Yaml::parse($content);
     $this->assertIsArray($parsed);
 
     $defined = [];
     self::collectDefined($parsed, $defined);
 
-    $undefined = array_values(array_unique(array_diff(self::collectReferenced($contents), $defined)));
+    $undefined = array_values(array_unique(array_diff(self::collectReferenced($content), $defined)));
 
     $this->assertSame([], $undefined, sprintf('%s reads environment variables that it never defines: %s', basename($path), implode(', ', $undefined)));
   }
 
   public static function dataProviderEnvReferencesAreDefined(): \Iterator {
-    $directory = dirname(__DIR__, 4) . '/.github/workflows/';
+    $directory = self::rootDir() . '/.github/workflows/';
     $paths = array_merge(glob($directory . '*.yml') ?: [], glob($directory . '*.yaml') ?: []);
 
     foreach ($paths as $path) {
@@ -81,16 +78,16 @@ final class WorkflowsEnvContextTest extends UnitTestCase {
   /**
    * Collect the names a workflow reads through the `env` context.
    *
-   * @param string $contents
+   * @param string $content
    *   The workflow contents.
    *
    * @return array<int, string>
    *   Collected names.
    */
-  protected static function collectReferenced(string $contents): array {
+  protected static function collectReferenced(string $content): array {
     $referenced = [];
 
-    preg_match_all('/\$\{\{(.*?)\}\}/s', $contents, $expressions);
+    preg_match_all('/\$\{\{(.*?)\}\}/s', $content, $expressions);
 
     foreach ($expressions[1] as $expression) {
       preg_match_all('/\benv\.([A-Za-z_]\w*)/', $expression, $matches);

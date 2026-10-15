@@ -18,9 +18,6 @@ use Symfony\Component\Yaml\Yaml;
  * A step output read before the step that sets it resolves to an empty
  * string. The job passes in each case, so neither a linter nor a run reports
  * it.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class WorkflowsComposerCacheTest extends UnitTestCase {
@@ -332,10 +329,6 @@ final class WorkflowsComposerCacheTest extends UnitTestCase {
     preg_match_all("/'([^']*)'/", implode(' ', $calls[1]), $arguments);
 
     return $arguments[1];
-  }
-
-  protected static function rootDir(): string {
-    return dirname(__DIR__, 4);
   }
 
 }

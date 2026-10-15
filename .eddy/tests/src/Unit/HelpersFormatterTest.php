@@ -6,38 +6,38 @@ namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\FAIL;
 use function DrevOps\Eddy\Tooling\term_supports_color;
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-#[RunTestsInSeparateProcesses]
 #[CoversFunction('DrevOps\Eddy\Tooling\NOTE')]
 #[CoversFunction('DrevOps\Eddy\Tooling\TASK')]
 #[CoversFunction('DrevOps\Eddy\Tooling\INFO')]
 #[CoversFunction('DrevOps\Eddy\Tooling\PASS')]
 #[CoversFunction('DrevOps\Eddy\Tooling\FAIL_NO_EXIT')]
 #[CoversFunction('DrevOps\Eddy\Tooling\FAIL')]
+#[CoversFunction('DrevOps\Eddy\Tooling\print_tagged')]
 #[CoversFunction('DrevOps\Eddy\Tooling\term_supports_color')]
+#[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersFormatterTest extends UnitTestCase {
 
   #[DataProvider('dataProviderOutputFormatters')]
   public function testOutputFormatters(string $function, ?bool $is_tty, string $expected_output): void {
     if ($is_tty !== NULL) {
-      $this->envSet('TERM', 'xterm-256color');
+      self::envSet('TERM', 'xterm-256color');
       $this->mockPosixIsatty($is_tty);
     }
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-    ob_start();
     $callable = 'DrevOps\\Eddy\\Tooling\\' . $function;
     if (!is_callable($callable)) {
       $this->fail(sprintf('Function %s is not callable.', $callable));
     }
-    call_user_func($callable, 'Test message %s', 'arg');
-    $output = ob_get_clean();
-    $this->assertIsString($output);
+
+    $output = $this->capture(function () use ($callable): void {
+      call_user_func($callable, 'Test message %s', 'arg');
+    });
+
     $this->assertSame($expected_output, $output);
   }
 
@@ -55,23 +55,13 @@ final class HelpersFormatterTest extends UnitTestCase {
 
   #[DataProvider('dataProviderFail')]
   public function testFail(bool $is_tty, string $expected_output): void {
-    $this->envSet('TERM', 'xterm-256color');
+    self::envSet('TERM', 'xterm-256color');
     $this->mockPosixIsatty($is_tty);
     $this->mockQuit(1);
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-    ob_start();
-    try {
-      FAIL('Test failure %s', 'message');
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertSame($expected_output, $output);
-    }
+
+    $output = $this->capture(fn() => FAIL('Test failure %s', 'message'), 1);
+
+    $this->assertSame($expected_output, $output);
   }
 
   public static function dataProviderFail(): \Iterator {
@@ -81,12 +71,11 @@ final class HelpersFormatterTest extends UnitTestCase {
 
   #[DataProvider('dataProviderTermSupportsColor')]
   public function testTermSupportsColor(string|bool $term_value, bool $expected): void {
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
     if ($term_value === FALSE) {
-      $this->envUnset('TERM');
+      self::envUnset('TERM');
     }
     else {
-      $this->envSet('TERM', (string) $term_value);
+      self::envSet('TERM', (string) $term_value);
     }
     $result = term_supports_color();
     $this->assertSame($expected, $result);

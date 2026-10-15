@@ -4,48 +4,37 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
-use DrevOps\Eddy\Tests\Exceptions\QuitSuccessException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for the 'eddy-info' command.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
- */
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class InfoTest extends UnitTestCase {
 
   protected function setUp(): void {
     parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
 
-    $this->envUnset('WEBSERVER_HOST');
-    $this->envUnset('WEBSERVER_PORT');
-    $this->envUnset('WEBDRIVER_PORT');
-    $this->envUnset('DRUPAL_PROFILE');
+    self::envUnset('WEBSERVER_HOST');
+    self::envUnset('WEBSERVER_PORT');
+    self::envUnset('WEBDRIVER_PORT');
+    self::envUnset('DRUPAL_PROFILE');
   }
 
   /**
    * Set up the standard mocks for an info run.
    *
    * @param array<string, string> $shell_exec_map
-   *   Map of substring → full command output. The first key whose
-   *   substring appears in the requested command wins. A literal
-   *   '*' key acts as a catch-all default.
+   *   The output of shell_exec() keyed by a substring of the command. The
+   *   first key found in the command selects the output, and a literal '*'
+   *   key is the default for a command no other key matches.
    * @param array<string, bool> $files
-   *   Map of file path → existence; used for file_exists, is_file,
-   *   and is_dir lookups.
+   *   Whether each path exists, keyed by path, for file_exists(), is_file()
+   *   and is_dir().
    * @param string[] $info_files
    *   Files returned from glob('*.info.yml').
-   * @param string $cwd
-   *   Value to return from getcwd().
    * @param array<string, string> $file_contents
-   *   Map of file path → contents, used by file_get_contents.
+   *   The contents file_get_contents() returns, keyed by path.
    * @param string|false $command_php_path
    *   Path returned by command_path('php'); FALSE means not found.
    */
@@ -53,15 +42,14 @@ final class InfoTest extends UnitTestCase {
     array $shell_exec_map,
     array $files = [],
     array $info_files = [],
-    string $cwd = '/test/project',
     array $file_contents = [],
     string|false $command_php_path = '/usr/bin/php',
   ): void {
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
 
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', function (string $cmd) use ($shell_exec_map): string {
+    $this->mockFunction('shell_exec', function (string $command) use ($shell_exec_map): string {
       foreach ($shell_exec_map as $needle => $output) {
-        if ($needle !== '*' && str_contains($cmd, $needle)) {
+        if ($needle !== '*' && str_contains($command, $needle)) {
           return $output;
         }
       }
@@ -69,32 +57,20 @@ final class InfoTest extends UnitTestCase {
       return $shell_exec_map['*'] ?? '';
     });
 
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $path): bool => $files[$path] ?? FALSE);
-    $this->registerMock('is_file', 'DrevOps\\Eddy\\Tooling', fn(string $path): bool => $files[$path] ?? FALSE);
-    $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(string $path): bool => $files[$path] ?? FALSE);
-    $this->registerMock('glob', 'DrevOps\\Eddy\\Tooling', fn(): array => $info_files);
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(string $file): string => $file_contents[$file] ?? '');
+    $this->mockFunction('file_exists', fn(string $path): bool => $files[$path] ?? FALSE);
+    $this->mockFunction('is_file', fn(string $path): bool => $files[$path] ?? FALSE);
+    $this->mockFunction('is_dir', fn(string $path): bool => $files[$path] ?? FALSE);
+    $this->mockFunction('glob', fn(): array => $info_files);
+    $this->mockFunction('file_get_contents', fn(string $file): string => $file_contents[$file] ?? '');
 
-    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $cmd, ?array &$output = NULL, ?int &$code = NULL) use ($command_php_path): bool {
-      $output ??= [];
-      if ($command_php_path !== FALSE && str_contains($cmd, 'command -v php')) {
-        $output[] = $command_php_path;
-        $code = 0;
-
-        return TRUE;
-      }
-      $code = 1;
-
-      return FALSE;
-    });
+    $this->mockCommandPaths(['php' => $command_php_path]);
   }
 
   public function testInfoFullyPopulatedEnvironment(): void {
-    $this->envSet('WEBSERVER_HOST', 'example.com');
-    $this->envSet('WEBSERVER_PORT', '9001');
-    $this->envSet('DRUPAL_PROFILE', 'minimal');
+    self::envSet('WEBSERVER_HOST', 'example.com');
+    self::envSet('WEBSERVER_PORT', '9001');
+    self::envSet('DRUPAL_PROFILE', 'minimal');
 
-    $cwd = '/test/project';
     $drush_bin = 'build/vendor/bin/drush';
 
     $this->setupInfoMocks(
@@ -110,10 +86,9 @@ final class InfoTest extends UnitTestCase {
       ],
       files: [
         $drush_bin => TRUE,
-        $cwd . '/build' => TRUE,
+        self::PROJECT_ROOT . '/build' => TRUE,
       ],
       info_files: ['your_extension.info.yml'],
-      cwd: $cwd,
     );
 
     $output = $this->runInfo();
@@ -134,8 +109,6 @@ final class InfoTest extends UnitTestCase {
   }
 
   public function testInfoReadsPortFromDotenvWithFileSource(): void {
-    $cwd = '/test/project';
-
     $this->setupInfoMocks(
       shell_exec_map: [
         'php -v' => "PHP 8.3.14\n",
@@ -146,7 +119,6 @@ final class InfoTest extends UnitTestCase {
       ],
       files: ['.env' => TRUE],
       info_files: [],
-      cwd: $cwd,
       file_contents: ['.env' => "WEBSERVER_PORT=8123\n"],
     );
 
@@ -158,14 +130,12 @@ final class InfoTest extends UnitTestCase {
   }
 
   public function testInfoSiteUrlPrefersTunnelUrl(): void {
-    $cwd = '/test/project';
     $tunnel_url = 'https://random-words.trycloudflare.com';
 
     $this->setupInfoMocks(
       shell_exec_map: ['*' => ''],
       files: ['.env' => TRUE],
       info_files: [],
-      cwd: $cwd,
       file_contents: ['.env' => "WEBSERVER_PORT=8000\nTUNNEL_URL=" . $tunnel_url . "\n"],
     );
 
@@ -182,7 +152,6 @@ final class InfoTest extends UnitTestCase {
       shell_exec_map: ['*' => ''],
       files: ['.env' => TRUE],
       info_files: [],
-      cwd: '/test/project',
       file_contents: ['.env' => 'TUNNEL_URL=' . $tunnel_url . "\n"],
     );
 
@@ -192,13 +161,10 @@ final class InfoTest extends UnitTestCase {
   }
 
   public function testInfoFallsBackToDefaultsWhenNothingResolves(): void {
-    $cwd = '/test/project';
-
     $this->setupInfoMocks(
       shell_exec_map: ['*' => ''],
       files: [],
       info_files: [],
-      cwd: $cwd,
       command_php_path: FALSE,
     );
 
@@ -218,11 +184,7 @@ final class InfoTest extends UnitTestCase {
     $this->assertStringContainsString('Drupal profile:     standard', $output);
   }
 
-  public function testInfoDrushMissingSuppressesPhpPathSuffixOnlyWhenPhpAlsoMissing(): void {
-    // PHP is detectable but command_path('php') returns FALSE - the path
-    // suffix is omitted.
-    $cwd = '/test/project';
-
+  public function testInfoOmitsPhpPathWhenPhpPathIsUnknown(): void {
     $this->setupInfoMocks(
       shell_exec_map: [
         'php -v' => "PHP 8.3.14\n",
@@ -230,7 +192,6 @@ final class InfoTest extends UnitTestCase {
       ],
       files: [],
       info_files: [],
-      cwd: $cwd,
       command_php_path: FALSE,
     );
 
@@ -242,8 +203,6 @@ final class InfoTest extends UnitTestCase {
 
   #[DataProvider('dataProviderInfoXdebugStateDetection')]
   public function testInfoXdebugStateDetection(?string $listener, string $expected_state): void {
-    $cwd = '/test/project';
-
     $this->setupInfoMocks(
       shell_exec_map: [
         'lsof -ti' => $listener === NULL ? '' : "1234\n",
@@ -252,7 +211,6 @@ final class InfoTest extends UnitTestCase {
       ],
       files: [],
       info_files: [],
-      cwd: $cwd,
     );
 
     $output = $this->runInfo();
@@ -263,7 +221,7 @@ final class InfoTest extends UnitTestCase {
   public static function dataProviderInfoXdebugStateDetection(): \Iterator {
     yield 'no server listening' => ['listener' => NULL, 'expected_state' => '-'];
     yield 'server running without xdebug' => [
-      'listener' => 'php -S localhost:8000 -t /test/project/build/web /test/project/build/web/.ht.router.php',
+      'listener' => self::webserverCommandLine(self::PROJECT_ROOT),
       'expected_state' => 'disabled',
     ];
     yield 'server running with xdebug' => [
@@ -278,14 +236,12 @@ final class InfoTest extends UnitTestCase {
 
   #[DataProvider('dataProviderInfoWebdriverPort')]
   public function testInfoWebdriverPort(bool $has_functional_javascript): void {
-    $cwd = '/test/project';
-    $this->envSet('WEBDRIVER_PORT', '4455');
+    self::envSet('WEBDRIVER_PORT', '4455');
 
     $this->setupInfoMocks(
       shell_exec_map: ['*' => ''],
-      files: [$cwd . '/tests/src/FunctionalJavascript' => $has_functional_javascript],
+      files: [self::PROJECT_ROOT . '/tests/src/FunctionalJavascript' => $has_functional_javascript],
       info_files: [],
-      cwd: $cwd,
     );
 
     $output = $this->runInfo();
@@ -304,7 +260,6 @@ final class InfoTest extends UnitTestCase {
   public function testInfoDrushDrupalVersionFallbackWhenStatusReturnsNothing(): void {
     // The drush binary exists but `drush status --field=drupal-version`
     // returns empty, for example before the site is installed.
-    $cwd = '/test/project';
     $drush_bin = 'build/vendor/bin/drush';
 
     $this->setupInfoMocks(
@@ -317,7 +272,6 @@ final class InfoTest extends UnitTestCase {
         $drush_bin => TRUE,
       ],
       info_files: [],
-      cwd: $cwd,
     );
 
     $output = $this->runInfo();
@@ -332,7 +286,6 @@ final class InfoTest extends UnitTestCase {
       shell_exec_map: $shell_exec_map,
       files: $files,
       info_files: ['your_extension.info.yml'],
-      cwd: '/test/project',
     );
 
     $output = $this->runInfoField($field, 0);
@@ -398,8 +351,8 @@ final class InfoTest extends UnitTestCase {
     yield 'build-dir present' => [
       'field' => 'build-dir',
       'shell_exec_map' => ['*' => ''],
-      'files' => ['/test/project/build' => TRUE],
-      'expected' => '/test/project/build',
+      'files' => [self::PROJECT_ROOT . '/build' => TRUE],
+      'expected' => self::PROJECT_ROOT . '/build',
     ];
     yield 'build-dir absent' => [
       'field' => 'build-dir',
@@ -468,7 +421,6 @@ final class InfoTest extends UnitTestCase {
       shell_exec_map: ['*' => ''],
       files: [],
       info_files: [],
-      cwd: '/test/project',
     );
 
     $output = $this->runInfoField('not-a-field', 1);
@@ -481,46 +433,21 @@ final class InfoTest extends UnitTestCase {
       shell_exec_map: ['*' => ''],
       files: [],
       info_files: [],
-      cwd: '/test/project',
     );
 
-    $argv = ['info', '--no-coverage'];
-    ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-info';
-    $output = ob_get_clean();
-    $this->assertIsString($output);
+    $output = $this->runCommand('eddy-info', NULL, ['info', '--no-coverage']);
 
     $this->assertStringContainsString('ENVIRONMENT INFO', $output);
   }
 
   protected function runInfo(): string {
-    ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-info';
-
-    return (string) ob_get_clean();
+    return $this->runCommand('eddy-info');
   }
 
   protected function runInfoField(string $field, int $expected_exit_code): string {
     $this->mockQuit($expected_exit_code);
 
-    // The included info script inherits this method's scope, so it reads the
-    // field argument from $argv.
-    $argv = ['info', $field];
-
-    ob_start();
-    try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-info';
-      $this->fail('Expected info to call quit() in field mode.');
-    }
-    catch (QuitSuccessException | QuitErrorException $e) {
-      $this->assertSame($expected_exit_code, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-    }
-
-    return $output;
+    return $this->runCommand('eddy-info', $expected_exit_code, ['info', $field]);
   }
 
 }

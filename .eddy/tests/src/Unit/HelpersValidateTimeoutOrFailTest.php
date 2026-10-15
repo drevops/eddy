@@ -5,28 +5,15 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\validate_timeout_or_fail;
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for validate_timeout_or_fail() helper.
- *
- * phpcs:disable Drupal.Classes.FullyQualifiedNamespace.UseStatementMissing
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\validate_timeout_or_fail')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
-final class HelpersValidateTimeoutTest extends UnitTestCase {
-
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
+final class HelpersValidateTimeoutOrFailTest extends UnitTestCase {
 
   #[DataProvider('dataProviderValidTimeout')]
   public function testValidTimeout(string $value, int $expected): void {
@@ -43,17 +30,7 @@ final class HelpersValidateTimeoutTest extends UnitTestCase {
   public function testInvalidTimeoutFails(string $value): void {
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      validate_timeout_or_fail($value, 'WEBSERVER_WAIT_TIMEOUT');
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = (string) ob_get_clean();
-    }
+    $output = $this->capture(fn(): int => validate_timeout_or_fail($value, 'WEBSERVER_WAIT_TIMEOUT'), 1);
 
     $this->assertStringContainsString(sprintf('Invalid WEBSERVER_WAIT_TIMEOUT "%s". Expected a whole number of seconds, 1 or more.', $value), $output);
   }
@@ -71,17 +48,7 @@ final class HelpersValidateTimeoutTest extends UnitTestCase {
   public function testUsesProvidedSourceNameInErrorMessage(): void {
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      validate_timeout_or_fail('bogus', 'CUSTOM_TIMEOUT_VAR');
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = (string) ob_get_clean();
-    }
+    $output = $this->capture(fn(): int => validate_timeout_or_fail('bogus', 'CUSTOM_TIMEOUT_VAR'), 1);
 
     $this->assertStringContainsString('Invalid CUSTOM_TIMEOUT_VAR "bogus"', $output);
   }

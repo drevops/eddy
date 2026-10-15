@@ -4,19 +4,16 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use AlexSkrypnyk\File\File;
 use AlexSkrypnyk\File\Testing\DirectoryAssertionsTrait;
 use AlexSkrypnyk\File\Testing\FileAssertionsTrait;
 use AlexSkrypnyk\PhpunitHelpers\Traits\EnvTrait;
 use AlexSkrypnyk\PhpunitHelpers\Traits\SerializableClosureTrait;
 use AlexSkrypnyk\PhpunitHelpers\UnitTestCase as UpstreamUnitTestCase;
+use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
+use DrevOps\Eddy\Tests\Exceptions\QuitSuccessException;
 use DrevOps\Eddy\Tests\Traits\MockTrait;
 
-/**
- * UnitTestCase fixture class.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
- */
 abstract class UnitTestCase extends UpstreamUnitTestCase {
 
   use DirectoryAssertionsTrait;
@@ -26,18 +23,111 @@ abstract class UnitTestCase extends UpstreamUnitTestCase {
   use SerializableClosureTrait;
 
   /**
+   * A project root that exists only in mocked filesystem calls.
+   */
+  protected const string PROJECT_ROOT = '/test/project';
+
+  /**
    * The output of each command that mockShellExecOutputs() answers.
    *
-   * @var array<string, string|\Closure>
+   * @var array<string, string|\Closure|null>
    */
   protected array $mockShellExecOutputs = [];
 
+  /**
+   * The working directory that tearDown() restores.
+   */
+  protected string $originalCwd;
+
+  protected function setUp(): void {
+    parent::setUp();
+    $this->originalCwd = File::cwd();
+    require_once self::toolingDir() . '/src/helpers.php';
+  }
+
   protected function tearDown(): void {
+    chdir($this->originalCwd);
     // Reset before the mock assertions so a failed mock expectation cannot
     // leave environment variables set for the next test.
     self::envReset();
     $this->mockTearDown();
     parent::tearDown();
+  }
+
+  /**
+   * Run a callback and return the output it prints.
+   *
+   * A callback that calls quit() ends in the exception that mockQuit() throws
+   * in place of exiting, and its exit code is asserted.
+   *
+   * @param callable(): mixed $callback
+   *   The code to run.
+   * @param int|null $expected_exit_code
+   *   The exit code the callback quits with, or NULL for a callback that must
+   *   return without calling quit().
+   *
+   * @return string
+   *   The captured output.
+   */
+  protected function capture(callable $callback, ?int $expected_exit_code = NULL): string {
+    $exit_code = NULL;
+    ob_start();
+
+    try {
+      $callback();
+    }
+    catch (QuitSuccessException | QuitErrorException $exception) {
+      $exit_code = $exception->getCode();
+    }
+    finally {
+      $output = (string) ob_get_clean();
+    }
+
+    $describe = static fn(?int $code): string => $code === NULL ? 'no quit()' : 'exit code ' . $code;
+    $message = sprintf('Expected %s, got %s. Output:%s%s', $describe($expected_exit_code), $describe($exit_code), PHP_EOL, $output);
+    $this->assertSame($expected_exit_code, $exit_code, $message);
+
+    return $output;
+  }
+
+  /**
+   * Run a tooling command script and return its output.
+   *
+   * @param string $command
+   *   The script name, such as 'eddy-start'.
+   * @param int|null $expected_exit_code
+   *   The exit code the script quits with, or NULL for a script that must run
+   *   to its end.
+   * @param array<int, string> $argv
+   *   The arguments the script reads from $argv, the script name first.
+   *
+   * @return string
+   *   The captured output.
+   */
+  protected function runCommand(string $command, ?int $expected_exit_code = NULL, array $argv = []): string {
+    return $this->capture(fn() => self::requireCommand($command, $argv), $expected_exit_code);
+  }
+
+  /**
+   * Include a tooling command script, which reads $argv from this scope.
+   *
+   * @param array<int, string> $argv
+   *   The arguments the script reads.
+   */
+  protected static function requireCommand(string $command, array $argv): void {
+    require self::toolingDir() . '/src/' . $command;
+  }
+
+  protected static function rootDir(): string {
+    return dirname(__DIR__, 4);
+  }
+
+  protected static function toolingDir(): string {
+    return self::rootDir() . '/.eddy/tooling';
+  }
+
+  protected static function fixturesDir(): string {
+    return dirname(__DIR__, 2) . '/fixtures';
   }
 
   /**
@@ -66,6 +156,20 @@ abstract class UnitTestCase extends UpstreamUnitTestCase {
    */
   protected static function seleniumRunningCommand(string $port): string {
     return sprintf('docker inspect --format %s %s 2>/dev/null', escapeshellarg('{{.State.Running}}'), escapeshellarg('selenium-' . $port));
+  }
+
+  /**
+   * Build the command that selenium_container_remove() runs.
+   */
+  protected static function seleniumRemoveCommand(string $port): string {
+    return sprintf('docker rm -f %s >/dev/null 2>&1', escapeshellarg('selenium-' . $port));
+  }
+
+  /**
+   * Build the command that composer_show() runs.
+   */
+  protected static function composerShowCommand(string $package, string $version = ''): string {
+    return 'composer show --all --format=json ' . escapeshellarg($package) . ($version === '' ? '' : ' ' . escapeshellarg($version));
   }
 
   /**
@@ -98,7 +202,7 @@ abstract class UnitTestCase extends UpstreamUnitTestCase {
    * @param array<int, string|array{0: string, 1: string}> $listeners
    *   The command line of each listening process, or its command line and
    *   working directory, keyed by process ID.
-   * @param array<string, string|\Closure> $outputs
+   * @param array<string, string|\Closure|null> $outputs
    *   The output of other shell_exec() commands, as for
    *   mockShellExecOutputs().
    */
@@ -123,7 +227,7 @@ abstract class UnitTestCase extends UpstreamUnitTestCase {
    * A later call adds its outputs to those of an earlier one, and replaces the
    * output of a command that both list.
    *
-   * @param array<string, string|\Closure> $outputs
+   * @param array<string, string|\Closure|null> $outputs
    *   The output keyed by command. A closure is called for its output. Any
    *   command not listed fails the test.
    */
@@ -134,7 +238,7 @@ abstract class UnitTestCase extends UpstreamUnitTestCase {
       return;
     }
 
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', function (string $command): ?string {
+    $this->mockFunction('shell_exec', function (string $command): ?string {
       if (!array_key_exists($command, $this->mockShellExecOutputs)) {
         throw new \RuntimeException(sprintf('shell_exec() called with unexpected command "%s".', $command));
       }
@@ -142,6 +246,26 @@ abstract class UnitTestCase extends UpstreamUnitTestCase {
       $output = $this->mockShellExecOutputs[$command];
 
       return $output instanceof \Closure ? $output() : $output;
+    });
+  }
+
+  /**
+   * Mock exec() for 1 expected command.
+   *
+   * @param string $expected_command
+   *   The command line exec() receives; any other fails the test.
+   * @param array<int, string> $output
+   *   The lines the command prints.
+   * @param int $exit_code
+   *   The exit code of the command.
+   */
+  protected function mockExecOutput(string $expected_command, array $output, int $exit_code = 0): void {
+    $this->mockFunction('exec', function (string $command, ?array &$lines = NULL, ?int &$result_code = NULL) use ($expected_command, $output, $exit_code): string {
+      $this->assertSame($expected_command, $command);
+      $lines = $output;
+      $result_code = $exit_code;
+
+      return '';
     });
   }
 

@@ -5,18 +5,10 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\resolve_webdriver_port;
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for the resolve_webdriver_port() helper.
- *
- * phpcs:disable Drupal.Classes.FullyQualifiedNamespace.UseStatementMissing
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\resolve_webdriver_port')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
@@ -24,13 +16,12 @@ final class HelpersResolveWebdriverPortTest extends UnitTestCase {
 
   protected function setUp(): void {
     parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
 
-    $this->envUnset('WEBDRIVER_PORT');
+    self::envUnset('WEBDRIVER_PORT');
   }
 
   public function testDefaultsWhenNothingProvided(): void {
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): bool => FALSE);
+    $this->mockFunction('file_exists', fn(): bool => FALSE);
 
     $resolved = resolve_webdriver_port();
 
@@ -39,9 +30,9 @@ final class HelpersResolveWebdriverPortTest extends UnitTestCase {
   }
 
   public function testEnvOverridesDotenvAndDefault(): void {
-    $this->envSet('WEBDRIVER_PORT', '9515');
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): bool => TRUE);
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(): string => "WEBDRIVER_PORT=1234\n");
+    self::envSet('WEBDRIVER_PORT', '9515');
+    $this->mockFunction('file_exists', fn(): bool => TRUE);
+    $this->mockFunction('file_get_contents', fn(): string => "WEBDRIVER_PORT=1234\n");
 
     $resolved = resolve_webdriver_port();
 
@@ -50,8 +41,8 @@ final class HelpersResolveWebdriverPortTest extends UnitTestCase {
   }
 
   public function testDotenvUsedWhenEnvUnset(): void {
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $f): bool => $f === '.env');
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(): string => "WEBDRIVER_PORT=4500\n");
+    $this->mockFunction('file_exists', fn(string $file): bool => $file === '.env');
+    $this->mockFunction('file_get_contents', fn(): string => "WEBDRIVER_PORT=4500\n");
 
     $resolved = resolve_webdriver_port();
 
@@ -60,16 +51,16 @@ final class HelpersResolveWebdriverPortTest extends UnitTestCase {
   }
 
   public function testAutoDiscoveryWritesPortAndUpdatesSource(): void {
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): bool => FALSE);
-    $this->registerMock('stream_socket_client', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
+    $this->mockFunction('file_exists', fn(): bool => FALSE);
+    $this->mockFunction('stream_socket_client', fn(): false => FALSE);
 
     $persisted = NULL;
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', function (string $f, string $body) use (&$persisted): int {
-      if (preg_match('/WEBDRIVER_PORT=(\d+)/', $body, $m)) {
+    $this->mockFunction('file_put_contents', function (string $file, string $content) use (&$persisted): int {
+      if (preg_match('/WEBDRIVER_PORT=(\d+)/', $content, $m)) {
         $persisted = $m[1];
       }
 
-      return strlen($body);
+      return strlen($content);
     });
 
     $resolved = resolve_webdriver_port(auto_discover: TRUE);
@@ -80,17 +71,17 @@ final class HelpersResolveWebdriverPortTest extends UnitTestCase {
   }
 
   public function testAutoDiscoverySkippedWhenDotenvHasPort(): void {
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $f): bool => $f === '.env');
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(): string => "WEBDRIVER_PORT=4500\n");
+    $this->mockFunction('file_exists', fn(string $file): bool => $file === '.env');
+    $this->mockFunction('file_get_contents', fn(): string => "WEBDRIVER_PORT=4500\n");
 
     $write_called = FALSE;
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', function () use (&$write_called): int {
+    $this->mockFunction('file_put_contents', function () use (&$write_called): int {
       $write_called = TRUE;
 
       return 0;
     });
     $probe_called = FALSE;
-    $this->registerMock('stream_socket_client', 'DrevOps\\Eddy\\Tooling', function () use (&$probe_called): false {
+    $this->mockFunction('stream_socket_client', function () use (&$probe_called): false {
       $probe_called = TRUE;
 
       return FALSE;
@@ -105,29 +96,19 @@ final class HelpersResolveWebdriverPortTest extends UnitTestCase {
   }
 
   public function testValidationFailsOnMalformedPort(): void {
-    $this->envSet('WEBDRIVER_PORT', 'not-a-port');
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): bool => FALSE);
+    self::envSet('WEBDRIVER_PORT', 'not-a-port');
+    $this->mockFunction('file_exists', fn(): bool => FALSE);
 
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      resolve_webdriver_port();
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Invalid WEBDRIVER_PORT "not-a-port"', $output);
-    }
+    $output = $this->capture(fn(): array => resolve_webdriver_port(), 1);
+
+    $this->assertStringContainsString('Invalid WEBDRIVER_PORT "not-a-port"', $output);
   }
 
   public function testValidationSkippedWhenDisabled(): void {
-    $this->envSet('WEBDRIVER_PORT', 'not-a-port');
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): bool => FALSE);
+    self::envSet('WEBDRIVER_PORT', 'not-a-port');
+    $this->mockFunction('file_exists', fn(): bool => FALSE);
 
     $resolved = resolve_webdriver_port(validate_port: FALSE);
 

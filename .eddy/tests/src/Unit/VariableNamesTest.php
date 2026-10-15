@@ -19,9 +19,6 @@ use Symfony\Component\Yaml\Yaml;
  *
  * Every toggle that lets a CI step fail without failing its job is named
  * 'CI_<TOOL>_IGNORE_FAILURE'.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class VariableNamesTest extends UnitTestCase {
@@ -82,13 +79,13 @@ final class VariableNamesTest extends UnitTestCase {
    * @param array<int, string> $expected
    */
   #[DataProvider('dataProviderProjectNames')]
-  public function testProjectNames(string $contents, array $expected): void {
-    $this->assertSame($expected, self::projectNames($contents));
+  public function testProjectNames(string $content, array $expected): void {
+    $this->assertSame($expected, self::projectNames($content));
   }
 
   public static function dataProviderProjectNames(): \Iterator {
     yield 'project prefix' => ['EDDY_DEBUG=1', ['EDDY_DEBUG']];
-    yield 'organisation prefix' => ["vars.DREVOPS_CI_A == '1'", ['DREVOPS_CI_A']];
+    yield 'organization prefix' => ["vars.DREVOPS_CI_A == '1'", ['DREVOPS_CI_A']];
     yield 'other project prefix' => ['export VORTEX_A=1', ['VORTEX_A']];
     yield 'project segment after a tool prefix' => ['AHOY_EDDY_READY=1', ['AHOY_EDDY_READY']];
     yield 'repeated name' => ['EDDY_A and EDDY_A', ['EDDY_A']];
@@ -131,14 +128,14 @@ final class VariableNamesTest extends UnitTestCase {
   /**
    * Collect the names with a project segment.
    *
-   * @param string $contents
+   * @param string $content
    *   The text to search.
    *
    * @return array<int, string>
    *   The distinct names, in order of appearance.
    */
-  protected static function projectNames(string $contents): array {
-    preg_match_all(self::PROJECT_SEGMENT, $contents, $matches);
+  protected static function projectNames(string $content): array {
+    preg_match_all(self::PROJECT_SEGMENT, $content, $matches);
 
     return array_values(array_unique($matches[0]));
   }
@@ -168,10 +165,6 @@ final class VariableNamesTest extends UnitTestCase {
     }
 
     return $values;
-  }
-
-  protected static function rootDir(): string {
-    return dirname(__DIR__, 4);
   }
 
 }

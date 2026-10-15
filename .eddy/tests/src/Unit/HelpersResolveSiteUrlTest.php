@@ -10,21 +10,9 @@ use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
-/**
- * Tests for the resolve_site_url() helper.
- *
- * phpcs:disable Drupal.Classes.FullyQualifiedNamespace.UseStatementMissing
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\resolve_site_url')]
 #[Group('p0')]
 final class HelpersResolveSiteUrlTest extends UnitTestCase {
-
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
 
   #[DataProvider('dataProviderResolveSiteUrl')]
   public function testResolveSiteUrl(?string $dotenv_contents, string $expected): void {

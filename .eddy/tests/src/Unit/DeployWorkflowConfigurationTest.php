@@ -13,9 +13,6 @@ use PHPUnit\Framework\Attributes\Group;
  * Deployment is optional, so every step is gated on DEPLOY_REMOTE and a notice
  * step reports the skip. Without the gate, the SSH key step fails on the empty
  * key of every repository that has not configured deployment.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class DeployWorkflowConfigurationTest extends UnitTestCase {
@@ -29,7 +26,7 @@ final class DeployWorkflowConfigurationTest extends UnitTestCase {
   protected const string NOT_CONFIGURED = "\${{ env.DEPLOY_REMOTE == '' }}";
 
   public function testRemoteIsReadIntoTheJobEnvironment(): void {
-    $remote = self::child(self::child(self::deployJob(), 'env'), 'DEPLOY_REMOTE');
+    $remote = self::deployChild(self::deployChild(self::deployJob(), 'env'), 'DEPLOY_REMOTE');
 
     $this->assertSame('${{ secrets.DEPLOY_REMOTE }}', $remote, 'The step conditions read DEPLOY_REMOTE, so it must be defined for the whole job.');
   }
@@ -38,13 +35,13 @@ final class DeployWorkflowConfigurationTest extends UnitTestCase {
     $ungated = [];
 
     foreach (self::deploySteps() as $step) {
-      $name = self::child($step, 'name');
+      $name = self::deployChild($step, 'name');
 
       if ($name === self::NOTICE_STEP) {
         continue;
       }
 
-      if (self::child($step, 'if') !== self::CONFIGURED) {
+      if (self::deployChild($step, 'if') !== self::CONFIGURED) {
         $ungated[] = is_string($name) ? $name : '(unnamed)';
       }
     }
@@ -55,9 +52,9 @@ final class DeployWorkflowConfigurationTest extends UnitTestCase {
   public function testNoticeRequiresMissingRemote(): void {
     $step = self::deployStep(self::NOTICE_STEP);
 
-    $this->assertSame(self::NOT_CONFIGURED, self::child($step, 'if'), sprintf('The "%s" step must run only when DEPLOY_REMOTE is not set.', self::NOTICE_STEP));
+    $this->assertSame(self::NOT_CONFIGURED, self::deployChild($step, 'if'), sprintf('The "%s" step must run only when DEPLOY_REMOTE is not set.', self::NOTICE_STEP));
 
-    $script = self::child($step, 'run');
+    $script = self::deployChild($step, 'run');
     $this->assertIsString($script);
     $this->assertStringContainsString('::notice::', $script);
     $this->assertStringContainsString('DEPLOY_REMOTE', $script);

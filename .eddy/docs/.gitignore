@@ -4,7 +4,7 @@
 # Production
 /build
 
-# Test coverage
+# Test coverage and Playwright output
 /.logs
 
 # Generated files

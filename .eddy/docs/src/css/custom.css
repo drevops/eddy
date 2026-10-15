@@ -22,8 +22,8 @@
   --search-local-muted-color: var(--ifm-color-emphasis-700);
 }
 
-/* Dark mode steps from a lighter blue that keeps links readable on the dark
-   background. */
+/* The dark-mode shades step from a lighter blue that keeps links readable on
+   the dark background. */
 [data-theme='dark'] {
   --ifm-color-primary: var(--eddy-blue-on-dark);
   --ifm-color-primary-dark: #3fabe9;
@@ -72,7 +72,7 @@
 }
 
 /* WCAG 2.5.8 minimum target size. */
-.navbar__search [class*='searchClearButton'] {
+.navbar__search [class*='searchClearButton_'] {
   min-width: 24px;
   min-height: 24px;
 }

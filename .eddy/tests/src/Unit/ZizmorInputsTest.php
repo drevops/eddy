@@ -15,9 +15,6 @@ use Symfony\Component\Yaml\Yaml;
  * Zizmor collects workflows from every directory below an input. The install
  * fixtures hold workflows with placeholder action refs, so an audit that
  * includes them reports every ref as unpinned.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class ZizmorInputsTest extends UnitTestCase {
@@ -104,10 +101,6 @@ final class ZizmorInputsTest extends UnitTestCase {
 
   protected static function covers(string $directory, string $path): bool {
     return $directory === '.' || $path === $directory || str_starts_with($path, $directory . '/');
-  }
-
-  protected static function rootDir(): string {
-    return dirname(__DIR__, 4);
   }
 
 }

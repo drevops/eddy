@@ -10,22 +10,10 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for the wait_for_port() helper.
- *
- * phpcs:disable Drupal.Classes.FullyQualifiedNamespace.UseStatementMissing
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\wait_for_port')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersWaitForPortTest extends UnitTestCase {
-
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
 
   /**
    * @param array<int, true|float> $probes
@@ -57,10 +45,10 @@ final class HelpersWaitForPortTest extends UnitTestCase {
 
       return FALSE;
     };
-    $this->registerMock('fsockopen', 'DrevOps\\Eddy\\Tooling', $fsockopen);
+    $this->mockFunction('fsockopen', $fsockopen);
 
     $closed = [];
-    $this->registerMock('fclose', 'DrevOps\\Eddy\\Tooling', function (mixed $stream) use (&$closed): true {
+    $this->mockFunction('fclose', function (mixed $stream) use (&$closed): true {
       $closed[] = $stream;
 
       return TRUE;

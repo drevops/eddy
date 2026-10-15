@@ -8,34 +8,24 @@ use function DrevOps\Eddy\Tooling\dotenv_read;
 use function DrevOps\Eddy\Tooling\dotenv_unset_var;
 use function DrevOps\Eddy\Tooling\dotenv_write_var;
 use AlexSkrypnyk\File\File;
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for dotenv_read(), dotenv_write_var() and dotenv_unset_var() helpers.
- *
- * phpcs:disable Drupal.Classes.FullyQualifiedNamespace.UseStatementMissing
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
- */
+#[CoversFunction('DrevOps\Eddy\Tooling\split_lines')]
 #[CoversFunction('DrevOps\Eddy\Tooling\dotenv_read')]
 #[CoversFunction('DrevOps\Eddy\Tooling\dotenv_write_var')]
 #[CoversFunction('DrevOps\Eddy\Tooling\dotenv_unset_var')]
+#[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersDotenvTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   #[DataProvider('dataProviderDotenvRead')]
-  public function testDotenvRead(?string $contents, array $expected): void {
+  public function testDotenvRead(?string $content, array $expected): void {
     $file = self::$tmp . '/dotenv_read_' . uniqid();
-    if ($contents !== NULL) {
-      File::dump($file, $contents);
+    if ($content !== NULL) {
+      File::dump($file, $content);
     }
 
     $result = dotenv_read($file);
@@ -44,125 +34,122 @@ final class HelpersDotenvTest extends UnitTestCase {
 
   public static function dataProviderDotenvRead(): \Iterator {
     yield 'file does not exist' => [
-      'contents' => NULL,
+      'content' => NULL,
       'expected' => [],
     ];
     yield 'empty file' => [
-      'contents' => '',
+      'content' => '',
       'expected' => [],
     ];
     yield 'single variable' => [
-      'contents' => "FOO=bar\n",
+      'content' => "FOO=bar\n",
       'expected' => ['FOO' => 'bar'],
     ];
     yield 'multiple variables' => [
-      'contents' => "FOO=bar\nBAZ=qux\nWEBSERVER_PORT=8123\n",
+      'content' => "FOO=bar\nBAZ=qux\nWEBSERVER_PORT=8123\n",
       'expected' => ['FOO' => 'bar', 'BAZ' => 'qux', 'WEBSERVER_PORT' => '8123'],
     ];
     yield 'comments and blank lines are ignored' => [
-      'contents' => "# This is a comment\n\nFOO=bar\n  # indented comment\nBAZ=qux\n\n",
+      'content' => "# This is a comment\n\nFOO=bar\n  # indented comment\nBAZ=qux\n\n",
       'expected' => ['FOO' => 'bar', 'BAZ' => 'qux'],
     ];
     yield 'whitespace around keys and values is trimmed' => [
-      'contents' => "  FOO  =  bar  \n",
+      'content' => "  FOO  =  bar  \n",
       'expected' => ['FOO' => 'bar'],
     ];
     yield 'value can be empty' => [
-      'contents' => "FOO=\n",
+      'content' => "FOO=\n",
       'expected' => ['FOO' => ''],
     ];
     yield 'value with equals sign preserved' => [
-      'contents' => "URL=http://example.com/?a=1&b=2\n",
+      'content' => "URL=http://example.com/?a=1&b=2\n",
       'expected' => ['URL' => 'http://example.com/?a=1&b=2'],
     ];
     yield 'double quoted value is unquoted' => [
-      'contents' => "FOO=\"bar baz\"\n",
+      'content' => "FOO=\"bar baz\"\n",
       'expected' => ['FOO' => 'bar baz'],
     ];
     yield 'single quoted value is unquoted' => [
-      'contents' => "FOO='bar baz'\n",
+      'content' => "FOO='bar baz'\n",
       'expected' => ['FOO' => 'bar baz'],
     ];
     yield 'mismatched quotes left intact' => [
-      'contents' => "FOO=\"bar'\n",
+      'content' => "FOO=\"bar'\n",
       'expected' => ['FOO' => '"bar\''],
     ];
     yield 'lines without equals are ignored' => [
-      'contents' => "FOO=bar\ninvalid_line\nBAZ=qux\n",
+      'content' => "FOO=bar\ninvalid_line\nBAZ=qux\n",
       'expected' => ['FOO' => 'bar', 'BAZ' => 'qux'],
     ];
     yield 'empty key is ignored' => [
-      'contents' => "=value\nFOO=bar\n",
+      'content' => "=value\nFOO=bar\n",
       'expected' => ['FOO' => 'bar'],
     ];
     yield 'CRLF line endings' => [
-      'contents' => "FOO=bar\r\nBAZ=qux\r\n",
+      'content' => "FOO=bar\r\nBAZ=qux\r\n",
       'expected' => ['FOO' => 'bar', 'BAZ' => 'qux'],
     ];
     yield 'CR line endings' => [
-      'contents' => "FOO=bar\rBAZ=qux\r",
+      'content' => "FOO=bar\rBAZ=qux\r",
       'expected' => ['FOO' => 'bar', 'BAZ' => 'qux'],
     ];
     yield 'last assignment wins for duplicate keys' => [
-      'contents' => "FOO=first\nFOO=second\n",
+      'content' => "FOO=first\nFOO=second\n",
       'expected' => ['FOO' => 'second'],
     ];
   }
 
-  public function testDotenvWriteVarCreatesFileWhenMissing(): void {
+  #[DataProvider('dataProviderDotenvWriteVar')]
+  public function testDotenvWriteVar(?string $existing, string $key, string $value, string $expected): void {
     $file = self::$tmp . '/dotenv_write_' . uniqid();
-    $this->assertFileDoesNotExist($file);
 
-    dotenv_write_var('FOO', 'bar', $file);
+    if ($existing === NULL) {
+      $this->assertFileDoesNotExist($file);
+    }
+    else {
+      File::dump($file, $existing);
+    }
+
+    dotenv_write_var($key, $value, $file);
 
     $this->assertFileExists($file);
-    $this->assertSame("FOO=bar\n", File::read($file));
+    $this->assertSame($expected, File::read($file));
   }
 
-  public function testDotenvWriteVarAppendsToExistingFile(): void {
-    $file = self::$tmp . '/dotenv_write_' . uniqid();
-    File::dump($file, "EXISTING=value\n");
-
-    dotenv_write_var('NEW', 'data', $file);
-
-    $this->assertSame("EXISTING=value\nNEW=data\n", File::read($file));
+  public static function dataProviderDotenvWriteVar(): \Iterator {
+    yield 'creates the file' => [NULL, 'FOO', 'bar', "FOO=bar\n"];
+    yield 'appends to an existing file' => ["EXISTING=value\n", 'NEW', 'data', "EXISTING=value\nNEW=data\n"];
+    yield 'replaces an existing key in place' => ["FOO=old\nBAR=keep\n", 'FOO', 'new', "FOO=new\nBAR=keep\n"];
+    yield 'preserves comments and blank lines' => [
+      "# Top comment\n\nFOO=old\n\n# Another comment\nBAR=keep\n",
+      'FOO',
+      'new',
+      "# Top comment\n\nFOO=new\n\n# Another comment\nBAR=keep\n",
+    ];
+    yield 'replaces the last match to agree with read' => ["FOO=first\nBAR=keep\nFOO=second\n", 'FOO', 'new', "FOO=first\nBAR=keep\nFOO=new\n"];
+    yield 'file without a trailing newline' => ['EXISTING=value', 'NEW', 'data', "EXISTING=value\nNEW=data\n"];
   }
 
-  public function testDotenvWriteVarReplacesExistingKeyInPlace(): void {
+  #[DataProvider('dataProviderDotenvWriteVarFails')]
+  public function testDotenvWriteVarFails(?string $existing, string $function, string $expected_message): void {
     $file = self::$tmp . '/dotenv_write_' . uniqid();
-    File::dump($file, "FOO=old\nBAR=keep\n");
 
-    dotenv_write_var('FOO', 'new', $file);
+    if ($existing !== NULL) {
+      File::dump($file, $existing);
+    }
 
-    $this->assertSame("FOO=new\nBAR=keep\n", File::read($file));
+    $this->mockFunction($function, fn(): false => FALSE);
+    $this->mockQuit(1);
+
+    $output = $this->capture(fn() => dotenv_write_var('FOO', 'new', $file), 1);
+
+    $this->assertStringContainsString(sprintf($expected_message, $file), $output);
   }
 
-  public function testDotenvWriteVarPreservesCommentsAndBlankLines(): void {
-    $file = self::$tmp . '/dotenv_write_' . uniqid();
-    $original = "# Top comment\n\nFOO=old\n\n# Another comment\nBAR=keep\n";
-    File::dump($file, $original);
-
-    dotenv_write_var('FOO', 'new', $file);
-
-    $this->assertSame("# Top comment\n\nFOO=new\n\n# Another comment\nBAR=keep\n", File::read($file));
-  }
-
-  public function testDotenvWriteVarReplacesLastMatchToAgreeWithRead(): void {
-    $file = self::$tmp . '/dotenv_write_' . uniqid();
-    File::dump($file, "FOO=first\nBAR=keep\nFOO=second\n");
-
-    dotenv_write_var('FOO', 'new', $file);
-
-    $this->assertSame("FOO=first\nBAR=keep\nFOO=new\n", File::read($file));
-  }
-
-  public function testDotenvWriteVarHandlesFileWithoutTrailingNewline(): void {
-    $file = self::$tmp . '/dotenv_write_' . uniqid();
-    File::dump($file, 'EXISTING=value');
-
-    dotenv_write_var('NEW', 'data', $file);
-
-    $this->assertSame("EXISTING=value\nNEW=data\n", File::read($file));
+  public static function dataProviderDotenvWriteVarFails(): \Iterator {
+    yield 'creating the file' => [NULL, 'file_put_contents', 'Unable to write %s.'];
+    yield 'reading the file' => ["FOO=old\n", 'file_get_contents', 'Unable to read %s.'];
+    yield 'rewriting the file' => ["FOO=old\n", 'file_put_contents', 'Unable to write %s.'];
   }
 
   public function testDotenvWriteVarAndReadRoundTrip(): void {
@@ -177,9 +164,9 @@ final class HelpersDotenvTest extends UnitTestCase {
   }
 
   #[DataProvider('dataProviderDotenvUnsetVar')]
-  public function testDotenvUnsetVar(string $contents, string $expected): void {
+  public function testDotenvUnsetVar(string $content, string $expected): void {
     $file = self::$tmp . '/dotenv_unset_' . uniqid();
-    File::dump($file, $contents);
+    File::dump($file, $content);
 
     dotenv_unset_var('TUNNEL_URL', $file);
 
@@ -189,35 +176,35 @@ final class HelpersDotenvTest extends UnitTestCase {
 
   public static function dataProviderDotenvUnsetVar(): \Iterator {
     yield 'only assignment' => [
-      'contents' => "TUNNEL_URL=https://abc.trycloudflare.com\n",
+      'content' => "TUNNEL_URL=https://abc.trycloudflare.com\n",
       'expected' => '',
     ];
     yield 'other variables keep their order' => [
-      'contents' => "WEBSERVER_PORT=8123\nTUNNEL_URL=https://abc.trycloudflare.com\nOTHER=1\n",
+      'content' => "WEBSERVER_PORT=8123\nTUNNEL_URL=https://abc.trycloudflare.com\nOTHER=1\n",
       'expected' => "WEBSERVER_PORT=8123\nOTHER=1\n",
     ];
     yield 'every duplicate is removed' => [
-      'contents' => "TUNNEL_URL=first\nOTHER=1\nTUNNEL_URL=second\n",
+      'content' => "TUNNEL_URL=first\nOTHER=1\nTUNNEL_URL=second\n",
       'expected' => "OTHER=1\n",
     ];
     yield 'comments and blank lines are kept' => [
-      'contents' => "# TUNNEL_URL=commented\n\nTUNNEL_URL=active\nOTHER=1\n",
+      'content' => "# TUNNEL_URL=commented\n\nTUNNEL_URL=active\nOTHER=1\n",
       'expected' => "# TUNNEL_URL=commented\n\nOTHER=1\n",
     ];
     yield 'whitespace around the key' => [
-      'contents' => "  TUNNEL_URL = active\nOTHER=1\n",
+      'content' => "  TUNNEL_URL = active\nOTHER=1\n",
       'expected' => "OTHER=1\n",
     ];
     yield 'empty value' => [
-      'contents' => "TUNNEL_URL=\nOTHER=1\n",
+      'content' => "TUNNEL_URL=\nOTHER=1\n",
       'expected' => "OTHER=1\n",
     ];
     yield 'keys sharing the name are kept' => [
-      'contents' => "TUNNEL_URL_PREVIOUS=a\nMY_TUNNEL_URL=b\nTUNNEL_URL=c\n",
+      'content' => "TUNNEL_URL_PREVIOUS=a\nMY_TUNNEL_URL=b\nTUNNEL_URL=c\n",
       'expected' => "TUNNEL_URL_PREVIOUS=a\nMY_TUNNEL_URL=b\n",
     ];
     yield 'file without trailing newline' => [
-      'contents' => "OTHER=1\nTUNNEL_URL=active",
+      'content' => "OTHER=1\nTUNNEL_URL=active",
       'expected' => 'OTHER=1',
     ];
   }
@@ -248,17 +235,12 @@ final class HelpersDotenvTest extends UnitTestCase {
     chmod($file, 0444);
     $this->mockQuit(1);
     set_error_handler(static fn(): bool => TRUE);
-    ob_start();
+
     try {
-      dotenv_unset_var('TUNNEL_URL', $file);
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
+      $output = $this->capture(fn() => dotenv_unset_var('TUNNEL_URL', $file), 1);
     }
     finally {
       restore_error_handler();
-      $output = (string) ob_get_clean();
     }
 
     $this->assertStringContainsString('Unable to write ' . $file, $output);

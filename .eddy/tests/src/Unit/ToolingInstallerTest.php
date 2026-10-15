@@ -17,9 +17,6 @@ use function DrevOps\Eddy\ToolingInstaller\main;
  * Each test runs in an empty project directory with real files. Only the
  * Composer call is mocked, and the mock writes what a successful install
  * leaves: the package manifest and a proxy for each command.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
@@ -45,26 +42,17 @@ final class ToolingInstallerTest extends UnitTestCase {
    */
   protected array $pathsAtComposerRun = [];
 
-  protected string $originalCwd = '';
-
   protected function setUp(): void {
     parent::setUp();
 
-    require_once dirname(__DIR__, 4) . '/scripts/eddy-tooling';
+    require_once self::rootDir() . '/scripts/eddy-tooling';
 
-    $this->originalCwd = File::cwd();
     chdir(self::$sut);
 
-    $this->envUnset('DEBUG');
-    $this->envUnset('GITHUB_TOKEN');
-    $this->envUnset('COMPOSER_AUTH');
-    $this->envUnset('TERM');
-  }
-
-  protected function tearDown(): void {
-    chdir($this->originalCwd);
-
-    parent::tearDown();
+    self::envUnset('DEBUG');
+    self::envUnset('GITHUB_TOKEN');
+    self::envUnset('COMPOSER_AUTH');
+    self::envUnset('TERM');
   }
 
   /**
@@ -73,8 +61,8 @@ final class ToolingInstallerTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderInstall')]
   public function testInstall(array $dev_manifest, bool $dev_mode, array $expected_manifest, string $expected_constraint, array $files = []): void {
-    $this->writeDevManifest($dev_manifest);
-    $this->writeFiles($files);
+    self::writeDevManifest($dev_manifest);
+    self::writeFiles($files);
 
     if ($dev_mode) {
       File::mkdir('.eddy/tooling', 0755);
@@ -88,7 +76,7 @@ final class ToolingInstallerTest extends UnitTestCase {
     $this->assertStringContainsString('[ OK ] Installed drevops/eddy-tooling.', $output);
     $this->assertStringNotContainsString('Composer progress', $output, 'Composer output is shown only on failure.');
     $this->assertSame([self::COMMAND . ' 2>&1'], $this->commands);
-    $this->assertSame(json_encode($expected_manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL, File::read('vendor/eddy-tooling.json'));
+    $this->assertSame(json_encode($expected_manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL, File::read('vendor/eddy-tooling.json'));
   }
 
   public static function dataProviderInstall(): \Iterator {
@@ -217,7 +205,7 @@ final class ToolingInstallerTest extends UnitTestCase {
   }
 
   public function testSkipsCurrentInstall(): void {
-    $this->writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
+    self::writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
     $this->mockComposer();
     $this->runMain(0);
 
@@ -235,12 +223,12 @@ final class ToolingInstallerTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderReinstalls')]
   public function testReinstalls(array $write, array $remove, string $expected_constraint): void {
-    $this->writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
+    self::writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
     $this->mockComposer();
     $this->runMain(0);
 
-    foreach ($write as $path => $contents) {
-      File::dump($path, $contents);
+    foreach ($write as $path => $content) {
+      File::dump($path, $content);
     }
 
     foreach ($remove as $path) {
@@ -274,20 +262,20 @@ final class ToolingInstallerTest extends UnitTestCase {
   }
 
   #[DataProvider('dataProviderLocalPatchChange')]
-  public function testLocalPatchChange(?string $contents, bool $expected_reinstall): void {
-    $this->writeFiles(['patches/fix.patch' => 'fix']);
-    $this->writeDevManifest([
+  public function testLocalPatchChange(?string $content, bool $expected_reinstall): void {
+    self::writeFiles(['patches/fix.patch' => 'fix']);
+    self::writeDevManifest([
       'require-dev' => ['drevops/eddy-tooling' => '~1.0.0'],
       'extra' => ['patches' => ['drevops/eddy-tooling' => ['Fix' => 'patches/fix.patch']]],
     ]);
     $this->mockComposer();
     $this->runMain(0);
 
-    if ($contents === NULL) {
+    if ($content === NULL) {
       File::remove('patches/fix.patch');
     }
     else {
-      File::dump('patches/fix.patch', $contents);
+      File::dump('patches/fix.patch', $content);
     }
 
     $output = $this->runMain(0);
@@ -304,7 +292,7 @@ final class ToolingInstallerTest extends UnitTestCase {
 
   #[DataProvider('dataProviderRemovesPreviousInstall')]
   public function testRemovesPreviousInstall(bool $symlinked): void {
-    $this->writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
+    self::writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
 
     // The previous package holds nested files and a symlink to a directory
     // outside of it, which must survive the removal.
@@ -348,9 +336,9 @@ final class ToolingInstallerTest extends UnitTestCase {
   }
 
   #[DataProvider('dataProviderFailsWithoutConstraint')]
-  public function testFailsWithoutConstraint(?string $contents, string $expected_message): void {
-    if ($contents !== NULL) {
-      File::dump('composer.dev.json', $contents);
+  public function testFailsWithoutConstraint(?string $content, string $expected_message): void {
+    if ($content !== NULL) {
+      File::dump('composer.dev.json', $content);
     }
 
     $this->mockPassthruNever(self::NAMESPACE);
@@ -376,7 +364,7 @@ final class ToolingInstallerTest extends UnitTestCase {
   }
 
   public function testComposerFailure(): void {
-    $this->writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
+    self::writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
     $this->mockComposer(3, 'Composer error output');
 
     $output = $this->runMain(3);
@@ -388,7 +376,7 @@ final class ToolingInstallerTest extends UnitTestCase {
   }
 
   public function testManifestWriteFailure(): void {
-    $this->writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
+    self::writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
 
     // A file where the directory belongs makes the manifest unwritable.
     File::dump('vendor', '');
@@ -402,8 +390,8 @@ final class ToolingInstallerTest extends UnitTestCase {
 
   #[DataProvider('dataProviderDebug')]
   public function testDebug(int $exit_code): void {
-    $this->envSet('DEBUG', '1');
-    $this->writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
+    self::envSet('DEBUG', '1');
+    self::writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
     $this->mockComposer($exit_code, 'Composer progress');
 
     $output = $this->runMain($exit_code);
@@ -420,14 +408,14 @@ final class ToolingInstallerTest extends UnitTestCase {
   #[DataProvider('dataProviderGithubToken')]
   public function testGithubToken(?string $token, ?string $auth, string|false $expected_auth): void {
     if ($token !== NULL) {
-      $this->envSet('GITHUB_TOKEN', $token);
+      self::envSet('GITHUB_TOKEN', $token);
     }
 
     if ($auth !== NULL) {
-      $this->envSet('COMPOSER_AUTH', $auth);
+      self::envSet('COMPOSER_AUTH', $auth);
     }
 
-    $this->writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
+    self::writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
     $this->mockComposer();
 
     $this->runMain(0);
@@ -448,14 +436,14 @@ final class ToolingInstallerTest extends UnitTestCase {
   #[DataProvider('dataProviderOutputColor')]
   public function testOutputColor(?string $term, bool $tty, bool $expected_color): void {
     if ($term !== NULL) {
-      $this->envSet('TERM', $term);
+      self::envSet('TERM', $term);
     }
 
     // The color check calls posix_isatty() once per printed line, or never
     // when it short-circuits, so the mock returns a fixed answer, not queued
     // responses.
-    $this->registerMock('posix_isatty', self::NAMESPACE, fn(): bool => $tty);
-    $this->writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
+    $this->mockFunction('posix_isatty', fn(): bool => $tty, self::NAMESPACE);
+    self::writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
     $this->mockComposer();
 
     $output = $this->runMain(0);
@@ -472,17 +460,18 @@ final class ToolingInstallerTest extends UnitTestCase {
   }
 
   protected function runMain(int $expected_exit_code): string {
-    ob_start();
-    $exit_code = main();
-    $output = (string) ob_get_clean();
+    $exit_code = 0;
+    $output = $this->capture(function () use (&$exit_code): void {
+      $exit_code = main();
+    });
 
     $this->assertSame($expected_exit_code, $exit_code, 'Unexpected exit code. Output: ' . $output);
 
     return $output;
   }
 
-  protected function writeDevManifest(array $contents): void {
-    File::dump('composer.dev.json', json_encode($contents, JSON_THROW_ON_ERROR));
+  protected static function writeDevManifest(array $content): void {
+    File::dump('composer.dev.json', json_encode($content, JSON_THROW_ON_ERROR));
   }
 
   /**
@@ -491,9 +480,9 @@ final class ToolingInstallerTest extends UnitTestCase {
    * @param array<string, string> $files
    *   File contents, keyed by path.
    */
-  protected function writeFiles(array $files): void {
-    foreach ($files as $path => $contents) {
-      File::dump($path, $contents);
+  protected static function writeFiles(array $files): void {
+    foreach ($files as $path => $content) {
+      File::dump($path, $content);
     }
   }
 
@@ -510,7 +499,7 @@ final class ToolingInstallerTest extends UnitTestCase {
    *   Paths whose existence is recorded when Composer runs.
    */
   protected function mockComposer(int $exit_code = 0, string $output = '', array $bins = self::BINS, array $watched_paths = []): void {
-    $this->registerMock('passthru', self::NAMESPACE, function (string $command, mixed &...$args) use ($exit_code, $output, $bins, $watched_paths): null {
+    $this->mockFunction('passthru', function (string $command, mixed &...$args) use ($exit_code, $output, $bins, $watched_paths): null {
       $this->commands[] = $command;
 
       foreach ($watched_paths as $path) {
@@ -533,7 +522,7 @@ final class ToolingInstallerTest extends UnitTestCase {
       }
 
       return NULL;
-    });
+    }, self::NAMESPACE);
   }
 
 }

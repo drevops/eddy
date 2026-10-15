@@ -11,23 +11,13 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * Tests for the command_output() helper.
- *
  * The commands run as real processes, so the pipe and process handling is
  * exercised the same way the tooling uses it.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[CoversFunction('DrevOps\Eddy\Tooling\command_output')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersCommandOutputTest extends UnitTestCase {
-
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
 
   /**
    * @param list<string> $command
@@ -76,10 +66,10 @@ final class HelpersCommandOutputTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderCommandOutputTimesOut')]
   public function testCommandOutputTimesOut(array $command): void {
-    // Sleep 10 ms per poll instead of 100 ms, so the command can set up,
-    // such as its SIGTERM trap, before it is killed.
+    // Sleep 10 ms per poll instead of 100 ms. A real sleep lets the command
+    // set up, such as its SIGTERM trap, before it is killed.
     $sleeps = [];
-    $this->registerMock('usleep', 'DrevOps\\Eddy\\Tooling', function (int $microseconds) use (&$sleeps): void {
+    $this->mockFunction('usleep', function (int $microseconds) use (&$sleeps): void {
       $sleeps[] = $microseconds;
       \usleep(10000);
     });

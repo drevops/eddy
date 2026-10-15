@@ -7,16 +7,12 @@ namespace DrevOps\Eddy\Tests\Unit;
 use function DrevOps\Eddy\Tooling\link_browser_output;
 use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\CoversFunction;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
 #[CoversFunction('DrevOps\Eddy\Tooling\link_browser_output')]
 #[Group('p0')]
 final class HelpersLinkBrowserOutputTest extends UnitTestCase {
-
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
 
   public function testMissingWebrootDoesNothing(): void {
     $webroot = self::$tmp . '/web_' . uniqid();
@@ -29,7 +25,7 @@ final class HelpersLinkBrowserOutputTest extends UnitTestCase {
   }
 
   public function testCreatesSymlinkFromScratch(): void {
-    [$webroot, $logs] = $this->createWebroot();
+    [$webroot, $logs] = self::createWebroot();
 
     link_browser_output($webroot, $logs);
 
@@ -45,7 +41,7 @@ final class HelpersLinkBrowserOutputTest extends UnitTestCase {
   }
 
   public function testReusesExistingTargetAndSimpletestDir(): void {
-    [$webroot, $logs] = $this->createWebroot();
+    [$webroot, $logs] = self::createWebroot();
     File::dump($logs . '/browser_output/existing.html', 'keep');
     File::mkdir($webroot . '/sites/simpletest', 0755);
 
@@ -56,10 +52,11 @@ final class HelpersLinkBrowserOutputTest extends UnitTestCase {
     $this->assertFileExists($logs . '/browser_output/existing.html');
   }
 
-  public function testReplacesExistingDirectory(): void {
-    [$webroot, $logs] = $this->createWebroot();
+  #[DataProvider('dataProviderReplacesExisting')]
+  public function testReplacesExisting(callable $setup): void {
+    [$webroot, $logs] = self::createWebroot();
     $link = $webroot . '/sites/simpletest/browser_output';
-    File::dump($link . '/stale.html', 'stale');
+    $setup($link);
 
     link_browser_output($webroot, $logs);
 
@@ -67,39 +64,31 @@ final class HelpersLinkBrowserOutputTest extends UnitTestCase {
     $this->assertSame($logs . '/browser_output', readlink($link));
   }
 
-  public function testReplacesExistingSymlink(): void {
-    [$webroot, $logs] = $this->createWebroot();
-    File::mkdir($webroot . '/sites/simpletest', 0755);
-    $link = $webroot . '/sites/simpletest/browser_output';
-    $other = self::$tmp . '/other_' . uniqid();
-    File::mkdir($other, 0755);
-    symlink($other, $link);
+  public static function dataProviderReplacesExisting(): \Iterator {
+    yield 'directory' => [static fn(string $link) => File::dump($link . '/stale.html', 'stale')];
 
-    link_browser_output($webroot, $logs);
+    yield 'symlink' => [
+      static function (string $link): void {
+        File::mkdir(dirname($link), 0755);
+        $other = self::$tmp . '/other_' . uniqid();
+        File::mkdir($other, 0755);
+        symlink($other, $link);
+      },
+    ];
 
-    $this->assertTrue(is_link($link));
-    $this->assertSame($logs . '/browser_output', readlink($link));
-  }
-
-  public function testReplacesExistingFile(): void {
-    [$webroot, $logs] = $this->createWebroot();
-    File::mkdir($webroot . '/sites/simpletest', 0755);
-    $link = $webroot . '/sites/simpletest/browser_output';
-    File::dump($link, 'i am a file');
-
-    link_browser_output($webroot, $logs);
-
-    $this->assertTrue(is_link($link));
-    $this->assertSame($logs . '/browser_output', readlink($link));
+    yield 'file' => [
+      static function (string $link): void {
+        File::mkdir(dirname($link), 0755);
+        File::dump($link, 'i am a file');
+      },
+    ];
   }
 
   /**
-   * Create a throwaway project layout with an assembled web root.
-   *
    * @return array{0: string, 1: string}
    *   Tuple of [webroot, logs_dir] absolute paths.
    */
-  protected function createWebroot(): array {
+  protected static function createWebroot(): array {
     $base = self::$tmp . '/proj_' . uniqid();
     $webroot = $base . '/build/web';
     File::mkdir($webroot, 0755);

@@ -17,9 +17,6 @@ use Symfony\Component\Yaml\Yaml;
  * Once that block is removed upstream, a configuration still relying on it
  * silently falls back to the built-in `patch` increment. The next draft is
  * then named after the wrong release.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class ReleaseDrafterConfigTest extends UnitTestCase {
@@ -32,7 +29,7 @@ final class ReleaseDrafterConfigTest extends UnitTestCase {
     $categories = self::config()['categories'] ?? NULL;
 
     if (!is_array($categories)) {
-      self::fail('The release drafter configuration declares no `categories`.');
+      $this->fail('The release drafter configuration declares no `categories`.');
     }
 
     $increments = [];
@@ -69,7 +66,7 @@ final class ReleaseDrafterConfigTest extends UnitTestCase {
    *   The parsed configuration.
    */
   protected static function config(): array {
-    $path = dirname(__DIR__, 4) . '/.github/release-drafter.yml';
+    $path = self::rootDir() . '/.github/release-drafter.yml';
     $parsed = Yaml::parse(File::read($path));
 
     if (!is_array($parsed)) {

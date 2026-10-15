@@ -6,25 +6,20 @@ namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\getenv_default;
 use function DrevOps\Eddy\Tooling\getenv_required;
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
+use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
+#[CoversFunction('DrevOps\Eddy\Tooling\getenv_default')]
+#[CoversFunction('DrevOps\Eddy\Tooling\getenv_required')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersGetenvTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   #[DataProvider('dataProviderGetenvDefault')]
   public function testGetenvDefault(array $env_vars, array $args, string $expected): void {
-    foreach ($env_vars as $name => $value) {
-      $this->envSet($name, $value);
-    }
+    self::envSetMultiple($env_vars);
     $result = getenv_default(...$args);
     $this->assertSame($expected, $result);
   }
@@ -110,9 +105,7 @@ final class HelpersGetenvTest extends UnitTestCase {
 
   #[DataProvider('dataProviderGetenvRequired')]
   public function testGetenvRequired(array $env_vars, array $args, string $expected): void {
-    foreach ($env_vars as $name => $value) {
-      $this->envSet($name, $value);
-    }
+    self::envSetMultiple($env_vars);
     $result = getenv_required(...$args);
     $this->assertSame($expected, $result);
   }
@@ -157,23 +150,12 @@ final class HelpersGetenvTest extends UnitTestCase {
 
   #[DataProvider('dataProviderGetenvRequiredFails')]
   public function testGetenvRequiredFails(array $env_vars, array $args, string $expected_message): void {
-    foreach ($env_vars as $name => $value) {
-      $this->envSet($name, $value);
-    }
+    self::envSetMultiple($env_vars);
     $this->mockQuit(1);
-    ob_start();
-    try {
-      getenv_required(...$args);
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString($expected_message, $output);
-    }
+
+    $output = $this->capture(fn(): string => getenv_required(...$args), 1);
+
+    $this->assertStringContainsString($expected_message, $output);
   }
 
   public static function dataProviderGetenvRequiredFails(): \Iterator {

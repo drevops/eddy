@@ -52,6 +52,19 @@ function getenv_default(mixed ...$vars): string {
 }
 
 /**
+ * Split text into lines on any line ending.
+ *
+ * @param string $text
+ *   The text to split.
+ *
+ * @return array<int, string>
+ *   The lines.
+ */
+function split_lines(string $text): array {
+  return preg_split('/\r\n|\r|\n/', $text) ?: [];
+}
+
+/**
  * Read variables from a dotenv-style file into an associative array.
  *
  * Parses lines of the form KEY=VALUE. Lines that are blank or start with
@@ -70,15 +83,15 @@ function dotenv_read(string $dotenv_file = '.env'): array {
     return [];
   }
 
-  $contents = file_get_contents($dotenv_file);
+  $content = file_get_contents($dotenv_file);
 
-  if ($contents === FALSE) {
+  if ($content === FALSE) {
     return [];
   }
 
   $vars = [];
 
-  foreach (preg_split('/\r\n|\r|\n/', $contents) ?: [] as $line) {
+  foreach (split_lines($content) as $line) {
     $trimmed = trim($line);
 
     if ($trimmed === '') {
@@ -136,24 +149,24 @@ function dotenv_write_var(string $key, string $value, string $dotenv_file = '.en
 
   if (!file_exists($dotenv_file)) {
     if (file_put_contents($dotenv_file, $assignment . PHP_EOL) === FALSE) {
-      FAIL('Unable to write %s', $dotenv_file);
+      FAIL('Unable to write %s.', $dotenv_file);
     }
 
     return;
   }
 
-  $contents = file_get_contents($dotenv_file);
+  $content = file_get_contents($dotenv_file);
 
-  if ($contents === FALSE) {
-    FAIL('Unable to read %s', $dotenv_file);
+  if ($content === FALSE) {
+    FAIL('Unable to read %s.', $dotenv_file);
 
     // @codeCoverageIgnoreStart
     return;
     // @codeCoverageIgnoreEnd
   }
 
-  $lines = preg_split('/\r\n|\r|\n/', $contents) ?: [];
-  $trailing_newline = $contents !== '' && (str_ends_with($contents, "\n") || str_ends_with($contents, "\r"));
+  $lines = split_lines($content);
+  $trailing_newline = $content !== '' && (str_ends_with($content, "\n") || str_ends_with($content, "\r"));
 
   if ($trailing_newline && end($lines) === '') {
     array_pop($lines);
@@ -193,7 +206,7 @@ function dotenv_write_var(string $key, string $value, string $dotenv_file = '.en
   }
 
   if (file_put_contents($dotenv_file, implode(PHP_EOL, $lines) . PHP_EOL) === FALSE) {
-    FAIL('Unable to write %s', $dotenv_file);
+    FAIL('Unable to write %s.', $dotenv_file);
   }
 }
 
@@ -210,8 +223,8 @@ function dotenv_write_var(string $key, string $value, string $dotenv_file = '.en
  *   Path to the dotenv file.
  */
 function dotenv_unset_var(string $key, string $dotenv_file = '.env'): void {
-  $contents = file_exists($dotenv_file) ? (string) file_get_contents($dotenv_file) : '';
-  $lines = preg_split('/\r\n|\r|\n/', $contents) ?: [];
+  $content = file_exists($dotenv_file) ? (string) file_get_contents($dotenv_file) : '';
+  $lines = split_lines($content);
   $kept = preg_grep('/^\s*' . preg_quote($key, '/') . '\s*=/', $lines, PREG_GREP_INVERT) ?: [];
 
   if (count($kept) === count($lines)) {
@@ -219,7 +232,7 @@ function dotenv_unset_var(string $key, string $dotenv_file = '.env'): void {
   }
 
   if (file_put_contents($dotenv_file, implode(PHP_EOL, $kept)) === FALSE) {
-    FAIL('Unable to write %s', $dotenv_file);
+    FAIL('Unable to write %s.', $dotenv_file);
   }
 }
 
@@ -411,6 +424,21 @@ function selenium_container(string $port): string {
 }
 
 /**
+ * Read a field of the Selenium container for a port through 'docker inspect'.
+ *
+ * @param string $port
+ *   The WebDriver port the container publishes.
+ * @param string $format
+ *   The Go template that 'docker inspect --format' renders.
+ *
+ * @return string
+ *   The output, or an empty string when the container does not exist.
+ */
+function selenium_container_inspect(string $port, string $format): string {
+  return (string) shell_exec(sprintf('docker inspect --format %s %s 2>/dev/null', escapeshellarg($format), escapeshellarg(selenium_container($port))));
+}
+
+/**
  * Get the project that started the Selenium container for a port.
  *
  * @param string $port
@@ -422,8 +450,7 @@ function selenium_container(string $port): string {
  *   exists.
  */
 function selenium_container_project(string $port): ?string {
-  $format = sprintf('{{.Name}}|{{index .Config.Labels "%s"}}', SELENIUM_PROJECT_LABEL);
-  $output = (string) shell_exec(sprintf('docker inspect --format %s %s 2>/dev/null', escapeshellarg($format), escapeshellarg(selenium_container($port))));
+  $output = selenium_container_inspect($port, sprintf('{{.Name}}|{{index .Config.Labels "%s"}}', SELENIUM_PROJECT_LABEL));
   $separator = strpos($output, '|');
 
   if ($separator === FALSE) {
@@ -445,9 +472,7 @@ function selenium_container_project(string $port): ?string {
  *   TRUE when the container exists and is running.
  */
 function selenium_container_running(string $port): bool {
-  $output = (string) shell_exec(sprintf('docker inspect --format %s %s 2>/dev/null', escapeshellarg('{{.State.Running}}'), escapeshellarg(selenium_container($port))));
-
-  return trim($output) === 'true';
+  return trim(selenium_container_inspect($port, '{{.State.Running}}')) === 'true';
 }
 
 /**
@@ -548,6 +573,19 @@ function xdebug_state(string $port, string $docroot): string {
 }
 
 /**
+ * Check whether a string holds a whole number of 1 or more.
+ *
+ * @param string $value
+ *   The value to check.
+ *
+ * @return bool
+ *   TRUE when the value is made of digits only and is 1 or more.
+ */
+function is_positive_integer(string $value): bool {
+  return ctype_digit($value) && (int) $value >= 1;
+}
+
+/**
  * Validate that a value is a TCP port in the range 1-65535.
  *
  * Calls FAIL() with a descriptive message if validation fails.
@@ -558,7 +596,7 @@ function xdebug_state(string $port, string $docroot): string {
  *   Source name used in the error message (e.g. 'WEBSERVER_PORT').
  */
 function validate_port_or_fail(string $value, string $source): void {
-  if (!ctype_digit($value) || (int) $value < 1 || (int) $value > 65535) {
+  if (!is_positive_integer($value) || (int) $value > 65535) {
     FAIL('Invalid %s "%s". Expected integer in range 1-65535.', $source, $value);
   }
 }
@@ -577,7 +615,7 @@ function validate_port_or_fail(string $value, string $source): void {
  *   The number of seconds.
  */
 function validate_timeout_or_fail(string $value, string $source): int {
-  if (!ctype_digit($value) || (int) $value < 1) {
+  if (!is_positive_integer($value)) {
     FAIL('Invalid %s "%s". Expected a whole number of seconds, 1 or more.', $source, $value);
   }
 
@@ -605,24 +643,24 @@ function validate_timeout_or_fail(string $value, string $source): int {
  */
 function find_free_port(int $start = 8000, int $max_attempts = 100): int {
   if ($start < 1 || $start > 65535) {
-    FAIL('Start port must be between 1 and 65535, got %d', $start);
+    FAIL('Start port must be between 1 and 65535, got %d.', $start);
   }
 
   if ($max_attempts < 1) {
-    FAIL('Max attempts must be a positive integer, got %d', $max_attempts);
+    FAIL('Max attempts must be a positive integer, got %d.', $max_attempts);
   }
 
   for ($port = $start; $port < $start + $max_attempts; $port++) {
-    $conn = @stream_socket_client(sprintf('tcp://localhost:%d', $port), $errno, $errstr, 0.2);
+    $fp = @stream_socket_client(sprintf('tcp://localhost:%d', $port), $errno, $errstr, 0.2);
 
-    if ($conn === FALSE) {
+    if ($fp === FALSE) {
       return $port;
     }
 
-    fclose($conn);
+    fclose($fp);
   }
 
-  FAIL('Unable to find a free port in range %d-%d', $start, $start + $max_attempts - 1);
+  FAIL('Unable to find a free port in range %d-%d.', $start, $start + $max_attempts - 1);
 
   // @codeCoverageIgnoreStart
   return $start;
@@ -762,12 +800,11 @@ function port_listeners(string $port, callable $owns): array {
   $values = preg_split('/\s+/', trim((string) shell_exec(port_listener_pids_command($port))), -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
   foreach ($values as $value) {
-    $pid = (int) $value;
-
-    if (!ctype_digit($value) || $pid < 1) {
+    if (!is_positive_integer($value)) {
       continue;
     }
 
+    $pid = (int) $value;
     $command = process_command($pid);
     $listeners[$owns($pid, $command) ? 'own' : 'other'][$pid] = $command;
   }
@@ -811,6 +848,46 @@ function kill_processes(array $pids): void {
   }
 
   @passthru(sprintf('kill -9 %s 2>/dev/null', implode(' ', $pids)));
+}
+
+/**
+ * Report the processes that hold a port, then quit.
+ *
+ * @param string $port
+ *   The TCP port.
+ * @param string $variable
+ *   The '.env' variable that selects the port, such as 'WEBSERVER_PORT'.
+ * @param array<int, string> $listeners
+ *   The command line of each process holding the port, keyed by process ID.
+ */
+function fail_port_in_use(string $port, string $variable, array $listeners): void {
+  FAIL_NO_EXIT('Port %s is in use by another process. Stop it, or set %s in .env to a free port.', $port, $variable);
+
+  foreach ($listeners as $pid => $command) {
+    NOTE('%d %s', $pid, $command);
+  }
+
+  quit(1);
+}
+
+/**
+ * Report the processes that were left running on a port.
+ *
+ * @param string $port
+ *   The TCP port.
+ * @param array<int, string> $listeners
+ *   The command line of each process left running, keyed by process ID.
+ */
+function note_port_in_use(string $port, array $listeners): void {
+  if ($listeners === []) {
+    return;
+  }
+
+  NOTE('Port %s is still in use by another process, which was left running:', $port);
+
+  foreach ($listeners as $pid => $command) {
+    NOTE('%d %s', $pid, $command);
+  }
 }
 
 /**
@@ -870,7 +947,7 @@ function getenv_required(mixed ...$vars): string {
     return $value;
   }
 
-  FAIL('Missing required value for %s', implode(', ', array_filter(array_map(static fn(mixed $v): string => is_string($v) ? $v : '', $vars))));
+  FAIL('Missing required value for %s.', implode(', ', array_filter(array_map(static fn(mixed $v): string => is_string($v) ? $v : '', $vars))));
 
   // @codeCoverageIgnoreStart
   return '';
@@ -888,27 +965,21 @@ function NOTE(string $format, string|int|float ...$args): void {
  * Output a task message.
  */
 function TASK(string $format, string|int|float ...$args): void {
-  echo term_supports_color() ?
-    "\033[34m[TASK] " . sprintf($format, ...$args) . "\033[0m\n" :
-    sprintf('[TASK] %s%s', sprintf($format, ...$args), PHP_EOL);
+  print_tagged('[TASK]', '34', $format, ...$args);
 }
 
 /**
  * Output an info message.
  */
 function INFO(string $format, string|int|float ...$args): void {
-  echo term_supports_color() ?
-    "\033[36m[INFO] " . sprintf($format, ...$args) . "\033[0m\n" :
-    sprintf('[INFO] %s%s', sprintf($format, ...$args), PHP_EOL);
+  print_tagged('[INFO]', '36', $format, ...$args);
 }
 
 /**
  * Output a success message.
  */
 function PASS(string $format, string|int|float ...$args): void {
-  echo term_supports_color() ?
-    "\033[32m[ OK ] " . sprintf($format, ...$args) . "\033[0m\n" :
-    sprintf('[ OK ] %s%s', sprintf($format, ...$args), PHP_EOL);
+  print_tagged('[ OK ]', '32', $format, ...$args);
 }
 
 /**
@@ -923,9 +994,25 @@ function FAIL(string $format, string|int|float ...$args): void {
  * Output a failure message and do not exit.
  */
 function FAIL_NO_EXIT(string $format, string|int|float ...$args): void {
-  echo term_supports_color() ?
-    "\033[31m[FAIL] " . sprintf($format, ...$args) . "\033[0m\n" :
-    sprintf('[FAIL] %s%s', sprintf($format, ...$args), PHP_EOL);
+  print_tagged('[FAIL]', '31', $format, ...$args);
+}
+
+/**
+ * Output a tagged line, coloured when the terminal supports it.
+ *
+ * @param string $tag
+ *   The tag that opens the line, such as '[TASK]'.
+ * @param string $color
+ *   The ANSI code that styles the line, such as '34' for blue.
+ * @param string $format
+ *   The sprintf() format of the message.
+ * @param string|int|float ...$args
+ *   The values for the format.
+ */
+function print_tagged(string $tag, string $color, string $format, string|int|float ...$args): void {
+  $message = sprintf($format, ...$args);
+
+  echo term_supports_color() ? "\033[" . $color . 'm' . $tag . ' ' . $message . "\033[0m\n" : $tag . ' ' . $message . PHP_EOL;
 }
 
 /**
@@ -943,17 +1030,17 @@ function command_path(string $command): string|false {
     return FALSE;
   }
 
-  exec(sprintf('command -v %s 2>/dev/null', $command), $output, $code);
+  exec(sprintf('command -v %s 2>/dev/null', $command), $output, $exit_code);
 
-  return $code === 0 && !empty($output[0]) ? trim($output[0]) : FALSE;
+  return $exit_code === 0 && !empty($output[0]) ? trim($output[0]) : FALSE;
 }
 
 /**
  * Require a command to be available, or fail.
  */
 function command_must_exist(string $command): void {
-  if (!command_path($command)) {
-    FAIL("Command '%s' is not available", $command);
+  if (command_path($command) === FALSE) {
+    FAIL("Command '%s' is not available.", $command);
   }
 }
 
@@ -1102,8 +1189,8 @@ function print_qrcode(string $url): void {
     return;
   }
 
-  if (!command_path('qrencode')) {
-    FAIL("Command 'qrencode' is not available. Install it from https://fukuchi.org/works/qrencode/ to render QR codes");
+  if (command_path('qrencode') === FALSE) {
+    FAIL("Command 'qrencode' is not available. Install it from https://fukuchi.org/works/qrencode/ to render QR codes.");
   }
 
   passthru(sprintf('qrencode -t ANSIUTF8 %s', escapeshellarg($url)));
@@ -1199,7 +1286,7 @@ function drush(string $command, mixed $args = NULL, ?int &$exit_code = NULL): st
     // it holds only stdout, because stderr already streamed live.
     echo $output;
 
-    FAIL('Drush command failed: %s', $command);
+    FAIL('Drush command failed: %s.', $command);
   }
 
   return $output;
@@ -1243,6 +1330,22 @@ function site_db_file(string $extension_name): string {
 }
 
 /**
+ * Read a JSON file into an array.
+ *
+ * @param string $file
+ *   The path to the JSON file.
+ *
+ * @return array<mixed>
+ *   The decoded array, or an empty array when the file cannot be read or does
+ *   not hold a JSON object or array.
+ */
+function json_file(string $file): array {
+  $decoded = json_decode((string) @file_get_contents($file), TRUE);
+
+  return is_array($decoded) ? $decoded : [];
+}
+
+/**
  * Get the Drupal version a project builds when DRUPAL_VERSION is not set.
  *
  * @param string $dev_manifest
@@ -1253,8 +1356,7 @@ function site_db_file(string $extension_name): string {
  *   does not set one.
  */
 function default_drupal_version(string $dev_manifest = 'composer.dev.json'): string {
-  $config = json_decode((string) @file_get_contents($dev_manifest), TRUE);
-  $version = is_array($config) ? ($config['extra']['eddy']['drupal-version'] ?? NULL) : NULL;
+  $version = json_file($dev_manifest)['extra']['eddy']['drupal-version'] ?? NULL;
 
   if (is_int($version)) {
     $version = (string) $version;
@@ -1389,8 +1491,7 @@ function drupal_release_select(string $constraint, array $versions): ?string {
  */
 function config_platform_php(string ...$manifests): ?string {
   foreach ($manifests as $manifest) {
-    $config = json_decode((string) @file_get_contents($manifest), TRUE);
-    $php = is_array($config) ? ($config['config']['platform']['php'] ?? NULL) : NULL;
+    $php = json_file($manifest)['config']['platform']['php'] ?? NULL;
 
     if (is_string($php) && $php !== '') {
       return $php;
@@ -1476,12 +1577,7 @@ function version_satisfies(string $version, string $constraint): ?bool {
  *   out. Empty when the lock file cannot be read.
  */
 function locked_packages(string $lock_file, string $field): array {
-  $lock = json_decode((string) @file_get_contents($lock_file), TRUE);
-
-  if (!is_array($lock)) {
-    return [];
-  }
-
+  $lock = json_file($lock_file);
   $packages = array_merge((array) ($lock['packages'] ?? []), (array) ($lock['packages-dev'] ?? []));
 
   /** @var array<string, string> $values */
@@ -1579,7 +1675,7 @@ function replace_in_file(string $file, string $pattern, string $replacement): st
   $content = file_get_contents($file);
 
   if ($content === FALSE) {
-    FAIL('Unable to read file %s.', $file);
+    FAIL('Unable to read %s.', $file);
 
     // @codeCoverageIgnoreStart
     return '';
@@ -1942,7 +2038,7 @@ PHP;
 function tunnel_pid(): ?int {
   $pid = is_file(TUNNEL_PID_FILE) ? trim((string) file_get_contents(TUNNEL_PID_FILE)) : '';
 
-  if (!ctype_digit($pid) || (int) $pid < 1) {
+  if (!is_positive_integer($pid)) {
     return NULL;
   }
 
@@ -2041,11 +2137,11 @@ if (!function_exists('DrevOps\Eddy\Tooling\quit') && !class_exists('PHPUnit\\Fra
    * Wrapper around exit() to allow mocking in tests since exit() cannot be
    * directly mocked despite being a function in PHP 8.4+.
    *
-   * @param int $code
+   * @param int $exit_code
    *   Exit code (0 for success, non-zero for error).
    */
-  function quit(int $code = 0): void {
-    exit($code);
+  function quit(int $exit_code = 0): void {
+    exit($exit_code);
   }
 
 }

@@ -67,31 +67,16 @@ use function tool_specs;
 use function uncomment_line;
 use function workflow_push_branches;
 
-/**
- * Unit tests for helper functions in install.php.
- */
 #[Group('p0')]
 final class InstallHelpersTest extends UnitTestCase {
 
   use CiJobsTrait;
   use GitTrait;
 
-  protected string $originalCwd;
-
   public static function setUpBeforeClass(): void {
     self::envSet('SCRIPT_RUN_SKIP', '1');
-    require_once dirname(__DIR__, 4) . '/install.php';
+    require_once self::rootDir() . '/install.php';
     parent::setUpBeforeClass();
-  }
-
-  protected function setUp(): void {
-    parent::setUp();
-    $this->originalCwd = File::cwd();
-  }
-
-  protected function tearDown(): void {
-    chdir($this->originalCwd);
-    parent::tearDown();
   }
 
   #[DataProvider('dataProviderConvertString')]
@@ -143,8 +128,8 @@ final class InstallHelpersTest extends UnitTestCase {
   public function testIsBinaryFileMissing(): void {
     // The only caller, 'get_files()', passes files it has just found, so the
     // defensive 'fopen() === FALSE' branch is unreachable from production
-    // code. 'fopen()' is allowed to warn, so suppress 'E_WARNING' to keep
-    // PHPUnit's 'failOnWarning' from aborting the test.
+    // code. 'fopen()' is allowed to warn, so the handler discards 'E_WARNING'
+    // to keep PHPUnit's 'failOnWarning' from aborting the test.
     set_error_handler(static fn(): bool => TRUE, E_WARNING);
     try {
       $this->assertTrue(is_binary_file(self::$sut . '/nonexistent_file'));
@@ -154,26 +139,29 @@ final class InstallHelpersTest extends UnitTestCase {
     }
   }
 
-  public function testPrintHelp(): void {
-    ob_start();
-    print_help();
-    $output = (string) ob_get_clean();
+  #[DataProvider('dataProviderPrintHelp')]
+  public function testPrintHelp(string $needle): void {
+    $output = $this->capture(fn() => print_help());
 
-    $this->assertStringContainsString('Eddy - project installation.', $output);
-    $this->assertStringContainsString('Usage:', $output);
-    $this->assertStringContainsString('install.php', $output);
-    $this->assertStringContainsString('--help', $output);
-    $this->assertStringContainsString('INSTALL_NAME', $output);
-    $this->assertStringContainsString('INSTALL_MACHINE_NAME', $output);
-    $this->assertStringContainsString('INSTALL_TYPE', $output);
-    $this->assertStringContainsString('INSTALL_DRUPAL_VERSION', $output);
-    $this->assertStringContainsString('INSTALL_COMMAND_WRAPPER', $output);
-    $this->assertStringContainsString('INSTALL_TOOLS', $output);
-    $this->assertStringContainsString('INSTALL_EXAMPLES', $output);
-    $this->assertStringContainsString('INSTALL_REMOVE_SELF', $output);
-    $this->assertStringContainsString('INSTALL_PROCEED', $output);
-    $this->assertStringContainsString('INSTALL_BRANCHES', $output);
-    $this->assertStringContainsString('INSTALL_GITHUB_REPOSITORY', $output);
+    $this->assertStringContainsString($needle, $output);
+  }
+
+  public static function dataProviderPrintHelp(): \Iterator {
+    yield 'Eddy - project installation.' => ['Eddy - project installation.'];
+    yield 'Usage:' => ['Usage:'];
+    yield 'install.php' => ['install.php'];
+    yield '--help' => ['--help'];
+    yield 'INSTALL_NAME' => ['INSTALL_NAME'];
+    yield 'INSTALL_MACHINE_NAME' => ['INSTALL_MACHINE_NAME'];
+    yield 'INSTALL_TYPE' => ['INSTALL_TYPE'];
+    yield 'INSTALL_DRUPAL_VERSION' => ['INSTALL_DRUPAL_VERSION'];
+    yield 'INSTALL_COMMAND_WRAPPER' => ['INSTALL_COMMAND_WRAPPER'];
+    yield 'INSTALL_TOOLS' => ['INSTALL_TOOLS'];
+    yield 'INSTALL_EXAMPLES' => ['INSTALL_EXAMPLES'];
+    yield 'INSTALL_REMOVE_SELF' => ['INSTALL_REMOVE_SELF'];
+    yield 'INSTALL_PROCEED' => ['INSTALL_PROCEED'];
+    yield 'INSTALL_BRANCHES' => ['INSTALL_BRANCHES'];
+    yield 'INSTALL_GITHUB_REPOSITORY' => ['INSTALL_GITHUB_REPOSITORY'];
   }
 
   /**
@@ -203,7 +191,7 @@ final class InstallHelpersTest extends UnitTestCase {
   public function testDrupalVersionShippedBuildDefault(): void {
     $shipped_default = (string) max(array_map(intval(...), drupal_version_default()));
 
-    $config = json_decode(File::read(dirname(__DIR__, 4) . '/composer.dev.json'), TRUE);
+    $config = json_decode(File::read(self::rootDir() . '/composer.dev.json'), TRUE);
     $this->assertIsArray($config);
     /** @var array{extra?: array{eddy?: array{'drupal-version'?: string}}} $config */
 
@@ -326,7 +314,7 @@ final class InstallHelpersTest extends UnitTestCase {
    * installer finds them to render for the selected majors.
    */
   public function testPhpBadgesTemplate(): void {
-    $readme = File::read(dirname(__DIR__, 4) . '/README.dist.md');
+    $readme = File::read(self::rootDir() . '/README.dist.md');
     $badges = php_badges(array_keys(drupal_version_options()));
 
     preg_match_all('/^!\[PHP .*$/m', $readme, $matches);
@@ -559,7 +547,7 @@ final class InstallHelpersTest extends UnitTestCase {
       $this->assertContains($major, $supported, sprintf('Drupal %s has a specification but is not a supported major.', $major));
 
       foreach ($spec['files'] as $file) {
-        $this->assertFileExists(dirname(__DIR__, 4) . '/' . $file, sprintf('Drupal %s lists "%s", which the template does not have.', $major, $file));
+        $this->assertFileExists(self::rootDir() . '/' . $file, sprintf('Drupal %s lists "%s", which the template does not have.', $major, $file));
       }
     }
   }
@@ -579,7 +567,7 @@ final class InstallHelpersTest extends UnitTestCase {
       $tested[(int) $job['drupal']][] = $job['php'];
     }
 
-    $agents = File::read(dirname(__DIR__, 4) . '/AGENTS.md');
+    $agents = File::read(self::rootDir() . '/AGENTS.md');
 
     foreach ($php_versions as $major => $versions) {
       $tested_versions = sort_php_versions($tested[$major] ?? []);
@@ -591,15 +579,12 @@ final class InstallHelpersTest extends UnitTestCase {
     }
   }
 
-  /**
-   * Every file in 'extension_type_specs()' is in the template.
-   */
   public function testExtensionTypeSpecsNameTemplateFiles(): void {
     $this->assertSame(['module', 'theme'], array_keys(extension_type_specs()));
 
     foreach (extension_type_specs() as $type => $spec) {
       foreach ($spec['files'] as $file) {
-        $this->assertFileExists(dirname(__DIR__, 4) . '/' . $file, sprintf('The %s type lists "%s", which the template does not have.', $type, $file));
+        $this->assertFileExists(self::rootDir() . '/' . $file, sprintf('The %s type lists "%s", which the template does not have.', $type, $file));
       }
     }
   }
@@ -662,11 +647,11 @@ final class InstallHelpersTest extends UnitTestCase {
   }
 
   #[DataProvider('dataProviderReadComposerDevJson')]
-  public function testReadComposerDevJson(?string $contents, ?array $expected): void {
+  public function testReadComposerDevJson(?string $content, ?array $expected): void {
     chdir(self::$sut);
 
-    if ($contents !== NULL) {
-      File::dump('composer.dev.json', $contents);
+    if ($content !== NULL) {
+      File::dump('composer.dev.json', $content);
     }
 
     $this->assertSame($expected, read_composer_dev_json());
@@ -680,11 +665,11 @@ final class InstallHelpersTest extends UnitTestCase {
   }
 
   #[DataProvider('dataProviderSetComposerDevEddyValue')]
-  public function testSetComposerDevEddyValue(?string $contents, string $key, string $value, ?string $expected): void {
+  public function testSetComposerDevEddyValue(?string $content, string $key, string $value, ?string $expected): void {
     chdir(self::$sut);
 
-    if ($contents !== NULL) {
-      File::dump('composer.dev.json', $contents);
+    if ($content !== NULL) {
+      File::dump('composer.dev.json', $content);
     }
 
     set_composer_dev_eddy_value($key, $value);
@@ -751,25 +736,23 @@ final class InstallHelpersTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderTemplateVersionArchive')]
   public function testTemplateVersionArchive(?string $tag, int $commits_after_tag, string $expected_pattern): void {
-    $root = dirname(__DIR__, 4);
+    $root = self::rootDir();
     File::copy($root . '/install.php', self::$sut . '/install.php');
     File::copy($root . '/.gitattributes', self::$sut . '/.gitattributes');
 
-    $this->git(self::$sut, ['init']);
-    $this->git(self::$sut, ['config', 'user.name', 'Test User']);
-    $this->git(self::$sut, ['config', 'user.email', 'test@example.com']);
-    $this->git(self::$sut, ['add', '--all']);
-    $this->git(self::$sut, ['commit', '--message', 'Release']);
+    self::gitInit(self::$sut);
+    self::gitRun(self::$sut, ['add', '--all']);
+    self::gitRun(self::$sut, ['commit', '--message', 'Release']);
 
     if ($tag !== NULL) {
-      $this->git(self::$sut, ['tag', $tag]);
+      self::gitRun(self::$sut, ['tag', $tag]);
     }
 
     for ($i = 0; $i < $commits_after_tag; $i++) {
-      $this->git(self::$sut, ['commit', '--allow-empty', '--message', 'Change']);
+      self::gitRun(self::$sut, ['commit', '--allow-empty', '--message', 'Change']);
     }
 
-    $this->git(self::$sut, ['archive', '--output=archive.tar', 'HEAD', 'install.php']);
+    self::gitRun(self::$sut, ['archive', '--output=archive.tar', 'HEAD', 'install.php']);
     $process = new Process(['tar', '-xOf', 'archive.tar', 'install.php'], self::$sut);
     $process->mustRun();
     $archived = $process->getOutput();
@@ -879,17 +862,15 @@ final class InstallHelpersTest extends UnitTestCase {
   #[DataProvider('dataProviderCommittedWorkflowBranches')]
   public function testCommittedWorkflowBranches(?array $committed, string $directory, array $expected): void {
     if ($committed !== NULL) {
-      $this->git(self::$sut, ['init']);
-      $this->git(self::$sut, ['config', 'user.name', 'Test User']);
-      $this->git(self::$sut, ['config', 'user.email', 'test@example.com']);
+      self::gitInit(self::$sut);
       File::dump(self::$sut . '/README.md', 'Project');
 
       foreach ($committed as $path => $content) {
         File::dump(self::$sut . '/' . $path, $content);
       }
 
-      $this->git(self::$sut, ['add', '--all']);
-      $this->git(self::$sut, ['commit', '--message', 'Initial commit']);
+      self::gitRun(self::$sut, ['add', '--all']);
+      self::gitRun(self::$sut, ['commit', '--message', 'Initial commit']);
     }
 
     // The working tree holds the template's copy, which the function ignores.
@@ -1035,10 +1016,10 @@ final class InstallHelpersTest extends UnitTestCase {
   #[DataProvider('dataProviderOriginGithubRepository')]
   public function testOriginGithubRepository(array $commands, string $directory, ?string $expected): void {
     foreach ($commands as $command) {
-      $this->git(self::$sut, $command);
+      self::gitRun(self::$sut, $command);
     }
 
-    File::mkdir(self::$sut . '/' . $directory);
+    File::mkdir(self::$sut . '/' . $directory, 0755);
     chdir(self::$sut . '/' . $directory);
 
     $this->assertSame($expected, origin_github_repository());
@@ -1193,16 +1174,16 @@ final class InstallHelpersTest extends UnitTestCase {
   }
 
   #[DataProvider('dataProviderGetFiles')]
-  public function testGetFiles(callable $setup, array $expected_filenames, array $not_expected_filenames = []): void {
+  public function testGetFiles(callable $setup, array $expected_present, array $expected_absent = []): void {
     chdir(self::$sut);
     $setup(self::$sut);
     $files = get_files();
-    $basenames = array_map(static fn(string $f): string => str_replace(self::$sut . '/', '', $f), $files);
+    $basenames = array_map(static fn(string $file): string => str_replace(self::$sut . '/', '', $file), $files);
 
-    foreach ($expected_filenames as $expected_filename) {
+    foreach ($expected_present as $expected_filename) {
       $this->assertContains($expected_filename, $basenames, 'Expected file not found: ' . $expected_filename);
     }
-    foreach ($not_expected_filenames as $not_expected_filename) {
+    foreach ($expected_absent as $not_expected_filename) {
       $this->assertNotContains($not_expected_filename, $basenames, 'Unexpected file found: ' . $not_expected_filename);
     }
   }
@@ -1410,7 +1391,7 @@ final class InstallHelpersTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderIsGitignoredTemplate')]
   public function testIsGitignoredTemplate(string $path, bool $is_dir, bool $expected): void {
-    $rules = gitignore_rules(File::read(dirname(__DIR__, 4) . '/.gitignore'));
+    $rules = gitignore_rules(File::read(self::rootDir() . '/.gitignore'));
 
     $this->assertSame($expected, is_gitignored($path, $is_dir, $rules));
   }
@@ -1433,11 +1414,8 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'nested build directory' => ['tests/build', TRUE, FALSE];
   }
 
-  /**
-   * Every skill the repository tracks in '.claude/skills' is one of Eddy's.
-   */
   public function testEddySkillsListTrackedSkills(): void {
-    $tracked = $this->git(dirname(__DIR__, 4), ['ls-files', '--', '.claude/skills']);
+    $tracked = self::gitRun(self::rootDir(), ['ls-files', '--', '.claude/skills']);
     $paths = $tracked === '' ? [] : explode("\n", $tracked);
     $skills = array_values(array_unique(array_map(static fn(string $path): string => explode('/', $path)[2], $paths)));
 
@@ -1763,7 +1741,7 @@ final class InstallHelpersTest extends UnitTestCase {
     ];
   }
 
-  public function testNormaliseCspellWordsDeduplicatesAndSorts(): void {
+  public function testNormalizeCspellWordsDeduplicatesAndSorts(): void {
     chdir(self::$sut);
     $input = [
       'dictionaries' => ['php'],
@@ -1777,14 +1755,13 @@ final class InstallHelpersTest extends UnitTestCase {
     $result = json_decode(File::read(self::$sut . '/.cspell.json'), TRUE);
     $this->assertIsArray($result);
     /** @var array<string, mixed> $result */
-    // Mixed-case duplicates collapse to the first-seen form: 'Ahoy'/'ahoy'
-    // -> 'Ahoy'; 'force_crystal'/'Force_Crystal' -> 'force_crystal'.
+    // Mixed-case duplicates collapse to the first-seen form.
     $this->assertSame(['Ahoy', 'force_crystal', 'yoyodyne'], $result['words']);
     $this->assertSame(['php'], $result['dictionaries']);
     $this->assertSame(['build/'], $result['ignorePaths']);
   }
 
-  public function testNormaliseCspellWordsMissingFile(): void {
+  public function testNormalizeCspellWordsMissingFile(): void {
     chdir(self::$sut);
 
     normalize_cspell_words();
@@ -1792,7 +1769,7 @@ final class InstallHelpersTest extends UnitTestCase {
     $this->assertFileDoesNotExist(self::$sut . '/.cspell.json');
   }
 
-  public function testNormaliseCspellWordsInvalidJson(): void {
+  public function testNormalizeCspellWordsInvalidJson(): void {
     chdir(self::$sut);
     File::dump(self::$sut . '/.cspell.json', '{not valid json');
 
@@ -1800,7 +1777,7 @@ final class InstallHelpersTest extends UnitTestCase {
     normalize_cspell_words();
   }
 
-  public function testNormaliseCspellWordsMissingWordsKey(): void {
+  public function testNormalizeCspellWordsMissingWordsKey(): void {
     chdir(self::$sut);
     $input = json_encode(['dictionaries' => ['php']], JSON_THROW_ON_ERROR);
     File::dump(self::$sut . '/.cspell.json', $input);
@@ -1836,7 +1813,7 @@ final class InstallHelpersTest extends UnitTestCase {
   }
 
   public static function dataProviderRemoveCspellEddyPaths(): \Iterator {
-    $cspell = static fn(array $paths): string => (string) json_encode(['files' => ['**'], 'ignorePaths' => $paths]);
+    $cspell = static fn(array $paths): string => json_encode(['files' => ['**'], 'ignorePaths' => $paths], JSON_THROW_ON_ERROR);
 
     yield 'eddy paths go' => [$cspell(['build/', '.eddy/docs/', '.eddy/tests/fixtures/', 'vendor/']), ['build/', 'vendor/']];
     yield 'anchored eddy path goes' => [$cspell(['/.eddy/docs/', 'build/']), ['build/']];
@@ -1880,7 +1857,7 @@ final class InstallHelpersTest extends UnitTestCase {
   }
 
   public static function dataProviderRemoveUnusedCspellWords(): \Iterator {
-    $cspell = static fn(array $words): string => (string) json_encode(['files' => ['**'], 'words' => $words]);
+    $cspell = static fn(array $words): string => json_encode(['files' => ['**'], 'words' => $words], JSON_THROW_ON_ERROR);
 
     yield 'unused word goes' => [$cspell(['ahoy', 'lullabot']), ['Makefile' => 'ahoy'], ['lullabot'], ['ahoy']];
     yield 'word in another case goes' => [$cspell(['Lullabot', 'phpcs']), ['phpcs.xml' => 'phpcs'], ['lullabot'], ['phpcs']];
@@ -1952,11 +1929,8 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'PHPUnit takes FunctionalJavascript along' => [['phpunit'], ['behat', 'browserkit', 'codecov', 'mikey', 'phpspec', 'vfsstream', ...$functional_javascript]];
   }
 
-  /**
-   * Every word a tool lists is in the 'words' of the template '.cspell.json'.
-   */
   public function testToolSpecsCspellWordsAreTemplateWords(): void {
-    $config = json_decode(File::read(dirname(__DIR__, 4) . '/.cspell.json'), TRUE);
+    $config = json_decode(File::read(self::rootDir() . '/.cspell.json'), TRUE);
     $this->assertIsArray($config);
     $template_words = $config['words'] ?? NULL;
     $this->assertIsArray($template_words);
@@ -1984,12 +1958,8 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'unknown type' => [['profile'], []];
   }
 
-  /**
-   * Every word an extension type lists is in the 'words' of the template
-   * '.cspell.json'.
-   */
   public function testExtensionTypeSpecsCspellWordsAreTemplateWords(): void {
-    $config = json_decode(File::read(dirname(__DIR__, 4) . '/.cspell.json'), TRUE);
+    $config = json_decode(File::read(self::rootDir() . '/.cspell.json'), TRUE);
     $this->assertIsArray($config);
     $template_words = $config['words'] ?? NULL;
     $this->assertIsArray($template_words);
@@ -2003,13 +1973,13 @@ final class InstallHelpersTest extends UnitTestCase {
 
   /**
    * @param array<string> $drupal_versions
-   * @param array<string> $wrapper
+   * @param array<string> $command_wrapper
    */
   #[DataProvider('dataProviderProcessValidation')]
-  public function testProcessValidation(string $extension_name, string $machine_name, string $type, array $drupal_versions, array $wrapper, string $expected_message): void {
+  public function testProcessValidation(string $name, string $machine_name, string $type, array $drupal_versions, array $command_wrapper, string $expected_message): void {
     $this->expectException(\Exception::class);
     $this->expectExceptionMessage($expected_message);
-    process($extension_name, $machine_name, $type, $drupal_versions, $wrapper, [], FALSE, FALSE);
+    process($name, $machine_name, $type, $drupal_versions, $command_wrapper, [], FALSE, FALSE);
   }
 
   public static function dataProviderProcessValidation(): \Iterator {

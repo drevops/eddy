@@ -5,28 +5,16 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\validate_port_or_fail;
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for validate_port_or_fail() helper.
- *
- * phpcs:disable Drupal.Classes.FullyQualifiedNamespace.UseStatementMissing
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
- */
+#[CoversFunction('DrevOps\Eddy\Tooling\is_positive_integer')]
 #[CoversFunction('DrevOps\Eddy\Tooling\validate_port_or_fail')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
-final class HelpersValidatePortTest extends UnitTestCase {
-
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
+final class HelpersValidatePortOrFailTest extends UnitTestCase {
 
   #[DataProvider('dataProviderValidPortDoesNotFail')]
   public function testValidPortDoesNotFail(string $value): void {
@@ -45,20 +33,10 @@ final class HelpersValidatePortTest extends UnitTestCase {
   public function testInvalidPortFails(string $value): void {
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      validate_port_or_fail($value, 'WEBSERVER_PORT');
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Invalid WEBSERVER_PORT', $output);
-      $this->assertStringContainsString('Expected integer in range 1-65535', $output);
-    }
+    $output = $this->capture(fn() => validate_port_or_fail($value, 'WEBSERVER_PORT'), 1);
+
+    $this->assertStringContainsString('Invalid WEBSERVER_PORT', $output);
+    $this->assertStringContainsString('Expected integer in range 1-65535', $output);
   }
 
   public static function dataProviderInvalidPortFails(): \Iterator {
@@ -76,19 +54,9 @@ final class HelpersValidatePortTest extends UnitTestCase {
   public function testUsesProvidedSourceNameInErrorMessage(): void {
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      validate_port_or_fail('bogus', 'CUSTOM_PORT_VAR');
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Invalid CUSTOM_PORT_VAR', $output);
-    }
+    $output = $this->capture(fn() => validate_port_or_fail('bogus', 'CUSTOM_PORT_VAR'), 1);
+
+    $this->assertStringContainsString('Invalid CUSTOM_PORT_VAR', $output);
   }
 
 }

@@ -29,9 +29,6 @@ use Symfony\Component\Process\Process;
  * The step's shell is read out of the workflow and executed in a clone of a
  * purpose-built repository. These assertions therefore cover that script,
  * not a re-implementation.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class DeployWorkflowBranchTest extends UnitTestCase {
@@ -54,18 +51,18 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderDeployment')]
   public function testDeployment(string $deploy_branch, string $head_branch, string $head_commit, string $after_checkout, ?array $expected): void {
-    $repository = $this->createRepository();
-    $head_sha = $this->resolveCommit($repository, $head_commit);
+    $repository = self::createRepository();
+    $head_sha = self::resolveCommit($repository, $head_commit);
 
-    $this->changeOrigin($head_branch, $after_checkout);
+    self::changeOrigin($head_branch, $after_checkout);
 
-    $this->runStep($repository, [
+    self::runStep($repository, [
       'DEPLOY_BRANCH' => $deploy_branch,
       'HEAD_BRANCH' => $head_branch,
       'HEAD_SHA' => $head_sha,
     ]);
 
-    $this->assertSame($expected, $this->readDeployment());
+    $this->assertSame($expected, self::readDeployment());
   }
 
   public static function dataProviderDeployment(): \Iterator {
@@ -183,10 +180,10 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
   }
 
   public function testSkippedRunReportsNotice(): void {
-    $repository = $this->createRepository();
-    $head_sha = $this->resolveCommit($repository, 'tagged');
+    $repository = self::createRepository();
+    $head_sha = self::resolveCommit($repository, 'tagged');
 
-    $output = $this->runStep($repository, [
+    $output = self::runStep($repository, [
       'DEPLOY_BRANCH' => '',
       'HEAD_BRANCH' => self::FEATURE_BRANCH,
       'HEAD_SHA' => $head_sha,
@@ -196,43 +193,43 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
   }
 
   public function testFailedFetchFailsStep(): void {
-    $repository = $this->createRepository();
-    $this->git($repository, ['remote', 'set-url', 'origin', self::$tmp . '/missing']);
+    $repository = self::createRepository();
+    self::gitRun($repository, ['remote', 'set-url', 'origin', self::$tmp . '/missing']);
 
-    $process = $this->startStep($repository, [
+    $process = self::startStep($repository, [
       'DEPLOY_BRANCH' => '',
       'HEAD_BRANCH' => self::FEATURE_BRANCH,
-      'HEAD_SHA' => $this->resolveCommit($repository, 'tip'),
+      'HEAD_SHA' => self::resolveCommit($repository, 'tip'),
     ]);
     $process->wait();
 
     $this->assertFalse($process->isSuccessful(), 'A failed fetch must fail the step rather than compare the commit with the tip the checkout saw.');
-    $this->assertNull($this->readDeployment());
+    $this->assertNull(self::readDeployment());
   }
 
   public function testFetchSendsToken(): void {
-    $repository = $this->createRepository();
-    // Long enough for 'base64' to wrap the encoded credentials.
+    $repository = self::createRepository();
+    // The token is long enough for 'base64' to wrap the encoded credentials.
     $token = 'ghs_' . str_repeat('0123456789', 10);
 
     $server = stream_socket_server('tcp://127.0.0.1:0');
 
     if ($server === FALSE) {
-      self::fail('Unable to listen on a local port.');
+      $this->fail('Unable to listen on a local port.');
     }
 
     $address = stream_socket_get_name($server, FALSE);
 
     if ($address === FALSE) {
-      self::fail('Unable to read the address of the local port.');
+      $this->fail('Unable to read the address of the local port.');
     }
 
-    $this->git($repository, ['remote', 'set-url', 'origin', sprintf('http://%s/repository.git', $address)]);
+    self::gitRun($repository, ['remote', 'set-url', 'origin', sprintf('http://%s/repository.git', $address)]);
 
-    $process = $this->startStep($repository, [
+    $process = self::startStep($repository, [
       'DEPLOY_BRANCH' => '',
       'HEAD_BRANCH' => self::FEATURE_BRANCH,
-      'HEAD_SHA' => $this->resolveCommit($repository, 'tip'),
+      'HEAD_SHA' => self::resolveCommit($repository, 'tip'),
       'GITHUB_TOKEN' => $token,
       // A proxy set on the host would otherwise receive the request.
       'NO_PROXY' => '*',
@@ -246,7 +243,7 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
   }
 
   public function testStepReceivesToken(): void {
-    $token = self::child(self::child(self::deployStep(self::STEP), 'env'), 'GITHUB_TOKEN');
+    $token = self::deployChild(self::deployChild(self::deployStep(self::STEP), 'env'), 'GITHUB_TOKEN');
 
     $this->assertSame('${{ secrets.GITHUB_TOKEN }}', $token, sprintf('The "%s" step must receive GITHUB_TOKEN, since its fetch needs credentials on a private repository.', self::STEP));
   }
@@ -266,7 +263,7 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
    * @return \Symfony\Component\Process\Process
    *   The started step.
    */
-  protected function startStep(string $repository, array $environment): Process {
+  protected static function startStep(string $repository, array $environment): Process {
     $script = self::$tmp . '/step.sh';
     File::dump($script, self::stepScript());
 
@@ -288,8 +285,8 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
    * @return string
    *   The standard output of the step.
    */
-  protected function runStep(string $repository, array $environment): string {
-    $process = $this->startStep($repository, $environment);
+  protected static function runStep(string $repository, array $environment): string {
+    $process = self::startStep($repository, $environment);
     $process->wait();
 
     if (!$process->isSuccessful()) {
@@ -305,7 +302,7 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
    * @return array<string, string>|null
    *   The recorded variables, or NULL when the deploy script did not run.
    */
-  protected function readDeployment(): ?array {
+  protected static function readDeployment(): ?array {
     $file = self::deploymentFile();
 
     if (!File::exists($file)) {
@@ -332,30 +329,28 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
    * @return string
    *   Directory of the clone.
    */
-  protected function createRepository(): string {
+  protected static function createRepository(): string {
     $origin = self::originDir();
     File::mkdir($origin, 0755);
 
-    $this->git($origin, ['init', '--initial-branch=' . self::DEFAULT_BRANCH]);
-    $this->git($origin, ['config', 'user.name', 'Test User']);
-    $this->git($origin, ['config', 'user.email', 'test@example.com']);
+    self::gitInit($origin, ['--initial-branch=' . self::DEFAULT_BRANCH]);
 
     File::dump($origin . '/file.txt', 'first');
-    $this->git($origin, ['add', '--all']);
-    $this->git($origin, ['commit', '--message', 'First commit']);
+    self::gitRun($origin, ['add', '--all']);
+    self::gitRun($origin, ['commit', '--message', 'First commit']);
 
-    $this->git($origin, ['tag', self::LIGHTWEIGHT_TAG]);
-    $this->git($origin, ['tag', '--annotate', self::ANNOTATED_TAG, '--message', 'Release']);
+    self::gitRun($origin, ['tag', self::LIGHTWEIGHT_TAG]);
+    self::gitRun($origin, ['tag', '--annotate', self::ANNOTATED_TAG, '--message', 'Release']);
 
     File::dump($origin . '/file.txt', 'second');
-    $this->git($origin, ['commit', '--all', '--message', 'Second commit']);
+    self::gitRun($origin, ['commit', '--all', '--message', 'Second commit']);
 
     foreach ([self::FEATURE_BRANCH, self::LIGHTWEIGHT_TAG] as $branch) {
-      $this->git($origin, ['update-ref', 'refs/heads/' . $branch, 'HEAD']);
+      self::gitRun($origin, ['update-ref', 'refs/heads/' . $branch, 'HEAD']);
     }
 
     $repository = self::$tmp . '/repository';
-    $this->git(self::$tmp, ['clone', '--quiet', $origin, $repository]);
+    self::gitRun(self::$tmp, ['clone', '--quiet', $origin, $repository]);
 
     // The step ends by invoking the deploy command, so this stub records the
     // variables it receives.
@@ -374,20 +369,20 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
    *   'none', 'advance' to add a commit, 'delete', or 'rewind' to reset the
    *   branch to its parent commit.
    */
-  protected function changeOrigin(string $branch, string $change): void {
+  protected static function changeOrigin(string $branch, string $change): void {
     $origin = self::originDir();
     $ref = 'refs/heads/' . $branch;
 
     $arguments = match ($change) {
       'none' => NULL,
-      'advance' => ['update-ref', $ref, $this->git($origin, ['commit-tree', $ref . '^{tree}', '-p', $ref, '-m', 'Third commit'])],
+      'advance' => ['update-ref', $ref, self::gitRun($origin, ['commit-tree', $ref . '^{tree}', '-p', $ref, '-m', 'Third commit'])],
       'delete' => ['update-ref', '-d', $ref],
       'rewind' => ['update-ref', $ref, $ref . '~1'],
       default => self::fail(sprintf('Unknown change "%s".', $change)),
     };
 
     if ($arguments !== NULL) {
-      $this->git($origin, $arguments);
+      self::gitRun($origin, $arguments);
     }
   }
 
@@ -402,11 +397,10 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
    * @return string
    *   The commit SHA.
    */
-  protected function resolveCommit(string $repository, string $name): string {
+  protected static function resolveCommit(string $repository, string $name): string {
     return match ($name) {
-      'tagged' => $this->git($repository, ['rev-parse', self::DEFAULT_BRANCH . '~1']),
-      'tip' => $this->git($repository, ['rev-parse', self::DEFAULT_BRANCH]),
-      // A commit the deploy clone does not hold.
+      'tagged' => self::gitRun($repository, ['rev-parse', self::DEFAULT_BRANCH . '~1']),
+      'tip' => self::gitRun($repository, ['rev-parse', self::DEFAULT_BRANCH]),
       'unknown' => str_repeat('0', 40),
       default => self::fail(sprintf('Unknown commit "%s".', $name)),
     };
@@ -474,7 +468,7 @@ final class DeployWorkflowBranchTest extends UnitTestCase {
    *   The step's `run` script.
    */
   protected static function stepScript(): string {
-    $script = self::child(self::deployStep(self::STEP), 'run');
+    $script = self::deployChild(self::deployStep(self::STEP), 'run');
 
     if (!is_string($script)) {
       self::fail(sprintf('The "%s" step of %s runs no script.', self::STEP, basename(self::deployWorkflowPath())));

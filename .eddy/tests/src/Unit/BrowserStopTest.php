@@ -4,49 +4,37 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for the 'eddy-browser-stop' command.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
- */
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class BrowserStopTest extends UnitTestCase {
 
-  protected const string ROOT = '/test/project';
-
   protected function setUp(): void {
     parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-    $this->envUnset('WEBDRIVER_PORT');
-    $this->envUnset('WEBDRIVER_BACKEND');
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => self::ROOT);
+    self::envUnset('WEBDRIVER_PORT');
+    self::envUnset('WEBDRIVER_BACKEND');
+    $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
   }
 
   #[DataProvider('dataProviderBrowserStop')]
   public function testBrowserStop(array $env, ?string $dotenv, bool $docker, string $expected_port): void {
-    foreach ($env as $name => $value) {
-      $this->envSet($name, $value);
-    }
+    self::envSetMultiple($env);
 
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $dotenv !== NULL && $file === '.env');
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(string $file): string|false => $file === '.env' && $dotenv !== NULL ? $dotenv : FALSE);
+    $this->mockFunction('file_exists', fn(string $file): bool => $dotenv !== NULL && $file === '.env');
+    $this->mockFunction('file_get_contents', fn(string $file): string|false => $file === '.env' && $dotenv !== NULL ? $dotenv : FALSE);
 
     $written = FALSE;
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', function (string $file, string $contents) use (&$written): int {
+    $this->mockFunction('file_put_contents', function (string $file, string $content) use (&$written): int {
       $written = TRUE;
 
-      return strlen($contents);
+      return strlen($content);
     });
 
     $probed = FALSE;
-    $this->registerMock('stream_socket_client', 'DrevOps\\Eddy\\Tooling', function () use (&$probed): false {
+    $this->mockFunction('stream_socket_client', function () use (&$probed): false {
       $probed = TRUE;
 
       return FALSE;
@@ -54,20 +42,18 @@ final class BrowserStopTest extends UnitTestCase {
 
     $this->mockCommandAvailable('docker', $docker);
 
-    $this->mockPortListeners($expected_port, [1234 => ['/usr/local/bin/chromedriver --port=' . $expected_port, self::ROOT]], $docker ? self::seleniumContainerOutputs($expected_port, self::ROOT) : []);
+    $this->mockPortListeners($expected_port, [1234 => ['/usr/local/bin/chromedriver --port=' . $expected_port, self::PROJECT_ROOT]], $docker ? self::seleniumContainerOutputs($expected_port, self::PROJECT_ROOT) : []);
 
     $commands = [];
     if ($docker) {
-      $commands[] = ['cmd' => sprintf('docker rm -f %s >/dev/null 2>&1', escapeshellarg('selenium-' . $expected_port))];
+      $commands[] = ['cmd' => self::seleniumRemoveCommand($expected_port)];
     }
     $commands[] = ['cmd' => self::killProcessesCommand(1234)];
     $this->mockPassthruMultiple($commands);
 
     $this->mockSleep();
 
-    ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-browser-stop';
-    $output = (string) ob_get_clean();
+    $output = $this->runCommand('eddy-browser-stop');
 
     $this->assertStringContainsString('STOP BROWSER', $output);
     $this->assertStringContainsString('Browser stopped on port ' . $expected_port . '.', $output);
@@ -139,13 +125,13 @@ final class BrowserStopTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderBrowserStopStopsOnlyOwnBackend')]
   public function testBrowserStopStopsOnlyOwnBackend(?string $container, array $listeners, bool $expected_removed, array $expected_killed, array $expected_notes, bool $running = TRUE): void {
-    $this->envSet('WEBDRIVER_PORT', '4444');
+    self::envSet('WEBDRIVER_PORT', '4444');
     $this->mockCommandAvailable('docker', TRUE);
     $this->mockPortListeners('4444', $listeners, self::seleniumContainerOutputs('4444', $container, $running));
 
     $commands = [];
     if ($expected_removed) {
-      $commands[] = ['cmd' => "docker rm -f 'selenium-4444' >/dev/null 2>&1"];
+      $commands[] = ['cmd' => self::seleniumRemoveCommand('4444')];
     }
     if ($expected_killed !== []) {
       $commands[] = ['cmd' => self::killProcessesCommand(...$expected_killed)];
@@ -154,9 +140,7 @@ final class BrowserStopTest extends UnitTestCase {
 
     $this->mockSleep();
 
-    ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-browser-stop';
-    $output = (string) ob_get_clean();
+    $output = $this->runCommand('eddy-browser-stop');
 
     $this->assertStringContainsString('Browser stopped on port 4444.', $output);
     $this->assertStringContainsString('BROWSER STOPPED', $output);
@@ -171,7 +155,7 @@ final class BrowserStopTest extends UnitTestCase {
   }
 
   public static function dataProviderBrowserStopStopsOnlyOwnBackend(): \Iterator {
-    $own_driver = ['/usr/local/bin/chromedriver --port=4444', self::ROOT];
+    $own_driver = ['/usr/local/bin/chromedriver --port=4444', self::PROJECT_ROOT];
     $other_driver = ['/usr/local/bin/chromedriver --port=4444', '/www/other'];
     $docker_backend = ['/Applications/Docker.app/Contents/MacOS/com.docker.backend', '/'];
 
@@ -180,33 +164,23 @@ final class BrowserStopTest extends UnitTestCase {
     yield 'the chromedriver of the project with a child on the port' => [NULL, [1234 => $own_driver, 1235 => $own_driver], FALSE, [1234, 1235], []];
     yield 'a process whose working directory cannot be read' => [NULL, [5678 => ['/usr/local/bin/chromedriver --port=4444', '']], FALSE, [], ['Port 4444 is still in use by another process, which was left running:', '5678 /usr/local/bin/chromedriver --port=4444']];
     yield 'the chromedriver of another project' => [NULL, [5678 => $other_driver], FALSE, [], ['Port 4444 is still in use by another process, which was left running:', '5678 /usr/local/bin/chromedriver --port=4444']];
-    yield 'another program started from the project root' => [NULL, [5678 => ['node server.js --port=4444', self::ROOT]], FALSE, [], ['Port 4444 is still in use by another process, which was left running:', '5678 node server.js --port=4444']];
+    yield 'another program started from the project root' => [NULL, [5678 => ['node server.js --port=4444', self::PROJECT_ROOT]], FALSE, [], ['Port 4444 is still in use by another process, which was left running:', '5678 node server.js --port=4444']];
     yield 'the chromedriver of the project and of another project' => [NULL, [1234 => $own_driver, 5678 => $other_driver], FALSE, [1234], ['5678 /usr/local/bin/chromedriver --port=4444']];
-    yield 'the container of the project' => [self::ROOT, [], TRUE, [], []];
+    yield 'the container of the project' => [self::PROJECT_ROOT, [], TRUE, [], []];
     yield 'a container without the project label' => ['', [], TRUE, [], []];
     yield 'the container of another project' => ['/www/other', [9999 => $docker_backend], FALSE, [], ['The Selenium container selenium-4444 belongs to /www/other and was left running.', '9999 /Applications/Docker.app/Contents/MacOS/com.docker.backend']];
-    yield 'a stopped container of the project' => [self::ROOT, [], TRUE, [], [], FALSE];
+    yield 'a stopped container of the project' => [self::PROJECT_ROOT, [], TRUE, [], [], FALSE];
     yield 'a stopped container of another project' => ['/www/other', [], FALSE, [], [], FALSE];
   }
 
   public function testBrowserStopFailsOnInvalidPort(): void {
-    $this->envSet('WEBDRIVER_PORT', '99999');
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
+    self::envSet('WEBDRIVER_PORT', '99999');
+    $this->mockFunction('file_exists', fn(): false => FALSE);
     $this->mockCommandAvailable('docker', TRUE);
     $this->mockPassthruNever();
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-browser-stop';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = (string) ob_get_clean();
-    }
+    $output = $this->runCommand('eddy-browser-stop', 1);
 
     $this->assertStringContainsString('Invalid WEBDRIVER_PORT "99999"', $output);
     $this->assertStringNotContainsString('BROWSER STOPPED', $output);

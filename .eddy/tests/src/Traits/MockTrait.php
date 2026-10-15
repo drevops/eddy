@@ -13,6 +13,8 @@ trait MockTrait {
 
   use PHPMock;
 
+  protected const string TOOLING_NAMESPACE = 'DrevOps\\Eddy\\Tooling';
+
   /**
    * Unified registry of all function mocks indexed by function name.
    *
@@ -59,7 +61,7 @@ trait MockTrait {
     }
 
     foreach (array_keys($this->mocks) as $function_name) {
-      $this->resetMock($function_name);
+      $this->mockReset($function_name);
     }
 
     $this->mocks = [];
@@ -73,12 +75,12 @@ trait MockTrait {
    *
    * @param string $function_name
    *   The function name to mock (e.g., 'passthru', 'mail').
-   * @param string $namespace
-   *   The namespace where the function should be mocked.
    * @param callable $callback
    *   The callback to execute when the mocked function is called.
+   * @param string $namespace
+   *   The namespace where the function should be mocked.
    */
-  protected function registerMock(string $function_name, string $namespace, callable $callback): void {
+  protected function mockFunction(string $function_name, callable $callback, string $namespace = self::TOOLING_NAMESPACE): void {
     // A PHPUnit function mock takes a callback only through expects(), so
     // the function is stubbed through php-mock directly.
     $mock = (new MockBuilder())->setNamespace($namespace)->setName($function_name)->setFunction($callback)->build();
@@ -96,7 +98,7 @@ trait MockTrait {
    * @param array<int, array<string, mixed>> $responses
    *   Array of response configurations.
    */
-  protected function addMockResponses(string $function_name, array $responses): void {
+  protected function mockAddResponses(string $function_name, array $responses): void {
     if (!isset($this->mockResponses[$function_name])) {
       $this->mockResponses[$function_name] = [];
       $this->mockIndices[$function_name] = 0;
@@ -123,7 +125,7 @@ trait MockTrait {
    * @throws \RuntimeException
    *   When no more responses are available.
    */
-  protected function getNextMockResponse(string $function_name): array {
+  protected function mockNextResponse(string $function_name): array {
     $total_responses = count($this->mockResponses[$function_name] ?? []);
     $current_index = $this->mockIndices[$function_name] ?? 0;
 
@@ -179,7 +181,7 @@ trait MockTrait {
    * @param string $function_name
    *   The function name.
    */
-  protected function resetMock(string $function_name): void {
+  protected function mockReset(string $function_name): void {
     unset($this->mocks[$function_name]);
     unset($this->mockResponses[$function_name]);
     unset($this->mockIndices[$function_name]);
@@ -197,15 +199,15 @@ trait MockTrait {
    * @throws \RuntimeException
    *   When more passthru calls are made than mocked responses available.
    */
-  protected function mockPassthruMultiple(array $responses, string $namespace = 'DrevOps\\Eddy\\Tooling'): void {
-    $this->addMockResponses('passthru', $responses);
+  protected function mockPassthruMultiple(array $responses, string $namespace = self::TOOLING_NAMESPACE): void {
+    $this->mockAddResponses('passthru', $responses);
 
     if (isset($this->mocks['passthru'])) {
       return;
     }
 
-    $this->registerMock('passthru', $namespace, function ($command, &...$args): null|false {
-      $response = $this->getNextMockResponse('passthru');
+    $this->mockFunction('passthru', function ($command, &...$args): null|false {
+      $response = $this->mockNextResponse('passthru');
 
       $response += [
         'output' => '',
@@ -228,7 +230,8 @@ trait MockTrait {
       // Without DEBUG, passthru_or_fail() and drush() wrap the command in a
       // brace group, "{ <cmd>; } 2>&1", to capture stdout and stderr together.
       // Strip the wrapper before matching so expectations use the logical
-      // command in both captured and streamed (DEBUG=1) runs;
+      // command in both captured and streamed (DEBUG=1) runs.
+      //
       // HelpersPassthruCaptureTest asserts the wrapper format.
       $matched = $command;
       if (str_starts_with($matched, '{ ') && str_ends_with($matched, '; } 2>&1')) {
@@ -248,7 +251,7 @@ trait MockTrait {
       }
 
       return $response['return'];
-    });
+    }, $namespace);
   }
 
   /**
@@ -259,7 +262,7 @@ trait MockTrait {
    * @param string $namespace
    *   Namespace to mock the functions in.
    */
-  protected function mockPassthru(array $response, string $namespace = 'DrevOps\\Eddy\\Tooling'): void {
+  protected function mockPassthru(array $response, string $namespace = self::TOOLING_NAMESPACE): void {
     $this->mockPassthruMultiple([$response], $namespace);
   }
 
@@ -269,18 +272,8 @@ trait MockTrait {
    * @param string $namespace
    *   Namespace to mock the functions in.
    */
-  protected function mockPassthruNever(string $namespace = 'DrevOps\\Eddy\\Tooling'): void {
+  protected function mockPassthruNever(string $namespace = self::TOOLING_NAMESPACE): void {
     $this->mockPassthruMultiple([], $namespace);
-  }
-
-  /**
-   * Verify all mocked passthru responses were consumed.
-   *
-   * @throws \PHPUnit\Framework\AssertionFailedError
-   *   When not all mocked responses were consumed.
-   */
-  protected function mockPassthruAssertAllMocksConsumed(): void {
-    $this->assertMockConsumed('passthru');
   }
 
   /**
@@ -294,8 +287,8 @@ trait MockTrait {
    * @param string $namespace
    *   Namespace to mock the function in.
    */
-  protected function mockQuit(int $code = 0, string $namespace = 'DrevOps\\Eddy\\Tooling'): void {
-    $this->registerMock('quit', $namespace, function (int $exit_code = 0) use ($code): void {
+  protected function mockQuit(int $code = 0, string $namespace = self::TOOLING_NAMESPACE): void {
+    $this->mockFunction('quit', function (int $exit_code = 0) use ($code): void {
       if ($code !== $exit_code) {
         throw new \RuntimeException(sprintf('quit() called with unexpected exit code. Expected %d, got %d.', $code, $exit_code));
       }
@@ -304,7 +297,7 @@ trait MockTrait {
       }
 
       throw new QuitSuccessException($code);
-    });
+    }, $namespace);
   }
 
   /**
@@ -315,25 +308,38 @@ trait MockTrait {
    * @param string $namespace
    *   Namespace to mock the function in.
    */
-  protected function mockPosixIsatty(bool $return_value, string $namespace = 'DrevOps\\Eddy\\Tooling'): void {
-    $this->addMockResponses('posix_isatty', [['value' => $return_value]]);
+  protected function mockPosixIsatty(bool $return_value, string $namespace = self::TOOLING_NAMESPACE): void {
+    $this->mockAddResponses('posix_isatty', [['value' => $return_value]]);
 
     if (!isset($this->mocks['posix_isatty'])) {
-      $this->registerMock('posix_isatty', $namespace, function () {
-        $response = $this->getNextMockResponse('posix_isatty');
+      $this->mockFunction('posix_isatty', function () {
+        $response = $this->mockNextResponse('posix_isatty');
         return $response['value'];
-      });
+      }, $namespace);
     }
   }
 
   /**
-   * Verify all mocked posix_isatty responses were consumed.
+   * Mock command_path() through the exec() probe behind it.
    *
-   * @throws \PHPUnit\Framework\AssertionFailedError
-   *   When not all mocked responses were consumed.
+   * @param array<string, string|false> $paths
+   *   The path of each command, or FALSE for a command that is missing. A
+   *   command that is not listed is missing.
+   * @param string $namespace
+   *   Namespace to mock the function in.
    */
-  protected function mockPosixIsattyAssertAllMocksConsumed(): void {
-    $this->assertMockConsumed('posix_isatty');
+  protected function mockCommandPaths(array $paths, string $namespace = self::TOOLING_NAMESPACE): void {
+    $this->mockFunction('exec', function (string $command, ?array &$output = NULL, ?int &$result_code = NULL) use ($paths): string {
+      $output = [];
+      $result_code = 1;
+
+      if (preg_match('/^command -v (.+) 2>\/dev\/null$/', $command, $matches) === 1 && is_string($paths[$matches[1]] ?? FALSE)) {
+        $output = [$paths[$matches[1]]];
+        $result_code = 0;
+      }
+
+      return $output[0] ?? '';
+    }, $namespace);
   }
 
   /**
@@ -350,21 +356,8 @@ trait MockTrait {
    * @param string $namespace
    *   Namespace to mock the function in.
    */
-  protected function mockCommandAvailable(string $command, bool $available, string $namespace = 'DrevOps\\Eddy\\Tooling'): void {
-    $this->registerMock('exec', $namespace, function (string $cmd, ?array &$output = NULL, ?int &$code = NULL) use ($command, $available): bool {
-      $output ??= [];
-
-      if ($available && $cmd === sprintf('command -v %s 2>/dev/null', $command)) {
-        $output[] = '/usr/bin/' . $command;
-        $code = 0;
-
-        return TRUE;
-      }
-
-      $code = 1;
-
-      return FALSE;
-    });
+  protected function mockCommandAvailable(string $command, bool $available, string $namespace = self::TOOLING_NAMESPACE): void {
+    $this->mockCommandPaths([$command => $available ? '/usr/bin/' . $command : FALSE], $namespace);
   }
 
   /**
@@ -373,12 +366,12 @@ trait MockTrait {
    * @param string $namespace
    *   Namespace to mock the function in.
    */
-  protected function mockSleep(string $namespace = 'DrevOps\\Eddy\\Tooling'): void {
+  protected function mockSleep(string $namespace = self::TOOLING_NAMESPACE): void {
     if (isset($this->mocks['sleep'])) {
       return;
     }
 
-    $this->registerMock('sleep', $namespace, fn(): int => 0);
+    $this->mockFunction('sleep', fn(): int => 0, $namespace);
   }
 
   /**
@@ -391,14 +384,14 @@ trait MockTrait {
    * @param string $namespace
    *   Namespace to mock the functions in.
    */
-  protected function mockClock(string $namespace = 'DrevOps\\Eddy\\Tooling'): void {
+  protected function mockClock(string $namespace = self::TOOLING_NAMESPACE): void {
     // cspell:ignore hrtime
-    $this->registerMock('hrtime', $namespace, fn(): int => $this->mockClockNanoseconds);
+    $this->mockFunction('hrtime', fn(): int => $this->mockClockNanoseconds, $namespace);
 
-    $this->registerMock('usleep', $namespace, function (int $microseconds): void {
+    $this->mockFunction('usleep', function (int $microseconds): void {
       $this->mockClockPauses[] = $microseconds;
       $this->mockClockNanoseconds += $microseconds * 1000;
-    });
+    }, $namespace);
   }
 
 }

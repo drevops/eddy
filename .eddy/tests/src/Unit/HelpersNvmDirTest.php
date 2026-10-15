@@ -10,21 +10,10 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for nvm_dir().
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\nvm_dir')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersNvmDirTest extends UnitTestCase {
-
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
 
   /**
    * @param array<string, string|null> $env
@@ -34,10 +23,10 @@ final class HelpersNvmDirTest extends UnitTestCase {
   public function testNvmDir(array $env, string $expected): void {
     foreach ($env as $name => $value) {
       if ($value === NULL) {
-        $this->envUnset($name);
+        self::envUnset($name);
       }
       else {
-        $this->envSet($name, $value);
+        self::envSet($name, $value);
       }
     }
 

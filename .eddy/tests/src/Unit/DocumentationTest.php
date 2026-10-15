@@ -13,7 +13,9 @@ use PHPUnit\Framework\Attributes\Group;
  * Tests that documentation stays consistent with the files it describes.
  *
  * A script added to the tooling package can lack a 'bin' entry, which leaves
- * it uninstalled, or a row in the package README and the documentation site.
+ * it uninstalled. It can also lack a row in the package README and the
+ * documentation site.
+ *
  * A path can be copied into a PHPUnit config without being rebased onto the
  * build root.
  *
@@ -27,17 +29,14 @@ use PHPUnit\Framework\Attributes\Group;
  * runs, so a command can be added without its permission.
  *
  * The documentation site lists the CI jobs, the ignore-failure toggles and the
- * variables that the workflows and the tooling read, so any of them can
- * change without the page that lists it.
+ * variables that the workflows and the tooling read. Any of them can change
+ * without the page that lists it.
  *
- * The documentation links to files on the main branch, and the docs build
- * does not check external links, so moving a file breaks its links unnoticed.
+ * The documentation links to files on the main branch. The docs build does
+ * not check external links, so moving a file breaks those links unnoticed.
  *
  * No such drift is reported by a linter, because each file stays individually
  * valid while the files disagree.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class DocumentationTest extends UnitTestCase {
@@ -53,8 +52,8 @@ final class DocumentationTest extends UnitTestCase {
   public function testToolingCommandIsDocumented(string $name, string $path): void {
     $document = File::read($path);
 
-    // Anchored to the entry column: a name mentioned in another row's
-    // description is a cross-reference, not an entry of its own.
+    // The pattern is anchored to the entry column: a name mentioned in another
+    // row's description is a cross-reference, not an entry of its own.
     $documented = preg_match('/^\|\s*`' . preg_quote($name, '/') . '`\s*\|/m', $document) === 1;
 
     $this->assertTrue($documented, sprintf('%s has no table row for `%s`.', self::relativePath($path), $name));
@@ -104,12 +103,12 @@ final class DocumentationTest extends UnitTestCase {
 
   #[DataProvider('dataProviderPhpunitCorePathsUseDocrootPrefix')]
   public function testPhpunitCorePathsUseDocrootPrefix(string $path): void {
-    $contents = File::read($path);
+    $content = File::read($path);
 
     // These configs are run from the build root, not the Drupal root, so the
     // docroot prefix in `bootstrap` applies to every other core-relative path.
     // Paths inside comments are included.
-    preg_match('/bootstrap="([^"]+)"/', $contents, $bootstrap);
+    preg_match('/bootstrap="([^"]+)"/', $content, $bootstrap);
     $bootstrap_path = $bootstrap[1] ?? '';
 
     $this->assertNotSame('', $bootstrap_path, sprintf('%s declares no bootstrap attribute.', basename($path)));
@@ -121,10 +120,11 @@ final class DocumentationTest extends UnitTestCase {
 
     $unprefixed = [];
 
-    foreach (explode("\n", $contents) as $index => $line) {
-      // Match each reference together with the path segments leading into it,
-      // so the prefix can be compared by value. A lookbehind cannot serve
-      // here: PCRE requires a fixed-length one, and the prefix is derived.
+    foreach (explode("\n", $content) as $index => $line) {
+      // Each reference is matched together with the path segments leading
+      // into it, so the prefix can be compared by value. A lookbehind does
+      // not work here: PCRE requires a fixed-length one, and the prefix is
+      // derived.
       preg_match_all('/[A-Za-z0-9_.\/-]*\bcore\//', $line, $references);
 
       $offenders = array_filter($references[0], static fn(string $reference): bool => !str_starts_with($reference, $prefix));
@@ -151,8 +151,8 @@ final class DocumentationTest extends UnitTestCase {
   public function testUpgradeGuideFetchesUpdateSkill(string $line): void {
     $guide = File::read(self::upgradeGuidePath());
 
-    // Compared line by line, so the list item that holds a command block can
-    // indent it differently.
+    // The comparison is line by line, so the list item that holds a command
+    // block can indent it differently.
     $lines = array_map(trim(...), explode("\n", $guide));
 
     $this->assertContains($line, $lines, sprintf('The upgrade guide does not fetch the update skill the way AGENTS.md does: `%s` is missing.', $line));
@@ -364,7 +364,7 @@ final class DocumentationTest extends UnitTestCase {
     $links = [];
 
     foreach (self::markdownFiles() as $path) {
-      preg_match_all('#https://(?:github\.com/drevops/eddy/(?:blob|tree)|raw\.githubusercontent\.com/drevops/eddy)/main/([\w./-]+)#', (string) file_get_contents($path), $matches);
+      preg_match_all('#https://(?:github\.com/drevops/eddy/(?:blob|tree)|raw\.githubusercontent\.com/drevops/eddy)/main/([\w./-]+)#', File::read($path), $matches);
 
       foreach ($matches[1] as $target) {
         // A link that ends a sentence is followed by its full stop.
@@ -543,14 +543,6 @@ final class DocumentationTest extends UnitTestCase {
 
   protected static function relativePath(string $path): string {
     return substr($path, strlen(self::rootDir()) + 1);
-  }
-
-  protected static function rootDir(): string {
-    return dirname(__DIR__, 4);
-  }
-
-  protected static function toolingDir(): string {
-    return self::rootDir() . '/.eddy/tooling';
   }
 
 }

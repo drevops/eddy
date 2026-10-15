@@ -4,96 +4,60 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
-use DrevOps\Eddy\Tests\Exceptions\QuitSuccessException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for the 'eddy-deploy' command.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
- */
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class DeployTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
+  #[DataProvider('dataProviderDeploySkipsWhenProceedIsNotOne')]
+  public function testDeploySkipsWhenProceedIsNotOne(?string $deploy_proceed): void {
+    self::envSet('DEPLOY_USER_NAME', 'Test User');
+    self::envSet('DEPLOY_USER_EMAIL', 'test@example.com');
+    self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
 
-  public function testDeploySkipWhenProceedNotSet(): void {
-    $this->envSet('DEPLOY_USER_NAME', 'Test User');
-    $this->envSet('DEPLOY_USER_EMAIL', 'test@example.com');
-    $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-
-    $this->mockQuit(0);
-
-    ob_start();
-    try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
-      $this->fail('Expected QuitSuccessException to be thrown');
+    if ($deploy_proceed !== NULL) {
+      self::envSet('DEPLOY_PROCEED', $deploy_proceed);
     }
-    catch (QuitSuccessException $e) {
-      $this->assertSame(0, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('DEPLOY', $output);
-      $this->assertStringContainsString('Skip deployment because DEPLOY_PROCEED is not set to 1', $output);
-    }
-  }
-
-  public function testDeploySkipWhenProceedExplicitlyZero(): void {
-    $this->envSet('DEPLOY_USER_NAME', 'Test User');
-    $this->envSet('DEPLOY_USER_EMAIL', 'test@example.com');
-    $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    $this->envSet('DEPLOY_PROCEED', '0');
 
     $this->mockQuit(0);
 
-    ob_start();
-    try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
-      $this->fail('Expected QuitSuccessException to be thrown');
-    }
-    catch (QuitSuccessException $e) {
-      $this->assertSame(0, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Skip deployment', $output);
-    }
+    $output = $this->runCommand('eddy-deploy', 0);
+
+    $this->assertStringContainsString('DEPLOY', $output);
+    $this->assertStringContainsString('Skip deployment because DEPLOY_PROCEED is not set to 1', $output);
+  }
+
+  public static function dataProviderDeploySkipsWhenProceedIsNotOne(): \Iterator {
+    yield 'unset' => [NULL];
+    yield 'zero' => ['0'];
   }
 
   #[DataProvider('dataProviderDeployProceed')]
   public function testDeployProceed(string $deploy_branch, string $git_user_name, string $git_user_email): void {
     $deploy_remote = 'git@git.drupal.org:project/test.git';
 
-    $this->envSet('DEPLOY_USER_NAME', 'Deploy Bot');
-    $this->envSet('DEPLOY_USER_EMAIL', 'deploy@example.com');
-    $this->envSet('DEPLOY_REMOTE', $deploy_remote);
-    $this->envSet('DEPLOY_PROCEED', '1');
+    self::envSet('DEPLOY_USER_NAME', 'Deploy Bot');
+    self::envSet('DEPLOY_USER_EMAIL', 'deploy@example.com');
+    self::envSet('DEPLOY_REMOTE', $deploy_remote);
+    self::envSet('DEPLOY_PROCEED', '1');
 
     if ($deploy_branch !== '') {
-      $this->envSet('DEPLOY_BRANCH', $deploy_branch);
+      self::envSet('DEPLOY_BRANCH', $deploy_branch);
     }
 
     $shell_exec_calls = [];
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', function (string $cmd) use (&$shell_exec_calls, $git_user_name, $git_user_email): string {
-      $shell_exec_calls[] = $cmd;
-      if (str_contains($cmd, 'user.name')) {
+    $this->mockFunction('shell_exec', function (string $command) use (&$shell_exec_calls, $git_user_name, $git_user_email): string {
+      $shell_exec_calls[] = $command;
+      if (str_contains($command, 'user.name')) {
         return $git_user_name;
       }
-      if (str_contains($cmd, 'user.email')) {
+      if (str_contains($command, 'user.email')) {
         return $git_user_email;
       }
-      if (str_contains($cmd, 'symbolic-ref')) {
+      if (str_contains($command, 'symbolic-ref')) {
         return 'main';
       }
       return '';
@@ -120,11 +84,8 @@ final class DeployTest extends UnitTestCase {
 
     $this->mockPassthruMultiple($passthru_responses);
 
-    ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
-    $output = ob_get_clean();
+    $output = $this->runCommand('eddy-deploy');
 
-    $this->assertIsString($output);
     $this->assertStringContainsString('DEPLOY', $output);
     $this->assertStringContainsString('Pushing code to branch ' . $effective_branch, $output);
     $this->assertStringContainsString('Code pushed to ' . $deploy_remote . ':' . $effective_branch, $output);
@@ -159,44 +120,31 @@ final class DeployTest extends UnitTestCase {
   }
 
   public function testDeployDetachedHeadWithoutBranch(): void {
-    $this->envSet('DEPLOY_USER_NAME', 'Deploy Bot');
-    $this->envSet('DEPLOY_USER_EMAIL', 'deploy@example.com');
-    $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    $this->envSet('DEPLOY_PROCEED', '1');
+    self::envSet('DEPLOY_USER_NAME', 'Deploy Bot');
+    self::envSet('DEPLOY_USER_EMAIL', 'deploy@example.com');
+    self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
+    self::envSet('DEPLOY_PROCEED', '1');
 
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(string $cmd): ?string => match ($cmd) {
-      'git symbolic-ref --quiet --short HEAD' => NULL,
-      default => throw new \RuntimeException(sprintf('Unexpected command "%s".', $cmd)),
-    });
+    $this->mockShellExecOutputs(['git symbolic-ref --quiet --short HEAD' => NULL]);
 
     $this->mockPassthruNever();
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Unable to determine the branch to deploy because HEAD is detached', $output);
-    }
+    $output = $this->runCommand('eddy-deploy', 1);
+
+    $this->assertStringContainsString('Unable to determine the branch to deploy because HEAD is detached', $output);
   }
 
   public function testDeployRefusedTags(): void {
     $deploy_remote = 'git@git.drupal.org:project/test.git';
 
-    $this->envSet('DEPLOY_USER_NAME', 'Deploy Bot');
-    $this->envSet('DEPLOY_USER_EMAIL', 'deploy@example.com');
-    $this->envSet('DEPLOY_REMOTE', $deploy_remote);
-    $this->envSet('DEPLOY_PROCEED', '1');
-    $this->envSet('DEPLOY_BRANCH', '1.x');
+    self::envSet('DEPLOY_USER_NAME', 'Deploy Bot');
+    self::envSet('DEPLOY_USER_EMAIL', 'deploy@example.com');
+    self::envSet('DEPLOY_REMOTE', $deploy_remote);
+    self::envSet('DEPLOY_PROCEED', '1');
+    self::envSet('DEPLOY_BRANCH', '1.x');
 
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(): string => 'Existing');
+    $this->mockFunction('shell_exec', fn(): string => 'Existing');
 
     $this->mockPassthruMultiple([
       ['cmd' => 'git config --global push.default matching'],
@@ -209,11 +157,8 @@ final class DeployTest extends UnitTestCase {
       ],
     ]);
 
-    ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
-    $output = ob_get_clean();
+    $output = $this->runCommand('eddy-deploy');
 
-    $this->assertIsString($output);
     $this->assertStringContainsString('Code pushed to ' . $deploy_remote . ':1.x', $output);
     $this->assertStringContainsString('[remote rejected] 1.0.0 -> 1.0.0', $output);
     $this->assertStringContainsString('Some tags were not pushed to ' . $deploy_remote, $output);
@@ -226,17 +171,17 @@ final class DeployTest extends UnitTestCase {
   public function testDeployTag(string $deploy_branch): void {
     $deploy_remote = 'git@git.drupal.org:project/test.git';
 
-    $this->envSet('DEPLOY_USER_NAME', 'Deploy Bot');
-    $this->envSet('DEPLOY_USER_EMAIL', 'deploy@example.com');
-    $this->envSet('DEPLOY_REMOTE', $deploy_remote);
-    $this->envSet('DEPLOY_PROCEED', '1');
-    $this->envSet('DEPLOY_TAG', '1.2.0');
+    self::envSet('DEPLOY_USER_NAME', 'Deploy Bot');
+    self::envSet('DEPLOY_USER_EMAIL', 'deploy@example.com');
+    self::envSet('DEPLOY_REMOTE', $deploy_remote);
+    self::envSet('DEPLOY_PROCEED', '1');
+    self::envSet('DEPLOY_TAG', '1.2.0');
 
     if ($deploy_branch !== '') {
-      $this->envSet('DEPLOY_BRANCH', $deploy_branch);
+      self::envSet('DEPLOY_BRANCH', $deploy_branch);
     }
 
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(string $cmd): string => str_contains($cmd, 'symbolic-ref') ? throw new \RuntimeException('A tag deployment must not resolve a branch.') : 'Existing');
+    $this->mockFunction('shell_exec', fn(string $command): string => str_contains($command, 'symbolic-ref') ? throw new \RuntimeException('A tag deployment must not resolve a branch.') : 'Existing');
 
     // A branch push or a push of every tag would be an unexpected call.
     $this->mockPassthruMultiple([
@@ -245,11 +190,8 @@ final class DeployTest extends UnitTestCase {
       ['cmd' => sprintf('git push --force deployremote %s', escapeshellarg('refs/tags/1.2.0'))],
     ]);
 
-    ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
-    $output = ob_get_clean();
+    $output = $this->runCommand('eddy-deploy');
 
-    $this->assertIsString($output);
     $this->assertStringContainsString('Pushing tag 1.2.0', $output);
     $this->assertStringContainsString('Tag pushed to ' . $deploy_remote . ':1.2.0', $output);
     $this->assertStringContainsString('DEPLOY COMPLETE', $output);
@@ -269,13 +211,13 @@ final class DeployTest extends UnitTestCase {
   public function testDeployTagPushFailure(): void {
     $deploy_remote = 'git@git.drupal.org:project/test.git';
 
-    $this->envSet('DEPLOY_USER_NAME', 'Deploy Bot');
-    $this->envSet('DEPLOY_USER_EMAIL', 'deploy@example.com');
-    $this->envSet('DEPLOY_REMOTE', $deploy_remote);
-    $this->envSet('DEPLOY_PROCEED', '1');
-    $this->envSet('DEPLOY_TAG', '1.2.0');
+    self::envSet('DEPLOY_USER_NAME', 'Deploy Bot');
+    self::envSet('DEPLOY_USER_EMAIL', 'deploy@example.com');
+    self::envSet('DEPLOY_REMOTE', $deploy_remote);
+    self::envSet('DEPLOY_PROCEED', '1');
+    self::envSet('DEPLOY_TAG', '1.2.0');
 
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(): string => 'Existing');
+    $this->mockFunction('shell_exec', fn(): string => 'Existing');
 
     $this->mockPassthruMultiple([
       ['cmd' => 'git config --global push.default matching'],
@@ -289,58 +231,56 @@ final class DeployTest extends UnitTestCase {
 
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('[remote rejected] 1.2.0 -> 1.2.0', $output);
-      $this->assertStringNotContainsString('Tag pushed', $output);
-    }
+    $output = $this->runCommand('eddy-deploy', 1);
+
+    $this->assertStringContainsString('[remote rejected] 1.2.0 -> 1.2.0', $output);
+    $this->assertStringNotContainsString('Tag pushed', $output);
   }
 
   public function testDeployMissingRequiredVars(): void {
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Missing required value for DEPLOY_USER_NAME', $output);
-    }
+    $output = $this->runCommand('eddy-deploy', 1);
+
+    $this->assertStringContainsString('Missing required value for DEPLOY_USER_NAME', $output);
   }
 
-  public function testDeploySshKeyMd5Fingerprint(): void {
-    $this->envSet('DEPLOY_USER_NAME', 'Test User');
-    $this->envSet('DEPLOY_USER_EMAIL', 'test@example.com');
-    $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    $this->envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd:ee:ff');
-    $this->envSet('HOME', '/home/testuser');
+  /**
+   * @param array<string>|null $glob
+   *   The key files that 'glob()' finds, or NULL to leave it unmocked.
+   */
+  #[DataProvider('dataProviderDeploySshKeyFingerprint')]
+  public function testDeploySshKeyFingerprint(string $fingerprint, ?array $glob, string $key_file): void {
+    self::envSet('DEPLOY_USER_NAME', 'Test User');
+    self::envSet('DEPLOY_USER_EMAIL', 'test@example.com');
+    self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
+    self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', $fingerprint);
+    self::envSet('HOME', '/home/testuser');
 
-    $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(string $path): bool => str_contains($path, '.ssh'));
+    $this->mockFunction('is_dir', fn(string $path): bool => str_contains($path, '.ssh'));
 
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): int => 100);
+    $this->mockFunction('file_put_contents', fn(): int => 100);
 
-    // The fingerprint is cleaned to 'aabbccddeeff'.
-    $key_file = '/home/testuser/.ssh/id_rsa_aabbccddeeff';
+    if ($glob !== NULL) {
+      $this->mockFunction('glob', fn(): array => $glob);
+      $this->mockFunction('exec', function (string $command, ?array &$output = NULL): int {
+        $output ??= [];
 
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $file === $key_file);
+        if (str_contains($command, '-E sha256')) {
+          $output[] = '2048 SHA256:abcdef123456 testuser@host (RSA)';
+        }
+        elseif (str_contains($command, '-E md5')) {
+          $output[] = '2048 MD5:aa:bb:cc:dd testuser@host (RSA)';
+        }
+
+        return 0;
+      });
+    }
+
+    $this->mockFunction('file_exists', fn(string $file): bool => $file === $key_file);
 
     // The running agent is reused, so 'ssh-agent' never runs.
-    $this->envSet('SSH_AGENT_PID', '12345');
+    self::envSet('SSH_AGENT_PID', '12345');
     $this->mockShellExecOutputs([]);
 
     $this->mockPassthruMultiple([
@@ -352,136 +292,101 @@ final class DeployTest extends UnitTestCase {
     // DEPLOY_PROCEED is not 1, so it skips.
     $this->mockQuit(0);
 
-    ob_start();
-    try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
-      $this->fail('Expected QuitSuccessException to be thrown');
-    }
-    catch (QuitSuccessException) {
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Setting up SSH.', $output);
-      $this->assertStringContainsString('SSH key ' . $key_file . ' added.', $output);
-      $this->assertStringContainsString('Skip deployment', $output);
+    $output = $this->runCommand('eddy-deploy', 0);
 
-      $banner = strpos($output, '🚚 DEPLOY');
-      $ssh = strpos($output, 'Setting up SSH.');
-      $skip = strpos($output, 'Skip deployment');
-      $this->assertIsInt($banner);
-      $this->assertIsInt($ssh);
-      $this->assertIsInt($skip);
-      $this->assertLessThan($ssh, $banner, 'The banner must open the output, before the SSH setup.');
-      $this->assertLessThan($skip, $ssh, 'SSH must be set up before the proceed check.');
-    }
+    $this->assertStringContainsString('Setting up SSH.', $output);
+    $this->assertStringContainsString('SSH key ' . $key_file . ' added.', $output);
+    $this->assertStringContainsString('Skip deployment', $output);
+
+    $banner = strpos($output, '🚚 DEPLOY');
+    $ssh = strpos($output, 'Setting up SSH.');
+    $skip = strpos($output, 'Skip deployment');
+    $this->assertIsInt($banner);
+    $this->assertIsInt($ssh);
+    $this->assertIsInt($skip);
+    $this->assertLessThan($ssh, $banner, 'The banner must open the output, before the SSH setup.');
+    $this->assertLessThan($skip, $ssh, 'SSH must be set up before the proceed check.');
   }
 
-  public function testDeploySshKeySha256Fingerprint(): void {
-    $this->envSet('DEPLOY_USER_NAME', 'Test User');
-    $this->envSet('DEPLOY_USER_EMAIL', 'test@example.com');
-    $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    $this->envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'SHA256:abcdef123456');
-    $this->envSet('HOME', '/home/testuser');
-
-    $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(string $path): bool => str_contains($path, '.ssh'));
-
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): int => 100);
-
-    $this->registerMock('glob', 'DrevOps\\Eddy\\Tooling', fn(): array => ['/home/testuser/.ssh/id_rsa_test']);
-
-    $exec_calls = 0;
-    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $cmd, ?array &$output = NULL) use (&$exec_calls): int {
-      $exec_calls++;
-      $output ??= [];
-      if (str_contains($cmd, '-E sha256')) {
-        $output[] = '2048 SHA256:abcdef123456 testuser@host (RSA)';
-      }
-      elseif (str_contains($cmd, '-E md5')) {
-        $output[] = '2048 MD5:aa:bb:cc:dd testuser@host (RSA)';
-      }
-      return 0;
-    });
-
+  public static function dataProviderDeploySshKeyFingerprint(): \Iterator {
+    // The fingerprint is cleaned to 'aabbccddeeff'.
+    yield 'MD5' => ['aa:bb:cc:dd:ee:ff', NULL, '/home/testuser/.ssh/id_rsa_aabbccddeeff'];
     // The MD5 fingerprint is extracted and cleaned to 'aabbccdd'.
-    $key_file = '/home/testuser/.ssh/id_rsa_aabbccdd';
-
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $file === $key_file);
-
-    $this->envSet('SSH_AGENT_PID', '12345');
-
-    $this->mockPassthruMultiple([
-      ['cmd' => 'ssh-add -D'],
-      ['cmd' => sprintf('ssh-add %s', escapeshellarg($key_file))],
-      ['cmd' => 'ssh-add -l'],
-    ]);
-
-    $this->mockQuit(0);
-
-    ob_start();
-    try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
-      $this->fail('Expected QuitSuccessException to be thrown');
-    }
-    catch (QuitSuccessException) {
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Setting up SSH.', $output);
-    }
+    yield 'SHA256 converted to MD5' => ['SHA256:abcdef123456', ['/home/testuser/.ssh/id_rsa_test'], '/home/testuser/.ssh/id_rsa_aabbccdd'];
   }
 
-  public function testDeploySshKeyNotFound(): void {
-    $this->envSet('DEPLOY_USER_NAME', 'Test User');
-    $this->envSet('DEPLOY_USER_EMAIL', 'test@example.com');
-    $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    $this->envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd');
-    $this->envSet('HOME', '/home/testuser');
+  /**
+   * @param array<string>|false|null $glob
+   *   The result of 'glob()', or NULL to leave it unmocked.
+   * @param array<string>|null $sha256_output
+   *   The SHA256 lines that 'exec()' returns, or NULL to leave it unmocked.
+   */
+  #[DataProvider('dataProviderDeployFailsWhenSshKeyIsMissing')]
+  public function testDeployFailsWhenSshKeyIsMissing(string $fingerprint, array|false|null $glob, ?array $sha256_output): void {
+    self::envSet('DEPLOY_USER_NAME', 'Test User');
+    self::envSet('DEPLOY_USER_EMAIL', 'test@example.com');
+    self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
+    self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', $fingerprint);
+    self::envSet('HOME', '/home/testuser');
 
-    $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): int => 100);
+    $this->mockFunction('is_dir', fn(): true => TRUE);
+    $this->mockFunction('file_put_contents', fn(): int => 100);
 
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
+    if ($glob !== NULL) {
+      $this->mockFunction('glob', fn(): array|false => $glob);
+    }
+
+    if ($sha256_output !== NULL) {
+      $this->mockFunction('exec', function (string $command, ?array &$output = NULL) use ($sha256_output): int {
+        $output ??= [];
+
+        if (str_contains($command, '-E sha256')) {
+          $output = array_merge($output, $sha256_output);
+        }
+
+        return 0;
+      });
+    }
+
+    $this->mockFunction('file_exists', fn(): false => FALSE);
 
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Unable to find SSH key file', $output);
-    }
+    $output = $this->runCommand('eddy-deploy', 1);
+
+    $this->assertStringContainsString('Unable to find SSH key file', $output);
+  }
+
+  public static function dataProviderDeployFailsWhenSshKeyIsMissing(): \Iterator {
+    yield 'MD5 key missing' => ['aa:bb:cc:dd', NULL, NULL];
+    // The unconverted fingerprint cleans to 'SHA256nomatch'.
+    yield 'SHA256 matches no key' => ['SHA256:nomatch', ['/home/testuser/.ssh/id_rsa_test'], ['2048 SHA256:differenthash testuser@host (RSA)']];
+    // The SHA256 fingerprint is not converted, so no key file matches.
+    yield 'SHA256 with no key files' => ['SHA256:abcdef', FALSE, NULL];
+    yield 'SHA256 with empty ssh-keygen output' => ['SHA256:abcdef', ['/home/testuser/.ssh/id_rsa_test'], []];
   }
 
   public function testDeploySshCreatesSshDir(): void {
-    $this->envSet('DEPLOY_USER_NAME', 'Test User');
-    $this->envSet('DEPLOY_USER_EMAIL', 'test@example.com');
-    $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    $this->envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd');
-    $this->envSet('HOME', '/home/testuser');
+    self::envSet('DEPLOY_USER_NAME', 'Test User');
+    self::envSet('DEPLOY_USER_EMAIL', 'test@example.com');
+    self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
+    self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd');
+    self::envSet('HOME', '/home/testuser');
 
-    $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
+    $this->mockFunction('is_dir', fn(): false => FALSE);
 
     $mkdir_calls = [];
-    $this->registerMock('mkdir', 'DrevOps\\Eddy\\Tooling', function (string $dir) use (&$mkdir_calls): true {
+    $this->mockFunction('mkdir', function (string $dir) use (&$mkdir_calls): true {
       $mkdir_calls[] = $dir;
       return TRUE;
     });
 
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): int => 100);
+    $this->mockFunction('file_put_contents', fn(): int => 100);
 
     $key_file = '/home/testuser/.ssh/id_rsa_aabbccdd';
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $file === $key_file);
+    $this->mockFunction('file_exists', fn(string $file): bool => $file === $key_file);
 
-    $this->envSet('SSH_AGENT_PID', '12345');
+    self::envSet('SSH_AGENT_PID', '12345');
 
     $this->mockPassthruMultiple([
       ['cmd' => 'ssh-add -D'],
@@ -491,44 +396,34 @@ final class DeployTest extends UnitTestCase {
 
     $this->mockQuit(0);
 
-    ob_start();
-    try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
-      $this->fail('Expected QuitSuccessException to be thrown');
-    }
-    catch (QuitSuccessException) {
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-    }
+    $this->runCommand('eddy-deploy', 0);
 
     $this->assertContains('/home/testuser/.ssh', $mkdir_calls);
   }
 
   #[DataProvider('dataProviderDeploySshAgentStarted')]
   public function testDeploySshAgentStarted(?string $agent_pid): void {
-    $this->envSet('DEPLOY_USER_NAME', 'Test User');
-    $this->envSet('DEPLOY_USER_EMAIL', 'test@example.com');
-    $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    $this->envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd');
-    $this->envSet('HOME', '/home/testuser');
-    // The socket of an agent the script did not start, such as a forwarded
-    // one, which 'ssh-add -D' would clear.
-    $this->envSet('SSH_AUTH_SOCK', '/home/testuser/.ssh/agent/s.other');
+    self::envSet('DEPLOY_USER_NAME', 'Test User');
+    self::envSet('DEPLOY_USER_EMAIL', 'test@example.com');
+    self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
+    self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd');
+    self::envSet('HOME', '/home/testuser');
+    // The socket is of an agent the script did not start, such as a forwarded
+    // one. 'ssh-add -D' would clear that agent.
+    self::envSet('SSH_AUTH_SOCK', '/home/testuser/.ssh/agent/s.other');
 
     if ($agent_pid === NULL) {
-      $this->envUnset('SSH_AGENT_PID');
+      self::envUnset('SSH_AGENT_PID');
     }
     else {
-      $this->envSet('SSH_AGENT_PID', $agent_pid);
+      self::envSet('SSH_AGENT_PID', $agent_pid);
     }
 
-    $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): int => 100);
+    $this->mockFunction('is_dir', fn(): true => TRUE);
+    $this->mockFunction('file_put_contents', fn(): int => 100);
 
     $key_file = '/home/testuser/.ssh/id_rsa_aabbccdd';
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $file === $key_file);
+    $this->mockFunction('file_exists', fn(string $file): bool => $file === $key_file);
 
     $this->mockShellExecOutputs(['ssh-agent -s' => "SSH_AUTH_SOCK=/home/testuser/.ssh/agent/s.started; export SSH_AUTH_SOCK;\nSSH_AGENT_PID=4242; export SSH_AGENT_PID;\necho Agent pid 4242;\n"]);
 
@@ -540,19 +435,10 @@ final class DeployTest extends UnitTestCase {
 
     $this->mockQuit(0);
 
-    ob_start();
-    try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
-      $this->fail('Expected QuitSuccessException to be thrown');
-    }
-    catch (QuitSuccessException) {
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Started an SSH agent with PID 4242.', $output);
-      $this->assertStringContainsString('SSH key ' . $key_file . ' added.', $output);
-    }
+    $output = $this->runCommand('eddy-deploy', 0);
+
+    $this->assertStringContainsString('Started an SSH agent with PID 4242.', $output);
+    $this->assertStringContainsString('SSH key ' . $key_file . ' added.', $output);
 
     $this->assertSame('/home/testuser/.ssh/agent/s.started', self::envGet('SSH_AUTH_SOCK'));
     $this->assertSame('4242', self::envGet('SSH_AGENT_PID'));
@@ -565,148 +451,30 @@ final class DeployTest extends UnitTestCase {
 
   #[DataProvider('dataProviderDeploySshAgentStartFailure')]
   public function testDeploySshAgentStartFailure(string $agent_output): void {
-    $this->envSet('DEPLOY_USER_NAME', 'Test User');
-    $this->envSet('DEPLOY_USER_EMAIL', 'test@example.com');
-    $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    $this->envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd');
-    $this->envSet('HOME', '/home/testuser');
-    $this->envUnset('SSH_AGENT_PID');
+    self::envSet('DEPLOY_USER_NAME', 'Test User');
+    self::envSet('DEPLOY_USER_EMAIL', 'test@example.com');
+    self::envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
+    self::envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'aa:bb:cc:dd');
+    self::envSet('HOME', '/home/testuser');
+    self::envUnset('SSH_AGENT_PID');
 
-    $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): int => 100);
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
+    $this->mockFunction('is_dir', fn(): true => TRUE);
+    $this->mockFunction('file_put_contents', fn(): int => 100);
+    $this->mockFunction('file_exists', fn(): true => TRUE);
 
     $this->mockShellExecOutputs(['ssh-agent -s' => $agent_output]);
     $this->mockPassthruNever();
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Unable to start the SSH agent.', $output);
-    }
+    $output = $this->runCommand('eddy-deploy', 1);
+
+    $this->assertStringContainsString('Unable to start the SSH agent.', $output);
   }
 
   public static function dataProviderDeploySshAgentStartFailure(): \Iterator {
     yield 'no output' => [''];
     yield 'no socket' => ["SSH_AGENT_PID=4242; export SSH_AGENT_PID;\necho Agent pid 4242;\n"];
     yield 'no process ID' => ["SSH_AUTH_SOCK=/home/testuser/.ssh/agent/s.started; export SSH_AUTH_SOCK;\n"];
-  }
-
-  public function testDeploySshSha256NoMatch(): void {
-    $this->envSet('DEPLOY_USER_NAME', 'Test User');
-    $this->envSet('DEPLOY_USER_EMAIL', 'test@example.com');
-    $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    $this->envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'SHA256:nomatch');
-    $this->envSet('HOME', '/home/testuser');
-
-    $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): int => 100);
-
-    $this->registerMock('glob', 'DrevOps\\Eddy\\Tooling', fn(): array => ['/home/testuser/.ssh/id_rsa_test']);
-
-    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $cmd, ?array &$output = NULL): int {
-      $output ??= [];
-      if (str_contains($cmd, '-E sha256')) {
-        $output[] = '2048 SHA256:differenthash testuser@host (RSA)';
-      }
-      return 0;
-    });
-
-    // The unconverted fingerprint cleans to 'SHA256nomatch'.
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
-
-    $this->mockQuit(1);
-
-    ob_start();
-    try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Unable to find SSH key file', $output);
-    }
-  }
-
-  public function testDeploySshSha256EmptyGlob(): void {
-    $this->envSet('DEPLOY_USER_NAME', 'Test User');
-    $this->envSet('DEPLOY_USER_EMAIL', 'test@example.com');
-    $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    $this->envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'SHA256:abcdef');
-    $this->envSet('HOME', '/home/testuser');
-
-    $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): int => 100);
-
-    $this->registerMock('glob', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
-
-    // The SHA256 fingerprint is not converted, so no key file matches.
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
-
-    $this->mockQuit(1);
-
-    ob_start();
-    try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Unable to find SSH key file', $output);
-    }
-  }
-
-  public function testDeploySshSha256EmptyExecOutput(): void {
-    $this->envSet('DEPLOY_USER_NAME', 'Test User');
-    $this->envSet('DEPLOY_USER_EMAIL', 'test@example.com');
-    $this->envSet('DEPLOY_REMOTE', 'git@git.drupal.org:project/test.git');
-    $this->envSet('DEPLOY_SSH_KEY_FINGERPRINT', 'SHA256:abcdef');
-    $this->envSet('HOME', '/home/testuser');
-
-    $this->registerMock('is_dir', 'DrevOps\\Eddy\\Tooling', fn(): true => TRUE);
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): int => 100);
-
-    $this->registerMock('glob', 'DrevOps\\Eddy\\Tooling', fn(): array => ['/home/testuser/.ssh/id_rsa_test']);
-
-    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $cmd, ?array &$output = NULL): int {
-      $output ??= [];
-      return 0;
-    });
-
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
-
-    $this->mockQuit(1);
-
-    ob_start();
-    try {
-      require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy';
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('Unable to find SSH key file', $output);
-    }
   }
 
 }

@@ -14,12 +14,10 @@ use Symfony\Component\Yaml\Yaml;
  * Tests how the command wrappers load '.env'.
  *
  * A variable that the shell sets to a non-empty value keeps it, and '.env'
- * provides the rest. The real 'Makefile' runs with a probe makefile added
- * through a second '-f', and the real Ahoy entrypoint runs with the arguments
- * that Ahoy passes to it.
+ * provides the rest.
  *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
+ * The real 'Makefile' runs with a probe makefile added through a second '-f'.
+ * The real Ahoy entrypoint runs with the arguments that Ahoy passes to it.
  */
 #[Group('p0')]
 final class WrapperDotenvTest extends UnitTestCase {
@@ -27,7 +25,7 @@ final class WrapperDotenvTest extends UnitTestCase {
   use ProcessTrait;
 
   /**
-   * The variables that each probe prints, one 'NAME=value' line each.
+   * The variables that each probe prints, 1 'NAME=value' line each.
    */
   protected const array PROBE_VARIABLES = ['WEBSERVER_PORT', 'DRUPAL_PROFILE', 'SIMPLETEST_BASE_URL'];
 
@@ -270,10 +268,6 @@ final class WrapperDotenvTest extends UnitTestCase {
     }
 
     return $config;
-  }
-
-  protected static function rootDir(): string {
-    return dirname(__DIR__, 4);
   }
 
 }

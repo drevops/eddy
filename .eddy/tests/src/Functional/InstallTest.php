@@ -9,9 +9,6 @@ use AlexSkrypnyk\Snapshot\Testing\SnapshotTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
-/**
- * Functional tests for install.php script.
- */
 #[Group('p1')]
 final class InstallTest extends FunctionalTestCase {
 
@@ -25,7 +22,7 @@ final class InstallTest extends FunctionalTestCase {
       throw new \RuntimeException('Fixtures directory is not set.');
     }
 
-    if (str_contains(self::$fixtures, DIRECTORY_SEPARATOR . 'install' . DIRECTORY_SEPARATOR)) {
+    if (str_contains(self::$fixtures, '/install/')) {
       $this->snapshotUpdateOnFailure(self::$fixtures, self::$sut, self::$tmp);
     }
 
@@ -34,7 +31,8 @@ final class InstallTest extends FunctionalTestCase {
 
   #[DataProvider('dataProviderInstall')]
   public function testInstall(array $answers = []): void {
-    self::$fixtures = static::locationsFixtureDir();
+    $fixtures = $this->locationsFixtureDir();
+    self::$fixtures = $fixtures;
 
     $answers = array_replace(self::defaultAnswers(), $answers);
 
@@ -43,7 +41,7 @@ final class InstallTest extends FunctionalTestCase {
       $env['INSTALL_' . strtoupper((string) $key)] = $value;
     }
 
-    $this->processRun(self::$sut . DIRECTORY_SEPARATOR . 'install.php', [], [], $env);
+    $this->processRun(self::$sut . '/install.php', [], [], $env);
 
     $this->assertProcessSuccessful();
 
@@ -53,18 +51,15 @@ final class InstallTest extends FunctionalTestCase {
 
     // A kept installer must still run.
     if (File::exists(self::$sut . '/install.php')) {
-      $this->processRun(self::$sut . DIRECTORY_SEPARATOR . 'install.php', ['--help']);
+      $this->processRun(self::$sut . '/install.php', ['--help']);
       $this->assertProcessSuccessful();
       $this->assertProcessOutputContains('Eddy - project installation.');
     }
 
-    $baseline = File::dir(self::$fixtures . '/../' . self::BASELINE_DIR);
-    $this->replaceVersions(self::$sut);
+    $baseline = File::dir($fixtures . '/../' . self::BASELINE_DIR);
+    self::replaceVersions(self::$sut);
 
-    if (!is_string(self::$fixtures)) {
-      throw new \RuntimeException('Fixtures directory is not set.');
-    }
-    $this->assertSnapshotMatchesBaseline($baseline, self::$fixtures, self::$sut);
+    $this->assertSnapshotMatchesBaseline($baseline, $fixtures, self::$sut);
   }
 
   public static function dataProviderInstall(): \Iterator {
@@ -208,7 +203,7 @@ final class InstallTest extends FunctionalTestCase {
     ];
   }
 
-  protected function replaceVersions(string $dir): void {
+  protected static function replaceVersions(string $dir): void {
     File::getReplacer()
       ->addVersionReplacements()
       ->addExclusions(['127.0.0.1'])
@@ -219,7 +214,7 @@ final class InstallTest extends FunctionalTestCase {
   }
 
   protected function snapshotUpdateBefore(string $actual): void {
-    $this->replaceVersions($actual);
+    self::replaceVersions($actual);
   }
 
 }

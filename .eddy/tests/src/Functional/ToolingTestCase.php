@@ -7,12 +7,6 @@ namespace DrevOps\Eddy\Tests\Functional;
 use AlexSkrypnyk\File\File;
 use DrevOps\Eddy\Tests\Traits\WebserverTrait;
 
-/**
- * Base class for tooling functional tests.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
- */
 abstract class ToolingTestCase extends FunctionalTestCase {
 
   use WebserverTrait;
@@ -29,14 +23,14 @@ abstract class ToolingTestCase extends FunctionalTestCase {
   protected function setUp(): void {
     parent::setUp();
 
-    $this->assertDirectoryContainsString(static::$sut, 'scaffold');
+    $this->assertDirectoryContainsString(self::$sut, 'scaffold');
   }
 
   /**
    * {@inheritdoc}
    */
   protected function tearDown(): void {
-    self::webserverStop(self::$sut, $this->webserverPort());
+    self::webserverStop(self::$sut, self::webserverPort());
     sleep(1);
 
     // Give enough permission to clean the build dir.
@@ -44,15 +38,7 @@ abstract class ToolingTestCase extends FunctionalTestCase {
       @exec('chmod -Rf 777 build');
     }
 
-    static::envReset();
-    $this->processTearDown();
-
-    // Skip FunctionalTestCase::tearDown() which requires static::$fixtures.
-    // Manually call what the grandparent chain provides.
-    $this->mockTearDown();
-    if ($this->tearDownShouldCleanup()) {
-      static::locationsTearDown();
-    }
+    parent::tearDown();
   }
 
   /**
@@ -61,7 +47,7 @@ abstract class ToolingTestCase extends FunctionalTestCase {
    * The environment comes first, then the project '.env', then the default,
    * in the order the tooling resolves it.
    */
-  protected function webserverPort(): string {
+  protected static function webserverPort(): string {
     $port = self::envGet('WEBSERVER_PORT');
 
     if (is_string($port) && $port !== '') {
@@ -76,7 +62,7 @@ abstract class ToolingTestCase extends FunctionalTestCase {
   }
 
   protected function assertTestCoverage(?string $dir = NULL): void {
-    $dir ??= static::$sut;
+    $dir ??= self::$sut;
     $this->assertFileExists($dir . '/.logs/coverage/phpunit/cobertura.xml');
     $this->assertFileNotContainsString($dir . '/.logs/coverage/phpunit/cobertura.xml', 'coverage line-rate="0"');
     $this->assertFileExists($dir . '/.logs/coverage/phpunit/.coverage-html/index.html');

@@ -10,27 +10,17 @@ use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
-/**
- * Tests for default_drupal_version().
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\default_drupal_version')]
+#[CoversFunction('DrevOps\Eddy\Tooling\json_file')]
 #[Group('p0')]
 final class HelpersDefaultDrupalVersionTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   #[DataProvider('dataProviderDefaultDrupalVersion')]
-  public function testDefaultDrupalVersion(?string $contents, string $expected): void {
+  public function testDefaultDrupalVersion(?string $content, string $expected): void {
     $file = self::$tmp . '/composer.dev.json';
 
-    if ($contents !== NULL) {
-      File::dump($file, $contents);
+    if ($content !== NULL) {
+      File::dump($file, $content);
     }
 
     $this->assertSame($expected, default_drupal_version($file));

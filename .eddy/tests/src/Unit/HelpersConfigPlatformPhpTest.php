@@ -10,20 +10,10 @@ use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
-/**
- * Tests for config_platform_php().
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\config_platform_php')]
+#[CoversFunction('DrevOps\Eddy\Tooling\json_file')]
 #[Group('p0')]
 final class HelpersConfigPlatformPhpTest extends UnitTestCase {
-
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
 
   #[DataProvider('dataProviderConfigPlatformPhp')]
   public function testConfigPlatformPhp(?string $first, ?string $second, ?string $expected): void {
@@ -39,7 +29,7 @@ final class HelpersConfigPlatformPhpTest extends UnitTestCase {
   }
 
   public static function dataProviderConfigPlatformPhp(): \Iterator {
-    $platform = static fn(mixed $php): string => (string) json_encode(['config' => ['platform' => ['php' => $php]]]);
+    $platform = static fn(mixed $php): string => json_encode(['config' => ['platform' => ['php' => $php]]], JSON_THROW_ON_ERROR);
 
     yield 'no manifests' => [NULL, NULL, NULL];
     yield 'no platform' => ['{"config": {"sort-packages": true}}', '{}', NULL];

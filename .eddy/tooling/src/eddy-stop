@@ -21,7 +21,8 @@ $webserver_port = resolve_webserver()['port'];
 
 // The docroot identifies the webserver of this project among the processes
 // that listen on the port.
-$docroot = getcwd() . '/build/web';
+$root = (string) getcwd();
+$docroot = $root . '/build/web';
 
 // -----------------------------------------------------------------------------
 
@@ -42,13 +43,7 @@ kill_processes(array_keys($listeners['own']));
 sleep(1);
 PASS('Services stopped on port %s.', $webserver_port);
 
-if ($listeners['other'] !== []) {
-  NOTE('Port %s is still in use by another process, which was left running:', $webserver_port);
-
-  foreach ($listeners['other'] as $pid => $command) {
-    NOTE('%d %s', $pid, $command);
-  }
-}
+note_port_in_use($webserver_port, $listeners['other']);
 
 echo PHP_EOL;
 echo '===============================' . PHP_EOL;

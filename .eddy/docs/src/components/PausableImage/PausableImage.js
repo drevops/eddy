@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Img from '@theme/MDXComponents/Img';
 import styles from './PausableImage.module.css';
 
 const FREEZE_STYLE = '<style>*{animation-delay:-1000000s!important;animation-iteration-count:1!important;animation-fill-mode:forwards!important}</style>';
 
-// An <img> exposes no control over the animations of its SVG, so the paused
-// image is a copy with every animation finished on its last frame.
+// An <img> exposes no control over its SVG's animations, so the paused image
+// is a copy with every animation finished on its last frame.
 export const freezeSvg = (svg) => svg.replace(/<\/svg>\s*$/, `${FREEZE_STYLE}</svg>`);
 
 const isSvgUrl = (src) => /\.svg($|[?#])/i.test(String(src));

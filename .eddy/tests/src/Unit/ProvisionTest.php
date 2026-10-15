@@ -10,24 +10,33 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for the 'eddy-provision' command.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
- */
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class ProvisionTest extends UnitTestCase {
 
   protected function setUp(): void {
     parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-    $this->envUnset('CLOUDFLARE_TUNNEL');
+    self::envUnset('CLOUDFLARE_TUNNEL');
   }
 
   protected static function drushPrefix(string $cwd): string {
     return 'build/vendor/bin/drush -r ' . escapeshellarg($cwd . '/build/web') . ' -y ';
+  }
+
+  /**
+   * @return array<int, array{cmd: string, output?: string}>
+   *   The drush commands of a provision into a new database, in order.
+   */
+  protected static function drushCommands(string $prefix, string $db_file, string $site_url, string $drush_version = '13.8.0', string $uli_options = ' --no-browser', string $extension_name = 'test_extension'): array {
+    return [
+      ['cmd' => $prefix . 'status --field=db-status', 'output' => ''],
+      ['cmd' => $prefix . sprintf('site-install %s -y --db-url=%s --account-name=admin install_configure_form.enable_update_status_module=NULL install_configure_form.enable_update_status_emails=NULL', escapeshellarg('standard'), escapeshellarg('sqlite://localhost/' . $db_file))],
+      ['cmd' => $prefix . 'status'],
+      ['cmd' => $prefix . 'pm:enable ' . escapeshellarg($extension_name)],
+      ['cmd' => $prefix . 'cr'],
+      ['cmd' => $prefix . 'status --field=drush-version', 'output' => $drush_version],
+      ['cmd' => $prefix . sprintf('uli -l %s', escapeshellarg($site_url)) . $uli_options, 'output' => $site_url . '/user/reset/1/abc/login'],
+    ];
   }
 
   /**
@@ -52,9 +61,7 @@ final class ProvisionTest extends UnitTestCase {
 
   #[DataProvider('dataProviderProvisionSuccess')]
   public function testProvisionSuccess(array $env, string $extension_type, string $db_status, array $suggested, ?array $locked_types, array $expected_enabled, bool $has_ahoy, bool $has_makefile): void {
-    foreach ($env as $name => $value) {
-      $this->envSet($name, $value);
-    }
+    self::envSetMultiple($env);
 
     $expected_host = $env['WEBSERVER_HOST'] ?? 'localhost';
     $expected_port = $env['WEBSERVER_PORT'] ?? '8000';
@@ -65,14 +72,14 @@ final class ProvisionTest extends UnitTestCase {
     $cwd = self::$tmp . '/provision_' . uniqid();
     File::mkdir($cwd . '/build/web', 0755);
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
+    $this->mockFunction('getcwd', fn(): string => $cwd);
 
-    $this->registerMock('glob', 'DrevOps\\Eddy\\Tooling', fn(): array => [$extension_name . '.info.yml']);
+    $this->mockFunction('glob', fn(): array => [$extension_name . '.info.yml']);
 
     $composer_json = json_encode(['suggest' => $suggested], JSON_THROW_ON_ERROR);
     $composer_lock = $locked_types === NULL ? '' : json_encode(['packages' => array_map(static fn(string $name, string $type): array => ['name' => $name, 'type' => $type], array_keys($locked_types), $locked_types)], JSON_THROW_ON_ERROR);
     $file_get_contents_calls = 0;
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', function (string $file) use (&$file_get_contents_calls, $info_content, $composer_json, $composer_lock): string {
+    $this->mockFunction('file_get_contents', function (string $file) use (&$file_get_contents_calls, $info_content, $composer_json, $composer_lock): string {
       $file_get_contents_calls++;
       if (str_ends_with($file, '.info.yml')) {
         return $info_content;
@@ -90,7 +97,7 @@ final class ProvisionTest extends UnitTestCase {
       return '';
     });
 
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', function (string $file) use ($has_ahoy, $has_makefile): bool {
+    $this->mockFunction('file_exists', function (string $file) use ($has_ahoy, $has_makefile): bool {
       if ($file === '.ahoy.yml') {
         return $has_ahoy;
       }
@@ -133,11 +140,8 @@ final class ProvisionTest extends UnitTestCase {
 
     $this->mockPassthruMultiple($passthru_responses);
 
-    ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-provision';
-    $output = ob_get_clean();
+    $output = $this->runCommand('eddy-provision');
 
-    $this->assertIsString($output);
     $this->assertStringContainsString('PROVISION', $output);
     $this->assertSame([
       '[TASK] Installing Drupal into SQLite database ' . $db_file . '.',
@@ -297,22 +301,26 @@ final class ProvisionTest extends UnitTestCase {
     ];
   }
 
-  public function testProvisionReadsPortFromDotenvWhenEnvUnset(): void {
+  /**
+   * @param array<int, string> $expected_present
+   *   The strings the output contains.
+   * @param array<int, string> $expected_absent
+   *   The strings the output does not contain.
+   */
+  #[DataProvider('dataProviderProvisionReadsDotenv')]
+  public function testProvisionReadsDotenv(string $dotenv, string $site_url, array $expected_present, array $expected_absent): void {
     $extension_name = 'test_extension';
     $info_content = "name: Test\ntype: module\n";
-    $cwd = '/test/project';
-    $expected_host = 'localhost';
-    $expected_port = '8123';
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
-    $this->registerMock('glob', 'DrevOps\\Eddy\\Tooling', fn(): array => [$extension_name . '.info.yml']);
+    $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
+    $this->mockFunction('glob', fn(): array => [$extension_name . '.info.yml']);
 
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', function (string $file) use ($info_content): string {
+    $this->mockFunction('file_get_contents', function (string $file) use ($info_content, $dotenv): string {
       if (str_ends_with($file, '.info.yml')) {
         return $info_content;
       }
       if ($file === '.env') {
-        return "WEBSERVER_PORT=8123\n";
+        return $dotenv;
       }
       if ($file === 'composer.json') {
         return json_encode(['suggest' => []], JSON_THROW_ON_ERROR);
@@ -324,39 +332,44 @@ final class ProvisionTest extends UnitTestCase {
       return '';
     });
 
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $file === '.env');
+    $this->mockFunction('file_exists', fn(string $file): bool => $file === '.env');
 
-    $prefix = self::drushPrefix($cwd);
+    $prefix = self::drushPrefix(self::PROJECT_ROOT);
     $db_file = site_db_file($extension_name);
-    $site_url = sprintf('http://%s:%s', $expected_host, $expected_port);
-    $this->mockPassthruMultiple([
-      ['cmd' => $prefix . 'status --field=db-status', 'output' => ''],
-      ['cmd' => $prefix . sprintf('site-install %s -y --db-url=%s --account-name=admin install_configure_form.enable_update_status_module=NULL install_configure_form.enable_update_status_emails=NULL', escapeshellarg('standard'), escapeshellarg('sqlite://localhost/' . $db_file))],
-      ['cmd' => $prefix . 'status'],
-      ['cmd' => $prefix . 'pm:enable ' . escapeshellarg($extension_name)],
-      ['cmd' => $prefix . 'cr'],
-      ['cmd' => $prefix . 'status --field=drush-version', 'output' => '13.8.0'],
-      ['cmd' => $prefix . sprintf('uli -l %s --no-browser', escapeshellarg($site_url)), 'output' => $site_url . '/user/reset/1/abc/login'],
-    ]);
+    $this->mockPassthruMultiple(self::drushCommands($prefix, $db_file, $site_url));
 
-    ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-provision';
-    $output = ob_get_clean();
+    $output = $this->runCommand('eddy-provision');
 
-    $this->assertIsString($output);
-    $this->assertStringContainsString('http://' . $expected_host . ':' . $expected_port, $output);
+    foreach ($expected_present as $expected) {
+      $this->assertStringContainsString($expected, $output);
+    }
+
+    foreach ($expected_absent as $unexpected) {
+      $this->assertStringNotContainsString($unexpected, $output);
+    }
+  }
+
+  public static function dataProviderProvisionReadsDotenv(): \Iterator {
+    yield 'port from .env' => ["WEBSERVER_PORT=8123\n", 'http://localhost:8123', ['http://localhost:8123'], []];
+    // The pre-warm still hits the local host:port, but the login link and the
+    // completion banner report the public tunnel URL.
+    yield 'tunnel URL from .env' => [
+      "WEBSERVER_PORT=8000\nTUNNEL_URL=https://abc.trycloudflare.com\n",
+      'https://abc.trycloudflare.com',
+      ['Site URL:            https://abc.trycloudflare.com'],
+      ['Site URL:            http://'],
+    ];
   }
 
   #[DataProvider('dataProviderProvisionLoginLinkOptions')]
   public function testProvisionLoginLinkOptions(string $drush_version, string $expected_options): void {
     $extension_name = 'test_extension';
-    $cwd = '/test/project';
     $site_url = 'http://localhost:8000';
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
-    $this->registerMock('glob', 'DrevOps\\Eddy\\Tooling', fn(): array => [$extension_name . '.info.yml']);
+    $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
+    $this->mockFunction('glob', fn(): array => [$extension_name . '.info.yml']);
 
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', function (string $file): string {
+    $this->mockFunction('file_get_contents', function (string $file): string {
       if (str_ends_with($file, '.info.yml')) {
         return "name: Test\ntype: module\n";
       }
@@ -370,25 +383,14 @@ final class ProvisionTest extends UnitTestCase {
       return '';
     });
 
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): bool => FALSE);
+    $this->mockFunction('file_exists', fn(): bool => FALSE);
 
-    $prefix = self::drushPrefix($cwd);
+    $prefix = self::drushPrefix(self::PROJECT_ROOT);
     $db_file = site_db_file($extension_name);
-    $this->mockPassthruMultiple([
-      ['cmd' => $prefix . 'status --field=db-status', 'output' => ''],
-      ['cmd' => $prefix . sprintf('site-install %s -y --db-url=%s --account-name=admin install_configure_form.enable_update_status_module=NULL install_configure_form.enable_update_status_emails=NULL', escapeshellarg('standard'), escapeshellarg('sqlite://localhost/' . $db_file))],
-      ['cmd' => $prefix . 'status'],
-      ['cmd' => $prefix . 'pm:enable ' . escapeshellarg($extension_name)],
-      ['cmd' => $prefix . 'cr'],
-      ['cmd' => $prefix . 'status --field=drush-version', 'output' => $drush_version . "\n"],
-      ['cmd' => $prefix . sprintf('uli -l %s', escapeshellarg($site_url)) . $expected_options, 'output' => $site_url . '/user/reset/1/abc/login'],
-    ]);
+    $this->mockPassthruMultiple(self::drushCommands($prefix, $db_file, $site_url, $drush_version . "\n", $expected_options));
 
-    ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-provision';
-    $output = ob_get_clean();
+    $output = $this->runCommand('eddy-provision');
 
-    $this->assertIsString($output);
     $this->assertStringContainsString('One-time login link: ' . $site_url . '/user/reset/1/abc/login', $output);
   }
 
@@ -399,59 +401,8 @@ final class ProvisionTest extends UnitTestCase {
     yield 'Drush 14 development branch' => ['14.x-dev', ''];
   }
 
-  public function testProvisionDisplaysTunnelUrlWhenSet(): void {
-    $extension_name = 'test_extension';
-    $info_content = "name: Test\ntype: module\n";
-    $cwd = '/test/project';
-    $tunnel_url = 'https://abc.trycloudflare.com';
-
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
-    $this->registerMock('glob', 'DrevOps\\Eddy\\Tooling', fn(): array => [$extension_name . '.info.yml']);
-
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', function (string $file) use ($info_content, $tunnel_url): string {
-      if (str_ends_with($file, '.info.yml')) {
-        return $info_content;
-      }
-      if ($file === '.env') {
-        return "WEBSERVER_PORT=8000\nTUNNEL_URL=" . $tunnel_url . "\n";
-      }
-      if ($file === 'composer.json') {
-        return json_encode(['suggest' => []], JSON_THROW_ON_ERROR);
-      }
-      if (str_starts_with($file, 'http://')) {
-        return '<html></html>';
-      }
-
-      return '';
-    });
-
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $file === '.env');
-
-    $prefix = self::drushPrefix($cwd);
-    $db_file = site_db_file($extension_name);
-    // The pre-warm still hits the local host:port, but the login link and the
-    // completion banner report the public tunnel URL.
-    $this->mockPassthruMultiple([
-      ['cmd' => $prefix . 'status --field=db-status', 'output' => ''],
-      ['cmd' => $prefix . sprintf('site-install %s -y --db-url=%s --account-name=admin install_configure_form.enable_update_status_module=NULL install_configure_form.enable_update_status_emails=NULL', escapeshellarg('standard'), escapeshellarg('sqlite://localhost/' . $db_file))],
-      ['cmd' => $prefix . 'status'],
-      ['cmd' => $prefix . 'pm:enable ' . escapeshellarg($extension_name)],
-      ['cmd' => $prefix . 'cr'],
-      ['cmd' => $prefix . 'status --field=drush-version', 'output' => '13.8.0'],
-      ['cmd' => $prefix . sprintf('uli -l %s --no-browser', escapeshellarg($tunnel_url)), 'output' => $tunnel_url . '/user/reset/1/abc/login'],
-    ]);
-
-    ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-provision';
-    $output = ob_get_clean();
-
-    $this->assertIsString($output);
-    $this->assertStringContainsString('Site URL:            ' . $tunnel_url, $output);
-    $this->assertStringNotContainsString('Site URL:            http://', $output);
-  }
-
   public function testProvisionAddsTunnelSettingsWhenEnabled(): void {
-    $this->envSet('CLOUDFLARE_TUNNEL', '1');
+    self::envSet('CLOUDFLARE_TUNNEL', '1');
 
     $extension_name = 'test_extension';
     $cwd = self::$tmp . '/provision_tunnel_' . uniqid();
@@ -459,10 +410,10 @@ final class ProvisionTest extends UnitTestCase {
     File::dump($settings_file, "<?php\n");
     chdir($cwd);
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => $cwd);
-    $this->registerMock('glob', 'DrevOps\\Eddy\\Tooling', fn(): array => [$extension_name . '.info.yml']);
+    $this->mockFunction('getcwd', fn(): string => $cwd);
+    $this->mockFunction('glob', fn(): array => [$extension_name . '.info.yml']);
 
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', function (string $file): string {
+    $this->mockFunction('file_get_contents', function (string $file): string {
       if (str_ends_with($file, '.info.yml')) {
         return "name: Test\ntype: module\n";
       }
@@ -476,26 +427,15 @@ final class ProvisionTest extends UnitTestCase {
       return (string) \file_get_contents($file);
     });
 
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): bool => FALSE);
+    $this->mockFunction('file_exists', fn(): bool => FALSE);
 
     $prefix = self::drushPrefix($cwd);
     $db_file = site_db_file($extension_name);
     $site_url = 'http://localhost:8000';
-    $this->mockPassthruMultiple([
-      ['cmd' => $prefix . 'status --field=db-status', 'output' => ''],
-      ['cmd' => $prefix . sprintf('site-install %s -y --db-url=%s --account-name=admin install_configure_form.enable_update_status_module=NULL install_configure_form.enable_update_status_emails=NULL', escapeshellarg('standard'), escapeshellarg('sqlite://localhost/' . $db_file))],
-      ['cmd' => $prefix . 'status'],
-      ['cmd' => $prefix . 'pm:enable ' . escapeshellarg($extension_name)],
-      ['cmd' => $prefix . 'cr'],
-      ['cmd' => $prefix . 'status --field=drush-version', 'output' => '13.8.0'],
-      ['cmd' => $prefix . sprintf('uli -l %s --no-browser', escapeshellarg($site_url)), 'output' => $site_url . '/user/reset/1/abc/login'],
-    ]);
+    $this->mockPassthruMultiple(self::drushCommands($prefix, $db_file, $site_url));
 
-    ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-provision';
-    $output = ob_get_clean();
+    $output = $this->runCommand('eddy-provision');
 
-    $this->assertIsString($output);
     $this->assertStringContainsString('Adding the tunnel settings to build/web/sites/default/settings.php.', $output);
     $this->assertStringContainsString('Tunnel settings added.', $output);
     $this->assertStringContainsString("# Cloudflare quick tunnel settings.\n\$settings['reverse_proxy'] = TRUE;", File::read($settings_file));

@@ -17,9 +17,6 @@ use PHPUnit\Framework\Attributes\Group;
  * '.eddy/tooling', so the installer resolves the package as a generated
  * project does. A Composer home with a global path repository serves the
  * in-tree package as a release, so no published release is needed.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p2')]
 final class ToolingInstallerTest extends UnitTestCase {
@@ -36,7 +33,7 @@ final class ToolingInstallerTest extends UnitTestCase {
   protected function setUp(): void {
     parent::setUp();
 
-    File::copy(dirname(__DIR__, 4) . '/scripts/eddy-tooling', self::$sut . '/scripts/eddy-tooling');
+    File::copy(self::rootDir() . '/scripts/eddy-tooling', self::$sut . '/scripts/eddy-tooling');
     chmod(self::$sut . '/scripts/eddy-tooling', 0755);
 
     $this->processCwd = self::$sut;
@@ -49,8 +46,8 @@ final class ToolingInstallerTest extends UnitTestCase {
   }
 
   public function testInstall(): void {
-    $this->composerHomeWrite('1.0.0', FALSE);
-    $this->writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
+    self::composerHomeWrite('1.0.0', FALSE);
+    self::writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
 
     $this->runInstaller();
     $this->assertProcessSuccessful();
@@ -72,8 +69,8 @@ final class ToolingInstallerTest extends UnitTestCase {
     $this->assertProcessSuccessful();
     $this->assertSame('', $this->processGet()->getOutput(), 'A current install prints nothing.');
 
-    $this->composerHomeWrite('1.1.0', FALSE);
-    $this->writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.1.0']]);
+    self::composerHomeWrite('1.1.0', FALSE);
+    self::writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.1.0']]);
 
     $this->runInstaller();
     $this->assertProcessSuccessful();
@@ -83,11 +80,11 @@ final class ToolingInstallerTest extends UnitTestCase {
 
   public function testPatches(): void {
     // The patch plugin comes from Packagist.
-    $this->composerHomeWrite('1.0.0', TRUE);
+    self::composerHomeWrite('1.0.0', TRUE);
 
     File::dump(self::$sut . '/patches/eddy-tooling-add-file.patch', self::PATCH);
 
-    $this->writeDevManifest([
+    self::writeDevManifest([
       'require-dev' => ['drevops/eddy-tooling' => '~1.0.0'],
       'extra' => ['patches' => ['drevops/eddy-tooling' => ['Add a file' => 'patches/eddy-tooling-add-file.patch']]],
     ]);
@@ -104,7 +101,7 @@ final class ToolingInstallerTest extends UnitTestCase {
     $this->assertProcessOutputContains('[INFO] Installing drevops/eddy-tooling ~1.0.0.');
     $this->assertStringEqualsFile(self::$sut . '/vendor/drevops/eddy-tooling/PATCHED.txt', "patched again\n", 'A patch edited in place is applied again.');
 
-    $this->writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
+    self::writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
 
     $this->runInstaller();
     $this->assertProcessSuccessful();
@@ -113,8 +110,8 @@ final class ToolingInstallerTest extends UnitTestCase {
   }
 
   public function testFailure(): void {
-    $this->composerHomeWrite('1.0.0', FALSE);
-    $this->writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~2.0.0']]);
+    self::composerHomeWrite('1.0.0', FALSE);
+    self::writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~2.0.0']]);
 
     $this->runInstaller();
     $this->assertProcessFailed();
@@ -127,7 +124,7 @@ final class ToolingInstallerTest extends UnitTestCase {
     $this->processRun('./scripts/eddy-tooling', [], [], ['COMPOSER_HOME' => self::composerHomeDir()], $this->defaultTimeout, $this->defaultIdleTimeout);
   }
 
-  protected function writeDevManifest(array $contents): void {
+  protected static function writeDevManifest(array $contents): void {
     File::dump(self::$sut . '/composer.dev.json', json_encode($contents, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
   }
 
@@ -138,7 +135,7 @@ final class ToolingInstallerTest extends UnitTestCase {
    *   The command names.
    */
   protected function packageBins(): array {
-    $manifest = json_decode(File::read(dirname(__DIR__, 4) . '/.eddy/tooling/composer.json'), TRUE);
+    $manifest = json_decode(File::read(self::toolingDir() . '/composer.json'), TRUE);
     $this->assertIsArray($manifest);
 
     $bins = $manifest['bin'] ?? NULL;

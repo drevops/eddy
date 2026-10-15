@@ -26,9 +26,6 @@ use PHPUnit\Framework\Attributes\Group;
  * If either rule is removed, the tests connect to 4444 while the browser
  * listens on another port. The tests then fail only on a machine where 4444 is
  * busy.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class PhpunitWebdriverEndpointTest extends UnitTestCase {
@@ -54,7 +51,7 @@ final class PhpunitWebdriverEndpointTest extends UnitTestCase {
 
     $this->assertIsArray($args, sprintf('%s does not hold a JSON array in MINK_DRIVER_ARGS_WEBDRIVER.', basename($path)));
     $this->assertArrayHasKey(2, $args, sprintf('%s omits the WebDriver endpoint from MINK_DRIVER_ARGS_WEBDRIVER.', basename($path)));
-    $this->assertSame('http://localhost:4444', $args[2], sprintf('%s must carry the default WebDriver endpoint; anything else desynchronises from resolve_webdriver_port().', basename($path)));
+    $this->assertSame('http://localhost:4444', $args[2], sprintf('%s must carry the default WebDriver endpoint; anything else desynchronizes from resolve_webdriver_port().', basename($path)));
   }
 
   /**
@@ -66,7 +63,7 @@ final class PhpunitWebdriverEndpointTest extends UnitTestCase {
   }
 
   public function testBaseClassRewritesEndpointFromResolvedPort(): void {
-    $path = dirname(__DIR__, 4) . '/tests/src/FunctionalJavascript/YourExtensionFunctionalJavascriptTestBase.php';
+    $path = self::rootDir() . '/tests/src/FunctionalJavascript/YourExtensionFunctionalJavascriptTestBase.php';
 
     $this->assertFileContainsString($path, 'function getMinkDriverArgs()', 'The base class must override getMinkDriverArgs() to apply the resolved WebDriver port.');
     $this->assertFileContainsString($path, "getenv('WEBDRIVER_PORT')", 'The base class must read WEBDRIVER_PORT; without it the endpoint stays pinned to the phpunit.xml literal.');
@@ -79,7 +76,7 @@ final class PhpunitWebdriverEndpointTest extends UnitTestCase {
    *   Configuration file name mapped to its absolute path.
    */
   protected static function phpunitConfigPaths(): \Iterator {
-    $root = dirname(__DIR__, 4);
+    $root = self::rootDir();
 
     foreach (['phpunit.xml', 'phpunit.d10.xml'] as $file) {
       yield $file => ['path' => $root . '/' . $file];

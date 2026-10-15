@@ -6,20 +6,16 @@ namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\command_path;
 use function DrevOps\Eddy\Tooling\command_must_exist;
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 #[CoversFunction('DrevOps\Eddy\Tooling\command_path')]
 #[CoversFunction('DrevOps\Eddy\Tooling\command_must_exist')]
+#[RunTestsInSeparateProcesses]
 #[Group('p0')]
-final class HelpersCommandExistsTest extends UnitTestCase {
-
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
+final class HelpersCommandPathTest extends UnitTestCase {
 
   #[DataProvider('dataProviderCommandPath')]
   public function testCommandPath(string $command, bool $expect_found): void {
@@ -45,25 +41,16 @@ final class HelpersCommandExistsTest extends UnitTestCase {
   }
 
   public function testCommandMustExistAvailable(): void {
-    $this->expectNotToPerformAssertions();
     command_must_exist('php');
+    $this->expectNotToPerformAssertions();
   }
 
   public function testCommandMustExistUnavailable(): void {
     $this->mockQuit(1);
-    ob_start();
-    try {
-      command_must_exist('nonexistent_command_12345');
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString("Command 'nonexistent_command_12345' is not available", $output);
-    }
+
+    $output = $this->capture(fn() => command_must_exist('nonexistent_command_12345'), 1);
+
+    $this->assertStringContainsString("Command 'nonexistent_command_12345' is not available", $output);
   }
 
 }

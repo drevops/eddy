@@ -29,6 +29,8 @@ $webserver_port = $webserver['port'];
 // Drupal profile to use when installing the site.
 $drupal_profile = getenv_default('DRUPAL_PROFILE', 'standard');
 
+$root = (string) getcwd();
+
 // -----------------------------------------------------------------------------
 
 echo '===============================' . PHP_EOL;
@@ -36,9 +38,9 @@ echo '         🚀 PROVISION          ' . PHP_EOL;
 echo '===============================' . PHP_EOL;
 echo PHP_EOL;
 
-$ext_info = extension_info();
-$extension_name = $ext_info['name'];
-$extension_type = $ext_info['type'];
+$extension_info = extension_info();
+$extension_name = $extension_info['name'];
+$extension_type = $extension_info['type'];
 
 $db_file = site_db_file($extension_name);
 
@@ -76,12 +78,12 @@ drush('cr');
 PASS('Caches cleared.');
 
 TASK('Enabling suggested extensions, if any.');
-$ext_json = (array) json_decode((string) file_get_contents('composer.json'), TRUE);
+$extension_json = json_file('composer.json');
 
-if (isset($ext_json['suggest']) && is_array($ext_json['suggest'])) {
+if (isset($extension_json['suggest']) && is_array($extension_json['suggest'])) {
   $package_types = locked_packages('build/composer.lock', 'type');
 
-  foreach (array_keys($ext_json['suggest']) as $suggest) {
+  foreach (array_keys($extension_json['suggest']) as $suggest) {
     if (!str_starts_with((string) $suggest, 'drupal/')) {
       continue;
     }
@@ -106,7 +108,7 @@ TASK('Pre-warming caches.');
 PASS('Caches pre-warmed.');
 
 TASK('Linking browser test output into %s.', '.logs/browser_output');
-link_browser_output(getcwd() . '/build/web', getcwd() . '/.logs');
+link_browser_output($root . '/build/web', $root . '/.logs');
 PASS('Browser test output linked.');
 
 if (tunnel_enabled()) {

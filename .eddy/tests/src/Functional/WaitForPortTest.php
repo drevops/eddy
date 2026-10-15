@@ -10,18 +10,9 @@ use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Functional tests for wait_for_port() against a real socket.
- *
- * phpcs:disable Drupal.Classes.FullyQualifiedNamespace.UseStatementMissing
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p3')]
 final class WaitForPortTest extends UnitTestCase {
-
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
 
   public function testWaitEndsAtTimeoutWhenConnectionAttemptsAreDropped(): void {
     // A backlog of 1 lets the kernel queue a connection or 2 that is never

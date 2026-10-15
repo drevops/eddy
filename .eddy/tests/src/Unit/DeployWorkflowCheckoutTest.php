@@ -19,9 +19,6 @@ use PHPUnit\Framework\Attributes\Group;
  * this repository. The deployment key is in scope for whatever is checked out.
  *
  * Neither half can be executed locally, so both are read out of the workflow.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class DeployWorkflowCheckoutTest extends UnitTestCase {
@@ -32,17 +29,30 @@ final class DeployWorkflowCheckoutTest extends UnitTestCase {
 
   protected const string CHECKOUT_ACTION = 'actions/checkout@';
 
-  public function testCheckoutNamesTheTestedCommit(): void {
-    $ref = self::child(self::child(self::deployStep(self::STEP), 'with'), 'ref');
+  #[DataProvider('dataProviderCheckoutInput')]
+  public function testCheckoutInput(string $input, string|int $expected, string $message): void {
+    $this->assertSame($expected, self::deployChild(self::deployChild(self::deployStep(self::STEP), 'with'), $input), $message);
+  }
 
-    $this->assertSame('${{ github.event.workflow_run.head_sha }}', $ref, sprintf('The "%s" step must check out the commit that triggered the run, otherwise the deployment publishes default-branch code.', self::STEP));
+  public static function dataProviderCheckoutInput(): \Iterator {
+    yield 'ref' => [
+      'ref',
+      '${{ github.event.workflow_run.head_sha }}',
+      sprintf('The "%s" step must check out the commit that triggered the run, otherwise the deployment publishes default-branch code.', self::STEP),
+    ];
+
+    yield 'fetch-depth' => [
+      'fetch-depth',
+      0,
+      sprintf('The "%s" step must fetch every branch and tag: the deploy step compares the commit with its branch tip, detects tag pushes and pushes every tag.', self::STEP),
+    ];
   }
 
   public function testEveryCheckoutNamesItsRef(): void {
     $unnamed = [];
 
     foreach (self::deploySteps() as $step) {
-      $uses = self::child($step, 'uses');
+      $uses = self::deployChild($step, 'uses');
 
       if (!is_string($uses)) {
         continue;
@@ -52,19 +62,13 @@ final class DeployWorkflowCheckoutTest extends UnitTestCase {
         continue;
       }
 
-      if (!is_string(self::child(self::child($step, 'with'), 'ref'))) {
-        $name = self::child($step, 'name');
+      if (!is_string(self::deployChild(self::deployChild($step, 'with'), 'ref'))) {
+        $name = self::deployChild($step, 'name');
         $unnamed[] = is_string($name) ? $name : $uses;
       }
     }
 
     $this->assertSame([], $unnamed, sprintf('The deploy job checks out without naming a ref in: %s', implode(', ', $unnamed)));
-  }
-
-  public function testCheckoutFetchesFullHistory(): void {
-    $fetch_depth = self::child(self::child(self::deployStep(self::STEP), 'with'), 'fetch-depth');
-
-    $this->assertSame(0, $fetch_depth, sprintf('The "%s" step must fetch every branch and tag: the deploy step compares the commit with its branch tip, detects tag pushes and pushes every tag.', self::STEP));
   }
 
   #[DataProvider('dataProviderJobIsGated')]
@@ -100,7 +104,7 @@ final class DeployWorkflowCheckoutTest extends UnitTestCase {
    *   The condition, with its folded whitespace collapsed.
    */
   protected static function deployCondition(): string {
-    $condition = self::child(self::deployJob(), 'if');
+    $condition = self::deployChild(self::deployJob(), 'if');
 
     if (!is_string($condition)) {
       self::fail(sprintf('The deploy job of %s declares no condition.', basename(self::deployWorkflowPath())));

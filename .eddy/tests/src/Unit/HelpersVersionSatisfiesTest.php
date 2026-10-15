@@ -9,20 +9,9 @@ use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
-/**
- * Tests for version_satisfies().
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\version_satisfies')]
 #[Group('p0')]
 final class HelpersVersionSatisfiesTest extends UnitTestCase {
-
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
 
   #[DataProvider('dataProviderVersionSatisfies')]
   public function testVersionSatisfies(string $version, string $constraint, ?bool $expected): void {

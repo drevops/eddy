@@ -10,20 +10,9 @@ use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
-/**
- * Tests for the dev_branch_packages() helper.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\dev_branch_packages')]
 #[Group('p0')]
 final class HelpersDevBranchPackagesTest extends UnitTestCase {
-
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
 
   /**
    * @param array<string, string> $expected
@@ -31,7 +20,6 @@ final class HelpersDevBranchPackagesTest extends UnitTestCase {
   #[DataProvider('dataProviderDevBranchPackages')]
   public function testDevBranchPackages(?string $lock, array $expected): void {
     $lock_file = self::$tmp . '/lock_' . uniqid() . '/composer.lock';
-    File::mkdir(dirname($lock_file), 0755);
 
     if ($lock !== NULL) {
       File::dump($lock_file, $lock);

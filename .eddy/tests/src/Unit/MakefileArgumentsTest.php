@@ -15,9 +15,6 @@ use PHPUnit\Framework\Attributes\Group;
  * The real 'Makefile' runs in a project whose Drush, PHPUnit and tooling
  * commands are stubs. Each stub logs the arguments it receives, after the
  * recipe shell has parsed them.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class MakefileArgumentsTest extends UnitTestCase {
@@ -37,7 +34,8 @@ final class MakefileArgumentsTest extends UnitTestCase {
   ];
 
   /**
-   * The arguments that the 'drush' recipe passes before its own.
+   * The arguments that the 'drush' recipe passes ahead of those of the 'make'
+   * call.
    */
   protected const array DRUSH = ['-l', 'http://localhost:8000'];
 
@@ -128,7 +126,7 @@ final class MakefileArgumentsTest extends UnitTestCase {
     sort($listed);
     sort($defined);
 
-    $this->assertNotEmpty($defined);
+    $this->assertNotSame([], $defined);
     $this->assertSame($defined, $listed);
   }
 
@@ -175,7 +173,7 @@ final class MakefileArgumentsTest extends UnitTestCase {
     $lines = preg_split('/\R/', File::read($file), -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
     return array_map(static function (string $line): array {
-      $arguments = json_decode($line, TRUE, 512, JSON_THROW_ON_ERROR);
+      $arguments = json_decode($line, TRUE);
 
       if (!is_array($arguments)) {
         throw new \RuntimeException(sprintf('The stub logged "%s", which holds no arguments.', $line));
@@ -187,10 +185,6 @@ final class MakefileArgumentsTest extends UnitTestCase {
 
   protected static function callsFile(string $command): string {
     return self::$tmp . '/' . $command . '.log';
-  }
-
-  protected static function rootDir(): string {
-    return dirname(__DIR__, 4);
   }
 
 }

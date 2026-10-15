@@ -1,6 +1,6 @@
 // Stands in for the search plugin's search bar with the markup its
 // autocomplete widget draws once a query has results.
-export default function SearchBar() {
+const SearchBar = () => {
   return (
     <div className="navbar__search">
       <input aria-label="Search" role="combobox" aria-owns="listbox-1" />
@@ -13,4 +13,6 @@ export default function SearchBar() {
       </span>
     </div>
   );
-}
+};
+
+export default SearchBar;

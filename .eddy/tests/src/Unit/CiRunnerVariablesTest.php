@@ -18,9 +18,6 @@ use Symfony\Component\Yaml\Yaml;
  * A flag declared outside its `#;< DEV_<TOOL>` block remains after that block
  * is removed, as a name nothing consumes. Both cases stay valid YAML, so no
  * linter reports either.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class CiRunnerVariablesTest extends UnitTestCase {
@@ -131,9 +128,6 @@ final class CiRunnerVariablesTest extends UnitTestCase {
   /**
    * Find the runner variables a configuration declares.
    *
-   * Covers both spellings: a GitHub Actions `env` entry and a CircleCI shell
-   * export.
-   *
    * @param string $path
    *   The configuration to read.
    *
@@ -144,7 +138,7 @@ final class CiRunnerVariablesTest extends UnitTestCase {
     $declared = [];
 
     foreach (self::lines($path) as $number => $line) {
-      if (preg_match('/^\s*(?:echo "export )?(CI_IS_[A-Z0-9]+_RUNNER|CI_RUNNER_[A-Z]+)\s*[:=]/', $line, $matches) === 1) {
+      if (preg_match('/^\s*(CI_IS_[A-Z0-9]+_RUNNER|CI_RUNNER_[A-Z]+)\s*[:=]/', $line, $matches) === 1) {
         $declared[$matches[1]] = $number;
       }
     }
@@ -190,10 +184,6 @@ final class CiRunnerVariablesTest extends UnitTestCase {
    */
   protected static function lines(string $path): array {
     return explode("\n", File::read($path));
-  }
-
-  protected static function rootDir(): string {
-    return dirname(__DIR__, 4);
   }
 
 }

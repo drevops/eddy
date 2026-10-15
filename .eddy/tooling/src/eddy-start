@@ -32,7 +32,8 @@ $webserver_log = '.logs/php.log';
 
 // The docroot identifies the webserver of this project among the processes
 // that listen on the port.
-$docroot = getcwd() . '/build/web';
+$root = (string) getcwd();
+$docroot = $root . '/build/web';
 
 // Enable XDebug when XDebug env var is set. XDebug extension must be installed
 // and configured on host environment (php -v should show `with Xdebug`).
@@ -50,9 +51,9 @@ echo PHP_EOL;
 
 if ($xdebug_enabled) {
   TASK('Verifying that the XDebug PHP extension is installed.');
-  $php_v = (string) shell_exec('php -v 2>/dev/null');
+  $output = (string) shell_exec('php -v 2>/dev/null');
 
-  if (stripos($php_v, 'xdebug') === FALSE) {
+  if (stripos($output, 'xdebug') === FALSE) {
     FAIL('XDEBUG=1 is set but the XDebug PHP extension is not installed on the host. Install it (see https://xdebug.org/docs/install) and try again.');
   }
 
@@ -63,13 +64,7 @@ TASK('Stopping previously started services, if any.');
 $listeners = webserver_listeners($webserver_port, $docroot);
 
 if ($listeners['other'] !== []) {
-  FAIL_NO_EXIT('Port %s is in use by another process. Stop it, or set WEBSERVER_PORT in .env to a free port.', $webserver_port);
-
-  foreach ($listeners['other'] as $pid => $command) {
-    NOTE('%d %s', $pid, $command);
-  }
-
-  quit(1);
+  fail_port_in_use($webserver_port, 'WEBSERVER_PORT', $listeners['other']);
 }
 
 kill_processes(array_keys($listeners['own']));
@@ -81,8 +76,8 @@ passthru(sprintf('nohup php%s -S %s:%s -t %s %s >%s 2>&1 &', $xdebug_flags, esca
 NOTE('Waiting up to %s seconds for the server to be ready.', (string) $webserver_wait_timeout);
 
 if (!wait_for_port($webserver_host, $webserver_port, $webserver_wait_timeout)) {
-  $log = @file_get_contents($webserver_log) ?: '';
-  FAIL('Unable to start inbuilt PHP server' . ($log !== '' ? "\n" . $log : ''));
+  $content = @file_get_contents($webserver_log) ?: '';
+  FAIL('Unable to start inbuilt PHP server.%s', $content !== '' ? "\n" . $content : '');
 }
 
 PASS('Server started successfully.');

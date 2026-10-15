@@ -11,28 +11,18 @@ use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
-/**
- * Tests for copy_dir() function.
- *
- * phpcs:disable Drupal.Classes.FullyQualifiedNamespace.UseStatementMissing
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\copy_dir')]
 #[Group('p0')]
 final class HelpersCopyDirTest extends UnitTestCase {
 
   use DirectoryFixtureTrait;
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   #[DataProvider('dataProviderCopyDir')]
   public function testCopyDir(array $structure, array $expected_files): void {
     $src = self::$tmp . '/src_' . uniqid();
     $dst = self::$tmp . '/dst_' . uniqid();
 
-    $this->createDirectoryStructure($src, $structure);
+    self::directoryFixtureCreate($src, $structure);
 
     copy_dir($src, $dst);
 
@@ -142,7 +132,7 @@ final class HelpersCopyDirTest extends UnitTestCase {
     $src = self::$tmp . '/src_' . uniqid();
     $dst = self::$tmp . '/dst_' . uniqid();
 
-    $this->createDirectoryStructure($src, [
+    self::directoryFixtureCreate($src, [
       'new_file.txt' => 'new content',
     ]);
 
@@ -160,7 +150,7 @@ final class HelpersCopyDirTest extends UnitTestCase {
     $src = self::$tmp . '/src_' . uniqid();
     $dst = self::$tmp . '/dst_' . uniqid();
 
-    $this->createDirectoryStructure($src, [
+    self::directoryFixtureCreate($src, [
       'file.txt' => 'new content',
     ]);
 

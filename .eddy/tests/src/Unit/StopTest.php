@@ -9,71 +9,38 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for the 'eddy-stop' command.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
- */
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class StopTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
+  #[DataProvider('dataProviderStopResolvesPort')]
+  public function testStopResolvesPort(?string $env_port, ?string $dotenv, string $expected_port): void {
+    if ($env_port !== NULL) {
+      self::envSet('WEBSERVER_PORT', $env_port);
+    }
 
-  public function testStopDefaultPortWhenNoEnvAndNoDotenv(): void {
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
+    $this->mockFunction('file_exists', fn(string $file): bool => $dotenv !== NULL && $file === '.env');
 
-    $this->mockPortListeners('8000');
+    if ($dotenv !== NULL) {
+      $this->mockFunction('file_get_contents', fn(): string => $dotenv);
+    }
+
+    $this->mockPortListeners($expected_port);
     $this->mockPassthruNever();
     $this->mockSleep();
 
-    ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-stop';
-    $output = ob_get_clean();
+    $output = $this->runCommand('eddy-stop');
 
-    $this->assertIsString($output);
     $this->assertStringContainsString('STOP ENVIRONMENT', $output);
-    $this->assertStringContainsString('Stopping previously started services on port 8000', $output);
-    $this->assertStringContainsString('Services stopped on port 8000', $output);
+    $this->assertStringContainsString('Stopping previously started services on port ' . $expected_port, $output);
+    $this->assertStringContainsString('Services stopped on port ' . $expected_port, $output);
     $this->assertStringContainsString('ENVIRONMENT STOPPED', $output);
   }
 
-  public function testStopCustomPortFromEnv(): void {
-    $this->envSet('WEBSERVER_PORT', '9000');
-
-    $this->mockPortListeners('9000');
-    $this->mockPassthruNever();
-    $this->mockSleep();
-
-    ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-stop';
-    $output = ob_get_clean();
-
-    $this->assertIsString($output);
-    $this->assertStringContainsString('STOP ENVIRONMENT', $output);
-    $this->assertStringContainsString('Services stopped on port 9000', $output);
-    $this->assertStringContainsString('ENVIRONMENT STOPPED', $output);
-  }
-
-  public function testStopReadsPortFromDotenvWhenEnvUnset(): void {
-    $this->registerMock('file_exists', 'DrevOps\\Eddy\\Tooling', fn(string $file): bool => $file === '.env');
-    $this->registerMock('file_get_contents', 'DrevOps\\Eddy\\Tooling', fn(): string => "WEBSERVER_PORT=8123\n");
-
-    $this->mockPortListeners('8123');
-    $this->mockPassthruNever();
-    $this->mockSleep();
-
-    ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-stop';
-    $output = ob_get_clean();
-
-    $this->assertIsString($output);
-    $this->assertStringContainsString('Services stopped on port 8123', $output);
-    $this->assertStringContainsString('ENVIRONMENT STOPPED', $output);
+  public static function dataProviderStopResolvesPort(): \Iterator {
+    yield 'default port' => [NULL, NULL, '8000'];
+    yield 'port from the environment' => ['9000', NULL, '9000'];
+    yield 'port from .env' => [NULL, "WEBSERVER_PORT=8123\n", '8123'];
   }
 
   /**
@@ -87,9 +54,9 @@ final class StopTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderStopKillsOnlyOwnServer')]
   public function testStopKillsOnlyOwnServer(array $listeners, array $expected_killed, array $expected_left): void {
-    $this->envSet('WEBSERVER_PORT', '8000');
+    self::envSet('WEBSERVER_PORT', '8000');
 
-    $this->registerMock('getcwd', 'DrevOps\\Eddy\\Tooling', fn(): string => '/test/project');
+    $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
 
     $this->mockPortListeners('8000', $listeners);
 
@@ -102,9 +69,7 @@ final class StopTest extends UnitTestCase {
 
     $this->mockSleep();
 
-    ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-stop';
-    $output = (string) ob_get_clean();
+    $output = $this->runCommand('eddy-stop');
 
     $this->assertStringContainsString('Services stopped on port 8000.', $output);
     $this->assertStringContainsString('ENVIRONMENT STOPPED', $output);
@@ -120,12 +85,12 @@ final class StopTest extends UnitTestCase {
       $this->assertStringContainsString($process, $output);
     }
 
-    $this->assertStringNotContainsString('/test/project/build/web', $output, 'The project server is not reported as left running.');
+    $this->assertStringNotContainsString(self::PROJECT_ROOT . '/build/web', $output, 'The project server is not reported as left running.');
   }
 
   public static function dataProviderStopKillsOnlyOwnServer(): \Iterator {
-    $own = self::webserverCommandLine('/test/project');
-    $other = 'php -S localhost:8000 -t /www/other/build/web /www/other/build/web/.ht.router.php';
+    $own = self::webserverCommandLine(self::PROJECT_ROOT);
+    $other = self::webserverCommandLine('/www/other');
 
     yield 'nothing listens' => [[], [], []];
     yield 'the project server' => [[1234 => $own], [1234], []];
@@ -156,11 +121,8 @@ final class StopTest extends UnitTestCase {
     ]);
     $this->mockSleep();
 
-    ob_start();
-    require dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-stop';
-    $output = ob_get_clean();
+    $output = $this->runCommand('eddy-stop');
 
-    $this->assertIsString($output);
     $this->assertStringContainsString('Tunnel stopped.', $output);
     $this->assertStringContainsString('Services stopped on port 8000', $output);
     $this->assertFileDoesNotExist('.logs/cloudflared.pid');

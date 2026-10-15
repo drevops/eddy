@@ -8,12 +8,6 @@ use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
-/**
- * Tests for the 'eddy-assemble' command.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
- */
 #[Group('p2')]
 final class AssembleTest extends ToolingTestCase {
 
@@ -22,8 +16,8 @@ final class AssembleTest extends ToolingTestCase {
     $env = $drupal_version !== '' ? ['DRUPAL_VERSION' => $drupal_version] : [];
 
     if ($nvmrc) {
-      file_put_contents(self::$sut . '/.nvmrc', "22\n");
-      $env['NVM_DIR'] = $this->createNvmStub();
+      File::dump(self::$sut . '/.nvmrc', "22\n");
+      $env['NVM_DIR'] = self::createNvmStub();
     }
 
     $this->declareCorePatch('composer.json', 'add-composer-json-file.patch', self::coreFileAdditionDiff('eddy-composer-json.txt'));
@@ -52,7 +46,7 @@ final class AssembleTest extends ToolingTestCase {
 
     if ($nvmrc) {
       $this->assertProcessAnyOutputContains('Using the Node.js version in .nvmrc with nvm from ' . $env['NVM_DIR'] . '.');
-      $this->assertSame("nvm use 22\nnvm use 22\n", file_get_contents($env['NVM_DIR'] . '/calls.log'), 'Both npm commands run after nvm use in the project root.');
+      $this->assertSame("nvm use 22\nnvm use 22\n", File::read($env['NVM_DIR'] . '/calls.log'), 'Both npm commands run after nvm use in the project root.');
     }
     else {
       $this->assertProcessAnyOutputNotContains('.nvmrc');
@@ -103,10 +97,9 @@ final class AssembleTest extends ToolingTestCase {
    * @return string
    *   The directory.
    */
-  protected function createNvmStub(): string {
+  protected static function createNvmStub(): string {
     $dir = self::$tmp . '/nvm';
-    mkdir($dir);
-    file_put_contents($dir . '/nvm.sh', 'nvm() { echo "nvm $* $(cat .nvmrc)" >> "$NVM_DIR/calls.log"; }' . PHP_EOL);
+    File::dump($dir . '/nvm.sh', 'nvm() { echo "nvm $* $(cat .nvmrc)" >> "$NVM_DIR/calls.log"; }' . PHP_EOL);
 
     return $dir;
   }
@@ -125,7 +118,7 @@ final class AssembleTest extends ToolingTestCase {
     File::dump(self::$sut . '/patches/' . $name, $diff);
 
     $manifest_path = self::$sut . '/' . $manifest;
-    $config = json_decode(File::read($manifest_path), TRUE, 512, JSON_THROW_ON_ERROR);
+    $config = json_decode(File::read($manifest_path), TRUE);
     $this->assertIsArray($config);
     /** @var array{extra?: array{patches?: array<string, array<string, string>>}} $config */
     $config['extra']['patches']['drupal/core'][$name] = 'patches/' . $name;

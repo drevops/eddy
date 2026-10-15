@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use function DrevOps\Eddy\Tooling\fail_port_in_use;
 use function DrevOps\Eddy\Tooling\kill_processes;
+use function DrevOps\Eddy\Tooling\note_port_in_use;
 use function DrevOps\Eddy\Tooling\port_listener_pids_command;
 use function DrevOps\Eddy\Tooling\process_command;
 use function DrevOps\Eddy\Tooling\process_cwd;
@@ -18,13 +20,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for the helpers that find and stop the processes listening on a port.
- *
- * phpcs:disable Drupal.Classes.FullyQualifiedNamespace.UseStatementMissing
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\port_listener_pids_command')]
 #[CoversFunction('DrevOps\Eddy\Tooling\process_command')]
 #[CoversFunction('DrevOps\Eddy\Tooling\process_cwd')]
@@ -34,20 +29,13 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[CoversFunction('DrevOps\Eddy\Tooling\port_listeners')]
 #[CoversFunction('DrevOps\Eddy\Tooling\webdriver_listeners')]
 #[CoversFunction('DrevOps\Eddy\Tooling\kill_processes')]
+#[CoversFunction('DrevOps\Eddy\Tooling\fail_port_in_use')]
+#[CoversFunction('DrevOps\Eddy\Tooling\note_port_in_use')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersPortListenersTest extends UnitTestCase {
 
   protected const string DOCROOT = '/www/project/build/web';
-
-  protected const string SERVER = 'php -S localhost:8000 -t /www/project/build/web /www/project/build/web/.ht.router.php';
-
-  protected const string OTHER_SERVER = 'php -S localhost:8000 -t /www/other/build/web /www/other/build/web/.ht.router.php';
-
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
 
   #[DataProvider('dataProviderPortListenerPidsCommand')]
   public function testPortListenerPidsCommand(int|string $port, string $expected): void {
@@ -62,7 +50,7 @@ final class HelpersPortListenersTest extends UnitTestCase {
 
   #[DataProvider('dataProviderProcessCommand')]
   public function testProcessCommand(?string $ps_output, string $expected): void {
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(string $command): ?string => $command === 'ps -p 1234 -o command= 2>/dev/null' ? $ps_output : throw new \RuntimeException(sprintf('shell_exec() called with unexpected command "%s".', $command)));
+    $this->mockShellExecOutputs(['ps -p 1234 -o command= 2>/dev/null' => $ps_output]);
 
     $this->assertSame($expected, process_command(1234));
   }
@@ -75,7 +63,7 @@ final class HelpersPortListenersTest extends UnitTestCase {
 
   #[DataProvider('dataProviderProcessCwd')]
   public function testProcessCwd(?string $lsof_output, string $expected): void {
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(string $command): ?string => $command === 'lsof -a -p 1234 -d cwd -Fn 2>/dev/null' ? $lsof_output : throw new \RuntimeException(sprintf('shell_exec() called with unexpected command "%s".', $command)));
+    $this->mockShellExecOutputs(['lsof -a -p 1234 -d cwd -Fn 2>/dev/null' => $lsof_output]);
 
     $this->assertSame($expected, process_cwd(1234));
   }
@@ -93,7 +81,7 @@ final class HelpersPortListenersTest extends UnitTestCase {
   }
 
   public static function dataProviderWebserverDocrootArgument(): \Iterator {
-    yield 'separate value' => [self::SERVER, '/www/project/build/web'];
+    yield 'separate value' => [self::webserverCommandLine('/www/project'), '/www/project/build/web'];
     yield 'relative value' => ['php -S localhost:8000 -t build/web', 'build/web'];
     yield 'attached value' => ['php -S localhost:8000 -tbuild/web', 'build/web'];
     yield 'after the XDebug flags' => ['php -d xdebug.mode=debug -S localhost:8000 -t /www/project/build/web', '/www/project/build/web'];
@@ -122,7 +110,7 @@ final class HelpersPortListenersTest extends UnitTestCase {
     $replacements = ['{project}' => $project, '{link}' => self::$tmp . '/link', '{other}' => $other];
 
     $lsof_output = $cwd === NULL ? '' : sprintf("p1234\nfcwd\nn%s\n", strtr($cwd, $replacements));
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(string $command): string => $command === 'lsof -a -p 1234 -d cwd -Fn 2>/dev/null' ? $lsof_output : throw new \RuntimeException(sprintf('shell_exec() called with unexpected command "%s".', $command)));
+    $this->mockShellExecOutputs(['lsof -a -p 1234 -d cwd -Fn 2>/dev/null' => $lsof_output]);
 
     $this->assertSame($expected, webserver_serves(strtr($command, $replacements), $project . '/build/web', $pid));
   }
@@ -137,7 +125,7 @@ final class HelpersPortListenersTest extends UnitTestCase {
     yield 'relative to a working directory that cannot be read' => ['php -S localhost:8000 -t build/web', NULL, 1234, FALSE];
     yield 'relative without a process ID' => ['php -S localhost:8000 -t build/web', '{project}', 0, FALSE];
     yield 'relative to a path that does not exist' => ['php -S localhost:8000 -t missing/web', '{project}', 1234, FALSE];
-    yield 'absolute through a symlink' => ['php -S localhost:8000 -t {link}/build/web {link}/build/web/.ht.router.php', NULL, 1234, TRUE];
+    yield 'absolute through a symlink' => [self::webserverCommandLine('{link}'), NULL, 1234, TRUE];
     yield 'absolute to another project' => ['php -S localhost:8000 -t {other}/build/web', NULL, 1234, FALSE];
     yield 'no value after the option' => ['php -S localhost:8000 -t', '{project}', 1234, FALSE];
   }
@@ -148,16 +136,16 @@ final class HelpersPortListenersTest extends UnitTestCase {
   }
 
   public static function dataProviderWebserverServes(): \Iterator {
-    yield 'serves the docroot' => [self::SERVER, self::DOCROOT, TRUE];
+    yield 'serves the docroot' => [self::webserverCommandLine('/www/project'), self::DOCROOT, TRUE];
     yield 'serves the docroot with XDebug' => ['php -d xdebug.mode=debug -d xdebug.start_with_request=yes -S localhost:8000 -t /www/project/build/web /www/project/build/web/.ht.router.php', self::DOCROOT, TRUE];
     yield 'docroot ends the command line' => ['php -S localhost:8000 -t /www/project/build/web', self::DOCROOT, TRUE];
-    yield 'serves another docroot' => [self::OTHER_SERVER, self::DOCROOT, FALSE];
+    yield 'serves another docroot' => [self::webserverCommandLine('/www/other'), self::DOCROOT, FALSE];
     yield 'serves a directory below the docroot' => ['php -S localhost:8000 -t /www/project/build/web/sites', self::DOCROOT, FALSE];
     yield 'serves a docroot whose name extends this one' => ['php -S localhost:8000 -t /www/project/build/web-old /www/project/build/web-old/.ht.router.php', self::DOCROOT, FALSE];
     yield 'names the docroot only in the router path' => ['php -S localhost:8000 -t /www/other/build/web /www/project/build/web/.ht.router.php', self::DOCROOT, FALSE];
-    yield 'docroot with spaces' => ['php -S localhost:8000 -t /www/my project/build/web /www/my project/build/web/.ht.router.php', '/www/my project/build/web', TRUE];
-    yield 'docroot with regular expression characters' => ['php -S localhost:8000 -t /www/a+b (1)/build/web /www/a+b (1)/build/web/.ht.router.php', '/www/a+b (1)/build/web', TRUE];
-    yield 'regular expression characters match only themselves' => ['php -S localhost:8000 -t /www/aab 1/build/web /www/aab 1/build/web/.ht.router.php', '/www/a+b (1)/build/web', FALSE];
+    yield 'docroot with spaces' => [self::webserverCommandLine('/www/my project'), '/www/my project/build/web', TRUE];
+    yield 'docroot with regular expression characters' => [self::webserverCommandLine('/www/a+b (1)'), '/www/a+b (1)/build/web', TRUE];
+    yield 'regular expression characters match only themselves' => [self::webserverCommandLine('/www/aab 1'), '/www/a+b (1)/build/web', FALSE];
     yield 'another program' => ['node server.js --port 8000', self::DOCROOT, FALSE];
     yield 'empty command line' => ['', self::DOCROOT, FALSE];
   }
@@ -176,12 +164,15 @@ final class HelpersPortListenersTest extends UnitTestCase {
   }
 
   public static function dataProviderWebserverListeners(): \Iterator {
+    $server = self::webserverCommandLine('/www/project');
+    $other = self::webserverCommandLine('/www/other');
+
     yield 'nothing listens' => [[], ['own' => [], 'other' => []]];
-    yield 'the project server' => [[1234 => self::SERVER], ['own' => [1234 => self::SERVER], 'other' => []]];
-    yield 'the project server with workers' => [[1234 => self::SERVER, 1235 => self::SERVER, 1236 => self::SERVER], ['own' => [1234 => self::SERVER, 1235 => self::SERVER, 1236 => self::SERVER], 'other' => []]];
-    yield 'the server of another project' => [[5678 => self::OTHER_SERVER], ['own' => [], 'other' => [5678 => self::OTHER_SERVER]]];
+    yield 'the project server' => [[1234 => $server], ['own' => [1234 => $server], 'other' => []]];
+    yield 'the project server with workers' => [[1234 => $server, 1235 => $server, 1236 => $server], ['own' => [1234 => $server, 1235 => $server, 1236 => $server], 'other' => []]];
+    yield 'the server of another project' => [[5678 => $other], ['own' => [], 'other' => [5678 => $other]]];
     yield 'another program' => [[5678 => 'node server.js --port 8000'], ['own' => [], 'other' => [5678 => 'node server.js --port 8000']]];
-    yield 'the project server and another' => [[1234 => self::SERVER, 5678 => self::OTHER_SERVER], ['own' => [1234 => self::SERVER], 'other' => [5678 => self::OTHER_SERVER]]];
+    yield 'the project server and another' => [[1234 => $server, 5678 => $other], ['own' => [1234 => $server], 'other' => [5678 => $other]]];
     yield 'a command line that cannot be read' => [[1234 => ''], ['own' => [1234 => ''], 'other' => []]];
   }
 
@@ -265,14 +256,12 @@ final class HelpersPortListenersTest extends UnitTestCase {
 
   #[DataProvider('dataProviderWebserverListenersIgnoresOutput')]
   public function testWebserverListenersIgnoresOutput(?string $lsof_output): void {
-    // Only the process ID 1234 reaches 'ps'.
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', fn(string $command): ?string => match ($command) {
-      "lsof -ti tcp:'8000' -sTCP:LISTEN 2>/dev/null" => $lsof_output,
-      'ps -p 1234 -o command= 2>/dev/null' => self::SERVER . "\n",
-      default => throw new \RuntimeException(sprintf('shell_exec() called with unexpected command "%s".', $command)),
-    });
+    $server = self::webserverCommandLine('/www/project');
 
-    $expected = $lsof_output !== NULL && str_contains($lsof_output, '1234') ? [1234 => self::SERVER] : [];
+    // Only the process ID 1234 reaches 'ps'.
+    $this->mockShellExecOutputs(["lsof -ti tcp:'8000' -sTCP:LISTEN 2>/dev/null" => $lsof_output, 'ps -p 1234 -o command= 2>/dev/null' => $server . "\n"]);
+
+    $expected = $lsof_output !== NULL && str_contains($lsof_output, '1234') ? [1234 => $server] : [];
     $this->assertSame(['own' => $expected, 'other' => []], webserver_listeners('8000', self::DOCROOT));
   }
 
@@ -297,16 +286,37 @@ final class HelpersPortListenersTest extends UnitTestCase {
     }
 
     kill_processes($pids);
-
-    $this->mockPassthruAssertAllMocksConsumed();
   }
 
   public static function dataProviderKillProcesses(): \Iterator {
     yield 'no processes' => [[], NULL];
-    yield '1 process' => [[1234], 'kill -9 1234 2>/dev/null'];
-    yield 'several processes' => [[1234, 1235, 1236], 'kill -9 1234 1235 1236 2>/dev/null'];
-    yield 'process IDs below 1 are ignored' => [[0, -1, 1234], 'kill -9 1234 2>/dev/null'];
+    yield '1 process' => [[1234], self::killProcessesCommand(1234)];
+    yield 'several processes' => [[1234, 1235, 1236], self::killProcessesCommand(1234, 1235, 1236)];
+    yield 'process IDs below 1 are ignored' => [[0, -1, 1234], self::killProcessesCommand(1234)];
     yield 'only process IDs below 1' => [[0, -5], NULL];
+  }
+
+  public function testFailPortInUse(): void {
+    $this->mockQuit(1);
+
+    $output = $this->capture(fn() => fail_port_in_use('8000', 'WEBSERVER_PORT', [1234 => 'php -S localhost:8000', 5678 => 'node server.js']), 1);
+
+    $this->assertStringContainsString('[FAIL] Port 8000 is in use by another process. Stop it, or set WEBSERVER_PORT in .env to a free port.', $output);
+    $this->assertStringContainsString("       1234 php -S localhost:8000\n       5678 node server.js\n", $output);
+  }
+
+  /**
+   * @param array<int, string> $listeners
+   *   The command line of each process left running, keyed by process ID.
+   */
+  #[DataProvider('dataProviderNotePortInUse')]
+  public function testNotePortInUse(array $listeners, string $expected): void {
+    $this->assertSame($expected, $this->capture(fn() => note_port_in_use('4444', $listeners)));
+  }
+
+  public static function dataProviderNotePortInUse(): \Iterator {
+    yield 'no processes' => [[], ''];
+    yield 'several processes' => [[1234 => 'php -S localhost:4444', 5678 => 'node server.js'], "       Port 4444 is still in use by another process, which was left running:\n       1234 php -S localhost:4444\n       5678 node server.js\n"];
   }
 
 }

@@ -127,13 +127,7 @@ function webdriver_fail_when_taken(string $port, string $root): void {
     return;
   }
 
-  FAIL_NO_EXIT('Port %s is in use by another process. Stop it, or set WEBDRIVER_PORT in .env to a free port.', $port);
-
-  foreach ($other as $pid => $command) {
-    NOTE('%d %s', $pid, $command);
-  }
-
-  quit(1);
+  fail_port_in_use($port, 'WEBDRIVER_PORT', $other);
 }
 
 /**
@@ -173,14 +167,10 @@ function chromedriver_start(string $port, string $root): void {
 
   NOTE('Waiting for chromedriver to be ready.');
 
-  for ($i = 0; $i < 30; $i++) {
-    if (webdriver_ready($port, 'chromedriver')) {
-      PASS('chromedriver is ready on port %s.', $port);
+  if (webdriver_wait_ready($port, 'chromedriver')) {
+    PASS('chromedriver is ready on port %s.', $port);
 
-      return;
-    }
-
-    sleep(1);
+    return;
   }
 
   FAIL('chromedriver failed to become ready on port %s after 30 seconds; see %s.', $port, CHROMEDRIVER_LOG_FILE);
@@ -230,14 +220,10 @@ function selenium_start(string $port, string $root): void {
 
   NOTE('Waiting for Selenium to be ready.');
 
-  for ($i = 0; $i < 30; $i++) {
-    if (webdriver_ready($port, 'selenium')) {
-      PASS('Selenium is ready on port %s.', $port);
+  if (webdriver_wait_ready($port, 'selenium')) {
+    PASS('Selenium is ready on port %s.', $port);
 
-      return;
-    }
-
-    sleep(1);
+    return;
   }
 
   FAIL('Selenium failed to become ready on port %s after 30 seconds.', $port);
@@ -274,6 +260,30 @@ function webdriver_ready(string $port, string $backend): bool {
 }
 
 /**
+ * Wait up to 30 seconds for a server of the backend to accept sessions.
+ *
+ * @param string $port
+ *   The WebDriver port.
+ * @param string $backend
+ *   The backend: 'chromedriver' or 'selenium'.
+ *
+ * @return bool
+ *   TRUE once the server on the port is of the backend and accepts sessions,
+ *   FALSE when no probe succeeds within the 30 seconds.
+ */
+function webdriver_wait_ready(string $port, string $backend): bool {
+  for ($i = 0; $i < 30; $i++) {
+    if (webdriver_ready($port, $backend)) {
+      return TRUE;
+    }
+
+    sleep(1);
+  }
+
+  return FALSE;
+}
+
+/**
  * Detect the installed Chrome/Chromium version, or '' when none is found.
  *
  * Aborts when the browser does not report its version in time.
@@ -285,13 +295,13 @@ function detect_chrome_version(): string {
     return '';
   }
 
-  $raw = command_output([$binary, '--version'], VERSION_PROBE_TIMEOUT);
+  $output = command_output([$binary, '--version'], VERSION_PROBE_TIMEOUT);
 
-  if ($raw === NULL) {
+  if ($output === NULL) {
     FAIL('The browser at %s did not report its version within %d seconds. Run it with --version to see why, or set WEBDRIVER_BACKEND=selenium to use Docker.', $binary, VERSION_PROBE_TIMEOUT);
   }
 
-  return preg_match('/(\d+(?:\.\d+){3})/', (string) $raw, $matches) === 1 ? $matches[1] : '';
+  return preg_match('/(\d+(?:\.\d+){3})/', (string) $output, $matches) === 1 ? $matches[1] : '';
 }
 
 /**
@@ -364,9 +374,9 @@ function detect_matching_chromedriver(string $chrome_version): string {
     return '';
   }
 
-  $raw = command_output([$path, '--version'], VERSION_PROBE_TIMEOUT);
+  $output = command_output([$path, '--version'], VERSION_PROBE_TIMEOUT);
 
-  if ($raw === NULL) {
+  if ($output === NULL) {
     NOTE('Installed chromedriver at %s did not report its version within %d seconds; fetching a matching build.', $path, VERSION_PROBE_TIMEOUT);
     // cspell:ignore xattr
     NOTE('If macOS has quarantined it, clear the flag with: xattr -d com.apple.quarantine %s', escapeshellarg($path));
@@ -374,7 +384,7 @@ function detect_matching_chromedriver(string $chrome_version): string {
     return '';
   }
 
-  if (preg_match('/(\d+)\./', $raw, $matches) !== 1 || $matches[1] !== explode('.', $chrome_version)[0]) {
+  if (preg_match('/(\d+)\./', $output, $matches) !== 1 || $matches[1] !== explode('.', $chrome_version)[0]) {
     NOTE('Installed chromedriver does not match Chrome %s; fetching a matching build.', $chrome_version);
 
     return '';
@@ -392,13 +402,13 @@ function detect_matching_chromedriver(string $chrome_version): string {
  * may contain spaces, so everything after the first field is kept verbatim.
  */
 function parse_installed_binary(string $log): string {
-  $contents = @file_get_contents($log);
+  $content = @file_get_contents($log);
 
-  if ($contents === FALSE) {
+  if ($content === FALSE) {
     return '';
   }
 
-  $lines = array_values(array_filter(preg_split('/\r\n|\r|\n/', trim($contents)) ?: []));
+  $lines = array_values(array_filter(split_lines(trim($content))));
 
   if ($lines === []) {
     return '';

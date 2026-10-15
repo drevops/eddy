@@ -20,6 +20,8 @@ use function DrevOps\Eddy\Assets\run_cleanups;
 #[Group('p0')]
 final class UpdateAssetsRunCleanupsTest extends UnitTestCase {
 
+  protected const string NAMESPACE = 'DrevOps\\Eddy\\Assets';
+
   /**
    * Commands passed to the mocked 'exec()', in call order.
    *
@@ -29,8 +31,8 @@ final class UpdateAssetsRunCleanupsTest extends UnitTestCase {
 
   protected function setUp(): void {
     parent::setUp();
-    $this->envSet('SCRIPT_RUN_SKIP', '1');
-    require_once dirname(__DIR__, 4) . '/.eddy/assets/update-assets.php';
+    self::envSet('SCRIPT_RUN_SKIP', '1');
+    require_once self::rootDir() . '/.eddy/assets/update-assets.php';
   }
 
   /**
@@ -45,11 +47,11 @@ final class UpdateAssetsRunCleanupsTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderRunCleanups')]
   public function testRunCleanups(array $cleanups, array $results, array $expected_commands, array $expected_failures): void {
-    $exec = $this->getFunctionMock('DrevOps\\Eddy\\Assets', 'exec');
-    $exec->expects($this->exactly(count($expected_commands)))->willReturnCallback(function (string $cmd, ?array &$output = NULL, ?int &$exit_code = NULL) use ($results): string {
-      $this->commands[] = $cmd;
-      $command = (string) preg_replace("/^cd '[^']*' && (.*) 2>&1$/", '$1', $cmd);
-      [$exit_code, $output] = $results[$command] ?? [0, []];
+    $exec = $this->getFunctionMock(self::NAMESPACE, 'exec');
+    $exec->expects($this->exactly(count($expected_commands)))->willReturnCallback(function (string $command, ?array &$output = NULL, ?int &$result_code = NULL) use ($results): string {
+      $this->commands[] = $command;
+      $cleanup = (string) preg_replace("/^cd '[^']*' && (.*) 2>&1$/", '$1', $command);
+      [$result_code, $output] = $results[$cleanup] ?? [0, []];
 
       return (string) end($output);
     });

@@ -5,16 +5,16 @@ parameters:
   paths:
     - src
     - ../assets/update-assets.php
-    - ../../.eddy/tooling/src/eddy-assemble
-    - ../../.eddy/tooling/src/eddy-browser-start
-    - ../../.eddy/tooling/src/eddy-browser-stop
-    - ../../.eddy/tooling/src/eddy-deploy
-    - ../../.eddy/tooling/src/helpers.php
-    - ../../.eddy/tooling/src/eddy-info
-    - ../../.eddy/tooling/src/eddy-provision
-    - ../../.eddy/tooling/src/eddy-qrcode
-    - ../../.eddy/tooling/src/eddy-start
-    - ../../.eddy/tooling/src/eddy-stop
+    - ../tooling/src/eddy-assemble
+    - ../tooling/src/eddy-browser-start
+    - ../tooling/src/eddy-browser-stop
+    - ../tooling/src/eddy-deploy
+    - ../tooling/src/helpers.php
+    - ../tooling/src/eddy-info
+    - ../tooling/src/eddy-provision
+    - ../tooling/src/eddy-qrcode
+    - ../tooling/src/eddy-start
+    - ../tooling/src/eddy-stop
     - ../../install.php
     - ../../scripts/eddy-tooling
 
@@ -37,5 +37,5 @@ parameters:
       # directly; strict offset typing is impractical for these scripts.
       identifier: offsetAccess.nonOffsetAccessible
       paths:
-        - ../../.eddy/tooling/src/*
+        - ../tooling/src/*
       reportUnmatched: false

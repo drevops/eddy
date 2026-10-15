@@ -5,44 +5,24 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\drupal_release;
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * Tests for the drupal_release() helper.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
- */
 #[CoversFunction('DrevOps\Eddy\Tooling\drupal_release')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersDrupalReleaseTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
   /**
-   * Mock the Composer call that lists the Drupal releases.
-   *
    * @param array<int, string> $output
    *   The lines Composer prints to stdout.
    * @param int $exit_code
    *   The exit code Composer returns.
    */
   protected function mockReleaseList(array $output, int $exit_code = 0): void {
-    $this->registerMock('exec', 'DrevOps\\Eddy\\Tooling', function (string $cmd, ?array &$exec_output = NULL, ?int &$code = NULL) use ($output, $exit_code): string {
-      $this->assertSame("composer show --all --format=json 'drupal/recommended-project'", $cmd);
-      $exec_output = $output;
-      $code = $exit_code;
-
-      return '';
-    });
+    $this->mockExecOutput(self::composerShowCommand('drupal/recommended-project'), $output, $exit_code);
   }
 
   public function testDrupalRelease(): void {
@@ -59,17 +39,7 @@ final class HelpersDrupalReleaseTest extends UnitTestCase {
     $this->mockReleaseList($output, $exit_code);
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      drupal_release($constraint);
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = (string) ob_get_clean();
-    }
+    $output = $this->capture(fn(): string => drupal_release($constraint), 1);
 
     $this->assertStringContainsString($expected_message, $output);
   }

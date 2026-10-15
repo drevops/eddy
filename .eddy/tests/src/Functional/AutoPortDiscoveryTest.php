@@ -13,10 +13,6 @@ use Symfony\Component\Process\Process;
 
 /**
  * Functional tests for the webservers of several projects on the same machine.
- *
- * phpcs:disable Drupal.Classes.FullyQualifiedNamespace.UseStatementMissing
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p3')]
 final class AutoPortDiscoveryTest extends UnitTestCase {
@@ -43,7 +39,6 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
 
   protected function tearDown(): void {
     foreach ($this->startedPorts as $port) {
-      // phpcs:ignore
       @exec(sprintf('lsof -ti tcp:%s -sTCP:LISTEN | xargs kill -9 2>/dev/null', escapeshellarg($port)));
     }
     sleep(1);
@@ -57,8 +52,8 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
     $this->sut1 = self::$tmp . '/proj1_' . uniqid();
     $this->sut2 = self::$tmp . '/proj2_' . uniqid();
 
-    $this->buildMinimalSut($this->sut1);
-    $this->buildMinimalSut($this->sut2);
+    self::buildMinimalSut($this->sut1);
+    self::buildMinimalSut($this->sut2);
 
     $this->processCwd = $this->sut1;
     $this->processRun('php', [self::TOOLING_DIR . '/eddy-start'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
@@ -107,7 +102,7 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
 
   public function testExistingDotenvPortIsHonoredAndNotRewritten(): void {
     $sut = self::$tmp . '/proj_preset_' . uniqid();
-    $this->buildMinimalSut($sut);
+    self::buildMinimalSut($sut);
 
     $preset_port = self::webserverFreePort();
     File::dump($sut . '/.env', 'WEBSERVER_PORT=' . $preset_port . "\n# user comment\n");
@@ -124,7 +119,7 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
 
   public function testStopLeavesClientsRunning(): void {
     $sut = self::$tmp . '/proj_client_' . uniqid();
-    $this->buildMinimalSut($sut);
+    self::buildMinimalSut($sut);
 
     $this->processCwd = $sut;
     $this->processRun('php', [self::TOOLING_DIR . '/eddy-start'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
@@ -133,8 +128,8 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
     $port = $this->readEnvPort($sut);
     $this->startedPorts[] = $port;
 
-    // A process that holds a client connection to the port, as a browser or a
-    // test in the middle of a request does.
+    // $client holds a connection to the port, as a browser or a test in the
+    // middle of a request does.
     $client = new Process(['php', '-r', sprintf('$c = @stream_socket_client("tcp://localhost:%s"); echo $c === FALSE ? "refused" : "connected"; sleep(60);', $port)]);
     $client->start();
 
@@ -158,8 +153,8 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
     $this->sut1 = self::$tmp . '/proj1_' . uniqid();
     $this->sut2 = self::$tmp . '/proj2_' . uniqid();
 
-    $this->buildMinimalSut($this->sut1);
-    $this->buildMinimalSut($this->sut2);
+    self::buildMinimalSut($this->sut1);
+    self::buildMinimalSut($this->sut2);
 
     // Both projects recorded the same port, as they do when one of them
     // discovers the port that the other one freed.
@@ -196,8 +191,8 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
     $this->sut1 = self::$tmp . '/proj1_' . uniqid();
     $this->sut2 = self::$tmp . '/proj2_' . uniqid();
 
-    $this->buildMinimalSut($this->sut1);
-    $this->buildMinimalSut($this->sut2);
+    self::buildMinimalSut($this->sut1);
+    self::buildMinimalSut($this->sut2);
 
     $port = self::webserverFreePort();
     File::dump($this->sut2 . '/.env', 'WEBSERVER_PORT=' . $port . "\n");
@@ -216,8 +211,8 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
     $this->assertFalse(self::webserverPortAccepts($port), 'Stopping the webserver of a project stops it.');
   }
 
-  protected function buildMinimalSut(string $sut): void {
-    $source_dir = dirname(__DIR__, 4) . '/.eddy/tooling/src';
+  protected static function buildMinimalSut(string $sut): void {
+    $source_dir = self::toolingDir() . '/src';
     foreach (['helpers.php', 'eddy-start', 'eddy-stop'] as $file) {
       File::copy($source_dir . '/' . $file, $sut . '/' . self::TOOLING_DIR . '/' . $file);
     }

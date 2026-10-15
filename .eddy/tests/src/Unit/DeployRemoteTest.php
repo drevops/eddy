@@ -15,9 +15,6 @@ use Symfony\Component\Process\Process;
  * The script runs in a clone with HEAD detached at the deployed commit, as the
  * workflow's checkout leaves it. It pushes to a local bare repository, and the
  * assertions read the refs that repository received.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[Group('p0')]
 final class DeployRemoteTest extends UnitTestCase {
@@ -31,53 +28,53 @@ final class DeployRemoteTest extends UnitTestCase {
   protected const string LATER_TAG = '1.1.0';
 
   public function testBranchDeployment(): void {
-    $clone = $this->createClone();
-    $remote = $this->createRemote();
-    $this->git($clone, ['checkout', '--quiet', '--detach', 'main']);
+    $clone = self::createClone();
+    $remote = self::createRemote();
+    self::gitRun($clone, ['checkout', '--quiet', '--detach', 'main']);
 
-    $output = $this->runDeploy($clone, $remote, ['DEPLOY_BRANCH' => self::BRANCH]);
+    $output = self::runDeploy($clone, $remote, ['DEPLOY_BRANCH' => self::BRANCH]);
 
-    $this->assertSame($this->commit($clone, 'tip'), $this->remoteCommit($remote, 'refs/heads/' . self::BRANCH));
-    $this->assertSame($this->commit($clone, 'released'), $this->remoteCommit($remote, 'refs/tags/' . self::RELEASE_TAG));
-    $this->assertSame($this->commit($clone, 'tip'), $this->remoteCommit($remote, 'refs/tags/' . self::LATER_TAG));
+    $this->assertSame(self::commit($clone, 'tip'), self::remoteCommit($remote, 'refs/heads/' . self::BRANCH));
+    $this->assertSame(self::commit($clone, 'released'), self::remoteCommit($remote, 'refs/tags/' . self::RELEASE_TAG));
+    $this->assertSame(self::commit($clone, 'tip'), self::remoteCommit($remote, 'refs/tags/' . self::LATER_TAG));
     $this->assertStringContainsString('Tags pushed to', $output);
   }
 
   public function testTagDeployment(): void {
-    $clone = $this->createClone();
-    $remote = $this->createRemote();
+    $clone = self::createClone();
+    $remote = self::createRemote();
 
     // The remote branch is ahead of the release, as after a later deployment.
-    $this->git($clone, ['push', '--quiet', $remote, 'main:refs/heads/' . self::BRANCH]);
+    self::gitRun($clone, ['push', '--quiet', $remote, 'main:refs/heads/' . self::BRANCH]);
 
-    $this->git($clone, ['branch', self::RELEASE_TAG, 'main']);
+    self::gitRun($clone, ['branch', self::RELEASE_TAG, 'main']);
 
-    $this->git($clone, ['checkout', '--quiet', '--detach', 'refs/tags/' . self::RELEASE_TAG . '^{commit}']);
+    self::gitRun($clone, ['checkout', '--quiet', '--detach', 'refs/tags/' . self::RELEASE_TAG . '^{commit}']);
 
-    $output = $this->runDeploy($clone, $remote, ['DEPLOY_TAG' => self::RELEASE_TAG]);
+    $output = self::runDeploy($clone, $remote, ['DEPLOY_TAG' => self::RELEASE_TAG]);
 
-    $this->assertSame($this->commit($clone, 'released'), $this->remoteCommit($remote, 'refs/tags/' . self::RELEASE_TAG));
-    $this->assertSame($this->commit($clone, 'tip'), $this->remoteCommit($remote, 'refs/heads/' . self::BRANCH), 'A tag deployment must leave the remote branches untouched.');
-    $this->assertNull($this->remoteCommit($remote, 'refs/heads/' . self::RELEASE_TAG), 'A tag deployment must not push a branch that shares the tag name.');
-    $this->assertNull($this->remoteCommit($remote, 'refs/tags/' . self::LATER_TAG), 'A tag deployment must push only its own tag.');
+    $this->assertSame(self::commit($clone, 'released'), self::remoteCommit($remote, 'refs/tags/' . self::RELEASE_TAG));
+    $this->assertSame(self::commit($clone, 'tip'), self::remoteCommit($remote, 'refs/heads/' . self::BRANCH), 'A tag deployment must leave the remote branches untouched.');
+    $this->assertNull(self::remoteCommit($remote, 'refs/heads/' . self::RELEASE_TAG), 'A tag deployment must not push a branch that shares the tag name.');
+    $this->assertNull(self::remoteCommit($remote, 'refs/tags/' . self::LATER_TAG), 'A tag deployment must push only its own tag.');
     $this->assertStringContainsString('Tag pushed to', $output);
   }
 
   public function testRefusedTagIsReported(): void {
-    $clone = $this->createClone();
-    $remote = $this->createRemote();
-    $this->git($clone, ['checkout', '--quiet', '--detach', 'main']);
+    $clone = self::createClone();
+    $remote = self::createRemote();
+    self::gitRun($clone, ['checkout', '--quiet', '--detach', 'main']);
 
     // The update hook refuses the later tag and accepts every other ref.
     $hook = $remote . '/hooks/update';
     File::dump($hook, sprintf("#!/usr/bin/env bash\n[ \"\$1\" != %s ]\n", escapeshellarg('refs/tags/' . self::LATER_TAG)));
     chmod($hook, 0755);
 
-    $output = $this->runDeploy($clone, $remote, ['DEPLOY_BRANCH' => self::BRANCH]);
+    $output = self::runDeploy($clone, $remote, ['DEPLOY_BRANCH' => self::BRANCH]);
 
-    $this->assertSame($this->commit($clone, 'tip'), $this->remoteCommit($remote, 'refs/heads/' . self::BRANCH));
-    $this->assertSame($this->commit($clone, 'released'), $this->remoteCommit($remote, 'refs/tags/' . self::RELEASE_TAG));
-    $this->assertNull($this->remoteCommit($remote, 'refs/tags/' . self::LATER_TAG));
+    $this->assertSame(self::commit($clone, 'tip'), self::remoteCommit($remote, 'refs/heads/' . self::BRANCH));
+    $this->assertSame(self::commit($clone, 'released'), self::remoteCommit($remote, 'refs/tags/' . self::RELEASE_TAG));
+    $this->assertNull(self::remoteCommit($remote, 'refs/tags/' . self::LATER_TAG));
     $this->assertStringContainsString('[remote rejected] ' . self::LATER_TAG, $output);
     $this->assertStringContainsString('Some tags were not pushed to', $output);
     $this->assertStringContainsString('DEPLOY COMPLETE', $output);
@@ -96,7 +93,7 @@ final class DeployRemoteTest extends UnitTestCase {
    * @return string
    *   The standard output of the script.
    */
-  protected function runDeploy(string $clone, string $remote, array $environment): string {
+  protected static function runDeploy(string $clone, string $remote, array $environment): string {
     $environment += [
       'DEPLOY_USER_NAME' => 'Deploy Bot',
       'DEPLOY_USER_EMAIL' => 'deploy@example.com',
@@ -112,7 +109,7 @@ final class DeployRemoteTest extends UnitTestCase {
       'GIT_CONFIG_GLOBAL' => self::$tmp . '/gitconfig',
     ];
 
-    $process = new Process([PHP_BINARY, dirname(__DIR__, 4) . '/.eddy/tooling/src/eddy-deploy'], $clone, $environment + self::gitEnvironment());
+    $process = new Process([PHP_BINARY, self::toolingDir() . '/src/eddy-deploy'], $clone, $environment + self::gitEnvironment());
     $process->run();
 
     if (!$process->isSuccessful()) {
@@ -131,31 +128,29 @@ final class DeployRemoteTest extends UnitTestCase {
    * @return string
    *   Directory of the clone.
    */
-  protected function createClone(): string {
+  protected static function createClone(): string {
     $clone = self::$tmp . '/clone';
     File::mkdir($clone, 0755);
 
-    $this->git($clone, ['init', '--quiet', '--initial-branch=main']);
-    $this->git($clone, ['config', 'user.name', 'Test User']);
-    $this->git($clone, ['config', 'user.email', 'test@example.com']);
+    self::gitInit($clone, ['--quiet', '--initial-branch=main']);
 
     File::dump($clone . '/file.txt', 'first');
-    $this->git($clone, ['add', '--all']);
-    $this->git($clone, ['commit', '--quiet', '--message', 'First commit']);
-    $this->git($clone, ['tag', '--annotate', self::RELEASE_TAG, '--message', 'Release']);
+    self::gitRun($clone, ['add', '--all']);
+    self::gitRun($clone, ['commit', '--quiet', '--message', 'First commit']);
+    self::gitRun($clone, ['tag', '--annotate', self::RELEASE_TAG, '--message', 'Release']);
 
     File::dump($clone . '/file.txt', 'second');
-    $this->git($clone, ['commit', '--quiet', '--all', '--message', 'Second commit']);
-    $this->git($clone, ['tag', self::LATER_TAG]);
+    self::gitRun($clone, ['commit', '--quiet', '--all', '--message', 'Second commit']);
+    self::gitRun($clone, ['tag', self::LATER_TAG]);
 
     return $clone;
   }
 
-  protected function createRemote(): string {
+  protected static function createRemote(): string {
     $remote = self::$tmp . '/remote.git';
     File::mkdir($remote, 0755);
 
-    $this->git($remote, ['init', '--quiet', '--bare']);
+    self::gitRun($remote, ['init', '--quiet', '--bare']);
 
     return $remote;
   }
@@ -171,10 +166,10 @@ final class DeployRemoteTest extends UnitTestCase {
    * @return string
    *   The commit SHA.
    */
-  protected function commit(string $clone, string $name): string {
+  protected static function commit(string $clone, string $name): string {
     return match ($name) {
-      'released' => $this->git($clone, ['rev-parse', 'refs/tags/' . self::RELEASE_TAG . '^{commit}']),
-      'tip' => $this->git($clone, ['rev-parse', 'refs/heads/main']),
+      'released' => self::gitRun($clone, ['rev-parse', 'refs/tags/' . self::RELEASE_TAG . '^{commit}']),
+      'tip' => self::gitRun($clone, ['rev-parse', 'refs/heads/main']),
       default => self::fail(sprintf('Unknown commit "%s".', $name)),
     };
   }
@@ -190,7 +185,7 @@ final class DeployRemoteTest extends UnitTestCase {
    * @return string|null
    *   The commit SHA, or NULL when the remote does not hold the ref.
    */
-  protected function remoteCommit(string $remote, string $ref): ?string {
+  protected static function remoteCommit(string $remote, string $ref): ?string {
     $process = new Process(['git', 'rev-parse', '--verify', '--quiet', $ref . '^{commit}'], $remote, self::gitEnvironment());
     $process->run();
 

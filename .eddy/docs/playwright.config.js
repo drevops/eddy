@@ -3,7 +3,7 @@
 
 import {defineConfig} from '@playwright/test';
 
-const port = 3210;
+const PORT = 3210;
 
 export default defineConfig({
   testDir: './tests/accessibility',
@@ -12,7 +12,7 @@ export default defineConfig({
   reporter: 'list',
 
   use: {
-    baseURL: `http://localhost:${port}`,
+    baseURL: `http://localhost:${PORT}`,
     browserName: 'chromium',
   },
 
@@ -25,8 +25,8 @@ export default defineConfig({
 
   // Serves build/ as it is, so 'npm run build' comes first.
   webServer: {
-    command: `npm run serve -- --port ${port} --no-open`,
-    url: `http://localhost:${port}`,
+    command: `npm run serve -- --port ${PORT} --no-open`,
+    url: `http://localhost:${PORT}`,
     reuseExistingServer: false,
   },
 });

@@ -10,20 +10,14 @@ use function DrevOps\Eddy\Tooling\tunnel_start;
 use function DrevOps\Eddy\Tooling\tunnel_stop;
 use function DrevOps\Eddy\Tooling\tunnel_write_settings;
 use AlexSkrypnyk\File\File;
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * Tests for the Cloudflare quick tunnel helpers.
- *
  * Each test runs in an empty project root, so the PID file, the log, '.env'
  * and 'settings.php' are real files. Only the process calls are mocked.
- *
- * phpcs:disable Drupal.Commenting.FunctionComment.Missing
- * phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 #[CoversFunction('DrevOps\Eddy\Tooling\tunnel_enabled')]
 #[CoversFunction('DrevOps\Eddy\Tooling\tunnel_start')]
@@ -50,29 +44,20 @@ final class HelpersTunnelTest extends UnitTestCase {
 
   protected const string API_ERROR = '2026-10-08T00:00:01Z ERR failed to request quick Tunnel: Post "https://api.trycloudflare.com/tunnel": dial tcp: lookup api.trycloudflare.com: no such host' . PHP_EOL;
 
-  protected string $originalCwd;
-
   protected function setUp(): void {
     parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
 
-    $this->envUnset('CLOUDFLARE_TUNNEL');
+    self::envUnset('CLOUDFLARE_TUNNEL');
 
-    $this->originalCwd = File::cwd();
     $project_dir = self::$tmp . '/tunnel_' . uniqid();
     File::mkdir($project_dir, 0755);
     chdir($project_dir);
   }
 
-  protected function tearDown(): void {
-    chdir($this->originalCwd);
-    parent::tearDown();
-  }
-
   #[DataProvider('dataProviderTunnelEnabled')]
   public function testTunnelEnabled(?string $env, ?string $dotenv, bool $expected): void {
     if ($env !== NULL) {
-      $this->envSet('CLOUDFLARE_TUNNEL', $env);
+      self::envSet('CLOUDFLARE_TUNNEL', $env);
     }
 
     if ($dotenv !== NULL) {
@@ -126,7 +111,7 @@ final class HelpersTunnelTest extends UnitTestCase {
     File::dump('.env', 'TUNNEL_URL=' . self::URL . "\nOTHER=1\n");
     $this->mockCommandAvailable('cloudflared', FALSE);
     $this->mockShellExec([self::PS => $command]);
-    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
+    $this->mockFunction('get_headers', fn(): false => FALSE);
     $this->mockPassthruMultiple($kills);
 
     $output = $this->capture(static fn() => tunnel_start('8000'));
@@ -148,7 +133,7 @@ final class HelpersTunnelTest extends UnitTestCase {
     // changed.
     $this->mockCommandAvailable('cloudflared', FALSE);
     $this->mockShellExec([self::PS => "cloudflared tunnel --url http://localhost:8000 --no-autoupdate\n"]);
-    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', fn(): array => ['HTTP/1.1 200 OK']);
+    $this->mockFunction('get_headers', fn(): array => ['HTTP/1.1 200 OK']);
     $this->mockPassthruNever();
 
     $output = $this->capture(static fn() => tunnel_start('8000'));
@@ -254,7 +239,7 @@ final class HelpersTunnelTest extends UnitTestCase {
 
     $requested = NULL;
     $options = NULL;
-    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', function (string $url, bool $associative, mixed $context) use (&$requested, &$options, $headers): array|false {
+    $this->mockFunction('get_headers', function (string $url, bool $associative, mixed $context) use (&$requested, &$options, $headers): array|false {
       $requested = $url;
       $options = is_resource($context) ? stream_context_get_options($context) : NULL;
 
@@ -305,7 +290,7 @@ final class HelpersTunnelTest extends UnitTestCase {
     $this->mockCommandAvailable('cloudflared', TRUE);
     $this->mockShellExec([self::PS => "cloudflared tunnel --url http://localhost:8000 --no-autoupdate\n", self::LAUNCH => "5151\n"], self::banner(self::NEW_URL));
     $this->mockPassthru(['cmd' => 'kill 4242 >/dev/null 2>&1']);
-    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', function (): never {
+    $this->mockFunction('get_headers', function (): never {
       throw new \RuntimeException('A tunnel without a URL must not be requested.');
     });
 
@@ -324,7 +309,7 @@ final class HelpersTunnelTest extends UnitTestCase {
     $this->mockShellExec([self::PS => $command, self::LAUNCH => "5151\n"], self::banner(self::NEW_URL));
     $this->mockPassthru(['cmd' => 'kill 4242 >/dev/null 2>&1']);
     // Whatever listens on the other port now can answer requests to the URL.
-    $this->registerMock('get_headers', 'DrevOps\\Eddy\\Tooling', function (): never {
+    $this->mockFunction('get_headers', function (): never {
       throw new \RuntimeException('A tunnel to another port must not be requested.');
     });
 
@@ -488,20 +473,10 @@ PHP;
   public function testTunnelWriteSettingsWriteFailure(): void {
     $file = 'build/web/sites/default/settings.php';
     File::dump($file, "<?php\n");
-    $this->registerMock('file_put_contents', 'DrevOps\\Eddy\\Tooling', fn(): false => FALSE);
+    $this->mockFunction('file_put_contents', fn(): false => FALSE);
     $this->mockQuit(1);
 
-    ob_start();
-    try {
-      tunnel_write_settings($file);
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(1, $e->getCode());
-    }
-    finally {
-      $output = (string) ob_get_clean();
-    }
+    $output = $this->capture(static fn() => tunnel_write_settings($file), 1);
 
     $this->assertStringContainsString('Unable to write ' . $file . '.', $output);
   }
@@ -513,7 +488,7 @@ PHP;
   #[DataProvider('dataProviderTunnelKill')]
   public function testTunnelKill(int $pid, array $expected): void {
     $commands = [];
-    $this->registerMock('passthru', 'DrevOps\\Eddy\\Tooling', function (string $command) use (&$commands): void {
+    $this->mockFunction('passthru', function (string $command) use (&$commands): void {
       $commands[] = $command;
     });
 
@@ -529,9 +504,6 @@ PHP;
     yield 'negative' => [-1, []];
   }
 
-  /**
-   * Build the 'cloudflared' log lines that announce a quick tunnel.
-   */
   protected static function banner(string $url): string {
     return implode(PHP_EOL, [
       '2026-10-08T00:00:00Z INF Requesting new quick Tunnel on trycloudflare.com...',
@@ -540,22 +512,7 @@ PHP;
     ]) . PHP_EOL;
   }
 
-  protected function capture(callable $callback): string {
-    ob_start();
-
-    try {
-      $callback();
-    }
-    finally {
-      $output = (string) ob_get_clean();
-    }
-
-    return $output;
-  }
-
   /**
-   * Mock shell_exec() with the output of each expected command.
-   *
    * @param array<string, string|null> $outputs
    *   Output keyed by command. Any other command fails the test.
    * @param string|null $log
@@ -563,22 +520,19 @@ PHP;
    *   prints its banner.
    */
   protected function mockShellExec(array $outputs, ?string $log = NULL): void {
-    $this->registerMock('shell_exec', 'DrevOps\\Eddy\\Tooling', function (string $command) use ($outputs, $log): ?string {
-      if (!array_key_exists($command, $outputs)) {
-        throw new \RuntimeException(sprintf('shell_exec() called with unexpected command "%s".', $command));
-      }
-
-      if ($log !== NULL && $command === self::LAUNCH) {
+    if ($log !== NULL) {
+      $launch_output = $outputs[self::LAUNCH] ?? NULL;
+      $outputs[self::LAUNCH] = static function () use ($launch_output, $log): ?string {
         File::dump('.logs/cloudflared.log', $log);
-      }
 
-      return $outputs[$command];
-    });
+        return $launch_output;
+      };
+    }
+
+    $this->mockShellExecOutputs($outputs);
   }
 
   /**
-   * Mock sleep() and count the calls.
-   *
    * @param int $count
    *   Populated by reference with the number of calls.
    * @param array<int, string> $logs
@@ -586,7 +540,7 @@ PHP;
    *   banner while the command waits.
    */
   protected function mockSleepCounted(int &$count, array $logs = []): void {
-    $this->registerMock('sleep', 'DrevOps\\Eddy\\Tooling', function () use (&$count, $logs): int {
+    $this->mockFunction('sleep', function () use (&$count, $logs): int {
       $count++;
 
       if (isset($logs[$count])) {

@@ -29,9 +29,6 @@ use const DrevOps\Eddy\Assets\END_PAUSE;
 use const DrevOps\Eddy\Assets\FRAME_DELAY;
 use const DrevOps\Eddy\Assets\STEP_DELAY;
 
-/**
- * Unit tests for the asset generator in '.eddy/assets/update-assets.php'.
- */
 #[Group('p0')]
 final class UpdateAssetsTest extends UnitTestCase {
 
@@ -39,7 +36,7 @@ final class UpdateAssetsTest extends UnitTestCase {
 
   public static function setUpBeforeClass(): void {
     self::envSet('SCRIPT_RUN_SKIP', '1');
-    require_once dirname(__DIR__, 4) . '/.eddy/assets/update-assets.php';
+    require_once self::rootDir() . '/.eddy/assets/update-assets.php';
     parent::setUpBeforeClass();
   }
 
@@ -132,7 +129,7 @@ final class UpdateAssetsTest extends UnitTestCase {
         '/Users/maintainer' => '/home/user',
       ];
 
-      $content = File::read(dirname(__DIR__, 2) . '/fixtures/assets/' . $run . '/' . $name . '.cast');
+      $content = File::read(self::fixturesDir() . '/assets/' . $run . '/' . $name . '.cast');
       $canonical[$run] = canonicalize_cast($content, $job['command'], $job['frames'], $replacements);
     }
 
@@ -341,28 +338,35 @@ final class UpdateAssetsTest extends UnitTestCase {
     ];
   }
 
-  public function testReadCast(): void {
-    $content = implode("\n", [
-      '{"version":3,"term":{"cols":80,"rows":24}}',
-      '[0.5, "o", "ab"]',
-      'not json',
-      '[0.25, "i", "x"]',
-      '[0.25, "o", "cd"]',
-      '[0.5, "o"]',
-      '["late", "o", "ef"]',
-      '[1.0, "x", "0"]',
-      '',
-    ]);
-
-    $this->assertSame([
-      'header' => ['version' => 3, 'term' => ['cols' => 80, 'rows' => 24]],
-      'stream' => 'abcd',
-      'arrivals' => [0 => 0.5, 2 => 1.0],
-    ], read_cast($content));
+  /**
+   * @param array{header: array<mixed>, stream: string, arrivals: array<int, float>} $expected
+   *   The decoded header, the joined output and the arrival times.
+   */
+  #[DataProvider('dataProviderReadCast')]
+  public function testReadCast(string $content, array $expected): void {
+    $this->assertSame($expected, read_cast($content));
   }
 
-  public function testReadCastWithoutHeader(): void {
-    $this->assertSame(['header' => [], 'stream' => '', 'arrivals' => []], read_cast(''));
+  public static function dataProviderReadCast(): \Iterator {
+    yield 'events' => [
+      implode("\n", [
+        '{"version":3,"term":{"cols":80,"rows":24}}',
+        '[0.5, "o", "ab"]',
+        'not json',
+        '[0.25, "i", "x"]',
+        '[0.25, "o", "cd"]',
+        '[0.5, "o"]',
+        '["late", "o", "ef"]',
+        '[1.0, "x", "0"]',
+        '',
+      ]),
+      [
+        'header' => ['version' => 3, 'term' => ['cols' => 80, 'rows' => 24]],
+        'stream' => 'abcd',
+        'arrivals' => [0 => 0.5, 2 => 1.0],
+      ],
+    ];
+    yield 'empty' => ['', ['header' => [], 'stream' => '', 'arrivals' => []]];
   }
 
   /**
@@ -470,7 +474,7 @@ final class UpdateAssetsTest extends UnitTestCase {
   #[DataProvider('dataProviderPathReplacements')]
   public function testPathReplacements(string|false $home, array $expected): void {
     $workspace_dir = self::$sut . '/workspace';
-    File::mkdir($workspace_dir);
+    File::mkdir($workspace_dir, 0755);
     putenv($home === FALSE ? 'HOME' : 'HOME=' . $home);
 
     $replacements = path_replacements($workspace_dir);
@@ -607,11 +611,11 @@ final class UpdateAssetsTest extends UnitTestCase {
   }
 
   public function testInstallStepsAnswerEveryInstallPrompt(): void {
-    $install = File::read(dirname(__DIR__, 4) . '/install.php');
+    $install = File::read(self::rootDir() . '/install.php');
     preg_match_all("/Prompty::(?:text|select|multiselect|confirm)\(\s*'([^']+)'/", $install, $labels);
     preg_match_all('/^expect "([^"]+)"$/m', install_steps(), $patterns);
 
-    $this->assertNotEmpty($labels[1]);
+    $this->assertNotSame([], $labels[1]);
     $this->assertCount(count($labels[1]), $patterns[1], 'Every install prompt has 1 expect statement, in order.');
 
     foreach ($labels[1] as $index => $label) {
@@ -653,22 +657,23 @@ final class UpdateAssetsTest extends UnitTestCase {
     yield 'zero kept' => [['0', 'a'], '0' . PHP_EOL . 'a'];
   }
 
-  public function testRemoveDirRemovesReadOnlyDirectories(): void {
+  #[DataProvider('dataProviderRemoveDir')]
+  public function testRemoveDir(bool $exists): void {
     $directory = self::$sut . '/workspace';
-    File::dump($directory . '/build/web/sites/default/settings.php', '<?php');
-    chmod($directory . '/build/web/sites/default', 0555);
+
+    if ($exists) {
+      File::dump($directory . '/build/web/sites/default/settings.php', '<?php');
+      chmod($directory . '/build/web/sites/default', 0555);
+    }
 
     remove_dir($directory);
 
     $this->assertDirectoryDoesNotExist($directory);
   }
 
-  public function testRemoveDirIgnoresMissingDirectory(): void {
-    $directory = self::$sut . '/missing';
-
-    remove_dir($directory);
-
-    $this->assertDirectoryDoesNotExist($directory);
+  public static function dataProviderRemoveDir(): \Iterator {
+    yield 'read-only directory' => [TRUE];
+    yield 'missing directory' => [FALSE];
   }
 
   /**

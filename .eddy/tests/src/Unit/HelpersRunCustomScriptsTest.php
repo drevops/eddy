@@ -6,38 +6,35 @@ namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\run_custom_scripts;
 use AlexSkrypnyk\File\File;
-use DrevOps\Eddy\Tests\Exceptions\QuitErrorException;
 use PHPUnit\Framework\Attributes\CoversFunction;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 #[CoversFunction('DrevOps\Eddy\Tooling\run_custom_scripts')]
+#[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersRunCustomScriptsTest extends UnitTestCase {
 
-  protected function setUp(): void {
-    parent::setUp();
-    require_once dirname(__DIR__, 4) . '/.eddy/tooling/src/helpers.php';
-  }
-
-  public function testMissingDirectoryDoesNothing(): void {
-    run_custom_scripts(self::$tmp . '/nonexistent_' . uniqid(), 'assemble-');
-    $this->expectNotToPerformAssertions();
-  }
-
-  public function testEmptyDirectoryDoesNothing(): void {
-    $dir = $this->createScriptsDir();
+  /**
+   * @param array<string, string>|null $files
+   *   The files of the scripts directory, or NULL for a missing directory.
+   */
+  #[DataProvider('dataProviderDoesNothingWithoutMatchingScripts')]
+  public function testDoesNothingWithoutMatchingScripts(?array $files): void {
+    $dir = $files === NULL ? self::$tmp . '/nonexistent_' . uniqid() : self::createScriptsDir($files);
     run_custom_scripts($dir, 'assemble-');
     $this->expectNotToPerformAssertions();
   }
 
-  public function testDirectoryWithNoPrefixMatchesDoesNothing(): void {
-    $dir = $this->createScriptsDir(['unrelated.sh' => 'echo nope', 'README.md' => '']);
-    run_custom_scripts($dir, 'assemble-');
-    $this->expectNotToPerformAssertions();
+  public static function dataProviderDoesNothingWithoutMatchingScripts(): \Iterator {
+    yield 'missing directory' => [NULL];
+    yield 'empty directory' => [[]];
+    yield 'no prefix matches' => [['unrelated.sh' => 'echo nope', 'README.md' => '']];
   }
 
   public function testExecutesMatchingScriptsInOrder(): void {
-    $dir = $this->createScriptsDir([
+    $dir = self::createScriptsDir([
       'assemble-zeta.sh' => 'echo zeta',
       'assemble-alpha.sh' => 'echo alpha',
       'assemble-beta.sh' => 'echo beta',
@@ -49,31 +46,41 @@ final class HelpersRunCustomScriptsTest extends UnitTestCase {
       ['cmd' => escapeshellarg($dir . '/assemble-zeta.sh'), 'result_code' => 0],
     ]);
 
-    ob_start();
-    run_custom_scripts($dir, 'assemble-');
-    $output = ob_get_clean();
-    $this->assertIsString($output);
+    $output = $this->capture(fn() => run_custom_scripts($dir, 'assemble-'));
 
     $this->assertStringContainsString('assemble-alpha.sh', $output);
     $this->assertStringContainsString('assemble-beta.sh', $output);
     $this->assertStringContainsString('assemble-zeta.sh', $output);
   }
 
-  public function testIgnoresDifferentPrefix(): void {
-    $dir = $this->createScriptsDir([
-      'assemble-run.sh' => 'echo a',
-      'provision-skip.sh' => 'echo p',
-    ]);
+  /**
+   * @param array<string, string> $files
+   *   The contents of each file in the scripts directory, keyed by file name.
+   * @param array<int, string> $expected_skipped
+   *   The names of the files that must not run.
+   */
+  #[DataProvider('dataProviderRunsOnlyMatchingScripts')]
+  public function testRunsOnlyMatchingScripts(array $files, string $expected_run, array $expected_skipped): void {
+    $dir = self::createScriptsDir($files);
 
-    $this->mockPassthru(['cmd' => escapeshellarg($dir . '/assemble-run.sh'), 'result_code' => 0]);
+    $this->mockPassthru(['cmd' => escapeshellarg($dir . '/' . $expected_run), 'result_code' => 0]);
 
-    ob_start();
-    run_custom_scripts($dir, 'assemble-');
-    $output = ob_get_clean();
-    $this->assertIsString($output);
+    $output = $this->capture(fn() => run_custom_scripts($dir, 'assemble-'));
 
-    $this->assertStringContainsString('assemble-run.sh', $output);
-    $this->assertStringNotContainsString('provision-skip.sh', $output);
+    $this->assertStringContainsString($expected_run, $output);
+
+    foreach ($expected_skipped as $skipped) {
+      $this->assertStringNotContainsString($skipped, $output);
+    }
+  }
+
+  public static function dataProviderRunsOnlyMatchingScripts(): \Iterator {
+    yield 'different prefix' => [['assemble-run.sh' => 'echo a', 'provision-skip.sh' => 'echo p'], 'assemble-run.sh', ['provision-skip.sh']];
+    yield 'non-shell extension' => [
+      ['assemble-real.sh' => 'echo run', 'assemble-readme.md' => '# notes', 'assemble-script.txt' => 'echo nope'],
+      'assemble-real.sh',
+      ['assemble-readme.md', 'assemble-script.txt'],
+    ];
   }
 
   public function testSkipsDirectoriesMatchingPrefix(): void {
@@ -83,36 +90,14 @@ final class HelpersRunCustomScriptsTest extends UnitTestCase {
 
     $this->mockPassthru(['cmd' => escapeshellarg($dir . '/assemble-real.sh'), 'result_code' => 0]);
 
-    ob_start();
-    run_custom_scripts($dir, 'assemble-');
-    $output = ob_get_clean();
-    $this->assertIsString($output);
+    $output = $this->capture(fn() => run_custom_scripts($dir, 'assemble-'));
 
     $this->assertStringContainsString('assemble-real.sh', $output);
     $this->assertStringNotContainsString('assemble-rogue.sh', $output);
   }
 
-  public function testIgnoresNonShellExtension(): void {
-    $dir = $this->createScriptsDir([
-      'assemble-real.sh' => 'echo run',
-      'assemble-readme.md' => '# notes',
-      'assemble-script.txt' => 'echo nope',
-    ]);
-
-    $this->mockPassthru(['cmd' => escapeshellarg($dir . '/assemble-real.sh'), 'result_code' => 0]);
-
-    ob_start();
-    run_custom_scripts($dir, 'assemble-');
-    $output = ob_get_clean();
-    $this->assertIsString($output);
-
-    $this->assertStringContainsString('assemble-real.sh', $output);
-    $this->assertStringNotContainsString('assemble-readme.md', $output);
-    $this->assertStringNotContainsString('assemble-script.txt', $output);
-  }
-
   public function testNonZeroExitAbortsParent(): void {
-    $dir = $this->createScriptsDir([
+    $dir = self::createScriptsDir([
       'provision-first.sh' => 'echo first',
       'provision-second.sh' => 'echo second',
     ]);
@@ -120,25 +105,15 @@ final class HelpersRunCustomScriptsTest extends UnitTestCase {
     $this->mockPassthru(['cmd' => escapeshellarg($dir . '/provision-first.sh'), 'result_code' => 7]);
     $this->mockQuit(7);
 
-    ob_start();
-    try {
-      run_custom_scripts($dir, 'provision-');
-      $this->fail('Expected QuitErrorException to be thrown.');
-    }
-    catch (QuitErrorException $e) {
-      $this->assertSame(7, $e->getCode());
-    }
-    finally {
-      $output = ob_get_clean();
-      $this->assertIsString($output);
-      $this->assertStringContainsString('provision-first.sh', $output);
-      $this->assertStringContainsString('Custom script', $output);
-      $this->assertStringContainsString('failed', $output);
-      $this->assertStringNotContainsString('provision-second.sh', $output);
-    }
+    $output = $this->capture(fn() => run_custom_scripts($dir, 'provision-'), 7);
+
+    $this->assertStringContainsString('provision-first.sh', $output);
+    $this->assertStringContainsString('Custom script', $output);
+    $this->assertStringContainsString('failed', $output);
+    $this->assertStringNotContainsString('provision-second.sh', $output);
   }
 
-  protected function createScriptsDir(array $files = []): string {
+  protected static function createScriptsDir(array $files = []): string {
     $dir = self::$tmp . '/scripts_' . uniqid();
     File::mkdir($dir, 0755);
     foreach ($files as $name => $contents) {

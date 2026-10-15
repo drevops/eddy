@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { COLOR_MODES, open, scan } from './helpers';
 
 const MOBILE = { width: 390, height: 844 };
+const DEMO_URL = '/development/building';
+const DEMO_NAME = 'Building the site';
 
 test.describe('search', () => {
   for (const colorMode of COLOR_MODES) {
@@ -88,7 +90,7 @@ test.describe('mobile menu', () => {
 
   for (const colorMode of COLOR_MODES) {
     test(`open in ${colorMode} mode`, async ({ page }) => {
-      await open(page, '/development/building', colorMode);
+      await open(page, DEMO_URL, colorMode);
 
       await page.getByRole('button', { name: 'Toggle navigation bar' }).click();
 
@@ -101,9 +103,6 @@ test.describe('mobile menu', () => {
 });
 
 test.describe('animated demo', () => {
-  const DEMO_URL = '/development/building';
-  const DEMO_NAME = 'Building the site';
-
   test('pauses on its last frame and plays again', async ({ page }) => {
     await open(page, DEMO_URL, 'light');
 
