@@ -106,13 +106,15 @@
  ```
  
  ## Testing
-@@ -150,7 +156,13 @@
+@@ -150,7 +156,15 @@
  Run the tests for this extension with:
  
  ```bash
 -ahoy test
 +vendor/bin/eddy-browser-start
 +export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
++export WEBDRIVER_BACKEND="$(vendor/bin/eddy-info webdriver-backend)"
++export WEBDRIVER_HOST="$(vendor/bin/eddy-info webdriver-host)"
 +export WEBSERVER_PORT="$(vendor/bin/eddy-info webserver-port)"
 +export SIMPLETEST_BASE_URL="http://localhost:${WEBSERVER_PORT}"
 +cd build
@@ -121,7 +123,7 @@
  ```
  
  The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests, and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both use Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
-@@ -158,10 +170,12 @@
+@@ -158,10 +172,12 @@
  Each test suite can also be run on its own:
  
  ```bash
@@ -138,7 +140,7 @@
  ```
  
  ### Running FunctionalJavascript tests
-@@ -169,23 +183,32 @@
+@@ -169,23 +185,35 @@
  FunctionalJavascript tests need a real browser driven via WebDriver. By default they use the Google Chrome already installed on your machine - a matching `chromedriver` is downloaded automatically on first run, so no Docker is required:
  
  ```bash
@@ -150,6 +152,8 @@
 +vendor/bin/eddy-provision
 +vendor/bin/eddy-browser-start
 +export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
++export WEBDRIVER_BACKEND="$(vendor/bin/eddy-info webdriver-backend)"
++export WEBDRIVER_HOST="$(vendor/bin/eddy-info webdriver-host)"
 +export WEBSERVER_PORT="$(vendor/bin/eddy-info webserver-port)"
 +export SIMPLETEST_BASE_URL="http://localhost:${WEBSERVER_PORT}"
 +cd build
@@ -173,6 +177,7 @@
 +vendor/bin/eddy-provision
 +WEBDRIVER_BACKEND=selenium vendor/bin/eddy-browser-start
 +export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
++export WEBDRIVER_HOST="$(vendor/bin/eddy-info webdriver-host)"
 +export WEBSERVER_PORT="$(vendor/bin/eddy-info webserver-port)"
 +export SIMPLETEST_BASE_URL="http://localhost:${WEBSERVER_PORT}"
 +cd build
@@ -183,7 +188,12 @@
  ```
  
  The browser reaches the webserver at `localhost` with the default backend, and at `host.docker.internal` (macOS) or `__VERSION__.1` (other systems) from the Selenium container. Set `WEBDRIVER_HOST` to use a different address.
-@@ -195,14 +218,6 @@
+@@ -192,17 +220,11 @@
+ 
+ Each project gets its own WebDriver port, whichever backend it uses: a free one is claimed starting at 4444 and stored in `.env`, so several projects can run FunctionalJavascript tests at the same time. Set `WEBDRIVER_PORT` to pin a specific one. Tests reach the claimed port because the base class applies it to the WebDriver endpoint, so extend `ForceCrystalFunctionalJavascriptTestBase` rather than `WebDriverTestBase` directly - a test that bypasses it keeps the default endpoint from `phpunit.xml` unless it exports its own `MINK_DRIVER_ARGS_WEBDRIVER`.
+ 
++The commands above export the backend, host and port that `eddy-info` resolves from your shell and `.env`, so a value set in `.env` reaches the tests too.
++
  ### Running specific tests
  
  You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the test commands. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site:

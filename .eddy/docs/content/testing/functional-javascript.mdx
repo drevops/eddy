@@ -23,6 +23,8 @@ ahoy browser-stop`}
 vendor/bin/eddy-provision
 vendor/bin/eddy-browser-start
 export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
+export WEBDRIVER_BACKEND="$(vendor/bin/eddy-info webdriver-backend)"
+export WEBDRIVER_HOST="$(vendor/bin/eddy-info webdriver-host)"
 export WEBSERVER_PORT="$(vendor/bin/eddy-info webserver-port)"
 export SIMPLETEST_BASE_URL="http://localhost:\${WEBSERVER_PORT}"
 cd build
@@ -50,6 +52,7 @@ ahoy browser-stop`}
 vendor/bin/eddy-provision
 WEBDRIVER_BACKEND=selenium vendor/bin/eddy-browser-start
 export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
+export WEBDRIVER_HOST="$(vendor/bin/eddy-info webdriver-host)"
 export WEBSERVER_PORT="$(vendor/bin/eddy-info webserver-port)"
 export SIMPLETEST_BASE_URL="http://localhost:\${WEBSERVER_PORT}"
 cd build
@@ -68,6 +71,8 @@ That address depends on the backend, so `browser-start` won't reuse a browser of
 Each project gets its own WebDriver port, whichever backend it uses: a free one is claimed starting at 4444 and saved in `.env`, so several projects can run these tests at the same time. Set `WEBDRIVER_PORT` to pin a specific one.
 
 Tests reach the claimed port through the base class that the installer generates, so extend `YourExtensionFunctionalJavascriptTestBase`, named after your extension, rather than `WebDriverTestBase`. The base class also points the browser at the right webserver address for the backend. A test that bypasses it keeps the default endpoint from `phpunit.xml`, unless it exports its own `MINK_DRIVER_ARGS_WEBDRIVER`.
+
+The base class reads the backend, host and port from the environment. `make` and Ahoy load them from `.env`, and without a command wrapper, the commands above export the values that `eddy-info` resolves from your shell and `.env`, so a value set in `.env` reaches the tests in every setup.
 
 ## Sharing a machine with other projects
 
