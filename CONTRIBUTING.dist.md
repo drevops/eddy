@@ -477,7 +477,7 @@ The browser reaches the webserver at `localhost` with the default backend, and a
 Each project gets its own WebDriver port, whichever backend it uses: a free one is claimed starting at 4444 and stored in `.env`, so several projects can run FunctionalJavascript tests at the same time. Set `WEBDRIVER_PORT` to pin a specific one. Tests reach the claimed port because the base class applies it to the WebDriver endpoint, so extend `YourExtensionFunctionalJavascriptTestBase` rather than `WebDriverTestBase` directly - a test that bypasses it keeps the default endpoint from `phpunit.xml` unless it exports its own `MINK_DRIVER_ARGS_WEBDRIVER`.
 <!-- #;< DEV_NO_COMMAND_WRAPPER -->
 
-The commands above export the backend, host and port that `eddy-info` resolves from your shell and `.env`, so the tests use the same values as `eddy-browser-start`.
+The commands above export the backend, host and port that `eddy-info` resolves from your shell and `.env`, so a value set in `.env` reaches the tests too.
 <!-- #;> DEV_NO_COMMAND_WRAPPER -->
 
 <!-- #;> DEV_FUNCTIONAL_JAVASCRIPT -->

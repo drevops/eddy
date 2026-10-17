@@ -72,7 +72,7 @@ Each project gets its own WebDriver port, whichever backend it uses: a free one 
 
 Tests reach the claimed port through the base class that the installer generates, so extend `YourExtensionFunctionalJavascriptTestBase`, named after your extension, rather than `WebDriverTestBase`. The base class also points the browser at the right webserver address for the backend. A test that bypasses it keeps the default endpoint from `phpunit.xml`, unless it exports its own `MINK_DRIVER_ARGS_WEBDRIVER`.
 
-The base class reads the backend, host and port from the environment. `make` and Ahoy load them from `.env`, and without a command wrapper, the commands above export the values that `eddy-info` resolves from your shell and `.env`, so the tests use the same ones as `browser-start`.
+The base class reads the backend, host and port from the environment. `make` and Ahoy load them from `.env`, and without a command wrapper, the commands above export the values that `eddy-info` resolves from your shell and `.env`, so a value set in `.env` reaches the tests in every setup.
 
 ## Sharing a machine with other projects
 
