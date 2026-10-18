@@ -298,7 +298,7 @@ GitHub has no API for the social preview, so upload the new PNG by hand in the r
 
 `.eddy/docs/` is a Docusaurus site set up like the getscaffold.dev one from `AlexSkrypnyk/scaffold`. Its pages live in `.eddy/docs/content/`, 1 topic per page, and the sidebar follows the folder tree in the order of each page's `sidebar_position`. `.eddy/docs/content/contributing/documentation.mdx` is the guide for humans; these points matter most when editing:
 
-- Run `npm --prefix .eddy/docs ci` once, then `npm --prefix .eddy/docs run build` and `npm --prefix .eddy/docs test`, which runs Jest for `src/` and CSpell for the pages. The build fails on a broken link, anchor or Markdown link.
+- Run `npm --prefix .eddy/docs ci` once, then `npm --prefix .eddy/docs run build` and `npm --prefix .eddy/docs test`, which runs Jest with coverage for `src/` and CSpell for the pages. CI uploads the Jest coverage to Codecov. The build fails on a broken link, anchor or Markdown link.
 - `npm --prefix .eddy/docs run test:accessibility` runs axe through Playwright against the WCAG 2.2 A and AA rules: every built page in both color modes at desktop and phone widths, plus the search dropdown, the mobile menu and an animated demo. Install its Chromium once with `npm --prefix .eddy/docs exec -- playwright install chromium`. The fixes it guards live in `src/css/custom.css` (colors and underlined body links), `src/codeThemes.js` (code colors) and `src/theme/` (search markup, mobile menu focus, pausable demos and focusable wide tables), and `content/contributing/documentation.mdx` describes them.
 - Link pages by their relative `.mdx` path, and show commands with the `CommandTabs` component (`make`, `ahoy` and `none` props), so every page covers the 3 wrapper setups.
 - `.eddy/docs/cspell.json` checks the pages in US English and skips fenced code and `CommandTabs` blocks. The root `.cspell.json` ignores `.eddy/docs/`, and `remove_cspell_eddy_paths()` drops every `.eddy/` ignore path from a generated project.
@@ -308,7 +308,7 @@ GitHub has no API for the social preview, so upload the new PNG by hand in the r
 
 ## CI
 
-`.github/workflows/eddy-test.yml` runs the suite across the `p0`-`p5` groups on Ubuntu and macOS, runs `p3` and `p4` once per WebDriver backend (Selenium on Ubuntu only, chromedriver on both), and validates `.eddy/tests/composer.json` and the tooling package's `composer.json` (validate + normalize) plus the PHP lint step in `p0`. A second job (`eddy-test-docs`) builds and tests the documentation site and deploys it to Netlify, and a third (`eddy-test-actions`) lints the workflow YAML with `yamllint` and `actionlint` and checks it for security issues with Zizmor.
+`.github/workflows/eddy-test.yml` runs the suite across the `p0`-`p5` groups on Ubuntu and macOS, runs `p3` and `p4` once per WebDriver backend (Selenium on Ubuntu only, chromedriver on both), and validates `.eddy/tests/composer.json` and the tooling package's `composer.json` (validate + normalize) plus the PHP lint step in `p0`. A second job (`eddy-test-docs`) builds and tests the documentation site, uploads the coverage of its components to Codecov and deploys the site to Netlify, and a third (`eddy-test-actions`) lints the workflow YAML with `yamllint` and `actionlint` and checks it for security issues with Zizmor.
 
 `.github/workflows/eddy-publish-tooling.yml` publishes `.eddy/tooling/` to the same-named branch of `drevops/eddy-tooling` on every push to `main` and to a branch whose name contains `eddy-tooling`.
 

@@ -221,6 +221,16 @@ jobs:
         run: npm test
         working-directory: .eddy/docs
 
+      - name: Upload documentation coverage report to Codecov
+        if: ${{ env.CODECOV_TOKEN != '' }}
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7
+        with:
+          directory: .eddy/docs/.logs/coverage
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
       - name: Install browser for accessibility checks
         run: npx playwright install --with-deps chromium
         working-directory: .eddy/docs
