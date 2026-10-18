@@ -49,11 +49,17 @@ Eddy tests itself the way it tests a project created from it, and deploys to [dr
 
 ## Quick start
 
-1. Download the [latest release](https://github.com/drevops/eddy/releases/latest) and expand it into a new directory.
-2. Run `php install.php` there and answer its questions.
-3. Build the site with `make build` or `ahoy build`, then check it with `lint` and `test` through the same wrapper. Without a wrapper, the generated `CONTRIBUTING.md` lists the `scripts/eddy-tooling` and `vendor/bin/eddy-*` commands that do the same jobs.
+In a new, empty directory:
+
+```bash
+curl -fsSL https://eddy.drevops.com/install > install.php && php install.php
+```
+
+The installer downloads the latest Eddy release into the directory, then asks about your extension. Build the site with `make build` or `ahoy build`, then check it with `lint` and `test` through the same wrapper. Without a wrapper, the generated `CONTRIBUTING.md` lists the `scripts/eddy-tooling` and `vendor/bin/eddy-*` commands that do the same jobs.
 
 ![Installation process](.eddy/assets/install.svg)
+
+To start from a download instead, expand the [latest release](https://github.com/drevops/eddy/releases/latest) into a new directory and run `php install.php` there.
 
 ➡️ [Installation](https://eddy.drevops.com/installation) walks through every step, from the download to the first deployment to Drupal.org.
 

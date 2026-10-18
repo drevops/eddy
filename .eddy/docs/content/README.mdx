@@ -45,18 +45,21 @@ flowchart LR
 
 ## A quick look
 
-[Installation](installation.mdx) covers every step, from the download to the first deployment. Once Eddy is in a new directory, the first run looks like this:
+[Installation](installation.mdx) covers every step, from the download to the first deployment. In a new, empty directory, the first run looks like this:
 
 <CommandTabs
-  make={`php install.php   # Answer the questions about your extension
+  make={`curl -fsSL https://eddy.drevops.com/install > install.php
+php install.php   # Answer the questions about your extension
 make build        # Assemble the codebase, start the server, install Drupal
 make lint         # Check coding standards
 make test         # Run the tests`}
-  ahoy={`php install.php   # Answer the questions about your extension
+  ahoy={`curl -fsSL https://eddy.drevops.com/install > install.php
+php install.php   # Answer the questions about your extension
 ahoy build        # Assemble the codebase, start the server, install Drupal
 ahoy lint         # Check coding standards
 ahoy test         # Run the tests`}
-  none={`php install.php               # Answer the questions about your extension
+  none={`curl -fsSL https://eddy.drevops.com/install > install.php
+php install.php               # Answer the questions about your extension
 scripts/eddy-tooling          # Install the tooling
 vendor/bin/eddy-assemble      # Assemble the codebase
 vendor/bin/eddy-start         # Start the PHP server
