@@ -15,6 +15,8 @@ import CommandTabs from '@site/src/components/CommandTabs';
   ahoy={`ahoy test`}
   none={`vendor/bin/eddy-browser-start
 export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
+export WEBDRIVER_BACKEND="$(vendor/bin/eddy-info webdriver-backend)"
+export WEBDRIVER_HOST="$(vendor/bin/eddy-info webdriver-host)"
 export WEBSERVER_PORT="$(vendor/bin/eddy-info webserver-port)"
 export SIMPLETEST_BASE_URL="http://localhost:\${WEBSERVER_PORT}"
 cd build
