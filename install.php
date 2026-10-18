@@ -1870,7 +1870,9 @@ function install_from_archive(string $dir, string $installer, array $args): void
  * Download a template archive and extract it into a directory.
  *
  * The archive holds the template in 1 top-level directory, as GitHub builds
- * it, and the extraction strips that directory.
+ * it, and the extraction strips that directory. The template is extracted
+ * into a staging directory first, so a failed extraction leaves the directory
+ * as it was.
  *
  * @param string $archive
  *   The URL or the path of the '.tar.gz' archive.
@@ -1890,18 +1892,53 @@ function download_template(string $archive, string $dir): void {
     throw new \Exception(rtrim(sprintf('Unable to download the template from %s. %s', $archive, $reason)));
   }
 
-  // A hidden file keeps the directory empty for the next run when this run
-  // stops before the file is removed.
+  // Hidden paths keep the directory empty for the next run when this run
+  // stops before they are removed.
   $file = $dir . DIRECTORY_SEPARATOR . '.eddy-template.tar.gz';
+  $staging = $dir . DIRECTORY_SEPARATOR . '.eddy-template';
   file_put_contents($file, $content);
+  remove_dir($staging);
+  mkdir($staging);
 
   $output = [];
   $exit_code = 0;
-  exec(sprintf('tar -xzf %s --strip-components=1 -C %s 2>&1', escapeshellarg($file), escapeshellarg($dir)), $output, $exit_code);
+  exec(sprintf('tar -xzf %s --strip-components=1 -C %s 2>&1', escapeshellarg($file), escapeshellarg($staging)), $output, $exit_code);
   unlink($file);
 
   if ($exit_code !== 0) {
+    remove_dir($staging);
+
     throw new \Exception(sprintf('Unable to extract the template from %s: %s', $archive, implode(PHP_EOL, $output)));
+  }
+
+  move_entries($staging, $dir);
+  rmdir($staging);
+}
+
+/**
+ * Move the entries of a directory into another directory.
+ *
+ * A directory in both is merged, the way 'tar' extracts into an existing
+ * directory, and any other entry replaces the entry of the same name.
+ *
+ * @param string $src
+ *   The directory to move the entries from.
+ * @param string $dst
+ *   The directory to move the entries into.
+ */
+function move_entries(string $src, string $dst): void {
+  foreach (array_diff(scandir($src) ?: [], ['.', '..']) as $entry) {
+    $from = $src . DIRECTORY_SEPARATOR . $entry;
+    $to = $dst . DIRECTORY_SEPARATOR . $entry;
+
+    if (is_dir($from) && !is_link($from) && is_dir($to) && !is_link($to)) {
+      move_entries($from, $to);
+      rmdir($from);
+
+      continue;
+    }
+
+    rename($from, $to);
   }
 }
 

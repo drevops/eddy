@@ -37,6 +37,7 @@ use function is_gitignored;
 use function is_template_path;
 use function join_list;
 use function main;
+use function move_entries;
 use function normalize_cspell_words;
 use function origin_github_repository;
 use function parse_branch_list;
@@ -862,16 +863,21 @@ final class InstallHelpersTest extends UnitTestCase {
     $archive = self::templateArchive([
       'install.php' => '<?php // Template installer.',
       '.gitignore' => '/build',
+      '.claude/settings.json' => '{}',
       'src/Example.php' => '<?php // Example.',
     ]);
     File::dump(self::$sut . '/install.php', '<?php // Downloaded installer.');
+    File::dump(self::$sut . '/.claude/settings.local.json', '{"local": true}');
 
     download_template($archive, self::$sut);
 
     $this->assertSame('<?php // Template installer.', File::read(self::$sut . '/install.php'));
     $this->assertSame('/build', File::read(self::$sut . '/.gitignore'));
+    $this->assertSame('{}', File::read(self::$sut . '/.claude/settings.json'));
+    $this->assertSame('{"local": true}', File::read(self::$sut . '/.claude/settings.local.json'));
     $this->assertSame('<?php // Example.', File::read(self::$sut . '/src/Example.php'));
     $this->assertDirectoryDoesNotExist(self::$sut . '/eddy-1.2.3');
+    $this->assertDirectoryDoesNotExist(self::$sut . '/.eddy-template');
     $this->assertFileDoesNotExist(self::$sut . '/.eddy-template.tar.gz');
   }
 
@@ -896,7 +902,66 @@ final class InstallHelpersTest extends UnitTestCase {
       $this->assertStringStartsWith('Unable to extract the template from ' . $archive . ': ', $exception->getMessage());
     }
 
+    $this->assertDirectoryDoesNotExist(self::$sut . '/.eddy-template');
     $this->assertFileDoesNotExist(self::$sut . '/.eddy-template.tar.gz');
+  }
+
+  public function testDownloadTemplateTruncated(): void {
+    // Random content doesn't compress, so the cut falls inside the data of the
+    // archive and 'tar' writes a file before it fails.
+    $archive = self::templateArchive([
+      'first.txt' => random_bytes(65536),
+      'second.txt' => random_bytes(65536),
+    ]);
+    File::dump($archive, substr(File::read($archive), 0, 100000));
+
+    try {
+      download_template($archive, self::$sut);
+      $this->fail('A truncated archive was extracted.');
+    }
+    catch (\Exception $exception) {
+      $this->assertStringStartsWith('Unable to extract the template from ' . $archive . ': ', $exception->getMessage());
+    }
+
+    $this->assertSame(['.', '..'], scandir(self::$sut));
+  }
+
+  /**
+   * @param array<string, string> $src
+   * @param array<string, string> $dst
+   * @param array<string, string> $expected
+   */
+  #[DataProvider('dataProviderMoveEntries')]
+  public function testMoveEntries(array $src, array $dst, array $expected): void {
+    foreach ($src as $path => $content) {
+      File::dump(self::$tmp . '/src/' . $path, $content);
+    }
+
+    foreach ($dst as $path => $content) {
+      File::dump(self::$sut . '/' . $path, $content);
+    }
+
+    File::mkdir(self::$tmp . '/src');
+    move_entries(self::$tmp . '/src', self::$sut);
+
+    foreach ($expected as $path => $content) {
+      $this->assertSame($content, File::read(self::$sut . '/' . $path));
+    }
+
+    $this->assertSame(['.', '..'], scandir(self::$tmp . '/src'));
+  }
+
+  public static function dataProviderMoveEntries(): \Iterator {
+    yield 'nothing to move' => [[], ['a.txt' => 'a'], ['a.txt' => 'a']];
+    yield 'new file' => [['a.txt' => 'a'], [], ['a.txt' => 'a']];
+    yield 'file replaces a file' => [['a.txt' => 'new'], ['a.txt' => 'old'], ['a.txt' => 'new']];
+    yield 'new directory' => [['a/b/c.txt' => 'c'], [], ['a/b/c.txt' => 'c']];
+    yield 'directory merges into a directory' => [
+      ['a/b.txt' => 'b', 'a/c/d.txt' => 'd'],
+      ['a/e.txt' => 'e', 'a/c/f.txt' => 'f', 'a/b.txt' => 'old'],
+      ['a/b.txt' => 'b', 'a/c/d.txt' => 'd', 'a/e.txt' => 'e', 'a/c/f.txt' => 'f'],
+    ];
+    yield 'hidden entries' => [['.claude/settings.json' => '{}'], ['.claude/settings.local.json' => '{"local": true}'], ['.claude/settings.json' => '{}', '.claude/settings.local.json' => '{"local": true}']];
   }
 
   #[DataProvider('dataProviderRunInstaller')]
