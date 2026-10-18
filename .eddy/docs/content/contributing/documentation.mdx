@@ -80,8 +80,14 @@ These builds show "development" as the version in the footer, and search engines
 `.github/workflows/eddy-release-docs.yml` publishes the docs to [eddy.drevops.com](https://eddy.drevops.com) on GitHub Pages:
 
 - on every release tag, with the tag as the version;
-- on a manual run of the `Release Eddy docs` workflow from **Actions**, with the version you type.
+- on a manual run of the `Release Eddy docs` workflow from **Actions**, with the version you type, or without one, with the tag you run it from or the `git describe` output of the branch, such as `5.0.0-3-g1a2b3c4`.
 
 The repository's GitHub Pages source must be **GitHub Actions**, and the `github-pages` environment must let the tag or the branch you run from deploy.
 
 The workflow reads the site URL and base path from the GitHub Pages settings, so a custom domain needs no change to the code. The published site links to the address it was built for, so run the workflow again after you change the domain. Only these release builds report to Google Analytics, show the release in the footer and let search engines index the pages.
+
+## The installer
+
+Every build serves the installer at `/install`: the root `install.php`, with the version of the build written over its version placeholder. `src/installer.js` writes the file after the build, and the installer downloads the GitHub archive of that version. A release build takes the version above, so a manual run with a version republishes the installer of that release. Any other build, such as the development site or a preview, takes the `git describe` output of its commit, so its installer installs that commit.
+
+Before it deploys, the release workflow installs an extension with the built installer in an empty directory. A version that GitHub has no archive for fails that check, so a mistyped version never reaches the site.

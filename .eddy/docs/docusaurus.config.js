@@ -2,6 +2,7 @@
 // @see https://docusaurus.io/docs/api/docusaurus-config
 
 import {darkCodeTheme, lightCodeTheme} from './src/codeThemes.js';
+import installer from './src/installer.js';
 
 // The release workflow sets the version. Other builds, such as the Netlify
 // development site and pull request previews, send no analytics and are not
@@ -55,6 +56,9 @@ const config = {
       }),
     ],
   ],
+
+  // Serves 'install.php' at '/install'.
+  plugins: [[installer, {version: process.env.RELEASE_VERSION}]],
 
   markdown: {
     mermaid: true,

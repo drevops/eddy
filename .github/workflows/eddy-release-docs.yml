@@ -1,7 +1,8 @@
 name: Release Eddy docs
 
-# Publishes '.eddy/docs' to GitHub Pages on a release tag, or on a manual run
-# with the version to show.
+# Publishes '.eddy/docs' to GitHub Pages on a release tag, or on a manual run.
+# The site serves the installer at '/install', and the installer installs the
+# release version.
 #
 # The site URL and base path come from the GitHub Pages settings at build
 # time, so a custom domain set there takes effect on the next run.
@@ -13,8 +14,8 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version'
-        required: true
+        description: 'Release version. Leave empty for the tag, or the git describe output of the branch.'
+        required: false
         type: string
 
 concurrency:
@@ -43,6 +44,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          # 'git describe' reads the tags and the history.
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Setup Node.js
@@ -58,9 +61,16 @@ jobs:
       - name: Set release version
         env:
           INPUTS_VERSION: ${{ github.event.inputs.version }}
+          REF_TYPE: ${{ github.ref_type }}
           REF_NAME: ${{ github.ref_name }}
         run: |
-          version="${INPUTS_VERSION:-${REF_NAME}}"
+          if [ -n "${INPUTS_VERSION}" ]; then
+            version="${INPUTS_VERSION}"
+          elif [ "${REF_TYPE}" = "tag" ]; then
+            version="${REF_NAME}"
+          else
+            version="$(git describe --tags --always)"
+          fi
           echo "RELEASE_VERSION=${version}" >> "$GITHUB_ENV"
           echo "Release version: ${version}"
 
@@ -74,6 +84,33 @@ jobs:
         env:
           DOCS_URL: ${{ steps.pages.outputs.origin }}
           DOCS_BASE_URL: ${{ steps.pages.outputs.base_path }}/
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          php-version: 8.3
+
+      # The installer downloads the archive of the release version from GitHub,
+      # so a version that GitHub doesn't hold fails here, before the deployment.
+      - name: Check installer
+        env:
+          INSTALL_NAME: Installer Check
+          INSTALL_MACHINE_NAME: installer_check
+          INSTALL_TYPE: module
+          INSTALL_DRUPAL_VERSION: '11'
+          INSTALL_COMMAND_WRAPPER: makefile
+          INSTALL_TOOLS: phpcs,phpunit
+          INSTALL_EXAMPLES: 'false'
+          INSTALL_REMOVE_SELF: 'true'
+          INSTALL_PROCEED: 'true'
+        run: |
+          installer_version="$(php .eddy/docs/build/install --version)"
+          [ "${installer_version}" = "${RELEASE_VERSION}" ] || { echo "The installer reports ${installer_version} instead of ${RELEASE_VERSION}."; exit 1; }
+          mkdir installer-check
+          cp .eddy/docs/build/install installer-check/install.php
+          cd installer-check
+          php install.php
+          [ -f installer_check.info.yml ] || { echo 'The installer did not install the extension.'; exit 1; }
 
       - name: Upload documentation site
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5

@@ -17,6 +17,7 @@ use function committed_workflow_branches;
 use function convert_string;
 use function core_version_requirement;
 use function cspell_text_words;
+use function download_template;
 use function drupal_version_build_default;
 use function drupal_version_default;
 use function drupal_version_options;
@@ -29,10 +30,14 @@ use function get_files;
 use function get_marker_files;
 use function github_repository_from_url;
 use function gitignore_rules;
+use function install_from_archive;
 use function is_binary_file;
+use function is_empty_directory;
 use function is_gitignored;
 use function is_template_path;
 use function join_list;
+use function main;
+use function move_entries;
 use function normalize_cspell_words;
 use function origin_github_repository;
 use function parse_branch_list;
@@ -57,10 +62,12 @@ use function remove_string_content;
 use function remove_tokens_with_content;
 use function remove_unused_cspell_words;
 use function replace_string_content;
+use function run_installer;
 use function set_composer_dev_eddy_value;
 use function set_workflow_branches;
 use function sort_drupal_majors;
 use function sort_php_versions;
+use function template_archive_url;
 use function template_version;
 use function tool_cspell_words;
 use function tool_specs;
@@ -151,6 +158,8 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'Usage:' => ['Usage:'];
     yield 'install.php' => ['install.php'];
     yield '--help' => ['--help'];
+    yield '--version' => ['--version'];
+    yield 'empty directory' => ['In an empty directory, it downloads its own'];
     yield 'INSTALL_NAME' => ['INSTALL_NAME'];
     yield 'INSTALL_MACHINE_NAME' => ['INSTALL_MACHINE_NAME'];
     yield 'INSTALL_TYPE' => ['INSTALL_TYPE'];
@@ -162,6 +171,36 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'INSTALL_PROCEED' => ['INSTALL_PROCEED'];
     yield 'INSTALL_BRANCHES' => ['INSTALL_BRANCHES'];
     yield 'INSTALL_GITHUB_REPOSITORY' => ['INSTALL_GITHUB_REPOSITORY'];
+    yield 'INSTALL_TEMPLATE_ARCHIVE' => ['INSTALL_TEMPLATE_ARCHIVE'];
+  }
+
+  public function testMainVersion(): void {
+    $output = $this->capture(fn() => main(['install.php', '--version']));
+
+    // The checkout's copy has no version until an archive expands it.
+    $this->assertSame('development' . PHP_EOL, $output);
+  }
+
+  public function testMainDownloadsIntoEmptyDirectory(): void {
+    $archive = self::templateArchive(['install.php' => self::stubInstaller()]);
+    self::envSet('INSTALL_TEMPLATE_ARCHIVE', $archive);
+    File::mkdir(self::$sut . '/.git');
+    chdir(self::$sut);
+
+    $output = $this->capture(fn() => main(['install.php', '--first']));
+
+    $this->assertSame('Downloading Eddy development from ' . $archive . PHP_EOL, $output);
+    $this->assertSame(['--first'], self::stubInstallerRun(self::$sut)['args']);
+  }
+
+  public function testMainWithoutTemplate(): void {
+    File::dump(self::$sut . '/README.md', 'A project.');
+    chdir(self::$sut);
+
+    $this->expectException(\Exception::class);
+    $this->expectExceptionMessage('The current directory holds no copy of the template. Run the installer in a copy of the template, or in an empty directory to download the template there.');
+
+    main(['install.php']);
   }
 
   /**
@@ -771,12 +810,266 @@ final class InstallHelpersTest extends UnitTestCase {
     $this->assertMatchesRegularExpression($expected_pattern, $archived_match[1]);
     $this->assertSame(str_replace($source_match[0], $archived_match[0], $source), $archived, 'The archive changes only the version constant.');
     $this->assertSame($archived_match[1] === '' ? NULL : $archived_match[1], template_version($archived_match[1]));
+
+    File::dump(self::$sut . '/archived/install.php', $archived);
+    $version = new Process([PHP_BINARY, 'install.php', '--version'], self::$sut . '/archived', ['SCRIPT_RUN_SKIP' => FALSE]);
+    $version->mustRun();
+    $this->assertSame(($archived_match[1] === '' ? 'development' : $archived_match[1]) . PHP_EOL, $version->getOutput());
   }
 
   public static function dataProviderTemplateVersionArchive(): \Iterator {
     yield 'tagged commit' => ['1.2.3', 0, '/^1\.2\.3$/'];
     yield 'commit after a tag' => ['1.2.3', 2, '/^1\.2\.3-2-g[0-9a-f]+$/'];
     yield 'untagged commit' => [NULL, 0, '/^$/'];
+  }
+
+  #[DataProvider('dataProviderTemplateArchiveUrl')]
+  public function testTemplateArchiveUrl(?string $version, string $expected): void {
+    $this->assertSame($expected, template_archive_url($version));
+  }
+
+  public static function dataProviderTemplateArchiveUrl(): \Iterator {
+    yield 'release tag' => ['5.0.0', 'https://github.com/drevops/eddy/archive/5.0.0.tar.gz'];
+    yield 'pre-release tag' => ['5.0.0-alpha4', 'https://github.com/drevops/eddy/archive/5.0.0-alpha4.tar.gz'];
+    yield 'commit after a tag' => ['5.0.0-3-g1a2b3c4', 'https://github.com/drevops/eddy/archive/1a2b3c4.tar.gz'];
+    yield 'commit after a pre-release tag' => ['5.0.0-alpha4-12-g1a2b3c4d', 'https://github.com/drevops/eddy/archive/1a2b3c4d.tar.gz'];
+    yield 'commit' => ['1a2b3c4', 'https://github.com/drevops/eddy/archive/1a2b3c4.tar.gz'];
+    yield 'no version' => [NULL, 'https://github.com/drevops/eddy/archive/main.tar.gz'];
+  }
+
+  /**
+   * @param array<int, string> $entries
+   */
+  #[DataProvider('dataProviderIsEmptyDirectory')]
+  public function testIsEmptyDirectory(array $entries, string $installer, bool $expected): void {
+    foreach ($entries as $entry) {
+      str_ends_with($entry, '/') ? File::mkdir(self::$sut . '/' . $entry) : File::dump(self::$sut . '/' . $entry, '');
+    }
+
+    $this->assertSame($expected, is_empty_directory(self::$sut, self::$sut . '/' . $installer));
+  }
+
+  public static function dataProviderIsEmptyDirectory(): \Iterator {
+    yield 'empty' => [[], 'install.php', TRUE];
+    yield 'installer' => [['install.php'], 'install.php', TRUE];
+    yield 'installer under another name' => [['installer.php'], 'installer.php', TRUE];
+    yield 'hidden entries' => [['install.php', '.git/', '.DS_Store', '.idea/'], 'install.php', TRUE];
+    yield 'file' => [['install.php', 'README.md'], 'install.php', FALSE];
+    yield 'directory' => [['install.php', 'src/'], 'install.php', FALSE];
+    yield 'installer elsewhere' => [['install.php'], 'elsewhere/install.php', FALSE];
+  }
+
+  public function testDownloadTemplate(): void {
+    $archive = self::templateArchive([
+      'install.php' => '<?php // Template installer.',
+      '.gitignore' => '/build',
+      '.claude/settings.json' => '{}',
+      'src/Example.php' => '<?php // Example.',
+    ]);
+    File::dump(self::$sut . '/install.php', '<?php // Downloaded installer.');
+    File::dump(self::$sut . '/.claude/settings.local.json', '{"local": true}');
+
+    download_template($archive, self::$sut);
+
+    $this->assertSame('<?php // Template installer.', File::read(self::$sut . '/install.php'));
+    $this->assertSame('/build', File::read(self::$sut . '/.gitignore'));
+    $this->assertSame('{}', File::read(self::$sut . '/.claude/settings.json'));
+    $this->assertSame('{"local": true}', File::read(self::$sut . '/.claude/settings.local.json'));
+    $this->assertSame('<?php // Example.', File::read(self::$sut . '/src/Example.php'));
+    $this->assertDirectoryDoesNotExist(self::$sut . '/eddy-1.2.3');
+    $this->assertDirectoryDoesNotExist(self::$sut . '/.eddy-template');
+    $this->assertFileDoesNotExist(self::$sut . '/.eddy-template.tar.gz');
+  }
+
+  public function testDownloadTemplateMissing(): void {
+    $archive = self::$tmp . '/missing.tar.gz';
+
+    $this->expectException(\Exception::class);
+    $this->expectExceptionMessageMatches('/^Unable to download the template from ' . preg_quote($archive, '/') . '\.( Failed to open stream: No such file or directory)?$/');
+
+    download_template($archive, self::$sut);
+  }
+
+  public function testDownloadTemplateInvalid(): void {
+    $archive = self::$tmp . '/broken.tar.gz';
+    File::dump($archive, 'Not an archive.');
+
+    try {
+      download_template($archive, self::$sut);
+      $this->fail('A file that is not an archive was extracted.');
+    }
+    catch (\Exception $exception) {
+      $this->assertStringStartsWith('Unable to extract the template from ' . $archive . ': ', $exception->getMessage());
+    }
+
+    $this->assertDirectoryDoesNotExist(self::$sut . '/.eddy-template');
+    $this->assertFileDoesNotExist(self::$sut . '/.eddy-template.tar.gz');
+  }
+
+  public function testDownloadTemplateTruncated(): void {
+    // Random content doesn't compress, so the cut falls inside the data of the
+    // archive and 'tar' writes a file before it fails.
+    $archive = self::templateArchive([
+      'first.txt' => random_bytes(65536),
+      'second.txt' => random_bytes(65536),
+    ]);
+    File::dump($archive, substr(File::read($archive), 0, 100000));
+
+    try {
+      download_template($archive, self::$sut);
+      $this->fail('A truncated archive was extracted.');
+    }
+    catch (\Exception $exception) {
+      $this->assertStringStartsWith('Unable to extract the template from ' . $archive . ': ', $exception->getMessage());
+    }
+
+    $this->assertSame(['.', '..'], scandir(self::$sut));
+  }
+
+  /**
+   * @param array<string, string> $src
+   * @param array<string, string> $dst
+   * @param array<string, string> $expected
+   */
+  #[DataProvider('dataProviderMoveEntries')]
+  public function testMoveEntries(array $src, array $dst, array $expected): void {
+    foreach ($src as $path => $content) {
+      File::dump(self::$tmp . '/src/' . $path, $content);
+    }
+
+    foreach ($dst as $path => $content) {
+      File::dump(self::$sut . '/' . $path, $content);
+    }
+
+    File::mkdir(self::$tmp . '/src');
+    move_entries(self::$tmp . '/src', self::$sut);
+
+    foreach ($expected as $path => $content) {
+      $this->assertSame($content, File::read(self::$sut . '/' . $path));
+    }
+
+    $this->assertSame(['.', '..'], scandir(self::$tmp . '/src'));
+  }
+
+  public static function dataProviderMoveEntries(): \Iterator {
+    yield 'nothing to move' => [[], ['a.txt' => 'a'], ['a.txt' => 'a']];
+    yield 'new file' => [['a.txt' => 'a'], [], ['a.txt' => 'a']];
+    yield 'file replaces a file' => [['a.txt' => 'new'], ['a.txt' => 'old'], ['a.txt' => 'new']];
+    yield 'new directory' => [['a/b/c.txt' => 'c'], [], ['a/b/c.txt' => 'c']];
+    yield 'directory merges into a directory' => [
+      ['a/b.txt' => 'b', 'a/c/d.txt' => 'd'],
+      ['a/e.txt' => 'e', 'a/c/f.txt' => 'f', 'a/b.txt' => 'old'],
+      ['a/b.txt' => 'b', 'a/c/d.txt' => 'd', 'a/e.txt' => 'e', 'a/c/f.txt' => 'f'],
+    ];
+    yield 'hidden entries' => [['.claude/settings.json' => '{}'], ['.claude/settings.local.json' => '{"local": true}'], ['.claude/settings.json' => '{}', '.claude/settings.local.json' => '{"local": true}']];
+  }
+
+  #[DataProvider('dataProviderRunInstaller')]
+  public function testRunInstaller(int $exit_code): void {
+    File::dump(self::$sut . '/install.php', self::stubInstaller($exit_code));
+    self::envSet('INSTALL_NAME', 'Force Crystal');
+
+    $this->assertSame($exit_code, run_installer(self::$sut, ['--first', 'second']));
+    $this->assertSame(['args' => ['--first', 'second'], 'cwd' => self::locationsRealpath(self::$sut), 'name' => 'Force Crystal'], self::stubInstallerRun(self::$sut));
+  }
+
+  public static function dataProviderRunInstaller(): \Iterator {
+    yield 'success' => [0];
+    yield 'failure' => [3];
+  }
+
+  public function testRunInstallerMissing(): void {
+    $this->expectException(\Exception::class);
+    $this->expectExceptionMessage(sprintf('The template in %s holds no install.php.', self::$sut));
+
+    run_installer(self::$sut, []);
+  }
+
+  #[DataProvider('dataProviderInstallFromArchive')]
+  public function testInstallFromArchive(string $installer, bool $expected_removed): void {
+    $archive = self::templateArchive(['install.php' => self::stubInstaller()]);
+    self::envSet('INSTALL_TEMPLATE_ARCHIVE', $archive);
+    $installer_path = self::$sut . '/' . $installer;
+    File::dump($installer_path, '<?php // Downloaded installer.');
+
+    $output = $this->capture(fn() => install_from_archive(self::$sut, $installer_path, ['--first']));
+
+    $this->assertSame('Downloading Eddy development from ' . $archive . PHP_EOL, $output);
+    $this->assertSame(['--first'], self::stubInstallerRun(self::$sut)['args']);
+    $this->assertSame(self::stubInstaller(), File::read(self::$sut . '/install.php'));
+    $this->assertSame(!$expected_removed, File::exists($installer_path));
+  }
+
+  public static function dataProviderInstallFromArchive(): \Iterator {
+    yield 'saved as install.php' => ['install.php', FALSE];
+    yield 'saved under another name' => ['installer.php', TRUE];
+    yield 'outside the directory' => ['../elsewhere/install.php', FALSE];
+  }
+
+  public function testInstallFromArchiveFailure(): void {
+    self::envSet('INSTALL_TEMPLATE_ARCHIVE', self::templateArchive(['install.php' => self::stubInstaller(3)]));
+    File::dump(self::$sut . '/installer.php', '<?php // Downloaded installer.');
+
+    try {
+      $this->capture(fn() => install_from_archive(self::$sut, self::$sut . '/installer.php', []));
+      $this->fail('A failed template installer went unreported.');
+    }
+    catch (\Exception $exception) {
+      $this->assertSame('The installer of the downloaded template exited with code 3.', $exception->getMessage());
+      $this->assertSame(3, $exception->getCode());
+    }
+
+    $this->assertFileExists(self::$sut . '/installer.php');
+  }
+
+  /**
+   * Build a template archive the way GitHub does, in 1 top-level directory.
+   *
+   * @param array<string, string> $files
+   *   The content of each file, keyed by its path in the template.
+   *
+   * @return string
+   *   The path of the archive.
+   */
+  protected static function templateArchive(array $files): string {
+    foreach ($files as $path => $content) {
+      File::dump(self::$tmp . '/eddy-1.2.3/' . $path, $content);
+    }
+
+    $archive = self::$tmp . '/eddy-1.2.3.tar.gz';
+    (new Process(['tar', '-czf', $archive, '-C', self::$tmp, 'eddy-1.2.3']))->mustRun();
+
+    return $archive;
+  }
+
+  /**
+   * Build an installer that records how it ran into 'run.json'.
+   *
+   * @param int $exit_code
+   *   The exit code of the installer.
+   *
+   * @return string
+   *   The PHP code of the installer.
+   */
+  protected static function stubInstaller(int $exit_code = 0): string {
+    return sprintf('<?php file_put_contents("run.json", json_encode(["args" => array_slice($argv, 1), "cwd" => getcwd(), "name" => getenv("INSTALL_NAME")])); exit(%d);', $exit_code);
+  }
+
+  /**
+   * Read how the installer from 'stubInstaller()' ran.
+   *
+   * @param string $dir
+   *   The directory the installer ran in.
+   *
+   * @return array<mixed>
+   *   The arguments, the working directory and the 'INSTALL_NAME' value,
+   *   keyed 'args', 'cwd' and 'name'.
+   */
+  protected static function stubInstallerRun(string $dir): array {
+    $run = json_decode(File::read($dir . '/run.json'), TRUE);
+    self::assertIsArray($run);
+
+    return $run;
   }
 
   /**

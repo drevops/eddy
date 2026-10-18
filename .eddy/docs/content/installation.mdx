@@ -8,20 +8,18 @@ import CommandTabs from '@site/src/components/CommandTabs';
 
 # Installation
 
-These steps take you from a download to an extension that builds, passes its checks and deploys to Drupal.org. Each step links to the page with the details, so you can follow the list once and come back to the parts you need.
+These steps take you from an empty directory to an extension that builds, passes its checks and deploys to Drupal.org. Each step links to the page with the details, so you can follow the list once and come back to the parts you need.
 
 ## Overview
 
-1. Download Eddy: the [latest release](https://github.com/drevops/eddy/releases/latest), or the current code with **Code** → **Download ZIP** in the GitHub UI.
-2. Expand it into a new directory.
-3. [Run the installer](#running-the-installer) there and answer its questions.
-4. If you already have extension code, copy it into the directory.
-5. [Build the site](development/building.mdx) to check that everything works.
-6. [Check coding standards](development/coding-standards.mdx).
-7. [Run the tests](testing/README.mdx).
-8. Create your extension's repository on GitHub, then commit and push.
-9. [Configure branch protection](continuous-integration/branch-protection.mdx).
-10. [Configure deployment](deployment/setup.mdx) to Drupal.org.
+1. [Run the installer](#running-the-installer) in a new, empty directory and answer its questions.
+2. If you already have extension code, copy it into the directory.
+3. [Build the site](development/building.mdx) to check that everything works.
+4. [Check coding standards](development/coding-standards.mdx).
+5. [Run the tests](testing/README.mdx).
+6. Create your extension's repository on GitHub, then commit and push.
+7. [Configure branch protection](continuous-integration/branch-protection.mdx).
+8. [Configure deployment](deployment/setup.mdx) to Drupal.org.
 
 :::tip Starting from GitHub instead
 
@@ -31,13 +29,15 @@ Eddy is a GitHub template, so you can also create your repository with **Use thi
 
 ## Running the installer
 
-Run the installer from the root of the new directory:
+Download the installer into a new, empty directory and run it there:
 
 ```bash
-php install.php
+curl -fsSL https://eddy.drevops.com/install > install.php && php install.php
 ```
 
-It asks about your extension, renames and rewrites the template's files to match, and removes what you didn't select. It finishes by deleting itself, unless you answer no to "Remove this script".
+It downloads the Eddy release that this site documents, the one in the footer, and expands it into the directory. Then it asks about your extension, renames and rewrites the template's files to match, and removes what you didn't select. It finishes by deleting itself, unless you answer no to "Remove this script". `php install.php --version` prints the release it installs.
+
+Hidden entries such as `.git` don't count, so an empty repository you've just cloned works too. In a directory that holds other files but no copy of Eddy, the installer stops without changing anything.
 
 ![The installer asking its questions](../../assets/install.svg)
 
@@ -59,6 +59,24 @@ Every answer can come from an environment variable instead, which is handy in sc
 
 :::
 
+### Installing from a download
+
+The installer also works on a copy of Eddy you've downloaded yourself: the [latest release](https://github.com/drevops/eddy/releases/latest), another release, or the current code with **Code** → **Download ZIP** in the GitHub UI. Expand it into a new directory and run the installer there, where it works on the files in place:
+
+```bash
+php install.php
+```
+
+To have the installer download another archive, such as one of a fork, set `INSTALL_TEMPLATE_ARCHIVE` to its URL or path. GitHub builds its archives with the files in 1 top-level directory, and the installer expects that layout.
+
+### Installing the development version
+
+The [development site](https://drevops-eddy-docs.netlify.app) serves the installer of the current `main` branch, for trying out changes that aren't released yet:
+
+```bash
+curl -fsSL https://drevops-eddy-docs.netlify.app/install > install.php && php install.php
+```
+
 ## What the installer changes
 
 The installer works on the directory in place:
@@ -69,7 +87,7 @@ The installer works on the directory in place:
 - Turns `README.dist.md` and `CONTRIBUTING.dist.md` into your `README.md` and `CONTRIBUTING.md`, and downloads a placeholder `logo.png` with your extension name on it.
 - Deletes Eddy's own files: `.eddy/`, `MIGRATION.md`, `SECURITY.md`, `LICENSE.txt`, `logo.svg` and the `eddy-*` workflows. Drupal.org adds `LICENSE.txt` to every release it packages and [asks projects not to commit one](https://www.drupal.org/node/1663716), so the README's license badge states GPL-2.0-or-later instead of reading it from a license file.
 - Sets the branch filters of the workflows to `1.x`. Run the installer again in an existing project and it keeps the branches of the committed `.github/workflows/test.yml` instead. A list in `INSTALL_BRANCHES`, such as `1.x,2.x`, overrides both. [Deployment](deployment/README.mdx) explains how to build and deploy other branches.
-- Records the Eddy release you downloaded as `extra.eddy.version` in `composer.dev.json`, or the commit of a branch download, such as `5.0.0-3-g1a2b3c4`, so a later [update](updating/README.mdx) knows where your project started.
+- Records the Eddy release you installed as `extra.eddy.version` in `composer.dev.json`, or the commit of a branch download or of the development version, such as `5.0.0-3-g1a2b3c4`, so a later [update](updating/README.mdx) knows where your project started.
 
 The README badges name your GitHub repository when you run the installer in a clone of it, and your machine name for both the owner and the name otherwise, so check them before your first commit.
 
