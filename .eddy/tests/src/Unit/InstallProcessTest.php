@@ -69,6 +69,9 @@ final class InstallProcessTest extends UnitTestCase {
       $this->assertFileDoesNotExist(self::$sut . '/' . $path, 'Expected not to exist: ' . $path);
     }
 
+    $paths = array_map(static fn(string $path): string => substr($path, strlen(self::$sut) + 1), File::scandir(self::$sut, [], TRUE));
+    $this->assertSame([], array_values(preg_grep('/your_extension|YourExtension/', $paths) ?: []), 'Every path named after the template extension is renamed.');
+
     $claude_path = self::$sut . '/.claude/settings.json';
     $decoded = json_decode(File::read($claude_path), TRUE);
     $this->assertSame(['permissions' => ['allow' => $expected_claude_allow, 'deny' => []]], $decoded);
@@ -96,6 +99,8 @@ final class InstallProcessTest extends UnitTestCase {
       'src/Form/MyExtensionForm.php',
       'src/MyExtensionService.php',
       'tests/src/Unit/MyExtensionServiceUnitTest.php',
+      'tests/src/Kernel/MyExtensionFormKernelTest.php',
+      'tests/src/Kernel/MyExtensionHooksKernelTest.php',
       'tests/src/Kernel/MyExtensionServiceKernelTest.php',
       'tests/src/Functional/MyExtensionFunctionalTest.php',
       'tests/src/FunctionalJavascript/MyExtensionFunctionalJavascriptTestBase.php',
@@ -111,6 +116,7 @@ final class InstallProcessTest extends UnitTestCase {
     $module_not_exists = [
       'my_extension.theme',
       'your_extension.theme',
+      'tests/src/Unit/MyExtensionPreprocessUnitTest.php',
       'your_extension.info.yml',
       'your_extension.install',
       'your_extension.module',
@@ -139,6 +145,7 @@ final class InstallProcessTest extends UnitTestCase {
         'my_theme.info.yml',
         'my_theme.libraries.yml',
         'my_theme.theme',
+        'tests/src/Unit/MyThemePreprocessUnitTest.php',
         'tests/src/FunctionalJavascript/MyThemeFunctionalJavascriptTestBase.php',
         'tests/src/FunctionalJavascript/MyThemeSmokeFunctionalJavascriptTest.php',
         'css/my_theme.css',
@@ -158,7 +165,7 @@ final class InstallProcessTest extends UnitTestCase {
         'my_theme.links.menu.yml',
         'src',
         'config',
-        'tests/src/Unit',
+        'tests/src/Unit/MyThemeServiceUnitTest.php',
         'tests/src/Kernel',
         'tests/src/Functional',
         'your_extension.install',
@@ -339,10 +346,10 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   public static function dataProviderProcessRemovesThemeDirectories(): \Iterator {
-    $module_dirs = ['src', 'config', 'tests/src/Unit', 'tests/src/Kernel', 'tests/src/Functional'];
+    $module_dirs = ['src', 'config', 'tests/src/Kernel', 'tests/src/Functional'];
 
-    yield 'every tool' => [[], [], ['tests/src/FunctionalJavascript', 'css', 'js'], $module_dirs];
-    yield 'no FunctionalJavascript' => [['functional_javascript'], [], ['css', 'js'], [...$module_dirs, 'tests']];
+    yield 'every tool' => [[], [], ['tests/src/FunctionalJavascript', 'tests/src/Unit', 'css', 'js'], $module_dirs];
+    yield 'no FunctionalJavascript' => [['functional_javascript'], [], ['tests/src/Unit', 'css', 'js'], [...$module_dirs, 'tests/src/FunctionalJavascript']];
     yield 'no PHPUnit' => [['phpunit'], [], ['css', 'js'], [...$module_dirs, 'tests']];
     yield 'project files' => [[], ['src/Helper.php', 'tests/src/Unit/HelperUnitTest.php'], ['src', 'tests/src/Unit'], ['src/Form', 'config', 'tests/src/Kernel', 'tests/src/Functional']];
   }

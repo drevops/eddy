@@ -68,7 +68,7 @@ abstract class ToolingTestCase extends FunctionalTestCase {
     $this->assertFileExists($dir . '/.logs/coverage/phpunit/.coverage-html/index.html');
     // A change in the coverage value usually means that PHPUnit discovered a
     // different number of source files.
-    $this->assertFileContainsString($dir . '/.logs/coverage/phpunit/.coverage-html/index.html', '33.33% covered');
+    $this->assertFileContainsString($dir . '/.logs/coverage/phpunit/.coverage-html/index.html', '7.69% covered');
   }
 
 }

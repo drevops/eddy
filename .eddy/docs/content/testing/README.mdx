@@ -26,7 +26,7 @@ npm test`}
 
 ![Running the tests](../../../assets/test.svg)
 
-The PHPUnit tests live in `tests/src`, in a directory per suite, and the installer gives a module a working example of each. A theme gets the FunctionalJavascript one, which renders pages with the theme as the default theme, since the others test the example module's service and settings form. To run the tests of an extension you bundle with yours, see [Bundled extensions](../development/bundled-extensions.mdx#what-the-tooling-covers). `phpunit.xml` configures PHPUnit, and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both bootstrap Drupal with core's `web/core/tests/bootstrap.php`, and both fail a run on a PHPUnit warning. The installer removes `phpunit.d10.xml` when you don't select Drupal 10, since no other build reads it.
+The PHPUnit tests live in `tests/src`, in a directory per suite, and the installer gives a module a working example of each. A theme gets the FunctionalJavascript one, which renders pages with the theme as the default theme, and a Unit test of the hook in its `.theme` file, since the others test the example module's service, settings form and hooks. To run the tests of an extension you bundle with yours, see [Bundled extensions](../development/bundled-extensions.mdx#what-the-tooling-covers). `phpunit.xml` configures PHPUnit, and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both bootstrap Drupal with core's `web/core/tests/bootstrap.php`, and both fail a run on a PHPUnit warning. The installer removes `phpunit.d10.xml` when you don't select Drupal 10, since no other build reads it.
 
 ## Running 1 suite
 
@@ -94,6 +94,8 @@ npm test`}
 ## Code coverage
 
 PHPUnit collects code coverage with [pcov](https://github.com/krakjoe/pcov) and Jest with V8, and both write their reports to `.logs/coverage`: an HTML report to browse and a Cobertura file for tools, in `phpunit` and `jest` subdirectories. CI uploads the reports as a workflow artifact, and to [Codecov](https://codecov.io) when the `CODECOV_TOKEN` repository secret is set.
+
+The PHPUnit coverage counts your extension's `.php` files plus a module's `.module` and `.install` files or a theme's `.theme` file, and leaves out its `tests` directory. Functional and FunctionalJavascript tests run your code in the webserver's process, which pcov doesn't watch, so they add no coverage. That's why the example Kernel tests build and submit the settings form and call the hooks themselves, although the Functional test exercises the same code through the browser.
 
 ## Deprecated code
 

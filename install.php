@@ -351,13 +351,15 @@ function extension_type_specs(): array {
         'src/Form/YourExtensionForm.php',
         'src/YourExtensionService.php',
         'tests/src/Functional/YourExtensionFunctionalTest.php',
+        'tests/src/Kernel/YourExtensionFormKernelTest.php',
+        'tests/src/Kernel/YourExtensionHooksKernelTest.php',
         'tests/src/Kernel/YourExtensionServiceKernelTest.php',
         'tests/src/Unit/YourExtensionServiceUnitTest.php',
       ],
       'cspell_words' => ['noscript'],
     ],
     'theme' => [
-      'files' => ['your_extension.theme'],
+      'files' => ['your_extension.theme', 'tests/src/Unit/YourExtensionPreprocessUnitTest.php'],
       'cspell_words' => [],
     ],
   ];
@@ -1047,6 +1049,9 @@ function process_internal(string $extension_name, string $extension_machine_name
   @rename('src/Form/YourExtensionForm.php', 'src/Form/' . $extension_machine_name_class . 'Form.php');
   @rename('src/YourExtensionService.php', 'src/' . $extension_machine_name_class . 'Service.php');
   @rename('tests/src/Unit/YourExtensionServiceUnitTest.php', 'tests/src/Unit/' . $extension_machine_name_class . 'ServiceUnitTest.php');
+  @rename('tests/src/Unit/YourExtensionPreprocessUnitTest.php', 'tests/src/Unit/' . $extension_machine_name_class . 'PreprocessUnitTest.php');
+  @rename('tests/src/Kernel/YourExtensionFormKernelTest.php', 'tests/src/Kernel/' . $extension_machine_name_class . 'FormKernelTest.php');
+  @rename('tests/src/Kernel/YourExtensionHooksKernelTest.php', 'tests/src/Kernel/' . $extension_machine_name_class . 'HooksKernelTest.php');
   @rename('tests/src/Kernel/YourExtensionServiceKernelTest.php', 'tests/src/Kernel/' . $extension_machine_name_class . 'ServiceKernelTest.php');
   @rename('tests/src/Functional/YourExtensionFunctionalTest.php', 'tests/src/Functional/' . $extension_machine_name_class . 'FunctionalTest.php');
   @rename('tests/src/FunctionalJavascript/YourExtensionFunctionalJavascriptTestBase.php', 'tests/src/FunctionalJavascript/' . $extension_machine_name_class . 'FunctionalJavascriptTestBase.php');
