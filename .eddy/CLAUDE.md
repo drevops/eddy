@@ -158,7 +158,9 @@ PHPUnit tests are tagged with `#[Group('p0'..'p5')]` so CI can shard them across
 - `p2` - `AssembleTest` (Drupal codebase assembly) and `ToolingInstallerTest` (the tooling installer driving a real Composer).
 - `p3` - `AhoyTest` (Ahoy command wrapper), plus `AutoPortDiscoveryTest` and `WaitForPortTest`, which run real webservers and sockets without a wrapper.
 - `p4` - `MakeTest` (Makefile command wrapper), plus `GeneratedProjectTest`, which generates a theme and a module with `install.php`, each bundling an extension of the other type, then builds, provisions, lints and tests them through `make`.
-- `p5` - `XdebugTest` (XDebug step-debugging toggle). This is the only group whose CI runner installs the xdebug PHP extension via `coverage: xdebug` instead of pcov - the test exercises the real extension end to end, so coverage is not collected for this group.
+- `p5` - `XdebugTest` (XDebug step-debugging toggle). This is the only group whose CI runner installs the xdebug PHP extension via `coverage: xdebug` instead of pcov - the test exercises the real extension end to end.
+
+Only `p0` collects coverage in CI. The other groups run the tooling and `install.php` as subprocesses, where pcov records nothing, so their reports would hold only the static analysis of files they never load. That analysis counts lines such as the shebang and top-level `const` declarations, which pcov never reports, so Codecov would show them as missed.
 
 **Do not DRY the per-wrapper tests.** `AhoyTest` (p3) and `MakeTest` (p4) are intentionally kept as separate, near-parallel test classes - one per command wrapper. Never merge or parameterize them into a single shared class: each wrapper (`ahoy`, `make`) must be exercised by its own independent test so a regression in one runner can never be masked by the other. `XdebugTest`'s single parameterized `assertToggle()` is a deliberate exception for one feature toggled through both wrappers, not a pattern to extend across the whole command surface.
 
@@ -175,7 +177,7 @@ All commands run from the repository root. Install dependencies once with `compo
 | Lint (phpcs, phpstan, rector) | `composer --working-dir=.eddy/tests lint`                         |
 | Lint autofix                  | `composer --working-dir=.eddy/tests lint-fix`                     |
 
-`test-coverage` writes an HTML report and a Clover file to `.eddy/tests/.logs/coverage/phpunit/`, and CI uploads the Clover file to Codecov. The suite writes Clover rather than the template's Cobertura, because Cobertura leaves out code outside functions, which is most of every tooling command.
+`test-coverage` writes an HTML report and a Clover file to `.eddy/tests/.logs/coverage/phpunit/`, and CI uploads the Clover file of `p0` to Codecov. The suite writes Clover rather than the template's Cobertura, because Cobertura leaves out code outside functions, which is most of every tooling command.
 
 `p2`-`p5` exercise the full build pipeline and need a Drupal-friendly PHP setup; `p3` and `p4` also need a WebDriver backend: a Selenium container or a local Chrome driven by chromedriver. `p3` and `p5` run Ahoy, `p4` and `p5` run `make`, and `p5` needs the xdebug extension loaded with `xdebug.mode=off`. These are the same jobs the GitHub Actions matrix runs (`.github/workflows/eddy-test.yml`).
 

@@ -25,7 +25,7 @@ composer --working-dir=.eddy/tests install
 | Coding standards | `composer --working-dir=.eddy/tests lint`                         |
 | Fix standards    | `composer --working-dir=.eddy/tests lint-fix`                     |
 
-The coverage run writes an HTML report and a Clover file to `.eddy/tests/.logs/coverage/phpunit/`, and CI uploads the Clover file to Codecov. The suite writes Clover rather than the template's Cobertura, because Cobertura leaves out code outside functions, which is most of every tooling command.
+The coverage run writes an HTML report and a Clover file to `.eddy/tests/.logs/coverage/phpunit/`, and CI uploads the Clover file of `p0` to Codecov. The suite writes Clover rather than the template's Cobertura, because Cobertura leaves out code outside functions, which is most of every tooling command.
 
 `phpunit.xml` stops the run at the first error, failure, warning or risky test, so a run that ends early can still print an "OK, but there were issues!" footer. Compare the test count with the expected total.
 
@@ -42,7 +42,9 @@ Tests are tagged `p0` to `p5` so CI can run them as parallel jobs:
 | `p4`  | `MakeTest`.                                                                                                            | `make` and a WebDriver backend.               |
 | `p5`  | `XdebugTest`, the XDebug toggle through both wrappers.                                                                 | Ahoy, `make`, and xdebug with `xdebug.mode=off`. |
 
-A WebDriver backend is a Selenium container or a local Chrome driven by chromedriver. `p5` is the only group that runs with the real xdebug extension instead of pcov, so it collects no coverage.
+A WebDriver backend is a Selenium container or a local Chrome driven by chromedriver. `p5` is the only group that runs with the real xdebug extension instead of pcov.
+
+Only `p0` collects coverage in CI. The other groups run the tooling and `install.php` as subprocesses, where pcov records nothing, so their reports would hold only the static analysis of files they never load, and Codecov would count lines such as the shebang there as missed.
 
 ## Regenerating snapshot fixtures
 

@@ -152,8 +152,19 @@ jobs:
         working-directory: .eddy/tests
 
       - name: Run PHP tests with coverage
-        if: matrix.group != 'p5'
+        if: matrix.group == 'p0'
         run: composer test-coverage -- --group="${GROUP}"
+        working-directory: .eddy/tests
+        env:
+          GROUP: ${{ matrix.group }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # The other groups run the scripts as subprocesses, so their reports
+      # would hold only the static analysis of files they never load, which
+      # counts lines such as the shebang as missed.
+      - name: Run PHP tests
+        if: matrix.group != 'p0'
+        run: composer test -- --group="${GROUP}"
         working-directory: .eddy/tests
         env:
           GROUP: ${{ matrix.group }}
@@ -161,18 +172,8 @@ jobs:
           WEBSERVER_HOST: ${{ (matrix.group == 'p3' || matrix.group == 'p4') && '0.0.0.0' || 'localhost' }}
           WEBDRIVER_BACKEND: ${{ (matrix.group == 'p3' || matrix.group == 'p4') && matrix.backend || '' }}
 
-      # p5 runs without coverage because the runner is configured with xdebug
-      # (not pcov) for the XDebug toggle behaviour test.
-      - name: Run PHP tests
-        if: matrix.group == 'p5'
-        run: composer test -- --group="${GROUP}"
-        working-directory: .eddy/tests
-        env:
-          GROUP: ${{ matrix.group }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Upload coverage report as an artifact
-        if: matrix.group != 'p5'
+        if: matrix.group == 'p0'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: ${{ github.job }}-code-coverage-report-${{ matrix.os }}-${{ matrix.group }}-${{ matrix.backend }}
@@ -181,7 +182,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload coverage report to Codecov
-        if: ${{ env.CODECOV_TOKEN != '' && matrix.group != 'p5' }}
+        if: ${{ env.CODECOV_TOKEN != '' && matrix.group == 'p0' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7
         with:
           directory: .eddy/tests/.logs
