@@ -52,6 +52,7 @@ describe('installer plugin', () => {
   test.each([
     ['the release version', { version: '5.0.0' }, () => '5.0.0'],
     ['the version of the checkout', {}, () => describeCheckout(ROOT_DIR)],
+    ['the version of the checkout without options', undefined, () => describeCheckout(ROOT_DIR)],
   ])('serves install.php at /install with %s', async (name, options, version) => {
     await installer({ siteDir: SITE_DIR }, options).postBuild({ outDir: '/site/build' });
 
