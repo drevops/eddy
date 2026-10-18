@@ -159,6 +159,8 @@ final class UpdateAssetsMainTest extends UnitTestCase {
   /**
    * @param array<string, array{0: int, 1: list<string>}> $results
    *   The exit code and output lines of each workspace command.
+   * @param non-empty-string $expected_start
+   *   The start of the exception message.
    * @param list<string> $expected_steps
    *   The steps expected, in order.
    */
