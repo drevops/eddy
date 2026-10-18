@@ -15,7 +15,7 @@
 -- `tests/src/` - PHPUnit tests (Unit/, Kernel/, Functional/)
 -- `config/schema/` - Configuration schema definitions
 +- `css/` and `js/` - Stylesheets and JavaScript behaviors of the theme's global library
-+- `tests/src/` - PHPUnit tests (FunctionalJavascript/)
++- `tests/src/` - PHPUnit tests (Unit/, FunctionalJavascript/)
  - `build/` - Assembled Drupal codebase (symlinked extension)
  - `vendor/` - The installed `drevops/eddy-tooling` package, whose commands (`vendor/bin/eddy-*`) assemble, start, provision and deploy the extension. Not committed and not part of the extension
  - `scripts/eddy-tooling` - Installs the tooling package into `vendor/` from the constraint in `composer.dev.json`. The command wrappers and CI run it before the tooling commands
@@ -30,7 +30,7 @@
 +- **No base theme**: `base theme: false`, so Drupal's default templates render every page until the theme overrides them in `templates/`
 +- **Theme hooks**: `force_crystal.theme` adds a `div[data-force_crystal-time]` element to every page, which `js/force_crystal.js` fills with the page load time
 +- **Global library**: The `libraries` key in `force_crystal.info.yml` attaches the `global` library from `force_crystal.libraries.yml` to every page
-+- **Test coverage**: FunctionalJavascript smoke test example provided, with the theme installed as the default theme
++- **Test coverage**: Unit test example for the theme hooks provided, plus a FunctionalJavascript smoke test example with the theme installed as the default theme
  
  ## Environment Variables
  
