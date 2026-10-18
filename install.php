@@ -120,11 +120,6 @@ function main(array $argv): void {
     throw new \Exception('The current directory holds no copy of the template. Run the installer in a copy of the template, or in an empty directory to download the template there.');
   }
 
-  // The interactive flow uses Prompty, which manipulates terminal state
-  // (stty, ANSI escapes, shutdown handlers) when attached to a TTY and is
-  // not suited to in-process unit testing. The functional 'InstallTest'
-  // exercises this path end-to-end via a subprocess.
-  // @codeCoverageIgnoreStart
   $branches = parse_branch_list((string) getenv('INSTALL_BRANCHES'));
   $repository = parse_github_repository((string) getenv('INSTALL_GITHUB_REPOSITORY'));
 
@@ -176,15 +171,6 @@ function main(array $argv): void {
       'proceed' => Prompty::confirm('Proceed with installation'),
     ],
     intro: 'Eddy - Drupal extension scaffold',
-    outro: fn(array $r): string => sprintf(
-      "Name: %s\nMachine name: %s\nType: %s\nDrupal: %s\nWrapper: %s\nRemoved tools: %s",
-      $r['name'],
-      $r['machine_name'],
-      $r['type'],
-      implode(', ', $r['drupal_version'] ?: ['None']),
-      implode(', ', $r['command_wrapper'] ?: ['None']),
-      implode(', ', array_diff(array_keys($tool_options), array_filter((array) $r['tools'], static fn($v): bool => $v !== '')) ?: ['None']),
-    ),
     cancelled: 'Cancelled.',
     numbering: TRUE,
     env_prefix: 'INSTALL_',
@@ -216,7 +202,17 @@ function main(array $argv): void {
   }
 
   process($name, $machine_name, $type, $drupal_versions, $command_wrapper, $tools_remove, $remove_examples, $remove_self, $branches, template_version(TEMPLATE_VERSION), $repository);
-  // @codeCoverageIgnoreEnd
+
+  // The flow shows each answer as given, so a derived machine name appears
+  // only here.
+  print implode(PHP_EOL, [
+    'Name: ' . $name,
+    'Machine name: ' . $machine_name,
+    'Type: ' . $type,
+    'Drupal: ' . implode(', ', $drupal_versions),
+    'Wrapper: ' . implode(', ', $command_wrapper ?: ['None']),
+    'Removed tools: ' . implode(', ', $tools_remove ?: ['None']),
+  ]) . PHP_EOL;
 }
 
 /**
