@@ -354,6 +354,7 @@ final class UpdateAssetsTest extends UnitTestCase {
         '[0.5, "o", "ab"]',
         'not json',
         '[0.25, "i", "x"]',
+        '[0.25, "o", 5]',
         '[0.25, "o", "cd"]',
         '[0.5, "o"]',
         '["late", "o", "ef"]',

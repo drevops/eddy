@@ -11,7 +11,7 @@
 [![GitHub Issues](https://img.shields.io/github/issues/drevops/eddy.svg)](https://github.com/drevops/eddy/issues)
 [![GitHub Pull Requests](https://img.shields.io/github/issues-pr/drevops/eddy.svg)](https://github.com/drevops/eddy/pulls)
 [![Build, test and deploy](https://github.com/drevops/eddy/actions/workflows/test.yml/badge.svg)](https://github.com/drevops/eddy/actions/workflows/test.yml)
-[![codecov](https://codecov.io/gh/drevops/eddy/graph/badge.svg)](https://codecov.io/gh/drevops/eddy)
+[![codecov](https://codecov.io/gh/drevops/eddy/branch/main/graph/badge.svg)](https://app.codecov.io/gh/drevops/eddy/branch/main)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/drevops/eddy)
 ![LICENSE](https://img.shields.io/github/license/drevops/eddy)
 ![Renovate](https://img.shields.io/badge/renovate-enabled-green?logo=renovatebot)

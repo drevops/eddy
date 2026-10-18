@@ -20,11 +20,14 @@
          </testsuite>
      </testsuites>
  
-@@ -114,12 +114,14 @@
+@@ -114,17 +114,15 @@
      </coverage>
      <source>
          <include>
 -            <directory>web/modules/custom</directory>
+-            <!-- A module holds its hooks in its '.module' and '.install' files. -->
+-            <directory suffix=".module">web/modules/custom</directory>
+-            <directory suffix=".install">web/modules/custom</directory>
 +            <directory>web/themes/custom</directory>
 +            <!-- A theme holds its PHP in its '.theme' file. -->
 +            <directory suffix=".theme">web/themes/custom</directory>
@@ -32,8 +35,11 @@
  
          <exclude>
 -            <directory>web/modules/custom/*/tests</directory>
+-            <directory suffix=".module">web/modules/custom/*/tests</directory>
+-            <directory suffix=".install">web/modules/custom/*/tests</directory>
 -            <file>web/modules/custom/force_crystal/rector.php</file>
 +            <directory>web/themes/custom/*/tests</directory>
++            <directory suffix=".theme">web/themes/custom/*/tests</directory>
 +            <file>web/themes/custom/force_crystal/rector.php</file>
              <directory>**/node_modules/**</directory>
          </exclude>

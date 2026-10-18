@@ -199,10 +199,15 @@ EXPECT;
  * @param array<string> $only
  *   Asset names to render (e.g. ['install']). When empty, every asset is
  *   rendered.
+ * @param string $assets_dir
+ *   Path to the directory that holds svg-term-render.js and receives the SVG
+ *   files.
+ * @param string|null $project_dir
+ *   Path to the repository root that the workspace is exported from, or NULL
+ *   for the root that holds this script.
  */
-function main(array $only = []): void {
-  $assets_dir = __DIR__;
-  $project_dir = dirname(__DIR__, 2);
+function main(array $only = [], string $assets_dir = __DIR__, ?string $project_dir = NULL): void {
+  $project_dir ??= dirname(__DIR__, 2);
   $recordings_dir = $project_dir . '/.artifacts/tmp/asciinema';
 
   info('Eddy - Asset Generator');

@@ -73,7 +73,7 @@ The tool configurations name only the custom directory of your extension's type,
 
 - PHPCS, PHPStan, Rector, Twig CS Fixer, ESLint and Stylelint check your bundled extensions along with your own code, and CSpell checks the whole project.
 - PHPUnit runs the tests in your extension's `tests/src` only. A bundled extension's own tests run once you add their directories to the testsuites of `phpunit.xml`, such as `web/themes/custom/*/modules/*/tests/src/Unit`, and to `phpunit.d10.xml` when you target Drupal 10. Add the matching `tests` directory to the `<exclude>` of the coverage source as well, so the test classes don't count as uncovered code.
-- PHPUnit counts the `.php` files of a bundled extension towards coverage, but a bundled theme's `.theme` file only once you add a `<directory suffix=".theme">` line for it.
+- PHPUnit counts the `.php` files of a bundled extension towards coverage, and the files that hold the hooks of a bundled extension of your own type. A bundled theme's `.theme` file in a module, or a bundled module's `.module` and `.install` files in a theme, count only once you add a `<directory suffix=".theme">`, `<directory suffix=".module">` or `<directory suffix=".install">` line for them.
 - Jest runs the `*.test.js` files in the `js/` directory of each extension directly inside the `dirs` of `jest.config.js`. To run a bundled extension's tests, add the directory that holds it, such as `web/themes/custom/my_theme/modules`, to `dirs`.
 
 Nothing outside your extension's type directory is linted or tested, so an extension of the other type that comes in through `suggest` can't fail your checks.

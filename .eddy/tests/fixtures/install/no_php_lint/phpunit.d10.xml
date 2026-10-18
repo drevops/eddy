@@ -1,7 +1,7 @@
-@@ -103,7 +103,6 @@
- 
-         <exclude>
+@@ -108,7 +108,6 @@
              <directory>web/modules/custom/*/tests</directory>
+             <directory suffix=".module">web/modules/custom/*/tests</directory>
+             <directory suffix=".install">web/modules/custom/*/tests</directory>
 -            <file>web/modules/custom/force_crystal/rector.php</file>
              <directory>**/node_modules/**</directory>
          </exclude>

@@ -6,7 +6,7 @@ The source of the Eddy documentation site, built with [Docusaurus](https://docus
 npm install                  # Install the dependencies
 npm start                    # Serve the site locally, reloading on every change
 npm run build                # Build the static site into build/
-npm test                     # Run the component tests and the spell check
+npm test                     # Run the component tests with coverage and the spell check
 npm run test:accessibility   # Check the built site for accessibility issues
 ```
 

@@ -17,12 +17,12 @@ npm install                  # Install the dependencies
 npm start                    # Serve the site locally, reloading on every change
 npm run build                # Build the static site into build/
 npm run serve                # Serve the built site
-npm test                     # Run the component tests and the spell check
+npm test                     # Run the component tests with coverage and the spell check
 npm run spellcheck           # Run only the spell check
 npm run test:accessibility   # Check the built site for accessibility issues
 ```
 
-`npm start` and `npm run build` first copy the social preview card from `.eddy/assets` into `static/img`, where git ignores it.
+`npm start` and `npm run build` first copy the social preview card from `.eddy/assets` into `static/img`, where git ignores it. `npm test` writes the coverage of the components to `.logs/coverage`, which git ignores too.
 
 `npm run test:accessibility` checks the site in `build/`, so run `npm run build` first. It drives a browser through [Playwright](https://playwright.dev/), which needs its own copy of Chromium: `npx playwright install chromium` downloads it once.
 
@@ -67,7 +67,7 @@ The rest is down to the writing:
 
 ## Checks on every pull request
 
-The `eddy-test-docs` job of the `Test Eddy` workflow installs the dependencies, builds the site, runs `npm test` and then `npm run test:accessibility`. A broken link or anchor, a failing component test, an unknown word or an accessibility violation fails the job, and a failed check skips the Netlify deployment below.
+The `eddy-test-docs` job of the `Test Eddy` workflow installs the dependencies, builds the site, runs `npm test` and then `npm run test:accessibility`. A broken link or anchor, a failing component test, an unknown word or an accessibility violation fails the job, and a failed check skips the Netlify deployment below. The job uploads the coverage of the components to [Codecov](https://codecov.io) when the `CODECOV_TOKEN` repository secret is set.
 
 ## The development site and previews
 

@@ -48,7 +48,9 @@
               disableCodeCoverageIgnore="false">
         <report>
             <html outputDirectory=".logs/coverage/phpunit/.coverage-html" lowUpperBound="50" highLowerBound="90"/>
-            <cobertura outputFile=".logs/coverage/phpunit/cobertura.xml"/>
+            <!-- Cobertura holds only the lines inside functions and methods, so
+              it would leave out the top-level code of the tooling commands. -->
+            <clover outputFile=".logs/coverage/phpunit/clover.xml"/>
         </report>
     </coverage>
     <logging>

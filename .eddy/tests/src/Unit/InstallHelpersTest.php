@@ -50,6 +50,8 @@ use function process_command_wrapper_text;
 use function process_drupal_version_text;
 use function process_extension_type_text;
 use function read_composer_dev_json;
+use function remove_composer_dev_dependencies;
+use function remove_composer_scaffold_mapping;
 use function remove_cspell_eddy_paths;
 use function remove_dir;
 use function remove_drupal_versions;
@@ -60,6 +62,7 @@ use function remove_npm;
 use function remove_special_comments;
 use function remove_string_content;
 use function remove_tokens_with_content;
+use function remove_tools;
 use function remove_unused_cspell_words;
 use function replace_string_content;
 use function run_installer;
@@ -751,6 +754,96 @@ final class InstallHelpersTest extends UnitTestCase {
       'version',
       '5.0.0',
       "{\n    \"extra\": {\n        \"eddy\": {\n            \"drupal-version\": \"11\",\n            \"version\": \"5.0.0\"\n        }\n    }\n}\n",
+    ];
+  }
+
+  /**
+   * @param array<string> $packages
+   * @param array<string> $allow_plugins
+   * @param array<string> $extra_keys
+   */
+  #[DataProvider('dataProviderRemoveComposerDevDependencies')]
+  public function testRemoveComposerDevDependencies(?string $content, array $packages, array $allow_plugins, array $extra_keys, ?string $expected): void {
+    chdir(self::$sut);
+
+    if ($content !== NULL) {
+      File::dump('composer.dev.json', $content);
+    }
+
+    remove_composer_dev_dependencies($packages, $allow_plugins, $extra_keys);
+
+    if ($expected === NULL) {
+      $this->assertFileDoesNotExist('composer.dev.json');
+
+      return;
+    }
+
+    $this->assertSame($expected, File::read('composer.dev.json'));
+  }
+
+  public static function dataProviderRemoveComposerDevDependencies(): \Iterator {
+    $config = '{"require-dev": {"drupal/coder": "^8", "phpstan/phpstan": "^2"}, "config": {"allow-plugins": {"phpstan/extension-installer": true, "tbachert/spi": true}, "sort-packages": true}, "extra": {"phpstan": {}, "patches": {}}}';
+
+    yield 'missing file' => [NULL, ['drupal/coder'], [], [], NULL];
+    yield 'nothing to remove' => [$config, [], [], [], $config];
+    yield 'package, plugin and extra key' => [
+      $config,
+      ['phpstan/phpstan'],
+      ['phpstan/extension-installer'],
+      ['phpstan'],
+      "{\n    \"require-dev\": {\n        \"drupal/coder\": \"^8\"\n    },\n    \"config\": {\n        \"allow-plugins\": {\n            \"tbachert/spi\": true\n        },\n        \"sort-packages\": true\n    },\n    \"extra\": {\n        \"patches\": {}\n    }\n}\n",
+    ];
+    yield 'last allowed plugin' => [
+      '{"config": {"allow-plugins": {"phpstan/extension-installer": true}, "sort-packages": true}}',
+      [],
+      ['phpstan/extension-installer'],
+      [],
+      "{\n    \"config\": {\n        \"sort-packages\": true\n    }\n}\n",
+    ];
+    yield 'last config key' => [
+      '{"require-dev": {"drupal/coder": "^8"}, "config": {"allow-plugins": {"phpstan/extension-installer": true}}}',
+      [],
+      ['phpstan/extension-installer'],
+      [],
+      "{\n    \"require-dev\": {\n        \"drupal/coder\": \"^8\"\n    }\n}\n",
+    ];
+  }
+
+  #[DataProvider('dataProviderRemoveComposerScaffoldMapping')]
+  public function testRemoveComposerScaffoldMapping(?string $content, ?string $expected): void {
+    chdir(self::$sut);
+
+    if ($content !== NULL) {
+      File::dump('composer.dev.json', $content);
+    }
+
+    remove_composer_scaffold_mapping('[web-root]/.eslintrc.json');
+
+    if ($expected === NULL) {
+      $this->assertFileDoesNotExist('composer.dev.json');
+
+      return;
+    }
+
+    $this->assertSame($expected, File::read('composer.dev.json'));
+  }
+
+  public static function dataProviderRemoveComposerScaffoldMapping(): \Iterator {
+    $no_extra = '{"require-dev": {"drupal/coder": "^8"}}';
+    $no_scaffold = '{"extra": {"patches": {}}}';
+    $no_mappings = '{"extra": {"drupal-scaffold": {"locations": {"web-root": "web/"}}}}';
+
+    yield 'missing file' => [NULL, NULL];
+    yield 'no extra' => [$no_extra, $no_extra];
+    yield 'no scaffold settings' => [$no_scaffold, $no_scaffold];
+    yield 'no file mappings' => [$no_mappings, $no_mappings];
+    yield 'other mappings stay' => [
+      '{"extra": {"drupal-scaffold": {"file-mapping": {"[web-root]/.eslintrc.json": false, "[web-root]/.editorconfig": false}}}}',
+      "{\n    \"extra\": {\n        \"drupal-scaffold\": {\n            \"file-mapping\": {\n                \"[web-root]/.editorconfig\": false\n            }\n        }\n    }\n}\n",
+    ];
+    yield 'last mapping prunes its parents' => [
+      '{"extra": {"drupal-scaffold": {"file-mapping": {"[web-root]/.eslintrc.json": false}}, "patches": {}}}',
+      "{\n    \"extra\": {\n        \"patches\": {}\n    }\n}\n",
     ];
   }
 
@@ -2038,7 +2131,7 @@ final class InstallHelpersTest extends UnitTestCase {
     chdir(self::$sut);
     $input = [
       'dictionaries' => ['php'],
-      'words' => ['force_crystal', 'Ahoy', 'force_crystal', 'Force_Crystal', 'yoyodyne', 'ahoy'],
+      'words' => ['force_crystal', 'Ahoy', 'force_crystal', NULL, 'Force_Crystal', 'yoyodyne', 'ahoy'],
       'ignorePaths' => ['build/'],
     ];
     File::dump(self::$sut . '/.cspell.json', json_encode($input, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
@@ -2048,7 +2141,8 @@ final class InstallHelpersTest extends UnitTestCase {
     $result = json_decode(File::read(self::$sut . '/.cspell.json'), TRUE);
     $this->assertIsArray($result);
     /** @var array<string, mixed> $result */
-    // Mixed-case duplicates collapse to the first-seen form.
+    // Mixed-case duplicates collapse to the first-seen form, and an entry that
+    // is not a string is dropped.
     $this->assertSame(['Ahoy', 'force_crystal', 'yoyodyne'], $result['words']);
     $this->assertSame(['php'], $result['dictionaries']);
     $this->assertSame(['build/'], $result['ignorePaths']);
@@ -2200,6 +2294,24 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'FunctionalJavascript' => [['functional_javascript'], ['functional_javascript']];
     yield 'PHPUnit' => [['phpunit'], ['phpunit', 'functional_javascript']];
     yield 'PHPUnit and FunctionalJavascript' => [['functional_javascript', 'phpunit'], ['functional_javascript', 'phpunit']];
+  }
+
+  /**
+   * @param array<string> $tools_remove
+   */
+  #[DataProvider('dataProviderRemoveTools')]
+  public function testRemoveTools(array $tools_remove, string $expected): void {
+    chdir(self::$sut);
+    File::dump('file.txt', "start\n#;< DEV_PHPCS\nphpcs\n#;> DEV_PHPCS\nend\n");
+
+    remove_tools($tools_remove);
+
+    $this->assertSame($expected, File::read('file.txt'));
+  }
+
+  public static function dataProviderRemoveTools(): \Iterator {
+    yield 'unknown tool' => [['unknown'], "start\n#;< DEV_PHPCS\nphpcs\n#;> DEV_PHPCS\nend\n"];
+    yield 'unknown and known tools' => [['unknown', 'phpcs'], "start\nend\n"];
   }
 
   /**

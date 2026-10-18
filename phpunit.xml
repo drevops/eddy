@@ -140,6 +140,9 @@
         <include>
             <!-- #;< EXTENSION_MODULE -->
             <directory>web/modules/custom</directory>
+            <!-- A module holds its hooks in its '.module' and '.install' files. -->
+            <directory suffix=".module">web/modules/custom</directory>
+            <directory suffix=".install">web/modules/custom</directory>
             <!-- #;> EXTENSION_MODULE -->
             <!-- #;< EXTENSION_THEME -->
             <directory>web/themes/custom</directory>
@@ -151,9 +154,12 @@
         <exclude>
             <!-- #;< EXTENSION_MODULE -->
             <directory>web/modules/custom/*/tests</directory>
+            <directory suffix=".module">web/modules/custom/*/tests</directory>
+            <directory suffix=".install">web/modules/custom/*/tests</directory>
             <!-- #;> EXTENSION_MODULE -->
             <!-- #;< EXTENSION_THEME -->
             <directory>web/themes/custom/*/tests</directory>
+            <directory suffix=".theme">web/themes/custom/*/tests</directory>
             <!-- #;> EXTENSION_THEME -->
             <!-- #;< DEV_RECTOR -->
             <!-- #;< EXTENSION_MODULE -->

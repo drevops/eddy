@@ -207,9 +207,9 @@ Run the linters and the tests with the commands that `CONTRIBUTING.md` lists.
 <!-- #;> EXTENSION_MODULE -->
 <!-- #;< EXTENSION_THEME -->
 - `css/` and `js/` - Stylesheets and JavaScript behaviors of the theme's global library
-<!-- #;< DEV_FUNCTIONAL_JAVASCRIPT -->
-- `tests/src/` - PHPUnit tests (FunctionalJavascript/)
-<!-- #;> DEV_FUNCTIONAL_JAVASCRIPT -->
+<!-- #;< DEV_PHPUNIT -->
+- `tests/src/` - PHPUnit tests (Unit/, FunctionalJavascript/)
+<!-- #;> DEV_PHPUNIT -->
 <!-- #;> EXTENSION_THEME -->
 - `build/` - Assembled Drupal codebase (symlinked extension)
 - `vendor/` - The installed `drevops/eddy-tooling` package, whose commands (`vendor/bin/eddy-*`) assemble, start, provision and deploy the extension. Not committed and not part of the extension
@@ -236,9 +236,9 @@ Run the linters and the tests with the commands that `CONTRIBUTING.md` lists.
 - **No base theme**: `base theme: false`, so Drupal's default templates render every page until the theme overrides them in `templates/`
 - **Theme hooks**: `your_extension.theme` adds a `div[data-your-extension-time]` element to every page, which `js/your_extension.js` fills with the page load time
 - **Global library**: The `libraries` key in `your_extension.info.yml` attaches the `global` library from `your_extension.libraries.yml` to every page
-<!-- #;< DEV_FUNCTIONAL_JAVASCRIPT -->
-- **Test coverage**: FunctionalJavascript smoke test example provided, with the theme installed as the default theme
-<!-- #;> DEV_FUNCTIONAL_JAVASCRIPT -->
+<!-- #;< DEV_PHPUNIT -->
+- **Test coverage**: Unit test example for the theme hooks provided, plus a FunctionalJavascript smoke test example with the theme installed as the default theme
+<!-- #;> DEV_PHPUNIT -->
 <!-- #;> EXTENSION_THEME -->
 
 ## Environment Variables
