@@ -1556,6 +1556,8 @@ function tool_specs(): array {
       'composer_extra' => [],
       'replacements' => [
         'XDebug state, WebDriver port, build directory' => 'XDebug state, build directory',
+        'PHPUnit tests (Unit/, FunctionalJavascript/)' => 'PHPUnit tests (Unit/)',
+        ', plus a FunctionalJavascript smoke test example with the theme installed as the default theme' => '',
         // The export opens a backslash-continued recipe line in the 'Makefile',
         // so a closing marker after it would join the shell command.
         "\t" . 'export WEBDRIVER_PORT="$$(vendor/bin/eddy-info webdriver-port)" && \\' . "\n" => '',

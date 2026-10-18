@@ -306,13 +306,18 @@ final class InstallProcessTest extends UnitTestCase {
       '2. Develop your theme: Twig templates in `templates/`, hooks in `my_theme.theme`',
     ];
     $theme_tests = [
-      '- `tests/src/` - PHPUnit tests (FunctionalJavascript/)',
-      '- **Test coverage**: FunctionalJavascript smoke test example provided',
+      '- `tests/src/` - PHPUnit tests (Unit/, FunctionalJavascript/)',
+      '- **Test coverage**: Unit test example for the theme hooks provided, plus a FunctionalJavascript smoke test example with the theme installed as the default theme',
+    ];
+    $theme_unit_tests = [
+      "- `tests/src/` - PHPUnit tests (Unit/)\n",
+      "- **Test coverage**: Unit test example for the theme hooks provided\n",
     ];
 
-    yield 'module' => ['module', 'my_extension', [], [...$module, ...$module_tests], [...$theme, ...$theme_tests]];
-    yield 'theme' => ['theme', 'my_theme', [], [...$theme, ...$theme_tests], [...$module, ...$module_tests]];
-    yield 'theme without FunctionalJavascript' => ['theme', 'my_theme', ['functional_javascript'], $theme, [...$module, ...$module_tests, ...$theme_tests]];
+    yield 'module' => ['module', 'my_extension', [], [...$module, ...$module_tests], [...$theme, ...$theme_tests, ...$theme_unit_tests]];
+    yield 'theme' => ['theme', 'my_theme', [], [...$theme, ...$theme_tests], [...$module, ...$module_tests, ...$theme_unit_tests]];
+    yield 'theme without FunctionalJavascript' => ['theme', 'my_theme', ['functional_javascript'], [...$theme, ...$theme_unit_tests], [...$module, ...$module_tests, ...$theme_tests]];
+    yield 'theme without PHPUnit' => ['theme', 'my_theme', ['phpunit'], $theme, [...$module, ...$module_tests, ...$theme_tests, ...$theme_unit_tests]];
   }
 
   /**
