@@ -127,6 +127,7 @@ final class HelpersDotenvTest extends UnitTestCase {
       "# Top comment\n\nFOO=new\n\n# Another comment\nBAR=keep\n",
     ];
     yield 'replaces the last match to agree with read' => ["FOO=first\nBAR=keep\nFOO=second\n", 'FOO', 'new', "FOO=first\nBAR=keep\nFOO=new\n"];
+    yield 'keeps a line without an assignment' => ["FOO=old\nexport\n", 'FOO', 'new', "FOO=new\nexport\n"];
     yield 'file without a trailing newline' => ['EXISTING=value', 'NEW', 'data', "EXISTING=value\nNEW=data\n"];
   }
 

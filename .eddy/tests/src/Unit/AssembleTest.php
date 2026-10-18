@@ -219,8 +219,10 @@ final class AssembleTest extends UnitTestCase {
       if ($path === 'build/patches') {
         return FALSE;
       }
+      // remove_dir() walks these directories on disk, so they exist only in a
+      // test that creates them.
       if ($path === 'build/web/modules/custom' || $path === 'build/web/themes/custom') {
-        return FALSE;
+        return \is_dir($path);
       }
       if ($path === 'build/node_modules') {
         return $config['has_node_modules'];
@@ -829,6 +831,31 @@ final class AssembleTest extends UnitTestCase {
       ['drush/drush 14.x-dev', 'grasmash/yaml-cli 4.x-dev'],
     ];
     yield 'releases only' => [['drupal/core' => '12.0.0-beta1', 'drush/drush' => '14.0.0'], []];
+  }
+
+  #[DataProvider('dataProviderAssembleReplacesCustomDirectory')]
+  public function testAssembleReplacesCustomDirectory(string $type, string $replaced, string $kept): void {
+    self::envSet('DRUPAL_VERSION', '11');
+    self::envSet('GITHUB_TOKEN', '');
+    self::envSet('COMPOSER_AUTH', '');
+    self::envSet('SYMFONY_DEPRECATIONS_HELPER', '');
+    chdir(self::$sut);
+    // The mocked unlink() removes no file, so the leftovers are directories.
+    File::mkdir($replaced . '/other_extension');
+    File::mkdir($kept . '/other_extension');
+
+    $this->setupAssembleMocks(['extension_type' => $type]);
+
+    $output = $this->runCommand('eddy-assemble');
+
+    $this->assertStringContainsString("Extension's code symlinked.", $output);
+    $this->assertDirectoryDoesNotExist($replaced, 'The custom directory of the extension type is removed with its leftovers.');
+    $this->assertDirectoryExists($kept . '/other_extension', 'The custom directory of the other type is left as it is.');
+  }
+
+  public static function dataProviderAssembleReplacesCustomDirectory(): \Iterator {
+    yield 'module' => ['module', 'build/web/modules/custom', 'build/web/themes/custom'];
+    yield 'theme' => ['theme', 'build/web/themes/custom', 'build/web/modules/custom'];
   }
 
   public function testAssembleLeavesToolingOutOfBuild(): void {
