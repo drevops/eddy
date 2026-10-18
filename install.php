@@ -6,7 +6,9 @@
  * Install the template as a new Drupal extension, based on user input.
  *
  * It runs once per fresh copy of the template and deletes itself unless the
- * 'Remove this script' prompt is answered 'no'.
+ * 'Remove this script' prompt is answered 'no'. In an empty directory, it
+ * downloads the template of its own version first and runs the installer of
+ * that template.
  *
  * Environment variables:
  * - SCRIPT_RUN_SKIP: Set to '1' to skip running of the script. Useful when
@@ -20,11 +22,15 @@
  *   as 'owner/name'. Defaults to the GitHub 'origin' remote of the git
  *   repository that the current directory is the root of, or to the machine
  *   name for both parts.
+ * - INSTALL_TEMPLATE_ARCHIVE: The '.tar.gz' archive that an installer in an
+ *   empty directory downloads, as a URL or a path. Defaults to the GitHub
+ *   archive of the version in 'TEMPLATE_VERSION'.
  *
  * Usage:
  * @code
  * php install.php
  * php install.php --help
+ * php install.php --version
  * @endcode
  */
 
@@ -92,6 +98,26 @@ function main(array $argv): void {
     print_help();
 
     return;
+  }
+
+  if (in_array('--version', $argv, TRUE)) {
+    print_version();
+
+    return;
+  }
+
+  $dir = (string) getcwd();
+
+  if (is_empty_directory($dir, __FILE__)) {
+    install_from_archive($dir, __FILE__, array_slice($argv, 1));
+
+    return;
+  }
+
+  // The prompts rewrite the template in place, so a directory without it gets
+  // nothing but the placeholder logo.
+  if (!is_file('your_extension.info.yml')) {
+    throw new \Exception('The current directory holds no copy of the template. Run the installer in a copy of the template, or in an empty directory to download the template there.');
   }
 
   // The interactive flow uses Prompty, which manipulates terminal state
@@ -353,8 +379,12 @@ Eddy - project installation.
 Usage:
   php {$script_name}
 
+Run it in a copy of the template. In an empty directory, it downloads its own
+version of the template first.
+
 Options:
   --help                This help.
+  --version             The Eddy version that the installer installs.
 
 Environment variables (to pre-fill prompts):
   INSTALL_NAME            Extension name.
@@ -384,9 +414,23 @@ Other environment variables:
                           owner/name (e.g. drevops/eddy). Defaults to the
                           GitHub origin remote of the clone this directory is
                           the root of, or to the machine name.
+  INSTALL_TEMPLATE_ARCHIVE
+                          The .tar.gz archive to download in an empty
+                          directory, as a URL or a path, with the template in
+                          1 top-level directory, as GitHub builds it. Defaults
+                          to the GitHub archive of the installer's version.
 
 EOF;
   print $out;
+}
+
+/**
+ * Print the version of the template that the installer installs.
+ *
+ * A copy without a version, such as a clone's, prints 'development'.
+ */
+function print_version(): void {
+  print (template_version(TEMPLATE_VERSION) ?? 'development') . PHP_EOL;
 }
 
 /**
@@ -1734,6 +1778,164 @@ function set_composer_dev_eddy_value(string $key, string $value): void {
  */
 function template_version(string $describe): ?string {
   return preg_match('/^[\w.+-]+$/', $describe) === 1 ? $describe : NULL;
+}
+
+/**
+ * Build the URL of the GitHub archive of a template version.
+ *
+ * A commit after a tag has no tag of its own, so its archive is named after
+ * the commit.
+ *
+ * @param string|null $version
+ *   The version, such as '5.0.0' or '5.0.0-3-g1a2b3c4', or NULL for the
+ *   default branch.
+ *
+ * @return string
+ *   The URL of the '.tar.gz' archive.
+ */
+function template_archive_url(?string $version): string {
+  $ref = $version ?? 'main';
+
+  if (preg_match('/-\d+-g([0-9a-f]+)$/', $ref, $matches) === 1) {
+    $ref = $matches[1];
+  }
+
+  return 'https://github.com/drevops/eddy/archive/' . $ref . '.tar.gz';
+}
+
+/**
+ * Check whether a directory is empty, apart from the installer.
+ *
+ * Hidden entries, such as '.git', do not count: git, the operating system and
+ * editors add them to a new directory.
+ *
+ * @param string $dir
+ *   The directory.
+ * @param string $installer
+ *   The path of the installer.
+ *
+ * @return bool
+ *   TRUE when the directory holds nothing but the installer and hidden
+ *   entries, FALSE otherwise.
+ */
+function is_empty_directory(string $dir, string $installer): bool {
+  foreach (scandir($dir) ?: [] as $entry) {
+    if (!str_starts_with($entry, '.') && realpath($dir . DIRECTORY_SEPARATOR . $entry) !== realpath($installer)) {
+      return FALSE;
+    }
+  }
+
+  return TRUE;
+}
+
+/**
+ * Install the template of the installer's version into an empty directory.
+ *
+ * The installer of the downloaded template asks the questions, so the template
+ * and the code that rewrites it come from the same version.
+ *
+ * @param string $dir
+ *   The directory.
+ * @param string $installer
+ *   The path of the running installer.
+ * @param array<int, string> $args
+ *   The arguments for the installer of the template.
+ *
+ * @throws \Exception
+ *   When the download fails, or the installer of the template exits with an
+ *   error.
+ */
+function install_from_archive(string $dir, string $installer, array $args): void {
+  $version = template_version(TEMPLATE_VERSION);
+  $archive = (string) getenv('INSTALL_TEMPLATE_ARCHIVE') ?: template_archive_url($version);
+
+  print sprintf('Downloading Eddy %s from %s', $version ?? 'development', $archive) . PHP_EOL;
+
+  download_template($archive, $dir);
+
+  $exit_code = run_installer($dir, $args);
+
+  if ($exit_code !== 0) {
+    throw new \Exception(sprintf('The installer of the downloaded template exited with code %d.', $exit_code), $exit_code);
+  }
+
+  // The template replaced a copy saved as 'install.php', so only a copy saved
+  // under another name is left behind.
+  if (realpath(dirname($installer)) === realpath($dir) && basename($installer) !== 'install.php') {
+    unlink($installer);
+  }
+}
+
+/**
+ * Download a template archive and extract it into a directory.
+ *
+ * The archive holds the template in 1 top-level directory, as GitHub builds
+ * it, and the extraction strips that directory.
+ *
+ * @param string $archive
+ *   The URL or the path of the '.tar.gz' archive.
+ * @param string $dir
+ *   The directory.
+ *
+ * @throws \Exception
+ *   When the archive cannot be downloaded or extracted.
+ */
+function download_template(string $archive, string $dir): void {
+  error_clear_last();
+  $content = @file_get_contents($archive);
+
+  if ($content === FALSE) {
+    $reason = (string) preg_replace('/^file_get_contents\(.*?\): /', '', error_get_last()['message'] ?? '');
+
+    throw new \Exception(rtrim(sprintf('Unable to download the template from %s. %s', $archive, $reason)));
+  }
+
+  // A hidden file keeps the directory empty for the next run when this run
+  // stops before the file is removed.
+  $file = $dir . DIRECTORY_SEPARATOR . '.eddy-template.tar.gz';
+  file_put_contents($file, $content);
+
+  $output = [];
+  $exit_code = 0;
+  exec(sprintf('tar -xzf %s --strip-components=1 -C %s 2>&1', escapeshellarg($file), escapeshellarg($dir)), $output, $exit_code);
+  unlink($file);
+
+  if ($exit_code !== 0) {
+    throw new \Exception(sprintf('Unable to extract the template from %s: %s', $archive, implode(PHP_EOL, $output)));
+  }
+}
+
+/**
+ * Run the installer of a template in its directory.
+ *
+ * The installer gets the terminal, the environment and the arguments of this
+ * process, so it reads the same answers.
+ *
+ * @param string $dir
+ *   The template directory.
+ * @param array<int, string> $args
+ *   The arguments for the installer.
+ *
+ * @return int
+ *   The exit code of the installer.
+ *
+ * @throws \Exception
+ *   When the directory holds no installer.
+ */
+function run_installer(string $dir, array $args): int {
+  if (!is_file($dir . DIRECTORY_SEPARATOR . 'install.php')) {
+    throw new \Exception(sprintf('The template in %s holds no install.php.', $dir));
+  }
+
+  $process = proc_open([PHP_BINARY, 'install.php', ...$args], [STDIN, STDOUT, STDERR], $pipes, $dir);
+
+  if ($process === FALSE) {
+    // @codeCoverageIgnoreStart
+    throw new \Exception('Unable to run the installer of the template.');
+    // @codeCoverageIgnoreEnd
+  }
+
+  return proc_close($process);
 }
 
 /**
