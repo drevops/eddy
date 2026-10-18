@@ -173,6 +173,8 @@ All commands run from the repository root. Install dependencies once with `compo
 | Lint (phpcs, phpstan, rector) | `composer --working-dir=.eddy/tests lint`                         |
 | Lint autofix                  | `composer --working-dir=.eddy/tests lint-fix`                     |
 
+`test-coverage` writes an HTML report and a Clover file to `.eddy/tests/.logs/coverage/phpunit/`, and CI uploads the Clover file to Codecov. The suite writes Clover rather than the template's Cobertura, because Cobertura leaves out code outside functions, which is most of every tooling command.
+
 `p2`-`p5` exercise the full build pipeline and need a Drupal-friendly PHP setup; `p3` and `p4` also need a WebDriver backend: a Selenium container or a local Chrome driven by chromedriver. `p3` and `p5` run Ahoy, `p4` and `p5` run `make`, and `p5` needs the xdebug extension loaded with `xdebug.mode=off`. These are the same jobs the GitHub Actions matrix runs (`.github/workflows/eddy-test.yml`).
 
 `phpunit.xml` stops the run at the first error, failure, warning or risky test, so a run that ends early can still print an "OK, but there were issues!" footer. Compare the test count with the expected total.

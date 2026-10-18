@@ -25,6 +25,8 @@ composer --working-dir=.eddy/tests install
 | Coding standards | `composer --working-dir=.eddy/tests lint`                         |
 | Fix standards    | `composer --working-dir=.eddy/tests lint-fix`                     |
 
+The coverage run writes an HTML report and a Clover file to `.eddy/tests/.logs/coverage/phpunit/`, and CI uploads the Clover file to Codecov. The suite writes Clover rather than the template's Cobertura, because Cobertura leaves out code outside functions, which is most of every tooling command.
+
 `phpunit.xml` stops the run at the first error, failure, warning or risky test, so a run that ends early can still print an "OK, but there were issues!" footer. Compare the test count with the expected total.
 
 ## Test groups
