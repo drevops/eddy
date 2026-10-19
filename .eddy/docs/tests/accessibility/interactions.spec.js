@@ -127,3 +127,82 @@ test.describe('animated demo', () => {
     });
   });
 });
+
+test.describe('home page', () => {
+  const INSTALL_COMMAND = 'curl -fsSL https://eddy.drevops.com/install > install.php && php install.php';
+
+  test('switches the demo from the keyboard', async ({ page }) => {
+    await open(page, '/', 'light');
+
+    const tabs = page.getByRole('tablist', { name: 'Demos' });
+
+    await tabs.getByRole('tab', { name: 'install' }).focus();
+    await page.keyboard.press('ArrowRight');
+
+    await expect(tabs.getByRole('tab', { name: 'build' })).toBeFocused();
+    await expect(tabs.getByRole('tab', { name: 'build' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tabpanel').locator('img')).toHaveAttribute('src', /\/img\/demos\/build\.svg$/);
+  });
+
+  test('pauses the demo on its last frame and plays it again', async ({ page }) => {
+    await open(page, '/', 'light');
+
+    const demo = page.getByRole('tabpanel').locator('img');
+
+    await page.getByRole('button', { name: 'Pause the demo' }).click();
+    await expect(demo).toHaveAttribute('src', /^blob:/);
+    await expect.poll(() => demo.evaluate((image) => image.complete && image.naturalWidth > 0)).toBe(true);
+
+    await page.getByRole('button', { name: 'Play the demo' }).click();
+    await expect(demo).toHaveAttribute('src', /\/img\/demos\/install\.svg$/);
+  });
+
+  test('pauses the tool list from the keyboard and plays it again', async ({ page }) => {
+    await open(page, '/', 'light');
+
+    const row = page.getByRole('group', { name: 'Tools and services that Eddy sets up' }).getByRole('list').first().locator('..');
+
+    // A pointer over the list pauses it too, so the keyboard drives the button.
+    await page.getByRole('button', { name: 'Pause the tool list' }).focus();
+    await page.keyboard.press('Enter');
+    await expect(row).toHaveCSS('animation-play-state', 'paused');
+
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('button', { name: 'Play the tool list' })).toHaveCount(0);
+    await expect(row).toHaveCSS('animation-play-state', 'running');
+  });
+
+  test('copies the install command', async ({ page, context }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await open(page, '/', 'light');
+
+    await page.getByRole('button', { name: 'Copy the install command' }).first().click();
+
+    await expect(page.getByRole('status').filter({ hasText: 'Copied' })).toHaveText('Copied the install command to the clipboard.');
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(INSTALL_COMMAND);
+  });
+
+  for (const colorMode of COLOR_MODES) {
+    test(`passes once every block has played its entrance in ${colorMode} mode`, async ({ page }) => {
+      await open(page, '/', colorMode);
+
+      // Scrolls down in steps, so every block crosses the viewport.
+      await page.evaluate(async () => {
+        for (let top = 0; top < document.body.scrollHeight; top += 300) {
+          window.scrollTo(0, top);
+          await new Promise((resolve) => {
+            setTimeout(resolve, 50);
+          });
+        }
+      });
+
+      await expect(page.locator('[data-revealed="false"]')).toHaveCount(0);
+
+      // The tool list loops forever, so only the animations that end are
+      // waited for.
+      await page.evaluate(() => Promise.all(document.getAnimations().filter((animation) => animation.effect.getComputedTiming().endTime !== Infinity).map((animation) => animation.finished)));
+
+      expect(await scan(page)).toEqual([]);
+    });
+  }
+});
