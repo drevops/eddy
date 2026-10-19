@@ -29,7 +29,7 @@ const DemoTerminal = ({ demos, label }) => {
   const keyTargets = { ArrowLeft: active - 1, ArrowRight: active + 1, Home: 0, End: demos.length - 1 };
 
   const moveTo = (event) => {
-    if (!Object.hasOwn(keyTargets, event.key)) {
+    if (!Object.prototype.hasOwnProperty.call(keyTargets, event.key)) {
       return;
     }
 

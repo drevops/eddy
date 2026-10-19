@@ -13,7 +13,6 @@ import styles from './index.module.css';
 
 export const INSTALL_COMMAND = 'curl -fsSL https://eddy.drevops.com/install > install.php && php install.php';
 
-// DocumentationTest compares these 2 lists with the options of install.php.
 export const DRUPAL_MAJORS = ['10', '11', '12'];
 export const PHP_VERSIONS = ['8.3', '8.4', '8.5'];
 
@@ -21,14 +20,14 @@ export const PROJECTS_ID = 'projects-using-eddy';
 
 const GITHUB_URL = 'https://github.com/drevops/eddy';
 
-export const listOf = (items) => (items.length > 1 ? `${items.slice(0, -1).join(', ')} and ${items.at(-1)}` : items.join(''));
+export const listOf = (items) => (items.length > 1 ? `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}` : items.join(''));
 
 const DEMOS = [
   {
     name: 'install',
     src: '/img/demos/install.svg',
     alt: 'The installer asking about the extension and rewriting the template to match',
-    caption: 'The installer asks about your extension, then removes everything you didn\'t pick.',
+    caption: 'The installer asks about your extension, then renames and rewrites the template to match.',
   },
   {
     name: 'build',
@@ -84,7 +83,7 @@ const FEATURES = [
   {
     icon: 'laptop',
     title: 'Local development',
-    text: 'A real Drupal site on your machine\'s PHP, served by PHP\'s webserver from an SQLite database. No containers to start.',
+    text: 'A real Drupal site built on your machine\'s PHP, served by PHP\'s own webserver from an SQLite database.',
     to: '/development',
   },
   {
@@ -152,7 +151,7 @@ const REASONS = [
   {
     icon: 'zap',
     title: 'No containers to manage',
-    text: 'The site builds on the PHP and Composer you already have. JavaScript tests drive your local Chrome, with Selenium there when you want it.',
+    text: 'The site builds on the PHP and Composer you already have, and browser tests drive your local Chrome. Selenium in Docker is there when you want it.',
   },
   {
     icon: 'merge',
@@ -351,7 +350,7 @@ const Home = () => {
 
         <section className={styles.section}>
           <div className={styles.wrap}>
-            <SectionHead eyebrow="What you get" title="Everything a contrib module needs, already wired up" lead="Each piece is configured to work with the others, and the installer keeps only the ones you pick." />
+            <SectionHead eyebrow="What you get" title="Everything your extension needs, already wired up" lead="Each piece is configured to work with the others, and the installer keeps only the ones you pick." />
             <div className={styles.featureGrid} data-reveal="children">
               {FEATURES.map((feature) => (
                 <Card key={feature.title} {...feature} />
@@ -362,7 +361,7 @@ const Home = () => {
 
         <section className={styles.section}>
           <div className={styles.wrap}>
-            <SectionHead centered eyebrow="How it fits together" title="Template, tooling and installer" lead="Your repository stays small: the commands live in a package, and the installer shapes the template to your answers." />
+            <SectionHead centered eyebrow="How it fits together" title="Template, tooling and installer" lead="Your repository stays small, because the commands that build, test and deploy it come from a package." />
             <div className={styles.threeGrid} data-reveal="children">
               {PARTS.map((part) => (
                 <Card key={part.title} {...part} className={styles.part} />
@@ -378,7 +377,7 @@ const Home = () => {
               title="Why maintainers choose Eddy"
               lead={
                 <>
-                  Eddy builds, lints, tests and deploys itself the way it does your extension, and deploys to <Link href="https://github.com/drevops/eddy_destination">drevops/eddy_destination</Link> as a working example.
+                  Eddy builds, lints and tests itself the way it does your extension, and deploys itself to <Link href="https://github.com/drevops/eddy_destination">drevops/eddy_destination</Link> as a working example.
                 </>
               }
             />

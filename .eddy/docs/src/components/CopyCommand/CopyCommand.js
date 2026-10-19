@@ -68,9 +68,12 @@ export const tokenize = (command) => {
   });
 };
 
-// Offers a line break after each '/' of a path or a URL, apart from the one
-// inside '//'.
-const breakAfterSlashes = (text) => text.split(/(?<=\/)(?!\/)/).flatMap((part, index) => (index === 0 ? [part] : [<wbr key={index} />, part]));
+// Offers a line break after each run of slashes in a path or a URL, so
+// 'https://' never splits between its 2 slashes.
+const breakAfterSlashes = (text) => text
+  .split(/(\/+)/)
+  .filter((part) => part !== '')
+  .flatMap((part, index, parts) => (part.startsWith('/') && index < parts.length - 1 ? [part, <wbr key={index} />] : [part]));
 
 const CopyCommand = ({ command, name, compact = false, className }) => {
   const [copied, setCopied] = useState(false);

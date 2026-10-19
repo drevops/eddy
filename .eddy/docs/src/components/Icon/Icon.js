@@ -128,7 +128,7 @@ const ICONS = {
 };
 
 const Icon = ({ name, className }) => {
-  if (!Object.hasOwn(ICONS, name)) {
+  if (!Object.prototype.hasOwnProperty.call(ICONS, name)) {
     throw new Error(`Icon "${name}" doesn't exist.`);
   }
 

@@ -122,11 +122,16 @@ describe('CopyCommand', () => {
     expect(code.querySelector('[aria-hidden="true"]').textContent).toBe('$ ');
   });
 
-  test('offers a line break after each slash of a URL but not inside "//"', () => {
-    const { container } = render(<CopyCommand command={INSTALL} name="install command" />);
-    const url = Array.from(container.querySelectorAll('code span')).find((span) => span.textContent.startsWith('https:'));
+  test.each([
+    { path: 'https://eddy.drevops.com/install', expected: 'https://<wbr>eddy.drevops.com/<wbr>install' },
+    { path: '/var/www', expected: '/<wbr>var/<wbr>www' },
+    { path: 'vendor/bin/', expected: 'vendor/<wbr>bin/' },
+    { path: 'install.php', expected: 'install.php' },
+  ])('offers a line break after each run of slashes in $path', ({ path, expected }) => {
+    const { container } = render(<CopyCommand command={`ls ${path}`} name="command" />);
+    const argument = Array.from(container.querySelectorAll('code span')).find((span) => span.textContent === path);
 
-    expect(url.innerHTML).toBe('https://<wbr>eddy.drevops.com/<wbr>install');
+    expect(argument.innerHTML).toBe(expected);
   });
 
   test('copies the command and says so until the time runs out', async () => {
