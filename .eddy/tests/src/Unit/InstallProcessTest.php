@@ -663,6 +663,37 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   /**
+   * The 'reset' note in 'CONTRIBUTING.md' names the browser only with
+   * FunctionalJavascript.
+   *
+   * @param array<string> $tools_remove
+   * @param array<string> $command_wrapper
+   * @param array<string> $expected
+   */
+  #[DataProvider('dataProviderProcessRendersResetText')]
+  public function testProcessRendersResetText(array $tools_remove, array $command_wrapper, array $expected): void {
+    process('My Extension', 'my_extension', 'module', ['10', '11'], $command_wrapper, $tools_remove, FALSE, FALSE);
+
+    $contributing = File::read(self::$sut . '/CONTRIBUTING.md');
+
+    preg_match_all('/The `reset` command .+$/m', $contributing, $matches);
+    $this->assertSame($expected, $matches[0], 'CONTRIBUTING.md reset note mismatch.');
+  }
+
+  public static function dataProviderProcessRendersResetText(): \Iterator {
+    $wrappers = ['both wrappers' => ['ahoy', 'makefile'], 'ahoy only' => ['ahoy'], 'makefile only' => ['makefile'], 'no wrappers' => []];
+    $browser = 'The `reset` command stops the development server and the browser that the FunctionalJavascript tests use, and removes the `build`, `.logs` and `vendor` directories.';
+    $server = 'The `reset` command stops the development server and removes the `build`, `.logs` and `vendor` directories.';
+
+    foreach ($wrappers as $name => $command_wrapper) {
+      $wrapped = $command_wrapper !== [];
+      yield $name . ', FunctionalJavascript' => [[], $command_wrapper, $wrapped ? [$browser] : []];
+      yield $name . ', no FunctionalJavascript' => [['functional_javascript'], $command_wrapper, $wrapped ? [$server] : []];
+      yield $name . ', no PHPUnit' => [['phpunit'], $command_wrapper, $wrapped ? [$server] : []];
+    }
+  }
+
+  /**
    * The 'AGENTS.md' notes on the quality tools and on 'DEBUG' name only the
    * toolchains of the selected tools.
    *
