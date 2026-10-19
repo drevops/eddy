@@ -1397,6 +1397,29 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   /**
+   * Every workflow that a project gets filters on the given branches.
+   */
+  #[DataProvider('dataProviderProcessSetsBranchesOfShippedWorkflow')]
+  public function testProcessSetsBranchesOfShippedWorkflow(string $file): void {
+    process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], [], FALSE, FALSE, ['2.x']);
+
+    $workflow = Yaml::parse(File::read(self::$sut . '/.github/workflows/' . $file));
+    $triggers = is_array($workflow) && is_array($workflow['on'] ?? NULL) ? $workflow['on'] : [];
+    $filters = array_map(static fn(mixed $trigger): mixed => is_array($trigger) ? $trigger['branches'] ?? NULL : NULL, $triggers);
+
+    $this->assertSame([], array_filter($filters, static fn(mixed $branches): bool => $branches !== NULL && $branches !== ['2.x']), sprintf('%s filters on branches that process_workflow_branches() does not set.', $file));
+  }
+
+  public static function dataProviderProcessSetsBranchesOfShippedWorkflow(): \Iterator {
+    foreach (glob(self::rootDir() . '/.github/workflows/*.yml') ?: [] as $path) {
+      // A project gets every workflow but the 'eddy-' ones.
+      if (!str_starts_with(basename($path), 'eddy-')) {
+        yield basename($path) => ['file' => basename($path)];
+      }
+    }
+  }
+
+  /**
    * The README badges name the given GitHub repository, as given.
    */
   #[DataProvider('dataProviderProcessRendersGithubRepository')]
