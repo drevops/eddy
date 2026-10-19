@@ -1,4 +1,4 @@
-@@ -92,7 +92,6 @@
+@@ -89,7 +89,6 @@
        pushd "build" >/dev/null || exit 1
        ahoy title "Running PHPUnit"
        php -d pcov.directory=.. vendor/bin/phpunit "$@"
@@ -6,7 +6,7 @@
        popd >/dev/null || exit 1
  
    test-unit:
-@@ -123,14 +122,6 @@
+@@ -120,14 +119,6 @@
        export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
        pushd "build" >/dev/null || exit 1
        php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional-javascript "$@"
