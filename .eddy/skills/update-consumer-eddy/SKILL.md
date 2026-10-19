@@ -375,8 +375,10 @@ git log --oneline -- .devtools .circleci 'scripts/*-cloudflared.sh'
 Step 6 kept the example files out of the project, but the release's docs and configs can still name them. The generated `CONTRIBUTING.md`, for one, tells readers to extend `<MachineName>FunctionalJavascriptTestBase`, which a project whose base class has another name does not have. Grep the docs and the configs for every example name:
 
 ```bash
-grep -s -n -F -e '<MachineName>Service' -e '<MachineName>Form' -e '<MachineName>FunctionalTest' -e '<MachineName>FunctionalJavascriptTestBase' -e '<MachineName>SmokeFunctionalJavascriptTest' -e '<machine_name>.schema.yml' -e '<machine_name>.css' -e '<machine_name>.js' -e '<machine_name>.test.js' -e '-example.sh' CONTRIBUTING.md AGENTS.md README.md package.json jest.config.js .stylelintrc.js
+git grep -n -F -e '<MachineName>Service' -e '<MachineName>Form' -e '<MachineName>FunctionalTest' -e '<MachineName>FunctionalJavascriptTestBase' -e '<MachineName>SmokeFunctionalJavascriptTest' -e '<machine_name>.schema.yml' -e '<machine_name>.css' -e '<machine_name>.js' -e '<machine_name>.test.js' -e '-example.sh' -- CONTRIBUTING.md AGENTS.md README.md package.json jest.config.js .stylelintrc.js
 ```
+
+`git grep` skips a listed file the project doesn't have, such as the `package.json`, `jest.config.js` and `.stylelintrc.js` of a project without Node tooling. It exits 1 when no file names an example, and then there is nothing to repoint.
 
 For each hit that names a file the project does not have, repoint it to the project's equivalent - such as its own FunctionalJavascript base class - or remove it. Do this on every update: an empty glob is not an error for most of these tools, and no lint or test checks a class name in the docs, so Step 13 will not surface a stale one.
 
