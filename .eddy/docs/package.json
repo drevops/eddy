@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
-    "copy-assets": "cp ../assets/social-preview.png static/img/social-card.png",
+    "copy-assets": "cp ../assets/social-preview.png static/img/social-card.png && mkdir -p static/img/demos && cp ../assets/install.svg ../assets/build.svg ../assets/lint.svg ../assets/test.svg static/img/demos/",
     "prestart": "npm run copy-assets",
     "start": "docusaurus start",
     "prebuild": "npm run copy-assets",
@@ -24,6 +24,7 @@
     "@docusaurus/preset-classic": "3.10.2",
     "@docusaurus/theme-mermaid": "^3.10.2",
     "@easyops-cn/docusaurus-search-local": "^0.55.3",
+    "@fontsource-variable/lexend": "^5.3.0",
     "@mdx-js/react": "^3.1.1",
     "clsx": "^2.1.1",
     "prism-react-renderer": "^2.4.1",
