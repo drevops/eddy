@@ -88,17 +88,20 @@ test.describe('mobile menu', () => {
     await expect(page.locator('.navbar-sidebar')).toBeHidden();
   });
 
-  for (const colorMode of COLOR_MODES) {
-    test(`open in ${colorMode} mode`, async ({ page }) => {
-      await open(page, DEMO_URL, colorMode);
+  // The home page tints the navbar, and the menu opens inside it.
+  for (const url of ['/', DEMO_URL]) {
+    for (const colorMode of COLOR_MODES) {
+      test(`open on ${url} in ${colorMode} mode`, async ({ page }) => {
+        await open(page, url, colorMode);
 
-      await page.getByRole('button', { name: 'Toggle navigation bar' }).click();
+        await page.getByRole('button', { name: 'Toggle navigation bar' }).click();
 
-      // The menu fades in, and a half-transparent menu fails on contrast.
-      await expect(page.locator('.navbar-sidebar')).toHaveCSS('opacity', '1');
+        // The menu fades in, and a half-transparent menu fails on contrast.
+        await expect(page.locator('.navbar-sidebar')).toHaveCSS('opacity', '1');
 
-      expect(await scan(page, '.navbar-sidebar')).toEqual([]);
-    });
+        expect(await scan(page, '.navbar-sidebar')).toEqual([]);
+      });
+    }
   }
 });
 
@@ -131,45 +134,23 @@ test.describe('animated demo', () => {
 test.describe('home page', () => {
   const INSTALL_COMMAND = 'curl -fsSL https://eddy.drevops.com/install > install.php && php install.php';
 
-  test('switches the demo from the keyboard', async ({ page }) => {
+  test('pauses each demo on its last frame and plays it again', async ({ page }) => {
     await open(page, '/', 'light');
 
-    const tabs = page.getByRole('tablist', { name: 'Demos' });
+    const demos = page.locator('main img');
 
-    await tabs.getByRole('tab', { name: 'install' }).focus();
-    await page.keyboard.press('ArrowRight');
+    await expect(demos).toHaveCount(4);
 
-    await expect(tabs.getByRole('tab', { name: 'build' })).toBeFocused();
-    await expect(tabs.getByRole('tab', { name: 'build' })).toHaveAttribute('aria-selected', 'true');
-    await expect(page.getByRole('tabpanel').locator('img')).toHaveAttribute('src', /\/img\/demos\/build\.svg$/);
-  });
+    for (const demo of await demos.all()) {
+      const wrapper = demo.locator('xpath=..');
 
-  test('pauses the demo on its last frame and plays it again', async ({ page }) => {
-    await open(page, '/', 'light');
+      await wrapper.getByRole('button', { name: 'Pause animation' }).click();
+      await expect(demo).toHaveAttribute('src', /^blob:/);
+      await expect.poll(() => demo.evaluate((image) => image.complete && image.naturalWidth > 0)).toBe(true);
 
-    const demo = page.getByRole('tabpanel').locator('img');
-
-    await page.getByRole('button', { name: 'Pause the demo' }).click();
-    await expect(demo).toHaveAttribute('src', /^blob:/);
-    await expect.poll(() => demo.evaluate((image) => image.complete && image.naturalWidth > 0)).toBe(true);
-
-    await page.getByRole('button', { name: 'Play the demo' }).click();
-    await expect(demo).toHaveAttribute('src', /\/img\/demos\/install\.svg$/);
-  });
-
-  test('pauses the tool list from the keyboard and plays it again', async ({ page }) => {
-    await open(page, '/', 'light');
-
-    const row = page.getByRole('group', { name: 'Tools and services that Eddy sets up' }).getByRole('list').first().locator('..');
-
-    // A pointer over the list pauses it too, so the keyboard drives the button.
-    await page.getByRole('button', { name: 'Pause the tool list' }).focus();
-    await page.keyboard.press('Enter');
-    await expect(row).toHaveCSS('animation-play-state', 'paused');
-
-    await page.keyboard.press('Enter');
-    await expect(page.getByRole('button', { name: 'Play the tool list' })).toHaveCount(0);
-    await expect(row).toHaveCSS('animation-play-state', 'running');
+      await wrapper.getByRole('button', { name: 'Play animation' }).click();
+      await expect(demo).toHaveAttribute('src', /\/img\/demos\/\w+\.svg$/);
+    }
   });
 
   test('copies the install command', async ({ page, context }) => {
@@ -198,8 +179,8 @@ test.describe('home page', () => {
 
       await expect(page.locator('[data-revealed="false"]')).toHaveCount(0);
 
-      // The tool list loops forever, so only the animations that end are
-      // waited for.
+      // A looping animation never finishes, so only the animations that end
+      // are waited for.
       await page.evaluate(() => Promise.all(document.getAnimations().filter((animation) => animation.effect.getComputedTiming().endTime !== Infinity).map((animation) => animation.finished)));
 
       expect(await scan(page)).toEqual([]);

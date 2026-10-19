@@ -187,15 +187,9 @@ describe('CopyCommand', () => {
     expect(screen.getByRole('status')).toHaveTextContent('');
   });
 
-  test.each([
-    { name: 'shows its label', compact: false, expected: false },
-    { name: 'hides its label in the compact form', compact: true, expected: true },
-  ])('$name', ({ compact, expected }) => {
-    const { container } = render(<CopyCommand command="make build" name="build command" compact={compact} className="extra" />);
-    const label = screen.getByText('Copy');
+  test('takes the class it is given', () => {
+    const { container } = render(<CopyCommand command="make build" name="build command" className="extra" />);
 
-    expect(label.classList.contains('visually-hidden')).toBe(expected);
     expect(container.firstChild).toHaveClass('command', 'extra');
-    expect(container.firstChild.classList.contains('compact')).toBe(expected);
   });
 });

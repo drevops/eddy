@@ -51,24 +51,24 @@ npm run test:accessibility   # Check the built site for accessibility issues
 
 The home page at `/` isn't a Markdown page: it's a React page, `src/pages/index.js`. The introduction it links to lives at `/introduction`, set by the `slug` in the front matter of `content/README.mdx`.
 
-The page's words sit in lists at the top of `src/pages/index.js`, 1 list per section: the demos, the stats, the tools, the features, the parts, the reasons, the steps, the docs cards and the projects. So changing what the page says usually means changing a list, not the markup.
+Most of the page's words sit in lists at the top of `src/pages/index.js`, 1 list per section: `STATIONS` for the stops of the stream, `TOOLS`, `PROJECTS`, `LAYERS` for the 3 parts of the deep end and `DOCS` for the links into the docs. So changing what the page says usually means changing a list, not the markup.
 
 - **Versions.** `DRUPAL_MAJORS` and `PHP_VERSIONS` hold the versions the page states. Keep them as plain lists of strings: `DocumentationTest` reads them and fails until they match what `install.php` offers.
-- **Demos.** The terminal plays the animated demos of `.eddy/assets`, which `npm start` and `npm run build` copy into `static/img/demos`. The page can't import them the way a Markdown page does, because a JavaScript import of an SVG turns it into a React component rather than a URL.
-- **Components.** The terminal, the scrolling tool list, the install command with its copy button and the icons are `DemoTerminal`, `ToolTicker`, `CopyCommand` and `Icon` in `src/components`.
-- **Look.** The colors come from the `--eddy-*` tokens in `src/css/custom.css`. The type is Lexend, which the `@fontsource-variable/lexend` package serves from the site itself, so the page fetches no font from another server. Doc pages keep their system fonts.
-- **Motion.** Each block below the fold plays a short entrance as it scrolls into view. Without JavaScript, or when the reader's system asks for reduced motion, every block shows at once.
+- **Demos.** The first 4 stops of the stream play the animated demos of `.eddy/assets`, which `npm start` and `npm run build` copy into `static/img/demos`. The page can't import them the way a Markdown page does, because a JavaScript import of an SVG turns it into a React component rather than a URL.
+- **Components.** The install command with its copy button is `CopyCommand`, and each demo is a `PausableImage`, the same component that gives the animated demos of the doc pages their pause button. Both live in `src/components`.
+- **Look.** The colors come from the `--eddy-*` tokens in `src/css/custom.css`. The water tokens shade the page from the light surface down to the dark deep end, and the deep end keeps the dark-mode text colors in both color modes. Headings are set in Fraunces and the text in Figtree, which the `@fontsource-variable/fraunces` and `@fontsource-variable/figtree` packages serve from the site itself, so the page fetches no font from another server. Doc pages keep their system fonts.
+- **Motion.** The rings around the drop spread out once and settle within 5 seconds, the limit past which WCAG asks for a way to pause motion that starts on its own. Each block below the fold plays a short entrance as it scrolls into view. Without JavaScript, every block shows at once, and when the reader's system asks for reduced motion, nothing on the page moves.
 
 ## Accessibility
 
-The site aims for [WCAG 2.2](https://www.w3.org/TR/WCAG22/) level AA in both color modes. `npm run test:accessibility` runs [axe](https://github.com/dequelabs/axe-core) on every page of the build, in light and dark mode, at a desktop width and a phone width, against the WCAG A and AA rules. These scans run with reduced motion, so the home page shows every block at once, and a separate check scans the home page again after scrolling through it with motion on. It also opens the search dropdown, the mobile menu, an animated demo and the home page's terminal, tool list and copy button, and checks how they behave. Automated checks catch many problems but miss others, so the writing still needs the care described below.
+The site aims for [WCAG 2.2](https://www.w3.org/TR/WCAG22/) level AA in both color modes. `npm run test:accessibility` runs [axe](https://github.com/dequelabs/axe-core) on every page of the build, in light and dark mode, at a desktop width and a phone width, against the WCAG A and AA rules. These scans run with reduced motion, so the home page shows every block at once, and a separate check scans the home page again after scrolling through it with motion on. It also opens the search dropdown, the mobile menu, an animated demo, and the home page's demos and copy button, and checks how they behave. Automated checks catch many problems but miss others, so the writing still needs the care described below.
 
 Some of it is handled for you, so a page needs no extra markup:
 
 - Links in page text are underlined, because color alone doesn't set a link apart from the text around it.
 - Text colors reach at least 4.5:1 against their background. The light-mode blue is `#006c99`, a darker shade of the `#009cde` logo blue, which only reaches about 3:1 on white. The code block colors live in `src/codeThemes.js`, and a unit test checks every token color of both themes.
 - An animated SVG added with Markdown image syntax gets a **Pause animation** button, and it starts paused when the reader's system asks for reduced motion.
-- The home page's terminal and its scrolling tool list each have a pause button too, and both hold still when the reader's system asks for reduced motion.
+- The demos on the home page use the same component, so they get the same button and start paused the same way.
 - A table wider than the page takes keyboard focus, so it scrolls with <kbd>←</kbd> and <kbd>→</kbd>.
 - The mobile menu keeps keyboard focus inside while it's open and closes on <kbd>Esc</kbd>, and the search box gets the ARIA attributes that its autocomplete widget leaves out. Both fixes live in `src/theme/`, so check them when Docusaurus or the search plugin changes its markup.
 
@@ -105,4 +105,4 @@ Every build serves the installer at `/install`: the root `install.php`, with the
 
 Before it deploys, the release workflow installs an extension with the built installer in an empty directory. A version that GitHub has no archive for fails that check, so a mistyped version never reaches the site.
 
-{/* cspell:ignore lexend */}
+{/* cspell:ignore fraunces figtree */}

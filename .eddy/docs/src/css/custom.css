@@ -23,18 +23,18 @@
   /* The logo blue reaches only 3:1 on white, so it colors shapes, never
      text. */
   --eddy-blue: #009cde;
-  --eddy-navy: #10265a;
-  --eddy-navy-deep: #0b1a40;
-  --eddy-navy-light: #183873;
-  --eddy-text: #3b4c6b;
-  --eddy-muted: #4d5e7c;
-  --eddy-faint: #566784;
-  --eddy-surface: #ffffff;
-  --eddy-surface-2: #f3f7fb;
-  --eddy-border: #e3eaf2;
-  --eddy-border-2: #d2dde9;
-  --eddy-shadow: 0 2px 8px -3px rgba(25, 45, 98, 0.12), 0 8px 24px -12px rgba(25, 45, 98, 0.14);
-  --eddy-shadow-lg: 0 24px 60px -22px rgba(25, 45, 98, 0.3), 0 2px 8px -4px rgba(25, 45, 98, 0.1);
+  --eddy-glow: #7fd0f5;
+  /* The water of the home page, from the surface down to the deep end. */
+  --eddy-foam: #f2f9fc;
+  --eddy-shallow: #dcf0f9;
+  --eddy-mid: #b9def0;
+  --eddy-navy: #0b2545;
+  --eddy-deep: #061a33;
+  --eddy-water-ink: #0b2545;
+  --eddy-water-muted: #3f5873;
+  --eddy-water-link: #075b82;
+  --eddy-water-surface: rgba(255, 255, 255, 0.72);
+  --eddy-water-on-ink: #f2f9fc;
 }
 
 /* The dark-mode shades step from a lighter blue that keeps links readable on
@@ -52,15 +52,24 @@
   /* The selected search result sits on the light blue, so its text takes the
      dark background color. */
   --search-local-hit-active-color: var(--ifm-background-color);
-  --eddy-text: #c9d1dd;
-  --eddy-muted: #aab3c2;
-  --eddy-faint: #9aa4b4;
-  --eddy-surface: #242526;
-  --eddy-surface-2: #2b2d31;
-  --eddy-border: #33363c;
-  --eddy-border-2: #44484f;
-  --eddy-shadow: 0 2px 10px -4px rgba(0, 0, 0, 0.5), 0 10px 30px -16px rgba(0, 0, 0, 0.6);
-  --eddy-shadow-lg: 0 30px 70px -24px rgba(0, 0, 0, 0.7), 0 2px 8px -4px rgba(0, 0, 0, 0.5);
+  /* Night water: the whole home page sits in the deep palette, and the deep
+     end goes darker still. */
+  --eddy-foam: #0b2545;
+  --eddy-shallow: #0a2140;
+  --eddy-mid: #081d38;
+  --eddy-navy: #04101f;
+  --eddy-deep: #020a14;
+}
+
+/* Text colors for dark water: dark mode sets them on the whole page, and the
+   'eddy-night' class on a block that stays dark in light mode too. */
+[data-theme='dark'],
+.eddy-night {
+  --eddy-water-ink: #e8f4fb;
+  --eddy-water-muted: #a9c6dd;
+  --eddy-water-link: #7fd0f5;
+  --eddy-water-surface: rgba(16, 45, 82, 0.72);
+  --eddy-water-on-ink: #061a33;
 }
 
 .visually-hidden {
@@ -76,6 +85,12 @@
   height: 2.25rem;
 }
 
+/* The navbar of a page from 'src/pages' takes the water color that the home
+   page starts with. */
+html.plugin-pages .navbar {
+  --ifm-navbar-background-color: var(--eddy-foam);
+}
+
 .markdown h1:first-child {
   color: var(--eddy-ink);
 }
@@ -89,9 +104,10 @@
   --ifm-link-decoration: none;
 }
 
-/* The footer is dark in both color modes, so its links take the dark-mode
-   blue on hover. */
+/* The footer is the deep water in both color modes, so its links take the
+   dark-mode blue on hover. */
 .footer--dark {
+  --ifm-footer-background-color: var(--eddy-deep);
   --ifm-footer-link-hover-color: var(--eddy-blue-on-dark);
 }
 

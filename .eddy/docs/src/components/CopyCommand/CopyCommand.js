@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
-import Icon from '@site/src/components/Icon';
 import styles from './CopyCommand.module.css';
 
 const COPIED_MS = 2000;
@@ -75,7 +74,7 @@ const breakAfterSlashes = (text) => text
   .filter((part) => part !== '')
   .flatMap((part, index, parts) => (part.startsWith('/') && index < parts.length - 1 ? [part, <wbr key={index} />] : [part]));
 
-const CopyCommand = ({ command, name, compact = false, className }) => {
+const CopyCommand = ({ command, name, className }) => {
   const [copied, setCopied] = useState(false);
   const timer = useRef(null);
 
@@ -92,7 +91,7 @@ const CopyCommand = ({ command, name, compact = false, className }) => {
   };
 
   return (
-    <div className={clsx(styles.command, compact && styles.compact, className)}>
+    <div className={clsx(styles.command, className)}>
       <code className={styles.code}>
         <span className={styles.prompt} aria-hidden="true">$ </span>
         {tokenize(command).map((token, index) => (
@@ -103,8 +102,7 @@ const CopyCommand = ({ command, name, compact = false, className }) => {
         ))}
       </code>
       <button type="button" className={clsx(styles.button, copied && styles.copied)} onClick={copy}>
-        <Icon name={copied ? 'check' : 'copy'} className={styles.icon} />
-        <span className={compact ? 'visually-hidden' : undefined}>{copied ? 'Copied' : 'Copy'}</span>
+        {copied ? 'Copied' : 'Copy'}
         <span className="visually-hidden">{` the ${name}`}</span>
       </button>
       <span className="visually-hidden" role="status">{copied ? `Copied the ${name} to the clipboard.` : ''}</span>
