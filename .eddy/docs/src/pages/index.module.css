@@ -150,9 +150,13 @@
 
 /* Hero */
 
+/* 'clip' cuts off the ripples without making the hero a scroll container, so
+   a scroll to the terminal can't slide the hero sideways. 'hidden' is the
+   fallback for browsers without 'clip'. */
 .hero {
   position: relative;
   overflow: hidden;
+  overflow: clip;
   padding: clamp(48px, 7vw, 92px) 0 clamp(52px, 7vw, 88px);
   background:
     radial-gradient(760px 520px at 78% 38%, rgba(0, 156, 222, 0.1), transparent 70%),
@@ -686,6 +690,7 @@
 .cta {
   position: relative;
   overflow: hidden;
+  overflow: clip;
   isolation: isolate;
   padding: clamp(44px, 6vw, 80px) clamp(22px, 5vw, 64px);
   border-radius: 28px;
