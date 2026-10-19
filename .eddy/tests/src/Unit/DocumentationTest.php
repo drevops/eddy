@@ -32,6 +32,10 @@ use PHPUnit\Framework\Attributes\Group;
  * variables that the workflows and the tooling read. Any of them can change
  * without the page that lists it.
  *
+ * The home page of the documentation site states the Drupal majors and the
+ * PHP versions that CI tests, so 'install.php' can gain a major or a PHP
+ * version without it.
+ *
  * The documentation links to files on the main branch. The docs build does
  * not check external links, so moving a file breaks those links unnoticed.
  *
@@ -47,6 +51,12 @@ final class DocumentationTest extends UnitTestCase {
    * Variables that the shell or the SSH agent set, not the project.
    */
   protected const array PROCESS_VARIABLES = ['HOME', 'SSH_AGENT_PID', 'TERM', 'XDG_CONFIG_HOME'];
+
+  public static function setUpBeforeClass(): void {
+    self::envSet('SCRIPT_RUN_SKIP', '1');
+    require_once self::rootDir() . '/install.php';
+    parent::setUpBeforeClass();
+  }
 
   #[DataProvider('dataProviderToolingCommandIsDocumented')]
   public function testToolingCommandIsDocumented(string $name, string $path): void {
@@ -383,6 +393,18 @@ final class DocumentationTest extends UnitTestCase {
     }
   }
 
+  public function testHomePageListsDrupalMajors(): void {
+    $majors = array_map(strval(...), array_keys(drupal_version_options()));
+
+    $this->assertSame($majors, self::homePageList('DRUPAL_MAJORS'), 'The home page of the documentation site does not list the Drupal majors that install.php offers.');
+  }
+
+  public function testHomePageListsPhpVersions(): void {
+    $versions = sort_php_versions(array_merge(...array_values(drupal_version_php_versions())));
+
+    $this->assertSame($versions, self::homePageList('PHP_VERSIONS'), 'The home page of the documentation site does not list the PHP versions that the Drupal majors support.');
+  }
+
   #[DataProvider('dataProviderRepositoryLinkResolves')]
   public function testRepositoryLinkResolves(string $path, string $target): void {
     $this->assertFileExists(self::rootDir() . '/' . $target, sprintf('%s links to `%s` on the main branch, which the repository does not have.', self::relativePath($path), $target));
@@ -555,6 +577,24 @@ final class DocumentationTest extends UnitTestCase {
     sort($paths);
 
     return $paths;
+  }
+
+  /**
+   * List the items of a constant list that the documentation home page holds.
+   *
+   * @return array<int, string>
+   *   The items, in order.
+   */
+  protected static function homePageList(string $name): array {
+    $page = File::read(self::rootDir() . '/.eddy/docs/src/pages/index.js');
+
+    preg_match('/^export const ' . preg_quote($name, '/') . ' = \[(.*)\];$/m', $page, $matches);
+
+    self::assertArrayHasKey(1, $matches, sprintf('The home page of the documentation site holds no %s list.', $name));
+
+    preg_match_all("/'([^']*)'/", $matches[1], $items);
+
+    return $items[1];
   }
 
   protected static function updateSkillPath(): string {
