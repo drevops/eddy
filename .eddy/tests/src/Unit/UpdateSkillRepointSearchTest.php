@@ -89,8 +89,9 @@ final class UpdateSkillRepointSearchTest extends UnitTestCase {
   protected static function repointSearchCommand(): string {
     $skill = File::read(self::rootDir() . '/.eddy/skills/update-consumer-eddy/SKILL.md');
 
-    preg_match('/^## Step \d+: Repoint references to the example extension\n.*?^```bash\n(.*?)\n```/ms', $skill, $matches);
-    $command = $matches[1] ?? '';
+    preg_match('/^## Step \d+: Repoint references to the example extension\n(.*?)(?=^## |\z)/ms', $skill, $section);
+    preg_match('/^```bash\n(.*?)\n```/ms', $section[1] ?? '', $block);
+    $command = $block[1] ?? '';
 
     self::assertNotSame('', $command, 'The update skill has no command in its step that repoints references to the example extension.');
 
