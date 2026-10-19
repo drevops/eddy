@@ -17,6 +17,15 @@
  - `ahoy browser-start` - Start the browser for FunctionalJavascript tests (local Chrome by default; set `WEBDRIVER_BACKEND=selenium` for Docker)
  - `ahoy browser-stop` - Stop the browser
  
+@@ -91,7 +87,7 @@
+ - `CLOUDFLARE_TUNNEL` - Set to `1` to expose the development server through a public Cloudflare quick tunnel. `start` writes the tunnel URL to `.env` as `TUNNEL_URL`
+ - `LOGIN_QRCODE` - Set to `1` to also render the `login` link as a terminal QR code (needs `qrencode`)
+ - `GITHUB_TOKEN` - GitHub API token to avoid rate limits
+-- `DEBUG` - Set to `1` to stream the full output of the underlying commands (Composer, npm, Drush). By default this output is suppressed and shown only when a command fails
++- `DEBUG` - Set to `1` to stream the full output of the underlying commands (Composer, Drush). By default this output is suppressed and shown only when a command fails
+ 
+ ## Development Workflow
+ 
 @@ -103,13 +99,10 @@
  
  ## Code Quality Tools
@@ -31,11 +40,13 @@
  
  ## CI/CD Support
  
-@@ -125,7 +118,6 @@
+@@ -124,8 +117,7 @@
+ - The `build/` directory contains the assembled Drupal site
  - Extension files are symlinked from root into `build/web/modules/custom/`
  - SQLite database created in `/tmp/site_force_crystal.sqlite`
- - The PHP and JavaScript quality tools run from within the `build/` directory
+-- The PHP and JavaScript quality tools run from within the `build/` directory
 -- CSpell runs from the project root
++- The PHP quality tools run from within the `build/` directory
  
  ## Updating the scaffold
  
