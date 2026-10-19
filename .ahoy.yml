@@ -8,7 +8,6 @@ commands:
   build:
     usage: Build or rebuild the project.
     cmd: |
-      ahoy stop > /dev/null 2>&1 || true
       ahoy assemble
       ahoy start
       ahoy provision

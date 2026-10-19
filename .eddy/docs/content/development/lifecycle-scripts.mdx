@@ -15,7 +15,7 @@ description: Add your own steps to the assemble, provision, start and stop phase
 | `scripts/assemble-*.sh`     | At the end of `assemble`, after the dependencies are installed and the extension is symlinked into `build/`.              |
 | `scripts/provision-*.sh`    | At the end of `provision`, after the site is installed, the extension is enabled and the caches are warmed.               |
 | `scripts/start-*.sh`        | At the end of `start`, once the webserver is serving.                                                                     |
-| `scripts/stop-*.sh`         | During `stop`, before the webserver stops, while it's still reachable.                                                    |
+| `scripts/stop-*.sh`         | During `stop`, and during `assemble` while the webserver runs, before it stops and while it's still reachable.            |
 
 The scripts of a phase run in lexicographic order from the project root, with the environment of the command that runs them. A script that exits with a non-zero code aborts that command, so a failed step can't go unnoticed.
 

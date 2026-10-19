@@ -165,6 +165,27 @@ final class AhoyTest extends ToolingTestCase {
     }
   }
 
+  public function testBuildLeavesEnvironmentWhenChecksFail(): void {
+    self::webserverCreateDocroot(self::$sut);
+
+    $this->processRun('ahoy', ['start'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->assertProcessSuccessful();
+
+    $port = self::webserverPort();
+    $this->assertTrue(self::webserverPortAccepts($port), 'The webserver of the project is running.');
+
+    // No Drupal release that the build supports runs on PHP 7.4.
+    $this->setPlatformPhp('7.4.0');
+
+    $this->processRun('ahoy', ['build'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->assertProcessFailed();
+    $this->assertProcessAnyOutputContains('resolves the build for PHP 7.4.0');
+    $this->assertProcessAnyOutputNotContains('[example] pre-stop script ran.');
+
+    $this->assertTrue(self::webserverPortAccepts($port), 'A failed check leaves the webserver running.');
+    $this->assertFileExists(self::$sut . '/build/web/index.html', 'A failed check leaves the build directory as it is.');
+  }
+
   public function testWorkflow(): void {
     $this->processRun('ahoy', ['start'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessFailed();

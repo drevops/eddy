@@ -87,6 +87,21 @@ abstract class ToolingTestCase extends FunctionalTestCase {
     return ['DISPLAY' => ':0', 'PATH' => $dir . (is_string($path) && $path !== '' ? ':' . $path : '')];
   }
 
+  /**
+   * Set 'config.platform.php' in the 'composer.dev.json' of the project.
+   *
+   * @param string $version
+   *   The PHP version that Composer resolves the build for, such as '8.4.0'.
+   */
+  protected function setPlatformPhp(string $version): void {
+    $manifest = self::$sut . '/composer.dev.json';
+    $config = json_decode(File::read($manifest), TRUE);
+    $this->assertIsArray($config);
+    /** @var array{config?: array<string, array<string, mixed>>} $config */
+    $config['config']['platform']['php'] = $version;
+    File::dump($manifest, json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL);
+  }
+
   protected function assertTestCoverage(?string $dir = NULL): void {
     $dir ??= self::$sut;
     $this->assertFileExists($dir . '/.logs/coverage/phpunit/cobertura.xml');

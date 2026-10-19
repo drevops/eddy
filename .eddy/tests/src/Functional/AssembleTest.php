@@ -12,7 +12,7 @@ use PHPUnit\Framework\Attributes\Group;
 final class AssembleTest extends ToolingTestCase {
 
   #[DataProvider('dataProviderAssemble')]
-  public function testAssemble(string $drupal_version, string $init_message, bool $nvmrc): void {
+  public function testAssemble(string $drupal_version, string $init_message, bool $nvmrc, bool $running): void {
     $env = $drupal_version !== '' ? ['DRUPAL_VERSION' => $drupal_version] : [];
 
     if ($nvmrc) {
@@ -29,8 +29,26 @@ final class AssembleTest extends ToolingTestCase {
     $this->assertTrue(is_link(self::$sut . '/vendor/drevops/eddy-tooling'), 'The scaffold installs the package from .eddy/tooling as a symlink.');
     $this->assertSame(self::locationsRealpath(self::$sut . '/.eddy/tooling'), self::locationsRealpath(self::$sut . '/vendor/drevops/eddy-tooling'));
 
+    if ($running) {
+      self::webserverCreateDocroot(self::$sut);
+
+      $this->processRun('vendor/bin/eddy-start', [], [], $env, $this->defaultTimeout, $this->defaultIdleTimeout);
+      $this->assertProcessSuccessful();
+      $this->assertTrue(self::webserverPortAccepts(self::webserverPort()), 'The webserver of the project is running.');
+    }
+
     $this->processRun('vendor/bin/eddy-assemble', [], [], $env, $this->longTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
+
+    if ($running) {
+      $this->assertProcessAnyOutputContains('Stopping the running environment before replacing the build directory.');
+      $this->assertProcessAnyOutputContains('[example] pre-stop script ran.');
+      $this->assertFalse(self::webserverPortAccepts(self::webserverPort()), 'The assembly stops the webserver of the project.');
+    }
+    else {
+      $this->assertProcessAnyOutputNotContains('Stopping the running environment');
+      $this->assertProcessAnyOutputNotContains('[example] pre-stop script ran.');
+    }
 
     $this->assertProcessAnyOutputContains($init_message);
     $this->assertProcessAnyOutputContains('ASSEMBLE COMPLETE');
@@ -58,8 +76,8 @@ final class AssembleTest extends ToolingTestCase {
   }
 
   public static function dataProviderAssemble(): \Iterator {
-    yield 'Drupal 11' => ['', 'Creating Drupal 11 project', FALSE];
-    yield 'Drupal 10 with .nvmrc' => ['10', 'Creating Drupal 10 project', TRUE];
+    yield 'Drupal 11 with a running webserver' => ['', 'Creating Drupal 11 project', FALSE, TRUE];
+    yield 'Drupal 10 with .nvmrc' => ['10', 'Creating Drupal 10 project', TRUE, FALSE];
   }
 
   public function testAssembleFailsOnPatchThatDoesNotApply(): void {

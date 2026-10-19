@@ -43,7 +43,7 @@ Never modify `scripts/eddy-tooling`, by hand or with AI: it comes from Eddy as-i
 
 The package version is set in `composer.dev.json`. The installer runs Composer only when that version, the patches declared for the package or the contents of a local patch file change, or when one of its commands is missing from `vendor/bin`, so a newer patch release reaches a local checkout once `vendor/` is removed.
 
-The resulting codebase is then placed in the `build` directory. The extension files are symlinked into the Drupal site structure.
+The resulting codebase is then placed in the `build` directory. The extension files are symlinked into the Drupal site structure. A PHP server that still serves an earlier build is stopped before the codebase is replaced.
 <!-- #;< DEV_COMMAND_WRAPPER -->
 
 The `build` command is a wrapper for more granular commands:
@@ -173,7 +173,7 @@ The `WEBSERVER_PORT` is resolved with the following precedence:
 
 To force re-discovery, delete `.env` (or just the `WEBSERVER_PORT` line in it) and re-run the `start` command.
 
-The `start` and `stop` commands only stop the webserver that serves the project's own `build/web`. When another process holds the port, such as the server of another project that recorded the same port, `stop` leaves it running and `start` fails and names it. Stop that process, or set `WEBSERVER_PORT` in `.env` to a free port.
+The `assemble`, `start` and `stop` commands only stop the webserver that serves the project's own `build/web`. When another process holds the port, such as the server of another project that recorded the same port, `assemble` and `stop` leave it running and `start` fails and names it. Stop that process, or set `WEBSERVER_PORT` in `.env` to a free port.
 
 An SQLite database is created in `/tmp/site_[EXTENSION_NAME].sqlite` file. You can browse the contents of the created SQLite database using [DB Browser for SQLite](https://sqlitebrowser.org/).
 

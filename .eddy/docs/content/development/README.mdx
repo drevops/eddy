@@ -14,8 +14,8 @@ Each command runs through `make` or Ahoy, whichever wrapper you kept, such as `m
 
 | Command                      | What it does                                                                         | Aliases                           |
 |------------------------------|--------------------------------------------------------------------------------------|-----------------------------------|
-| `build`                      | Stops the webserver, then runs `assemble`, `start` and `provision`.                  |                                   |
-| `assemble`                   | Assembles the codebase in `build` and symlinks the extension into it.                |                                   |
+| `build`                      | Runs `assemble`, `start` and `provision`.                                            |                                   |
+| `assemble`                   | Stops the webserver, assembles the codebase in `build` and symlinks the extension.   |                                   |
 | `start`                      | Starts the PHP webserver, without XDebug.                                            | `debug-off`, `xdebug-off`         |
 | `stop`                       | Stops the webserver.                                                                 |                                   |
 | `provision`                  | Installs Drupal with the extension enabled.                                          |                                   |

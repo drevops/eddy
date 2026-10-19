@@ -2,9 +2,10 @@
 ##
 # Example pre-stop script.
 #
-# Runs during `eddy-stop` before the PHP webserver is stopped, while it
-# is still reachable. The current working directory is the project root. Any
-# non-zero exit aborts the parent stop run.
+# Runs during `eddy-stop`, and during `eddy-assemble` when the webserver is
+# running, before the PHP webserver is stopped, while it is still reachable.
+# The current working directory is the project root. Any non-zero exit aborts
+# the parent command.
 #
 # Drop your own logic in any file matching `scripts/stop-*.sh` - all matching
 # files run in lexicographic order. Use this to tear down whatever a matching

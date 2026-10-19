@@ -39,7 +39,7 @@ A `WEBSERVER_PORT` in your shell wins over the one in `.env`, through `make` and
 
 ## Sharing a machine with other projects
 
-`start`, `stop` and `reset` only stop the webserver that serves the project's own `build/web`. When another process holds the port, such as the server of another project that recorded the same port, `stop` and `reset` leave it running, and `start` fails and names it. Stop that process, or set `WEBSERVER_PORT` in `.env` to a free port.
+`start`, `stop`, `assemble` and `reset` only stop the webserver that serves the project's own `build/web`. When another process holds the port, such as the server of another project that recorded the same port, `stop`, `assemble` and `reset` leave it running, and `start` fails and names it. Stop that process, or set `WEBSERVER_PORT` in `.env` to a free port.
 
 ## Waiting for the server
 
