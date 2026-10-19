@@ -64,7 +64,6 @@ Follow the manual steps in [Updating your extension](README.mdx#updating-by-hand
 - Before you copy the new files in, delete whichever of these your project has: `.devtools/`, `.circleci/`, `scripts/provision-cloudflared.sh`, `scripts/start-cloudflared.sh`, `scripts/stop-cloudflared.sh` and `.claude/skills/update-consumer-drupal-extension-scaffold/`.
 - `scripts/` holds your own hooks, but take `scripts/eddy-tooling` from the release. It's the installer of the tooling package, and it's new in 5.x.
 - Merge `composer.dev.json` rather than overwriting it, so your own dependencies and patches survive. [`.devtools/` is a package now](#devtools-is-a-package-now) lists the entries 5.x adds.
-- `install.php` runs outside your repository here, so it can't read your branches from git and writes `1.x` into the branch filters of `.github/workflows/test.yml` and `.github/workflows/draft-release-notes.yml`. If your project builds from other branches, list them in `INSTALL_BRANCHES`, such as `INSTALL_BRANCHES=1.x,2.x php install.php`.
 
 Then work through [What changed](#what-changed) for the decisions the merge leaves to you.
 
