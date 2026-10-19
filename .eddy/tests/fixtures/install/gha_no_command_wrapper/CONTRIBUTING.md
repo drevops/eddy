@@ -17,7 +17,7 @@
  ## Building website
 @@ -24,17 +26,9 @@
  
- The resulting codebase is then placed in the `build` directory. The extension files are symlinked into the Drupal site structure.
+ The resulting codebase is then placed in the `build` directory. The extension files are symlinked into the Drupal site structure. A PHP server that still serves an earlier build is stopped before the codebase is replaced.
  
 -The `build` command is a wrapper for more granular commands:
 -

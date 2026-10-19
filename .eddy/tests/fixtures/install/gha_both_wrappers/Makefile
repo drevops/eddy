@@ -79,7 +79,6 @@ tooling:
 	@./scripts/eddy-tooling >&2
 
 build:
-	@$(MAKE) stop >/dev/null 2>&1 || true
 	$(MAKE) assemble
 	$(MAKE) start
 	$(MAKE) provision

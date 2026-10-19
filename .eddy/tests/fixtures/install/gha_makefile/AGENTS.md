@@ -39,7 +39,7 @@
 -- `ahoy provision` - Provision Drupal site
 -- `ahoy reset` - Clean build directory, logs and installed tooling (aliases: `ahoy delete`, `ahoy destroy`)
 +**Using Make:**
-+- `make build` - Complete build (stop → assemble → start → provision)
++- `make build` - Complete build (assemble → start → provision)
 +- `make assemble` - Assemble codebase with dependencies
 +- `make start` - Start PHP development server
 +- `make stop` - Stop development server

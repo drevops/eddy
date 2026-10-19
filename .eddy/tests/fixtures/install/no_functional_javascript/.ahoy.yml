@@ -1,4 +1,4 @@
-@@ -84,8 +84,6 @@
+@@ -83,8 +83,6 @@
    test:
      usage: Run all tests.
      cmd: |
@@ -7,7 +7,7 @@
        pushd "build" >/dev/null || exit 1
        ahoy title "Running PHPUnit"
        php -d pcov.directory=.. vendor/bin/phpunit "$@"
-@@ -113,15 +111,6 @@
+@@ -112,15 +110,6 @@
        php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional "$@"
        popd >/dev/null || exit 1
  
@@ -23,7 +23,7 @@
    test-javascript:
      usage: Run JavaScript unit tests.
      aliases: [test-js]
-@@ -130,20 +119,11 @@
+@@ -129,20 +118,11 @@
        [ ! -d node_modules ] || npm test
        popd >/dev/null || exit 1
  
