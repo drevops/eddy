@@ -134,6 +134,24 @@ describe('useStillSvg', () => {
     expect(global.fetch).toHaveBeenLastCalledWith('/img/build.svg');
   });
 
+  test('returns no revoked copy when a source comes back before the next copy loads', async () => {
+    respondWith(ANIMATED_SVG);
+
+    const { result, rerender } = renderStill('/img/install.svg');
+
+    await settle();
+    rerender({ src: '/img/build.svg' });
+    rerender({ src: '/img/install.svg' });
+
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:still-1');
+    expect(result.current).toBeNull();
+
+    await settle();
+
+    expect(result.current).toBe('blob:still-2');
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(2);
+  });
+
   test('releases the copy once unmounted', async () => {
     respondWith(ANIMATED_SVG);
 

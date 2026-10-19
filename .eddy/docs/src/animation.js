@@ -12,7 +12,8 @@ export const isSvgUrl = (src) => /\.svg($|[?#])/i.test(String(src));
 
 // Returns the URL of a still copy of an animated SVG, or null while the copy
 // loads and for any other image. A copy is returned only for the 'src' it was
-// made from, because the copy of the previous 'src' is revoked on a change.
+// made from, and is dropped once revoked, so a 'src' that comes back waits
+// for a new copy.
 export const useStillSvg = (src) => {
   const [still, setStill] = useState(null);
 
@@ -41,6 +42,7 @@ export const useStillSvg = (src) => {
 
       if (url) {
         URL.revokeObjectURL(url);
+        setStill(null);
       }
     };
   }, [src]);
