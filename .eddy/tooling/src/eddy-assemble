@@ -33,8 +33,8 @@ $drupal_version = resolve_env_value('DRUPAL_VERSION', default_drupal_version())[
 // The running PHP version, without a distribution suffix such as '-1ubuntu1'.
 $php_version = sprintf('%d.%d.%d', PHP_MAJOR_VERSION, PHP_MINOR_VERSION, PHP_RELEASE_VERSION);
 
-// Webserver port resolved via the env -> '.env' -> default chain. It is not
-// validated: 'eddy-start' refuses a malformed port, so no webserver runs on one.
+// Webserver port resolved via the env -> '.env' -> default chain, without
+// validation: 'eddy-start' refuses a malformed port, so no server runs on one.
 $webserver_port = resolve_webserver(validate_port: FALSE)['port'];
 
 // The docroot identifies the webserver of this project among the processes
