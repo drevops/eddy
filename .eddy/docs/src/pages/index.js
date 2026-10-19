@@ -20,6 +20,8 @@ export const PROJECTS_ID = 'projects-using-eddy';
 
 const GITHUB_URL = 'https://github.com/drevops/eddy';
 
+const NEW_TAB = <span className="visually-hidden"> (opens in new tab)</span>;
+
 export const listOf = (items) => (items.length > 1 ? `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}` : items.join(''));
 
 const DEMOS = [
@@ -377,7 +379,12 @@ const Home = () => {
               title="Why maintainers choose Eddy"
               lead={
                 <>
-                  Eddy builds, lints and tests itself the way it does your extension, and deploys itself to <Link href="https://github.com/drevops/eddy_destination">drevops/eddy_destination</Link> as a working example.
+                  Eddy builds, lints and tests itself the way it does your extension, and deploys itself to{' '}
+                  <Link href="https://github.com/drevops/eddy_destination">
+                    drevops/eddy_destination
+                    {NEW_TAB}
+                  </Link>{' '}
+                  as a working example.
                 </>
               }
             />
@@ -448,6 +455,7 @@ const Home = () => {
                     <span className={styles.repository}>{project.repository}</span>
                     <span className={styles.cardText}>{project.text}</span>
                   </span>
+                  {NEW_TAB}
                 </Link>
               ))}
             </div>
@@ -469,6 +477,7 @@ const Home = () => {
                 <Link className={clsx(styles.button, styles.ghost)} href={GITHUB_URL}>
                   <Icon name="github" className={styles.buttonIcon} />
                   Star on GitHub
+                  {NEW_TAB}
                 </Link>
               </div>
             </div>

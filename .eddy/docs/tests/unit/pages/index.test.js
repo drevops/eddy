@@ -146,8 +146,18 @@ describe('Home', () => {
   test('links the example destination and the repository', async () => {
     await renderHome();
 
-    expect(screen.getByRole('link', { name: 'drevops/eddy_destination' })).toHaveAttribute('href', 'https://github.com/drevops/eddy_destination');
-    expect(screen.getByRole('link', { name: 'Star on GitHub' })).toHaveAttribute('href', 'https://github.com/drevops/eddy');
+    expect(screen.getByRole('link', { name: 'drevops/eddy_destination (opens in new tab)' })).toHaveAttribute('href', 'https://github.com/drevops/eddy_destination');
+    expect(screen.getByRole('link', { name: 'Star on GitHub (opens in new tab)' })).toHaveAttribute('href', 'https://github.com/drevops/eddy');
+  });
+
+  test('says that every external link opens a new tab', async () => {
+    const { container } = await renderHome();
+    const external = Array.from(container.querySelectorAll('a[href^="https://"]'));
+
+    expect(external).toHaveLength(7);
+    external.forEach((link) => {
+      expect(link).toHaveAccessibleName(/ \(opens in new tab\)$/);
+    });
   });
 
   test('draws the ripples as decoration', async () => {
