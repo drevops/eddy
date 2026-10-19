@@ -75,6 +75,18 @@ describe('DemoTerminal', () => {
     expect(screen.getByText('Installs.').closest('figcaption')).toBeInTheDocument();
   });
 
+  test('keeps a caption that holds code in 1 element beside its icon', async () => {
+    const demos = [{ ...DEMOS[0], caption: <><code>ahoy build</code> builds.</> }];
+
+    render(<DemoTerminal demos={demos} label="Demos" />);
+    await settle();
+
+    const caption = screen.getByText('ahoy build').closest('figcaption');
+
+    expect(Array.from(caption.children).map((child) => child.tagName.toLowerCase())).toEqual(['svg', 'span']);
+    expect(caption.lastElementChild).toHaveTextContent('ahoy build builds.');
+  });
+
   test('switches the demo on a click', async () => {
     await renderTerminal();
 

@@ -84,7 +84,7 @@ const DemoTerminal = ({ demos, label }) => {
       </div>
       <figcaption className={styles.caption}>
         <Icon name="arrowRight" className={styles.captionIcon} />
-        {demo.caption}
+        <span>{demo.caption}</span>
       </figcaption>
     </figure>
   );

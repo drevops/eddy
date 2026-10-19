@@ -127,7 +127,7 @@
 
 .caption {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.6rem;
   margin-top: 0.9rem;
   color: var(--eddy-muted);
@@ -138,6 +138,7 @@
   flex: none;
   width: 16px;
   height: 16px;
+  margin-top: 0.25em;
   color: var(--ifm-color-primary);
 }
 
