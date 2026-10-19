@@ -663,6 +663,40 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   /**
+   * The 'AGENTS.md' notes on the quality tools and on 'DEBUG' name only the
+   * toolchains of the selected tools.
+   *
+   * @param array<string> $tools_remove
+   */
+  #[DataProvider('dataProviderProcessRendersToolchainNotes')]
+  public function testProcessRendersToolchainNotes(array $tools_remove, string $expected_languages, string $expected_commands): void {
+    process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], $tools_remove, FALSE, FALSE);
+
+    $agents = File::read(self::$sut . '/AGENTS.md');
+
+    preg_match_all('/^- The .* quality tools run from within the `build\/` directory$/m', $agents, $matches);
+    $expected_note = $expected_languages === '' ? [] : ['- The ' . $expected_languages . ' quality tools run from within the `build/` directory'];
+    $this->assertSame($expected_note, $matches[0], 'AGENTS.md quality tools note mismatch.');
+
+    $this->assertStringContainsString('- `DEBUG` - Set to `1` to stream the full output of the underlying commands (' . $expected_commands . '). By default', $agents);
+  }
+
+  public static function dataProviderProcessRendersToolchainNotes(): \Iterator {
+    $php_lint = ['phpcs', 'phpstan', 'rector', 'twigcs'];
+    $npm = ['eslint', 'stylelint', 'cspell', 'jest'];
+
+    yield 'every tool' => [[], 'PHP and JavaScript', 'Composer, npm, Drush'];
+    yield 'no ESLint' => [['eslint'], 'PHP and JavaScript', 'Composer, npm, Drush'];
+    yield 'no Stylelint' => [['stylelint'], 'PHP and JavaScript', 'Composer, npm, Drush'];
+    yield 'no ESLint and Stylelint' => [['eslint', 'stylelint'], 'PHP', 'Composer, npm, Drush'];
+    yield 'no npm tools' => [$npm, 'PHP', 'Composer, Drush'];
+    yield 'no PHPCS' => [['phpcs'], 'PHP and JavaScript', 'Composer, npm, Drush'];
+    yield 'no PHP lint tools' => [$php_lint, 'JavaScript', 'Composer, npm, Drush'];
+    yield 'no PHP or JavaScript lint tools' => [[...$php_lint, 'eslint', 'stylelint'], '', 'Composer, npm, Drush'];
+    yield 'no tools' => [[...$php_lint, ...$npm, 'phpunit', 'functional_javascript', 'renovate'], '', 'Composer, Drush'];
+  }
+
+  /**
    * The 'Makefile' 'test' recipe exports the WebDriver port only with
    * FunctionalJavascript.
    *

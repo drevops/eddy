@@ -49,6 +49,7 @@ use function process;
 use function process_command_wrapper_text;
 use function process_drupal_version_text;
 use function process_extension_type_text;
+use function quality_tools_note;
 use function read_composer_dev_json;
 use function remove_composer_dev_dependencies;
 use function remove_composer_scaffold_mapping;
@@ -2312,6 +2313,32 @@ final class InstallHelpersTest extends UnitTestCase {
   public static function dataProviderRemoveTools(): \Iterator {
     yield 'unknown tool' => [['unknown'], "start\n#;< DEV_PHPCS\nphpcs\n#;> DEV_PHPCS\nend\n"];
     yield 'unknown and known tools' => [['unknown', 'phpcs'], "start\nend\n"];
+  }
+
+  /**
+   * @param array<string> $languages
+   */
+  #[DataProvider('dataProviderQualityToolsNote')]
+  public function testQualityToolsNote(array $languages, string $expected): void {
+    $this->assertSame($expected, quality_tools_note($languages));
+  }
+
+  public static function dataProviderQualityToolsNote(): \Iterator {
+    yield 'PHP and JavaScript' => [['PHP', 'JavaScript'], "- The PHP and JavaScript quality tools run from within the `build/` directory\n"];
+    yield 'PHP' => [['PHP'], "- The PHP quality tools run from within the `build/` directory\n"];
+    yield 'JavaScript' => [['JavaScript'], "- The JavaScript quality tools run from within the `build/` directory\n"];
+    yield 'keyed languages' => [[3 => 'PHP', 7 => 'JavaScript'], "- The PHP and JavaScript quality tools run from within the `build/` directory\n"];
+    yield 'no language' => [[], ''];
+  }
+
+  /**
+   * The template 'AGENTS.md' holds the note for both languages once, so the
+   * installer finds it to render for the selected tools.
+   */
+  public function testQualityToolsNoteTemplate(): void {
+    $agents = File::read(self::rootDir() . '/AGENTS.md');
+
+    $this->assertSame(1, substr_count($agents, quality_tools_note(['PHP', 'JavaScript'])), 'AGENTS.md does not hold the quality tools note for PHP and JavaScript exactly once.');
   }
 
   /**
