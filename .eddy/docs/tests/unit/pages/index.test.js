@@ -48,7 +48,7 @@ afterEach(() => {
 });
 
 describe('Home', () => {
-  // Lets the demo fetch settle.
+  // Lets the demo fetches settle.
   const renderHome = async () => {
     const view = render(<Home />);
 
@@ -56,6 +56,8 @@ describe('Home', () => {
 
     return view;
   };
+
+  const stops = (container) => Array.from(container.querySelector('ol').children);
 
   test('describes the page to search engines and the browser', async () => {
     await renderHome();
@@ -69,48 +71,79 @@ describe('Home', () => {
   test('opens with the promise and the 2 ways in', async () => {
     await renderHome();
 
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('You write the code. Eddy handles the rest.');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('From one drop to Drupal.org.');
     expect(screen.getAllByRole('link', { name: 'Get started' }).map((link) => link.getAttribute('href'))).toEqual(['/installation', '/installation']);
     expect(screen.getByRole('link', { name: 'Read the docs' })).toHaveAttribute('href', '/introduction');
   });
 
-  test('offers the install command in the hero, the first step and the closing call', async () => {
+  test('offers the install command in the hero and the closing call', async () => {
     const { container } = await renderHome();
 
-    expect(screen.getAllByRole('button', { name: 'Copy the install command' })).toHaveLength(3);
-    expect(Array.from(container.querySelectorAll('code')).filter((code) => code.textContent === `$ ${INSTALL_COMMAND}`)).toHaveLength(3);
-    expect(screen.getByRole('button', { name: 'Copy the build command' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Copy the install command' })).toHaveLength(2);
+    expect(Array.from(container.querySelectorAll('code')).filter((code) => code.textContent === `$ ${INSTALL_COMMAND}`)).toHaveLength(2);
+  });
+
+  test('follows the stream through 6 stops, with the command of each', async () => {
+    const { container } = await renderHome();
+    const list = container.querySelector('ol');
+
+    expect(within(list).getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent)).toEqual(['Install', 'A real Drupal site', 'Coding standards', 'Tests', 'CI on every push', 'Drupal.org']);
+    expect(stops(container).map((stop) => stop.querySelector('.chip')?.textContent)).toEqual(['php install.php', 'ahoy build', 'ahoy lint', 'ahoy test', 'git push', undefined]);
+  });
+
+  test('plays a demo at each of the local stops', async () => {
+    await renderHome();
+
+    expect(screen.getAllByRole('img').map((image) => [image.getAttribute('src'), image.getAttribute('alt')])).toEqual([
+      ['/base/img/demos/install.svg', 'The installer asking about the extension and rewriting the template to match'],
+      ['/base/img/demos/build.svg', 'ahoy build assembling the codebase, starting the webserver and installing Drupal'],
+      ['/base/img/demos/lint.svg', 'ahoy lint running PHPCS, PHPStan, Rector, ESLint and CSpell'],
+      ['/base/img/demos/test.svg', 'ahoy test running the PHPUnit suites and the Jest tests'],
+    ]);
+  });
+
+  test('lists the CI jobs and the deployment rules in place of a demo', async () => {
+    const { container } = await renderHome();
+    const notes = stops(container).slice(4).map((stop) => within(stop).getAllByRole('listitem').map((item) => item.textContent));
+
+    expect(notes).toEqual([
+      ['lint-d10 · d11 · d12 coding standards', 'test-php-min / max on each major', 'legacy · canary the earliest supported release and the next beta', 'Codecov coverage from every test job'],
+      ['Branches deploy the commit that CI tested', 'Tags deploy alone, and the branches stay put', 'Never overtaken by an older run'],
+    ]);
   });
 
   test('states the PHP and Drupal versions that CI tests', async () => {
     await renderHome();
 
-    expect(screen.getByText(/^PHP 8\.3, 8\.4 and 8\.5 on Drupal 10, 11 and 12,/)).toBeInTheDocument();
-    expect(screen.getByText('10 · 11 · 12')).toBeInTheDocument();
+    expect(screen.getByText(/^GitHub Actions runs the same commands on PHP 8\.3, 8\.4 and 8\.5 and Drupal 10, 11 and 12,/)).toBeInTheDocument();
     expect(DRUPAL_MAJORS).toEqual(['10', '11', '12']);
     expect(PHP_VERSIONS).toEqual(['8.3', '8.4', '8.5']);
   });
 
-  test('shows the demos and the tools', async () => {
-    await renderHome();
+  test('draws a stretch of the stream for each stop, with a gradient of its own', async () => {
+    const { container } = await renderHome();
 
-    expect(within(screen.getByRole('tablist', { name: 'Demos' })).getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['install', 'build', 'lint', 'test']);
-    expect(within(screen.getByRole('group', { name: 'Tools and services that Eddy sets up' })).getAllByRole('listitem').length).toBeGreaterThan(20);
+    expect(stops(container).map((stop) => [stop.style.getPropertyValue('--stream-from'), stop.style.getPropertyValue('--stream-to')])).toEqual([
+      ['0%', '17%'],
+      ['17%', '33%'],
+      ['33%', '50%'],
+      ['50%', '67%'],
+      ['67%', '83%'],
+      ['83%', '100%'],
+    ]);
+
+    stops(container).forEach((stop, index) => {
+      expect(stop.querySelector('linearGradient')).toHaveAttribute('id', `eddy-stream-${index}`);
+      expect(stop.querySelector('path')).toHaveAttribute('stroke', `url(#eddy-stream-${index})`);
+    });
   });
 
-  test.each([
-    ['CI on GitHub Actions', '/continuous-integration'],
-    ['Local development', '/development'],
-    ['Coding standards', '/development/coding-standards'],
-    ['Tests', '/testing'],
-    ['Deployment', '/deployment'],
-    ['Dependency updates', '/updating/renovate'],
-    ['Docs for your extension', '/installation#what-the-installer-changes'],
-    ['Ready for AI agents', '/updating#updating-with-claude-code'],
-  ])('links the %s feature to %s', async (name, href) => {
+  test('shows the tools', async () => {
     await renderHome();
 
-    expect(screen.getByRole('link', { name })).toHaveAttribute('href', href);
+    const section = screen.getByRole('heading', { name: 'What floats along' }).closest('section');
+
+    expect(within(section).getAllByRole('listitem')).toHaveLength(25);
   });
 
   test.each([
@@ -122,52 +155,59 @@ describe('Home', () => {
     ['Deployment', '/deployment'],
     ['Updating', '/updating'],
     ['Contributing', '/contributing'],
-  ])('links the docs card %s to %s', async (name, href) => {
+  ])('links the docs page %s at %s', async (name, href) => {
     await renderHome();
 
-    expect(screen.getByRole('link', { name: new RegExp(`^${name} `) })).toHaveAttribute('href', href);
+    expect(screen.getByRole('link', { name })).toHaveAttribute('href', href);
   });
 
   test('anchors the projects section for the link checker', async () => {
     await renderHome();
 
-    expect(screen.getByRole('heading', { name: 'Projects using Eddy' })).toHaveAttribute('id', PROJECTS_ID);
+    expect(screen.getByRole('heading', { name: 'Downstream' })).toHaveAttribute('id', PROJECTS_ID);
     expect(useBrokenLinks().collectAnchor).toHaveBeenCalledWith(PROJECTS_ID);
   });
 
-  test.each(['testmode', 'generated_content', 'integration_report', 'drupal_helpers', 'deploy_steps'])('links the %s project to its repository', async (name) => {
+  test.each([
+    ['Testmode', 'drevops/testmode'],
+    ['Generated Content', 'drevops/generated_content'],
+    ['Integration Report', 'drevops/integration_report'],
+    ['Drupal Helpers', 'drevops/drupal_helpers'],
+    ['Deploy Steps', 'drevops/deploy_steps'],
+  ])('links the %s project to %s', async (name, repository) => {
     await renderHome();
 
-    const link = screen.getByRole('link', { name: new RegExp(`drevops/${name} `) });
+    const link = screen.getByRole('link', { name: new RegExp(`^${name}`) });
 
-    expect(link).toHaveAttribute('href', `https://github.com/drevops/${name}`);
-  });
-
-  test('links the example destination and the repository', async () => {
-    await renderHome();
-
-    expect(screen.getByRole('link', { name: 'drevops/eddy_destination (opens in new tab)' })).toHaveAttribute('href', 'https://github.com/drevops/eddy_destination');
-    expect(screen.getByRole('link', { name: 'Star on GitHub (opens in new tab)' })).toHaveAttribute('href', 'https://github.com/drevops/eddy');
+    expect(link).toHaveAttribute('href', `https://github.com/${repository}`);
+    expect(within(link).getByText(repository)).toContainHTML('/<wbr>');
   });
 
   test('says that every external link opens a new tab', async () => {
     const { container } = await renderHome();
     const external = Array.from(container.querySelectorAll('a[href^="https://"]'));
 
-    expect(external).toHaveLength(7);
+    expect(external).toHaveLength(6);
     external.forEach((link) => {
       expect(link).toHaveAccessibleName(/ \(opens in new tab\)$/);
     });
+    expect(screen.getByRole('link', { name: 'Star on GitHub (opens in new tab)' })).toHaveAttribute('href', 'https://github.com/drevops/eddy');
   });
 
-  test('draws the ripples as decoration', async () => {
-    const { container } = await renderHome();
-    const ripples = container.querySelectorAll('svg[viewBox="0 0 1000 1000"]');
+  test('gives the deep end the text colors of dark water', async () => {
+    await renderHome();
 
-    expect(ripples).toHaveLength(2);
-    ripples.forEach((svg) => {
-      expect(svg).toHaveAttribute('aria-hidden', 'true');
-      expect(svg.querySelectorAll('circle')).toHaveLength(9);
+    expect(screen.getByRole('heading', { name: 'The deep end' }).closest('.eddy-night')).not.toBeNull();
+    expect(screen.getByRole('heading', { name: 'Downstream' }).closest('.eddy-night')).toBeNull();
+  });
+
+  test('hides every drawing from assistive technology', async () => {
+    const { container } = await renderHome();
+    const drawings = Array.from(container.querySelectorAll('svg'));
+
+    expect(drawings).toHaveLength(8);
+    drawings.forEach((svg) => {
+      expect(svg.closest('[aria-hidden="true"]')).not.toBeNull();
     });
   });
 });

@@ -1,802 +1,657 @@
-/* The home page sets its type in Lexend, the typeface of the social card, and
-   takes its colors from the '--eddy-*' tokens of 'src/css/custom.css'. */
+/* The home page sets its headings in Fraunces and its text in Figtree, and
+   takes its colors from the water tokens of 'src/css/custom.css'. */
 .home {
-  --ifm-heading-font-family: 'Lexend Variable', var(--ifm-font-family-base);
   --gutter: clamp(18px, 4vw, 40px);
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --serif: 'Fraunces Variable', Georgia, serif;
 
   overflow-x: clip;
-  color: var(--eddy-text);
-  font-family: 'Lexend Variable', var(--ifm-font-family-base);
-  line-height: 1.65;
+  background: linear-gradient(180deg, var(--eddy-foam), var(--eddy-shallow) 30%, var(--eddy-mid) 70%);
+  color: var(--eddy-water-ink);
+  font-family: 'Figtree Variable', var(--ifm-font-family-base);
+  font-size: 1.0625rem;
+  line-height: 1.6;
 }
 
-.wrap {
-  width: 100%;
-  max-width: 1180px;
-  margin-inline: auto;
-  padding-inline: var(--gutter);
+.title,
+.sectionTitle,
+.stationTitle,
+.pebble b,
+.layerTitle,
+.finaleTitle {
+  font-family: var(--serif);
+  font-variation-settings: 'SOFT' 100;
 }
 
-.section {
-  padding-top: clamp(64px, 8vw, 112px);
-}
+/* Hero */
 
-/* Section heads */
-
-.sectionHead {
-  max-width: 760px;
-  margin-bottom: clamp(32px, 4.5vw, 52px);
-}
-
-.centered {
-  margin-inline: auto;
+/* 'clip' cuts off the rings without making the hero a scroll container, which
+   a focus or a search in the page could scroll sideways. 'hidden' is the
+   fallback for browsers without 'clip'. */
+.hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  overflow: clip;
+  display: grid;
+  justify-items: center;
+  padding: clamp(40px, 6vw, 64px) var(--gutter) clamp(56px, 7vw, 88px);
   text-align: center;
 }
 
+.drop {
+  position: relative;
+  margin-bottom: 2rem;
+}
+
+.mark {
+  display: block;
+  width: 100px;
+  color: var(--eddy-blue);
+}
+
+/* The rings sit behind the text of the hero. Each one grows once into a faint
+   circle, and the last one stops within 5 seconds, so the motion needs no
+   pause control. */
+.ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: -1;
+  width: var(--size);
+  height: var(--size);
+  margin: calc(var(--size) / -2);
+  border: 2px solid var(--eddy-blue);
+  border-radius: 50%;
+  opacity: var(--rest);
+  animation: eddy-ripple 3.6s cubic-bezier(0.2, 0.7, 0.3, 1) backwards;
+}
+
+.ring:nth-child(1) {
+  --size: 200px;
+  --rest: 0.35;
+}
+
+.ring:nth-child(2) {
+  --size: 480px;
+  --rest: 0.24;
+
+  animation-delay: 0.4s;
+}
+
+.ring:nth-child(3) {
+  --size: 640px;
+  --rest: 0.15;
+
+  animation-delay: 0.8s;
+}
+
+.ring:nth-child(4) {
+  --size: 900px;
+  --rest: 0.08;
+
+  animation-delay: 1.2s;
+}
+
 .eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
   margin: 0 0 0.9rem;
-  color: var(--ifm-color-primary);
-  font-size: 0.78rem;
+  color: var(--eddy-water-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-wrap: balance;
+}
+
+.title {
+  max-width: 15ch;
+  margin: 0;
+  color: var(--eddy-water-ink);
+  font-size: clamp(2.9rem, 7vw, 6rem);
+  font-weight: 420;
+  letter-spacing: -0.03em;
+  line-height: 0.98;
+  text-wrap: balance;
+}
+
+.title em {
+  color: var(--eddy-water-link);
+  font-weight: 340;
+}
+
+.lead {
+  max-width: 40ch;
+  margin: 1.6rem auto 2.1rem;
+  color: var(--eddy-water-muted);
+  font-size: clamp(1.1rem, 1.6vw, 1.3rem);
+  text-wrap: balance;
+}
+
+.command {
+  width: fit-content;
+  max-width: min(100%, 860px);
+  margin-inline: auto;
+}
+
+.ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1.6rem;
+  font-weight: 600;
+}
+
+.round,
+.round:hover {
+  color: var(--eddy-deep);
+  text-decoration: none;
+}
+
+.round {
+  padding: 0.85rem 1.65rem;
+  border-radius: 999px;
+  background: var(--eddy-blue);
+  box-shadow: 0 12px 30px -12px rgba(0, 156, 222, 0.8);
+  transition:
+    background-color 150ms ease,
+    transform 150ms var(--ease);
+}
+
+.round:hover {
+  background: var(--eddy-glow);
+  transform: translateY(-2px);
+}
+
+.textLink {
+  color: var(--eddy-water-ink);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.3em;
+}
+
+.textLink:hover {
+  color: var(--eddy-water-link);
+}
+
+.round:focus-visible,
+.textLink:focus-visible,
+.pebble:focus-visible,
+.docs a:focus-visible {
+  outline: 2px solid var(--eddy-water-link);
+  outline-offset: 3px;
+}
+
+/* Sections */
+
+.section {
+  padding: clamp(64px, 9vw, 112px) var(--gutter) 0;
+}
+
+/* A link to a title stops below the sticky navbar. */
+.sectionTitle {
+  scroll-margin-top: calc(var(--ifm-navbar-height) + 1.5rem);
+  max-width: 24ch;
+  margin: 0 auto 0.5rem;
+  color: var(--eddy-water-ink);
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  font-weight: 420;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.sectionLead {
+  max-width: 52ch;
+  margin: 0 auto clamp(32px, 5vw, 48px);
+  color: var(--eddy-water-muted);
+  text-align: center;
+  text-wrap: balance;
+}
+
+/* The stream */
+
+.stations {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+/* The text and the media of a stop swap sides at every other stop. The script
+   sets how far down the stream each stop starts and ends, as percentages. */
+.station {
+  --stream-top: color-mix(in srgb, var(--eddy-blue) var(--stream-from), var(--eddy-glow));
+  --stream-bottom: color-mix(in srgb, var(--eddy-blue) var(--stream-to), var(--eddy-glow));
+
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px minmax(0, 1fr);
+  align-items: center;
+  min-height: 340px;
+  margin: 0;
+  padding-block: 1.75rem;
+}
+
+.segment {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 140px;
+  height: 100%;
+  overflow: visible;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.segment path {
+  fill: none;
+  stroke-width: 6;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.segment stop:first-child {
+  stop-color: var(--stream-top);
+}
+
+.segment stop:last-child {
+  stop-color: var(--stream-bottom);
+}
+
+.node {
+  position: relative;
+  z-index: 1;
+  grid-row: 1;
+  grid-column: 2;
+  justify-self: center;
+  width: 26px;
+  height: 26px;
+  border: 5px solid var(--eddy-blue);
+  border-radius: 50%;
+  background: var(--eddy-foam);
+  box-shadow: 0 0 0 10px color-mix(in srgb, var(--eddy-blue) 18%, transparent);
+}
+
+.stationText,
+.media {
+  grid-row: 1;
+  min-width: 0;
+}
+
+.stationText {
+  grid-column: 1;
+  text-align: right;
+}
+
+.media {
+  grid-column: 3;
+}
+
+.station:nth-child(even) .stationText {
+  grid-column: 3;
+  text-align: left;
+}
+
+.station:nth-child(even) .media {
+  grid-column: 1;
+}
+
+.step {
+  margin: 0;
+  color: var(--eddy-water-link);
+  font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
-.eyebrow::before {
-  width: 22px;
-  height: 2px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, var(--eddy-blue), var(--ifm-color-primary));
-  content: '';
+.stationTitle {
+  margin: 0.4rem 0 0.6rem;
+  color: var(--eddy-water-ink);
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  font-weight: 450;
+  letter-spacing: -0.015em;
+  line-height: 1.1;
 }
 
-/* A link to a title stops below the sticky navbar and the eyebrow above the
-   title. */
-.sectionTitle {
-  scroll-margin-top: calc(var(--ifm-navbar-height) + 3.25rem);
+.stationLead {
+  margin: 0 0 0.9rem;
+  color: var(--eddy-water-muted);
+  text-wrap: pretty;
+}
+
+.chip {
+  display: inline-block;
+  padding: 0.35rem 0.9rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--eddy-water-surface);
+  color: var(--eddy-water-ink);
+  font-size: 0.85rem;
+}
+
+/* The background matches the terminal of the demo SVGs, so a demo that hasn't
+   painted yet shows as an empty terminal rather than a blank card. */
+.media img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 18px;
+  background: #282c34;
+  box-shadow: 0 24px 60px -28px rgba(6, 26, 51, 0.7);
+}
+
+/* The pause button of a demo takes the pill shape of the other controls on
+   the page. */
+.media :global(.button.button--secondary) {
+  --ifm-button-background-color: var(--eddy-water-surface);
+  --ifm-button-border-color: transparent;
+
+  margin-top: 0.75rem;
+  border-radius: 999px;
+  color: var(--eddy-water-ink);
+}
+
+.media :global(.button.button--secondary:hover) {
+  --ifm-button-background-color: var(--eddy-water-ink);
+
+  color: var(--eddy-water-on-ink);
+}
+
+.notes {
+  display: grid;
+  gap: 0.6rem;
   margin: 0;
-  color: var(--eddy-ink);
-  font-size: clamp(1.75rem, 3.6vw, 2.6rem);
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.12;
-  text-wrap: balance;
+  padding: 1.6rem 1.9rem;
+  border-radius: 36px;
+  background: var(--eddy-water-surface);
+  backdrop-filter: blur(6px);
+  color: var(--eddy-water-muted);
+  list-style: none;
 }
 
-.lead {
-  max-width: 62ch;
-  margin: 1rem 0 0;
-  color: var(--eddy-muted);
-  font-size: clamp(1rem, 1.4vw, 1.1rem);
+.notes li {
+  margin: 0;
+  text-wrap: pretty;
 }
 
-.centered .lead {
-  margin-inline: auto;
+.notes b {
+  color: var(--eddy-water-ink);
 }
 
-/* Color alone doesn't set a link apart from the text around it. */
-.lead a {
-  text-decoration: underline;
+/* A narrow screen has no room for the bends, so the stream runs straight down
+   the column of the nodes. */
+@media (max-width: 900px) {
+  .station {
+    grid-template-columns: 56px minmax(0, 1fr);
+    align-items: start;
+    min-height: 0;
+    padding-block: 1.5rem;
+  }
+
+  .station::before {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 26px;
+    width: 4px;
+    background: linear-gradient(var(--stream-top), var(--stream-bottom));
+    content: '';
+  }
+
+  .segment {
+    display: none;
+  }
+
+  .node {
+    grid-column: 1;
+    margin-top: 0.3rem;
+  }
+
+  .stationText,
+  .station:nth-child(even) .stationText {
+    grid-column: 2;
+    text-align: left;
+  }
+
+  .media,
+  .station:nth-child(even) .media {
+    grid-row: 2;
+    grid-column: 2;
+    margin-top: 1rem;
+  }
 }
 
-/* Buttons */
+/* Tools */
 
-.actions {
+.floats {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.8rem;
-}
-
-.button {
-  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.55rem;
-  padding: 0.8rem 1.35rem;
-  border: 1px solid transparent;
-  border-radius: 12px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  line-height: 1.2;
-  text-decoration: none;
-  transition:
-    transform 150ms var(--ease),
-    box-shadow 150ms ease,
-    border-color 150ms ease,
-    background-color 150ms ease,
-    color 150ms ease;
-}
-
-.button:hover {
-  transform: translateY(-2px);
-  text-decoration: none;
-}
-
-.button:focus-visible {
-  outline: 2px solid var(--ifm-color-primary);
-  outline-offset: 3px;
-}
-
-.buttonIcon {
-  width: 18px;
-  height: 18px;
-}
-
-.primary,
-.primary:hover {
-  color: #ffffff;
-}
-
-.primary {
-  background: var(--ifm-color-primary);
-  box-shadow: 0 10px 26px -12px rgba(0, 108, 153, 0.6);
-}
-
-.primary:hover {
-  background: var(--ifm-color-primary-dark);
-}
-
-.ghost {
-  border-color: var(--eddy-border-2);
-  background: var(--eddy-surface);
-  color: var(--eddy-ink);
-}
-
-.ghost:hover {
-  border-color: var(--ifm-color-primary);
-  color: var(--ifm-color-primary);
-}
-
-/* Hero */
-
-/* 'clip' cuts off the ripples without making the hero a scroll container, so
-   a scroll to the terminal can't slide the hero sideways. 'hidden' is the
-   fallback for browsers without 'clip'. */
-.hero {
-  position: relative;
-  overflow: hidden;
-  overflow: clip;
-  padding: clamp(48px, 7vw, 92px) 0 clamp(52px, 7vw, 88px);
-  background:
-    radial-gradient(760px 520px at 78% 38%, rgba(0, 156, 222, 0.1), transparent 70%),
-    radial-gradient(620px 420px at 0% 0%, rgba(25, 45, 98, 0.06), transparent 70%);
-}
-
-.heroGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.02fr) minmax(0, 1fr);
-  gap: clamp(36px, 5vw, 64px);
-  align-items: center;
-}
-
-/* The ripples sit behind the terminal in its own stacking context, so the
-   text beside and below them stays on top. */
-.heroText,
-.install {
-  position: relative;
-  z-index: 1;
-}
-
-.heroMedia {
-  position: relative;
-  z-index: 0;
-}
-
-.heroText {
-  animation: eddy-rise 700ms var(--ease) backwards;
-}
-
-.heroMedia {
-  animation: eddy-rise 700ms 120ms var(--ease) backwards;
-}
-
-.install {
-  margin-top: clamp(36px, 5vw, 60px);
-  animation: eddy-rise 700ms 240ms var(--ease) backwards;
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin: 0 0 1.4rem;
-  padding: 0.35rem 0.9rem 0.35rem 0.75rem;
-  border: 1px solid var(--eddy-border-2);
-  border-radius: 999px;
-  background: var(--eddy-surface);
-  color: var(--eddy-muted);
-  font-size: 0.82rem;
-  font-weight: 600;
-  line-height: 1.4;
-}
-
-.badge::before {
-  flex: none;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--eddy-blue);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--eddy-blue) 22%, transparent);
-  content: '';
-}
-
-.heroTitle {
-  margin: 0 0 1.4rem;
-  color: var(--eddy-ink);
-  font-size: clamp(2.4rem, 5.2vw, 3.8rem);
-  font-weight: 750;
-  letter-spacing: -0.04em;
-  line-height: 1.05;
-  text-wrap: balance;
-}
-
-/* Each sentence balances its own lines. */
-.titleLine {
-  display: block;
-}
-
-/* Every color stop reaches 3.9:1 or more on the background, enough for text
-   this large. */
-.highlight {
-  background: linear-gradient(100deg, var(--eddy-ink) 0%, var(--ifm-color-primary) 45%, #0087c2 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-}
-
-.heroLead {
-  max-width: 54ch;
-  margin: 0 0 2rem;
-  color: var(--eddy-muted);
-  font-size: clamp(1.02rem, 1.5vw, 1.15rem);
-  line-height: 1.7;
-}
-
-.installLabel {
-  margin: 0 0 0.8rem;
-  color: var(--eddy-faint);
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.installNote {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  margin: 0.85rem 0 0;
-  color: var(--eddy-faint);
-  font-size: 0.85rem;
-}
-
-.noteIcon {
-  flex: none;
-  width: 15px;
-  height: 15px;
-  color: var(--ifm-color-primary);
-}
-
-/* Ripples */
-
-.ripples {
-  position: absolute;
-  max-width: none;
-  pointer-events: none;
-  fill: none;
-  stroke: var(--eddy-blue);
-  stroke-width: 1.6;
-}
-
-/* Each ring spreads out once, after the one inside it, and settles within 3
-   seconds. */
-.ripples circle {
-  transform-box: view-box;
-  transform-origin: 50% 50%;
-  animation: eddy-ripple 1.8s var(--ease) backwards;
-  animation-delay: calc(var(--ring) * 90ms);
-}
-
-.heroRipples {
-  top: 50%;
-  left: 50%;
-  z-index: -1;
-  width: 1150px;
-  opacity: 0.75;
-  transform: translate(-50%, -50%);
-}
-
-@media (max-width: 960px) {
-  .heroGrid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .heroMedia {
-    max-width: 640px;
-  }
-}
-
-/* Stats */
-
-.stats {
-  border-block: 1px solid var(--eddy-border);
-  background: linear-gradient(180deg, var(--eddy-surface-2), transparent);
-}
-
-.statsGrid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin: 0;
-}
-
-/* The label comes first in the markup, as a term before its value, and shows
-   below it. */
-.stat {
-  display: flex;
-  flex-direction: column-reverse;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 0.6rem;
-  padding: clamp(24px, 3.4vw, 38px) 1rem;
-  border-left: 1px solid var(--eddy-border);
-  text-align: center;
-}
-
-.stat:first-child {
-  border-left: 0;
-}
-
-.statValue {
-  margin: 0;
-  background: linear-gradient(135deg, var(--eddy-ink), var(--ifm-color-primary));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  font-size: clamp(1.7rem, 3.4vw, 2.4rem);
-  font-weight: 750;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-  -webkit-text-fill-color: transparent;
-}
-
-.statLabel {
-  color: var(--eddy-muted);
-  font-size: 0.85rem;
-  font-weight: 500;
-}
-
-@media (max-width: 640px) {
-  .statsGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .stat:nth-child(3) {
-    border-left: 0;
-  }
-
-  .stat:nth-child(n + 3) {
-    border-top: 1px solid var(--eddy-border);
-  }
-}
-
-/* Tool ticker */
-
-.ticker {
-  padding: 1.1rem var(--gutter) 1.1rem 0;
-  border-bottom: 1px solid var(--eddy-border);
-}
-
-/* Cards */
-
-.featureGrid,
-.docsGrid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.threeGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
-}
-
-.projectsGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
-  gap: 16px;
-}
-
-@media (max-width: 1080px) {
-  .featureGrid,
-  .docsGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 880px) {
-  .threeGrid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-@media (max-width: 560px) {
-  .featureGrid,
-  .docsGrid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-.card,
-.docCard {
-  position: relative;
-  min-width: 0;
-  border: 1px solid var(--eddy-border);
-  border-radius: 16px;
-  background: var(--eddy-surface);
-  transition:
-    transform 220ms var(--ease),
-    border-color 220ms ease,
-    box-shadow 220ms ease;
-}
-
-.card {
-  padding: 1.6rem 1.4rem;
-}
-
-.card:hover {
-  border-color: var(--eddy-border-2);
-  box-shadow: var(--eddy-shadow);
-  transform: translateY(-4px);
-}
-
-.iconTile {
-  display: grid;
-  place-items: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
-  background: linear-gradient(160deg, color-mix(in srgb, var(--eddy-blue) 20%, transparent), color-mix(in srgb, var(--eddy-blue) 6%, transparent));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--eddy-blue) 26%, transparent);
-  color: var(--ifm-color-primary);
-  transition: transform 220ms var(--ease);
-}
-
-.iconTile svg {
-  width: 26px;
-  height: 26px;
-}
-
-.card:hover .iconTile {
-  transform: scale(1.06) rotate(-3deg);
-}
-
-.cardTitle {
-  margin: 1.1rem 0 0.55rem;
-  color: var(--eddy-ink);
-  font-size: 1.08rem;
-  font-weight: 650;
-  letter-spacing: -0.01em;
-  line-height: 1.3;
-}
-
-.cardText {
-  margin: 0;
-  color: var(--eddy-muted);
-  font-size: 0.92rem;
-  line-height: 1.6;
-}
-
-/* The link covers its whole card, while its name stays the card title. */
-.stretchedLink {
-  color: inherit;
-  text-decoration: none;
-}
-
-.stretchedLink::after {
-  position: absolute;
-  inset: 0;
-  border-radius: 16px;
-  content: '';
-}
-
-.stretchedLink:hover {
-  color: var(--ifm-color-primary);
-  text-decoration: none;
-}
-
-.stretchedLink:focus-visible {
-  outline: none;
-}
-
-.stretchedLink:focus-visible::after {
-  outline: 2px solid var(--ifm-color-primary);
-  outline-offset: 3px;
-}
-
-.part {
-  overflow: hidden;
-  padding: 1.9rem 1.75rem;
-  background: linear-gradient(180deg, var(--eddy-surface), color-mix(in srgb, var(--eddy-surface-2) 60%, var(--eddy-surface)));
-}
-
-.part::before {
-  position: absolute;
-  inset: 0 0 auto;
-  height: 3px;
-  background: linear-gradient(90deg, var(--eddy-navy-light), var(--eddy-blue));
-  opacity: 0;
-  transition: opacity 220ms ease;
-  content: '';
-}
-
-.part:hover::before {
-  opacity: 1;
-}
-
-/* Steps */
-
-.steps {
-  display: grid;
-  gap: 2.25rem;
-  max-width: 880px;
-  margin: 0;
+  gap: 14px 12px;
+  max-width: 980px;
+  margin: 0 auto;
   padding: 0;
   list-style: none;
 }
 
-.step {
-  position: relative;
+.floats li {
+  margin: 0;
+  padding: 0.6rem 1.25rem;
+  border-radius: 999px;
+  background: var(--eddy-water-surface);
+  box-shadow: 0 8px 22px -14px rgba(6, 26, 51, 0.5);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.floats li:nth-child(3n) {
+  padding: 0.85rem 1.6rem;
+  font-size: 1.05rem;
+}
+
+.floats li:nth-child(4n) {
+  transform: translateY(-6px);
+}
+
+.floats li:nth-child(5n) {
+  transform: translateY(8px);
+}
+
+/* Projects */
+
+.pebbles {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr);
-  gap: 1.4rem;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+  max-width: 1140px;
+  margin: 0 auto;
 }
 
-/* A line runs from each drop to the point of the next one. */
-.step:not(:last-child)::before {
-  position: absolute;
-  top: 58px;
-  bottom: calc(-2.25rem + 4px);
-  left: 23px;
-  width: 2px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--eddy-blue) 50%, transparent), color-mix(in srgb, var(--eddy-blue) 12%, transparent));
-  content: '';
-}
-
-/* A drop with its point up, like the drop of the logo. Turned, the point
-   rises 8px above the box, which the top margin makes room for. */
-.stepNumber {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  margin: 10px 4px 0;
-  border-radius: 0 50% 50%;
-  background: linear-gradient(135deg, var(--eddy-ink), var(--ifm-color-primary));
-  color: #ffffff;
-  font-weight: 700;
-  transform: rotate(45deg);
-}
-
-.stepNumber > span {
-  transform: rotate(-45deg);
-}
-
-.stepBody {
-  min-width: 0;
-  padding-top: 1rem;
-}
-
-.stepTitle {
-  margin: 0 0 0.4rem;
-  color: var(--eddy-ink);
-  font-size: 1.2rem;
-  font-weight: 650;
-  letter-spacing: -0.01em;
-  line-height: 1.3;
-}
-
-.stepCommand {
-  width: fit-content;
-  max-width: 100%;
-  margin-top: 1rem;
-}
-
-/* Docs and projects */
-
-.docCard {
-  display: flex;
-  gap: 1rem;
-  align-items: flex-start;
-  padding: 1.35rem;
-  color: inherit;
+.pebble,
+.pebble:hover {
+  color: var(--eddy-water-ink);
   text-decoration: none;
 }
 
-.docCard:hover {
-  border-color: var(--ifm-color-primary);
-  box-shadow: var(--eddy-shadow);
-  color: inherit;
-  text-decoration: none;
-  transform: translateY(-3px);
+.pebble {
+  display: block;
+  padding: 1.5rem 1.4rem;
+  border-radius: 40px 40px 40px 12px;
+  background: var(--eddy-water-surface);
+  transition: transform 200ms var(--ease);
 }
 
-.docCard:focus-visible {
-  outline: 2px solid var(--ifm-color-primary);
-  outline-offset: 3px;
+.pebble:hover {
+  transform: translateY(-4px);
 }
 
-.iconTileSmall {
-  flex: none;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+.pebble b {
+  display: block;
+  font-size: 1.35rem;
+  font-weight: 500;
+  line-height: 1.2;
 }
 
-.iconTileSmall svg {
-  width: 22px;
-  height: 22px;
+.pebble code {
+  display: block;
+  margin: 0.3rem 0 0.6rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--eddy-water-muted);
+  font-size: 0.75rem;
+  overflow-wrap: break-word;
 }
 
-.docBody {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 0.3rem;
-  min-width: 0;
+.pebbleText {
+  color: var(--eddy-water-muted);
+  font-size: 0.92rem;
+  text-wrap: pretty;
 }
 
-.docTitle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  color: var(--eddy-ink);
-  font-size: 1.02rem;
-  font-weight: 650;
-  line-height: 1.3;
+@media (max-width: 1100px) {
+  .pebbles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
-.docArrow {
-  flex: none;
-  width: 17px;
-  height: 17px;
-  color: var(--eddy-faint);
-  transition:
-    transform 200ms var(--ease),
-    color 200ms ease;
+@media (max-width: 900px) {
+  .pebbles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
-.docCard:hover .docArrow {
-  color: var(--ifm-color-primary);
-  transform: translate(3px, -3px);
+@media (max-width: 560px) {
+  .pebbles {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
-.repository {
-  color: var(--eddy-faint);
-  font-family: var(--ifm-font-family-monospace);
-  font-size: 0.78rem;
-}
+/* The deep end */
 
-/* Closing call to action, drawn like the social card */
-
-.ctaSection {
-  padding-bottom: clamp(64px, 8vw, 112px);
-}
-
-.cta {
+.deep {
   position: relative;
-  overflow: hidden;
-  overflow: clip;
-  isolation: isolate;
-  padding: clamp(44px, 6vw, 80px) clamp(22px, 5vw, 64px);
-  border-radius: 28px;
+  margin-top: clamp(120px, 14vw, 170px);
+  padding-bottom: clamp(72px, 9vw, 112px);
   background:
-    radial-gradient(circle at 50% 0%, rgba(0, 156, 222, 0.32), transparent 62%),
-    radial-gradient(circle at 50% 0%, var(--eddy-navy-light), var(--eddy-navy) 45%, var(--eddy-navy-deep));
-  box-shadow: var(--eddy-shadow-lg);
+    radial-gradient(640px 320px at 20% 280px, rgba(127, 208, 245, 0.12), transparent 70%),
+    radial-gradient(560px 280px at 85% 45%, rgba(0, 156, 222, 0.14), transparent 70%),
+    linear-gradient(180deg, var(--eddy-navy), var(--eddy-deep));
+  color: var(--eddy-water-ink);
+}
+
+/* The wave overlaps the top of the section by 1px, so no seam shows between
+   them. */
+.wave {
+  position: absolute;
+  top: -69px;
+  left: 0;
+  display: block;
+  width: 100%;
+  height: 70px;
+  fill: var(--eddy-navy);
+}
+
+.layers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+.layers > div {
+  padding: 0 2rem;
+  border-left: 1px solid rgba(127, 208, 245, 0.25);
+}
+
+.layers > div:first-child {
+  border-left: 0;
+}
+
+.depth {
+  color: var(--eddy-water-link);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.8rem;
+}
+
+.layerTitle {
+  margin: 0.3rem 0 0.6rem;
+  color: var(--eddy-water-ink);
+  font-size: 1.9rem;
+  font-weight: 420;
+  line-height: 1.15;
+}
+
+.layers p {
+  margin: 0;
+  color: var(--eddy-water-muted);
+  text-wrap: pretty;
+}
+
+@media (max-width: 900px) {
+  .layers {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .layers > div {
+    padding: 1.2rem 0;
+    border-top: 1px solid rgba(127, 208, 245, 0.25);
+    border-left: 0;
+  }
+
+  .layers > div:first-child {
+    border-top: 0;
+  }
+}
+
+.docs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.docs a,
+.docs a:hover {
+  color: var(--eddy-water-ink);
+  text-decoration: none;
+}
+
+.docs a {
+  padding: 0.7rem 1.4rem;
+  border: 1px solid rgba(127, 208, 245, 0.35);
+  border-radius: 999px;
+  font-weight: 600;
+  transition: background-color 150ms ease;
+}
+
+.docs a:hover {
+  background: rgba(127, 208, 245, 0.12);
+}
+
+.finale {
+  padding: clamp(72px, 9vw, 112px) var(--gutter) 0;
   text-align: center;
 }
 
-.ctaRipples {
-  top: 0;
-  left: 50%;
-  z-index: -1;
-  width: 1400px;
-  transform: translate(-50%, -50%);
+.finaleTitle {
+  margin: 0 0 1.6rem;
+  color: var(--eddy-water-ink);
+  font-size: clamp(2.75rem, 7vw, 5.5rem);
+  font-weight: 380;
+  letter-spacing: -0.03em;
+  line-height: 1;
 }
 
-.ctaTitle {
-  max-width: 20ch;
-  margin: 0 auto 1.1rem;
-  color: #ffffff;
-  font-size: clamp(1.8rem, 4vw, 2.75rem);
-  font-weight: 750;
-  letter-spacing: -0.035em;
-  line-height: 1.1;
-  text-wrap: balance;
-}
-
-.ctaLead {
-  max-width: 52ch;
-  margin: 0 auto 2rem;
-  color: #d6e2f5;
-  font-size: clamp(1rem, 1.5vw, 1.1rem);
-}
-
-.ctaCommand {
-  max-width: 780px;
-  margin: 0 auto 1.6rem;
-  text-align: left;
-}
-
-.ctaActions {
-  justify-content: center;
-}
-
-.cta .primary,
-.cta .primary:hover {
-  color: var(--eddy-navy-deep);
-}
-
-.cta .primary {
-  background: var(--eddy-blue-on-dark);
-}
-
-.cta .primary:hover {
-  background: #79c5ef;
-}
-
-.cta .ghost {
-  border-color: rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.06);
-  color: #ffffff;
-}
-
-.cta .ghost:hover {
-  border-color: #ffffff;
-  color: #ffffff;
-}
-
-.cta .button:focus-visible {
-  outline-color: #ffffff;
-}
-
-/* Dark mode */
-
-:global(html[data-theme='dark']) .hero {
-  background:
-    radial-gradient(760px 560px at 78% 38%, rgba(24, 56, 115, 0.7), transparent 72%),
-    radial-gradient(620px 420px at 0% 0%, rgba(0, 156, 222, 0.08), transparent 70%);
-}
-
-:global(html[data-theme='dark']) .heroRipples {
-  opacity: 1;
-}
-
-:global(html[data-theme='dark']) .highlight {
-  background-image: linear-gradient(100deg, #ffffff 0%, #7fd0f5 50%, var(--eddy-blue-on-dark) 100%);
-}
-
-:global(html[data-theme='dark']) .primary,
-:global(html[data-theme='dark']) .primary:hover,
-:global(html[data-theme='dark']) .stepNumber {
-  color: var(--eddy-navy-deep);
-}
-
-:global(html[data-theme='dark']) .stepNumber {
-  background: linear-gradient(135deg, #7fd0f5, var(--eddy-blue-on-dark));
-}
-
-/* Reveal on scroll: the script marks the blocks below the fold, and each one
-   plays its entrance once it scrolls into view. Filling only backwards hands
-   the block back to its own hover effects when the entrance ends. */
+/* Reveal on scroll: the script hides the blocks below the fold, and each one
+   plays its entrance once it scrolls into view. The entrance fills only
+   backwards, so the hover effects of a block apply once it ends. */
 
 .home [data-reveal=''][data-revealed='false'],
 .home [data-reveal='children'][data-revealed='false'] > * {
@@ -848,8 +703,8 @@
 
 @keyframes eddy-ripple {
   from {
-    opacity: 0;
-    transform: scale(0.55);
+    opacity: 0.9;
+    transform: scale(0);
   }
 }
 

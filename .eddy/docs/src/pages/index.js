@@ -2,12 +2,13 @@ import { useEffect, useRef } from 'react';
 import clsx from 'clsx';
 import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
+import { useBaseUrlUtils } from '@docusaurus/useBaseUrl';
 import useBrokenLinks from '@docusaurus/useBrokenLinks';
-import '@fontsource-variable/lexend/wght.css';
+import '@fontsource-variable/fraunces/full.css';
+import '@fontsource-variable/fraunces/full-italic.css';
+import '@fontsource-variable/figtree/wght.css';
 import CopyCommand from '@site/src/components/CopyCommand';
-import DemoTerminal from '@site/src/components/DemoTerminal';
-import Icon from '@site/src/components/Icon';
-import ToolTicker from '@site/src/components/ToolTicker';
+import PausableImage from '@site/src/components/PausableImage';
 import { prefersReducedMotion } from '@site/src/animation';
 import styles from './index.module.css';
 
@@ -24,173 +25,62 @@ const NEW_TAB = <span className="visually-hidden"> (opens in new tab)</span>;
 
 export const listOf = (items) => (items.length > 1 ? `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}` : items.join(''));
 
-const DEMOS = [
+// The stops of the stream, from the installer to Drupal.org. A stop shows a
+// recorded demo when one exists, and a list of notes otherwise.
+const STATIONS = [
   {
-    name: 'install',
-    src: '/img/demos/install.svg',
-    alt: 'The installer asking about the extension and rewriting the template to match',
-    caption: 'The installer asks about your extension, then renames and rewrites the template to match.',
+    step: 'Source',
+    title: 'Install',
+    text: 'Answer a few questions: name, module or theme, Drupal versions, tools and a command wrapper. The installer keeps only what you pick.',
+    command: 'php install.php',
+    demo: { src: '/img/demos/install.svg', alt: 'The installer asking about the extension and rewriting the template to match' },
   },
   {
-    name: 'build',
-    src: '/img/demos/build.svg',
-    alt: 'ahoy build assembling the codebase, starting the webserver and installing Drupal',
-    caption: (
-      <>
-        <code>ahoy build</code> assembles the codebase, starts the webserver and installs Drupal.
-      </>
-    ),
+    step: 'Build',
+    title: 'A real Drupal site',
+    text: 'Drupal on your own PHP, served by PHP\'s webserver from an SQLite database. No containers to babysit.',
+    command: 'ahoy build',
+    demo: { src: '/img/demos/build.svg', alt: 'ahoy build assembling the codebase, starting the webserver and installing Drupal' },
   },
   {
-    name: 'lint',
-    src: '/img/demos/lint.svg',
-    alt: 'ahoy lint running PHPCS, PHPStan, Rector, ESLint and CSpell',
-    caption: (
-      <>
-        <code>ahoy lint</code> runs every linter you kept, the way the CI lint jobs do.
-      </>
-    ),
-  },
-  {
-    name: 'test',
-    src: '/img/demos/test.svg',
-    alt: 'ahoy test running the PHPUnit suites and the Jest tests',
-    caption: (
-      <>
-        <code>ahoy test</code> runs the PHPUnit suites and the Jest tests against the site.
-      </>
-    ),
-  },
-];
-
-const STATS = [
-  { value: '2015', label: 'Maintained since' },
-  { value: '60+', label: 'Releases shipped' },
-  { value: DRUPAL_MAJORS.join(' · '), label: 'Drupal majors in CI' },
-  { value: 'GPL-2.0', label: 'Free and open source' },
-];
-
-const TOOLS = [
-  ['PHPUnit', 'Jest', 'PHPStan', 'Drupal Rector', 'PHPCS', 'Twig CS Fixer', 'ESLint', 'Stylelint', 'Prettier', 'CSpell', 'pcov', 'Codecov'],
-  ['GitHub Actions', 'GitLab CI', 'Drupal.org', 'Renovate', 'Composer', 'Drush', 'Make', 'Ahoy', 'Chrome', 'Selenium', 'Xdebug', 'SQLite', 'Cloudflare Tunnel'],
-];
-
-const FEATURES = [
-  {
-    icon: 'ci',
-    title: 'CI on GitHub Actions',
-    text: `PHP ${listOf(PHP_VERSIONS)} on Drupal ${listOf(DRUPAL_MAJORS)}, plus legacy and canary tiers, with coverage on Codecov. Works with Drupal.org GitLab CI too.`,
-    to: '/continuous-integration',
-  },
-  {
-    icon: 'laptop',
-    title: 'Local development',
-    text: 'A real Drupal site built on your machine\'s PHP, served by PHP\'s own webserver from an SQLite database.',
-    to: '/development',
-  },
-  {
-    icon: 'shield',
+    step: 'Filter',
     title: 'Coding standards',
     text: 'PHPCS, PHPStan, Drupal Rector, Twig CS Fixer, ESLint, Stylelint, CSpell and Prettier, set up for Drupal.',
-    to: '/development/coding-standards',
+    command: 'ahoy lint',
+    demo: { src: '/img/demos/lint.svg', alt: 'ahoy lint running PHPCS, PHPStan, Rector, ESLint and CSpell' },
   },
   {
-    icon: 'flask',
+    step: 'Test the water',
     title: 'Tests',
-    text: 'PHPUnit Unit, Kernel, Functional and FunctionalJavascript suites in a local Chrome or Selenium, plus Jest.',
-    to: '/testing',
+    text: 'PHPUnit Unit, Kernel, Functional and FunctionalJavascript suites in your local Chrome or Selenium, plus Jest.',
+    command: 'ahoy test',
+    demo: { src: '/img/demos/test.svg', alt: 'ahoy test running the PHPUnit suites and the Jest tests' },
   },
   {
-    icon: 'send',
-    title: 'Deployment',
-    text: 'Every tested commit and release tag mirrored to Drupal.org, or any other git remote, once CI passes.',
-    to: '/deployment',
+    step: 'Current',
+    title: 'CI on every push',
+    text: `GitHub Actions runs the same commands on PHP ${listOf(PHP_VERSIONS)} and Drupal ${listOf(DRUPAL_MAJORS)}, plus legacy and canary tiers.`,
+    command: 'git push',
+    notes: [
+      [`lint-${DRUPAL_MAJORS.map((major) => `d${major}`).join(' · ')}`, 'coding standards'],
+      ['test-php-min / max', 'on each major'],
+      ['legacy · canary', 'the earliest supported release and the next beta'],
+      ['Codecov', 'coverage from every test job'],
+    ],
   },
   {
-    icon: 'refresh',
-    title: 'Dependency updates',
-    text: 'Renovate opens grouped pull requests that keep your dependencies current.',
-    to: '/updating/renovate',
-  },
-  {
-    icon: 'file',
-    title: 'Docs for your extension',
-    text: 'A README with CI and version badges, and a CONTRIBUTING guide that lists the commands your setup uses.',
-    to: '/installation#what-the-installer-changes',
-  },
-  {
-    icon: 'sparkles',
-    title: 'Ready for AI agents',
-    text: 'AGENTS.md and CLAUDE.md tell coding agents how to build, lint and test, and Claude Code can merge new Eddy releases for you.',
-    to: '/updating#updating-with-claude-code',
+    step: 'Mouth',
+    title: 'Drupal.org',
+    text: 'Once CI passes, every tested commit and release tag is mirrored to Drupal.org, or any other git remote.',
+    notes: [
+      ['Branches', 'deploy the commit that CI tested'],
+      ['Tags', 'deploy alone, and the branches stay put'],
+      ['Never overtaken', 'by an older run'],
+    ],
   },
 ];
 
-const PARTS = [
-  {
-    icon: 'layers',
-    title: 'Template',
-    text: 'Your repository: the extension, its CI workflows, the linter and test configuration, and the docs it ships with.',
-  },
-  {
-    icon: 'terminal',
-    title: 'Tooling',
-    text: 'The drevops/eddy-tooling package. Its eddy-* commands assemble, serve, provision and deploy the site, for you and for CI.',
-  },
-  {
-    icon: 'wand',
-    title: 'Installer',
-    text: 'A single command downloads a release, asks about your extension and removes everything you didn\'t pick.',
-  },
-];
-
-const REASONS = [
-  {
-    icon: 'repeat',
-    title: 'Same commands, locally and in CI',
-    text: 'The commands you run are the ones CI runs, so a failure in CI reproduces on your machine with the same Drupal and PHP.',
-  },
-  {
-    icon: 'zap',
-    title: 'No containers to manage',
-    text: 'The site builds on the PHP and Composer you already have, and browser tests drive your local Chrome. Selenium in Docker is there when you want it.',
-  },
-  {
-    icon: 'merge',
-    title: 'Updates that keep your changes',
-    text: 'An update merges only what changed between your Eddy release and the latest one, so your own edits stay put.',
-  },
-];
-
-const STEPS = [
-  {
-    title: 'Run the installer',
-    text: 'Download it into a new, empty directory and run it. It fetches the latest release for you.',
-    command: INSTALL_COMMAND,
-    name: 'install command',
-  },
-  {
-    title: 'Answer a few questions',
-    text: 'Name your extension, then pick module or theme, the Drupal versions to test, the tools to keep and a command wrapper.',
-  },
-  {
-    title: 'Build the site',
-    text: 'Pick Make or Ahoy as the wrapper, and 1 command assembles Drupal, starts the webserver and installs your extension.',
-    command: 'make build',
-    name: 'build command',
-  },
-];
-
-const DOCS = [
-  { icon: 'info', title: 'Introduction', text: 'What Eddy is and how it fits together.', to: '/introduction' },
-  { icon: 'download', title: 'Installation', text: 'From an empty directory to the first deployment.', to: '/installation' },
-  { icon: 'code', title: 'Development', text: 'The local site and the daily commands.', to: '/development' },
-  { icon: 'flask', title: 'Testing', text: 'PHPUnit and Jest, locally and in CI.', to: '/testing' },
-  { icon: 'ci', title: 'Continuous integration', text: 'The workflows and the version matrix.', to: '/continuous-integration' },
-  { icon: 'send', title: 'Deployment', text: 'Mirroring to Drupal.org once CI passes.', to: '/deployment' },
-  { icon: 'refresh', title: 'Updating', text: 'Merging new Eddy releases into your extension.', to: '/updating' },
-  { icon: 'users', title: 'Contributing', text: 'Working on Eddy itself.', to: '/contributing' },
-];
+const TOOLS = ['PHPUnit', 'Jest', 'PHPStan', 'Drupal Rector', 'PHPCS', 'Twig CS Fixer', 'ESLint', 'Stylelint', 'Prettier', 'CSpell', 'pcov', 'Codecov', 'GitHub Actions', 'GitLab CI', 'Drupal.org', 'Renovate', 'Composer', 'Drush', 'Make', 'Ahoy', 'Chrome', 'Selenium', 'Xdebug', 'SQLite', 'Cloudflare Tunnel'];
 
 const PROJECTS = [
   { name: 'Testmode', repository: 'drevops/testmode', text: 'Alters existing site content and other configuration when running tests.' },
@@ -200,8 +90,24 @@ const PROJECTS = [
   { name: 'Deploy Steps', repository: 'drevops/deploy_steps', text: 'Runs repeatable run-on-every-deploy logic as discoverable plugins.' },
 ];
 
-// The opacity of each ring of the ripple, from the center out.
-const RINGS = [0.34, 0.28, 0.23, 0.19, 0.155, 0.125, 0.1, 0.08, 0.06].map((opacity, index) => ({ opacity, radius: 70 + index * 52 }));
+const LAYERS = [
+  { depth: '0 m · surface', title: 'Template', text: 'Your repository: the extension, its CI workflows, the linter and test configuration, and the docs it ships with.' },
+  { depth: '10 m · current', title: 'Tooling', text: 'The drevops/eddy-tooling package, whose eddy-* commands assemble, serve, provision and deploy the site, for you and for CI.' },
+  { depth: '20 m · bed', title: 'Installer', text: 'A single command that downloads a release and shapes the template to your answers. An update renders the new release the same way and merges only what changed.' },
+];
+
+const DOCS = [
+  { title: 'Introduction', to: '/introduction' },
+  { title: 'Installation', to: '/installation' },
+  { title: 'Development', to: '/development' },
+  { title: 'Testing', to: '/testing' },
+  { title: 'Continuous integration', to: '/continuous-integration' },
+  { title: 'Deployment', to: '/deployment' },
+  { title: 'Updating', to: '/updating' },
+  { title: 'Contributing', to: '/contributing' },
+];
+
+const percent = (fraction) => `${Math.round(fraction * 100)}%`;
 
 // Hides the blocks below the fold and shows each one as it scrolls into view.
 // Without JavaScript, or for a reader who prefers reduced motion, every block
@@ -238,98 +144,65 @@ export const useReveal = (root) => {
   }, [root]);
 };
 
-const Ripples = ({ className }) => (
-  <svg className={clsx(styles.ripples, className)} viewBox="0 0 1000 1000" aria-hidden="true" focusable="false">
-    {RINGS.map(({ opacity, radius }, index) => (
-      <circle key={radius} cx="500" cy="500" r={radius} strokeOpacity={opacity} style={{ '--ring': index }} />
-    ))}
-  </svg>
-);
-
-const SectionHead = ({ eyebrow, title, lead, id, centered = false }) => (
-  <div className={clsx(styles.sectionHead, centered && styles.centered)} data-reveal="">
-    <p className={styles.eyebrow}>{eyebrow}</p>
-    <h2 id={id} className={styles.sectionTitle}>
-      {title}
-    </h2>
-    {lead && <p className={styles.lead}>{lead}</p>}
+const Drop = () => (
+  <div className={styles.drop} aria-hidden="true">
+    <span className={styles.ring} />
+    <span className={styles.ring} />
+    <span className={styles.ring} />
+    <span className={styles.ring} />
+    <svg className={styles.mark} viewBox="47 1 186 277" focusable="false">
+      <g fill="none" stroke="currentColor">
+        <path strokeWidth="17.5" d="M140 22.8L70.26 145.3A80.25 80.25 0 1 0 209.74 145.3Z" />
+        <path strokeWidth="18.5" d="M186.75 185A46.75 46.75 0 1 0 176.84 213.78" />
+      </g>
+      <path fill="currentColor" d="M93.25 175.5H195.19A56 56 0 0 1 195.73 190.5H93.25Z" />
+    </svg>
   </div>
 );
 
-const Card = ({ icon, title, text, to, className }) => (
-  <article className={clsx(styles.card, className)}>
-    <span className={styles.iconTile}>
-      <Icon name={icon} />
-    </span>
-    <h3 className={styles.cardTitle}>
-      {to ? (
-        <Link to={to} className={styles.stretchedLink}>
-          {title}
-        </Link>
-      ) : (
-        title
-      )}
-    </h3>
-    <p className={styles.cardText}>{text}</p>
-  </article>
-);
+// Each stop draws its own stretch of the stream, through its node at the
+// middle, so the stream meets every node whatever the height of the stop.
+const Station = ({ index, step, title, text, command, demo, notes }) => {
+  const { withBaseUrl } = useBaseUrlUtils();
+  const gradient = `eddy-stream-${index}`;
 
-const Hero = () => (
-  <section className={styles.hero}>
-    <div className={styles.wrap}>
-      <div className={styles.heroGrid}>
-        <div className={styles.heroText}>
-          <p className={styles.badge}>Template for contributed Drupal modules and themes</p>
-          <h1 className={styles.heroTitle}>
-            <span className={styles.titleLine}>You write the code.</span>{' '}
-            <span className={styles.titleLine}>
-              <span className={styles.highlight}>Eddy handles the rest.</span>
-            </span>
-          </h1>
-          <p className={styles.heroLead}>
-            Start your Drupal module or theme from Eddy and get CI on GitHub Actions, a local Drupal site, coding standards checks and mirroring to Drupal.org, all run by the same commands on your machine and in CI.
-          </p>
-          <div className={styles.actions}>
-            <Link className={clsx(styles.button, styles.primary)} to="/installation">
-              Get started
-              <Icon name="arrowRight" className={styles.buttonIcon} />
-            </Link>
-            <Link className={clsx(styles.button, styles.ghost)} to="/introduction">
-              Read the docs
-            </Link>
-          </div>
-        </div>
-        <div className={styles.heroMedia}>
-          <Ripples className={styles.heroRipples} />
-          <DemoTerminal demos={DEMOS} label="Demos" />
-        </div>
-      </div>
-      <div className={styles.install}>
-        <p className={styles.installLabel}>Install with 1 command</p>
-        <CopyCommand command={INSTALL_COMMAND} name="install command" />
-        <p className={styles.installNote}>
-          <Icon name="check" className={styles.noteIcon} />
-          Run it in a new, empty directory. Needs PHP 8.3 or newer.
+  return (
+    <li className={styles.station} style={{ '--stream-from': percent(index / STATIONS.length), '--stream-to': percent((index + 1) / STATIONS.length) }}>
+      <svg className={styles.segment} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id={gradient} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" />
+            <stop offset="1" />
+          </linearGradient>
+        </defs>
+        <path stroke={`url(#${gradient})`} d="M50 0C90 15 90 35 50 50C10 65 10 85 50 100" />
+      </svg>
+      <span className={styles.node} aria-hidden="true" />
+      <div className={styles.stationText} data-reveal="">
+        <p className={styles.step}>
+          <span aria-hidden="true">{index + 1} · </span>
+          {step}
         </p>
+        <h3 className={styles.stationTitle}>{title}</h3>
+        <p className={styles.stationLead}>{text}</p>
+        {command && <code className={styles.chip}>{command}</code>}
       </div>
-    </div>
-  </section>
-);
-
-const Stats = () => (
-  <section className={styles.stats}>
-    <div className={styles.wrap}>
-      <dl className={styles.statsGrid} data-reveal="children">
-        {STATS.map(({ value, label }) => (
-          <div key={label} className={styles.stat}>
-            <dt className={styles.statLabel}>{label}</dt>
-            <dd className={styles.statValue}>{value}</dd>
-          </div>
-        ))}
-      </dl>
-    </div>
-  </section>
-);
+      <div className={styles.media} data-reveal="">
+        {demo ? (
+          <PausableImage src={withBaseUrl(demo.src)} alt={demo.alt} width={800} height={441} />
+        ) : (
+          <ul className={styles.notes}>
+            {notes.map(([term, detail]) => (
+              <li key={term}>
+                <b>{term}</b> {detail}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </li>
+  );
+};
 
 const Home = () => {
   const root = useRef(null);
@@ -343,146 +216,113 @@ const Home = () => {
       description="Eddy is a template for contributed Drupal modules and themes, with CI on GitHub Actions, a local Drupal site, coding standards checks and mirroring to Drupal.org."
     >
       <main ref={root} className={styles.home}>
-        <Hero />
-        <Stats />
-
-        <div className={styles.ticker}>
-          <ToolTicker rows={TOOLS} label="Tools and services that Eddy sets up" />
-        </div>
+        <header className={styles.hero}>
+          <Drop />
+          <p className={styles.eyebrow}>Template for contributed Drupal modules and themes</p>
+          <h1 className={styles.title}>
+            From one drop to <em>Drupal.org.</em>
+          </h1>
+          <p className={styles.lead}>You write the code. Eddy carries it the rest of the way: CI on GitHub Actions, a local Drupal site, coding standards and mirroring to Drupal.org.</p>
+          <CopyCommand command={INSTALL_COMMAND} name="install command" className={styles.command} />
+          <div className={styles.ctas}>
+            <Link className={styles.round} to="/installation">
+              Get started
+            </Link>
+            <Link className={styles.textLink} to="/introduction">
+              Read the docs
+            </Link>
+          </div>
+        </header>
 
         <section className={styles.section}>
-          <div className={styles.wrap}>
-            <SectionHead eyebrow="What you get" title="Everything your extension needs, already wired up" lead="Each piece is configured to work with the others, and the installer keeps only the ones you pick." />
-            <div className={styles.featureGrid} data-reveal="children">
-              {FEATURES.map((feature) => (
-                <Card key={feature.title} {...feature} />
+          <h2 className={styles.sectionTitle}>Follow the stream</h2>
+          <p className={styles.sectionLead}>The same commands carry your extension from your laptop to every tested release, and CI runs them too.</p>
+          <ol className={styles.stations}>
+            {STATIONS.map((station, index) => (
+              <Station key={station.title} index={index} {...station} />
+            ))}
+          </ol>
+        </section>
+
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>What floats along</h2>
+          <p className={styles.sectionLead}>The tools and services that Eddy sets up for you.</p>
+          <ul className={styles.floats} data-reveal="children">
+            {TOOLS.map((tool) => (
+              <li key={tool}>{tool}</li>
+            ))}
+          </ul>
+        </section>
+
+        <section className={styles.section}>
+          <h2 id={PROJECTS_ID} className={styles.sectionTitle}>
+            Downstream
+          </h2>
+          <p className={styles.sectionLead}>Contributed Drupal modules that start from Eddy.</p>
+          <div className={styles.pebbles} data-reveal="children">
+            {PROJECTS.map(({ name, repository, text }) => {
+              const [owner, slug] = repository.split('/');
+
+              return (
+                <Link key={repository} href={`https://github.com/${repository}`} className={styles.pebble}>
+                  <b>{name}</b>
+                  <code>
+                    {owner}/<wbr />
+                    {slug}
+                  </code>
+                  <span className={styles.pebbleText}>{text}</span>
+                  {NEW_TAB}
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+
+        <div className={clsx(styles.deep, 'eddy-night')}>
+          <svg className={styles.wave} viewBox="0 0 1440 70" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+            <path d="M0 70V48C140 22 300 14 460 38C620 62 760 66 920 40C1080 14 1240 10 1440 36V70Z" />
+          </svg>
+
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>The deep end</h2>
+            <p className={styles.sectionLead}>Under the surface, 3 parts keep every extension the same, and easy to keep current.</p>
+            <div className={styles.layers} data-reveal="children">
+              {LAYERS.map((layer) => (
+                <div key={layer.title}>
+                  <span className={styles.depth}>{layer.depth}</span>
+                  <h3 className={styles.layerTitle}>{layer.title}</h3>
+                  <p>{layer.text}</p>
+                </div>
               ))}
             </div>
-          </div>
-        </section>
+          </section>
 
-        <section className={styles.section}>
-          <div className={styles.wrap}>
-            <SectionHead centered eyebrow="How it fits together" title="Template, tooling and installer" lead="Your repository stays small, because the commands that build, test and deploy it come from a package." />
-            <div className={styles.threeGrid} data-reveal="children">
-              {PARTS.map((part) => (
-                <Card key={part.title} {...part} className={styles.part} />
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className={styles.section}>
-          <div className={styles.wrap}>
-            <SectionHead
-              eyebrow="Why Eddy"
-              title="Why maintainers choose Eddy"
-              lead={
-                <>
-                  Eddy builds, lints and tests itself the way it does your extension, and deploys itself to{' '}
-                  <Link href="https://github.com/drevops/eddy_destination">
-                    drevops/eddy_destination
-                    {NEW_TAB}
-                  </Link>{' '}
-                  as a working example.
-                </>
-              }
-            />
-            <div className={styles.threeGrid} data-reveal="children">
-              {REASONS.map((reason) => (
-                <Card key={reason.title} {...reason} />
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className={styles.section}>
-          <div className={styles.wrap}>
-            <SectionHead eyebrow="Get going" title="Up and running in 3 steps" />
-            <ol className={styles.steps} data-reveal="children">
-              {STEPS.map((step, index) => (
-                <li key={step.title} className={styles.step}>
-                  <span className={styles.stepNumber} aria-hidden="true">
-                    <span>{index + 1}</span>
-                  </span>
-                  <div className={styles.stepBody}>
-                    <h3 className={styles.stepTitle}>{step.title}</h3>
-                    <p className={styles.cardText}>{step.text}</p>
-                    {step.command && <CopyCommand compact command={step.command} name={step.name} className={styles.stepCommand} />}
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </section>
-
-        <section className={styles.section}>
-          <div className={styles.wrap}>
-            <SectionHead eyebrow="Keep exploring" title="Jump into the docs" />
-            <div className={styles.docsGrid} data-reveal="children">
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>Dive into the docs</h2>
+            <p className={styles.sectionLead}>Maintained since 2015, with more than 60 releases, and free under GPL-2.0.</p>
+            <div className={styles.docs} data-reveal="children">
               {DOCS.map((doc) => (
-                <Link key={doc.title} to={doc.to} className={styles.docCard}>
-                  <span className={clsx(styles.iconTile, styles.iconTileSmall)}>
-                    <Icon name={doc.icon} />
-                  </span>
-                  <span className={styles.docBody}>
-                    <span className={styles.docTitle}>
-                      {doc.title}
-                      <Icon name="arrowUpRight" className={styles.docArrow} />
-                    </span>
-                    <span className={styles.cardText}>{doc.text}</span>
-                  </span>
+                <Link key={doc.to} to={doc.to}>
+                  {doc.title}
                 </Link>
               ))}
             </div>
-          </div>
-        </section>
+          </section>
 
-        <section className={styles.section}>
-          <div className={styles.wrap}>
-            <SectionHead id={PROJECTS_ID} eyebrow="In the wild" title="Projects using Eddy" lead="Contributed Drupal modules that start from Eddy." />
-            <div className={styles.projectsGrid} data-reveal="children">
-              {PROJECTS.map((project) => (
-                <Link key={project.repository} href={`https://github.com/${project.repository}`} className={styles.docCard}>
-                  <span className={clsx(styles.iconTile, styles.iconTileSmall)}>
-                    <Icon name="package" />
-                  </span>
-                  <span className={styles.docBody}>
-                    <span className={styles.docTitle}>
-                      {project.name}
-                      <Icon name="arrowUpRight" className={styles.docArrow} />
-                    </span>
-                    <span className={styles.repository}>{project.repository}</span>
-                    <span className={styles.cardText}>{project.text}</span>
-                  </span>
-                  {NEW_TAB}
-                </Link>
-              ))}
+          <section className={styles.finale}>
+            <h2 className={styles.finaleTitle}>Start with a drop.</h2>
+            <CopyCommand command={INSTALL_COMMAND} name="install command" className={styles.command} />
+            <div className={styles.ctas}>
+              <Link className={styles.round} to="/installation">
+                Get started
+              </Link>
+              <Link className={styles.textLink} href={GITHUB_URL}>
+                Star on GitHub
+                {NEW_TAB}
+              </Link>
             </div>
-          </div>
-        </section>
-
-        <section className={clsx(styles.section, styles.ctaSection)}>
-          <div className={styles.wrap}>
-            <div className={styles.cta} data-reveal="">
-              <Ripples className={styles.ctaRipples} />
-              <h2 className={styles.ctaTitle}>Spend your time on the code, not the setup.</h2>
-              <p className={styles.ctaLead}>Free and open source, and tested on every change the same way your extension will be.</p>
-              <CopyCommand command={INSTALL_COMMAND} name="install command" className={styles.ctaCommand} />
-              <div className={clsx(styles.actions, styles.ctaActions)}>
-                <Link className={clsx(styles.button, styles.primary)} to="/installation">
-                  Get started
-                  <Icon name="arrowRight" className={styles.buttonIcon} />
-                </Link>
-                <Link className={clsx(styles.button, styles.ghost)} href={GITHUB_URL}>
-                  <Icon name="github" className={styles.buttonIcon} />
-                  Star on GitHub
-                  {NEW_TAB}
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
+          </section>
+        </div>
       </main>
     </Layout>
   );
