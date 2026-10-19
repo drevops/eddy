@@ -1,49 +1,19 @@
 import { useEffect, useState } from 'react';
 import Img from '@theme/MDXComponents/Img';
+import { isSvgUrl, prefersReducedMotion, useStillSvg } from '@site/src/animation';
 import styles from './PausableImage.module.css';
-
-const FREEZE_STYLE = '<style>*{animation-delay:-1000000s!important;animation-iteration-count:1!important;animation-fill-mode:forwards!important}</style>';
-
-// An <img> exposes no control over its SVG's animations, so the paused image
-// is a copy with every animation finished on its last frame.
-export const freezeSvg = (svg) => svg.replace(/<\/svg>\s*$/, `${FREEZE_STYLE}</svg>`);
-
-const isSvgUrl = (src) => /\.svg($|[?#])/i.test(String(src));
 
 const PausableImage = (props) => {
   const { src } = props;
-  const [stillSrc, setStillSrc] = useState(null);
+  const stillSrc = useStillSvg(src);
   const [paused, setPaused] = useState(false);
 
+  // An image can only start paused once its still copy exists.
   useEffect(() => {
-    if (!isSvgUrl(src)) {
-      return undefined;
+    if (stillSrc) {
+      setPaused(prefersReducedMotion());
     }
-
-    let cancelled = false;
-    let url = null;
-
-    fetch(src)
-      .then((response) => (response.ok ? response.text() : ''))
-      .then((svg) => {
-        if (cancelled || !svg.includes('@keyframes')) {
-          return;
-        }
-
-        url = URL.createObjectURL(new Blob([freezeSvg(svg)], { type: 'image/svg+xml' }));
-        setStillSrc(url);
-        setPaused(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-      })
-      .catch(() => {});
-
-    return () => {
-      cancelled = true;
-
-      if (url) {
-        URL.revokeObjectURL(url);
-      }
-    };
-  }, [src]);
+  }, [stillSrc]);
 
   if (!isSvgUrl(src)) {
     return <Img {...props} />;
