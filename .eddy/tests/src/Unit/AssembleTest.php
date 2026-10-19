@@ -49,12 +49,15 @@ final class AssembleTest extends UnitTestCase {
    *   has_skip_npm_build, has_nvmrc, has_nvm, has_node_modules, tool_files,
    *   has_version_specific_phpunit, has_polyfill_bootstrap,
    *   create_project_result_code, installed_packages, php_requirement,
-   *   expect_php_failure, dotenv, failing_call, build_dir_remains. A NULL
-   *   drupal_release means the release resolution fails, and a NULL
-   *   php_requirement makes the core lookup fail. A NULL dotenv means there is
-   *   no '.env'. failing_call names the call that fails: 'unlink' for the lock
-   *   file, 'file_put_contents' for 'build/composer.json', 'mkdir' for the
-   *   module custom directory, 'copy' or 'symlink'.
+   *   expect_php_failure, dotenv, failing_call, build_dir_remains,
+   *   webserver_port, listeners, killed. A NULL drupal_release means the
+   *   release resolution fails, and a NULL php_requirement makes the core
+   *   lookup fail. A NULL dotenv means there is no '.env'. failing_call names
+   *   the call that fails: 'unlink' for the lock file, 'file_put_contents' for
+   *   'build/composer.json', 'mkdir' for the module custom directory, 'copy' or
+   *   'symlink'. listeners holds the command line of each process listening on
+   *   webserver_port, keyed by process ID, and killed the process IDs that the
+   *   stop of the environment kills.
    *
    * @return array
    *   The configuration with defaults applied, plus nvm_dir when has_nvmrc is
@@ -93,6 +96,9 @@ final class AssembleTest extends UnitTestCase {
       'dotenv' => NULL,
       'failing_call' => NULL,
       'build_dir_remains' => FALSE,
+      'webserver_port' => '8000',
+      'listeners' => [],
+      'killed' => [],
     ];
 
     $drupal_version_major = explode('.', explode('@', (string) $config['drupal_version'])[0])[0];
@@ -174,6 +180,9 @@ final class AssembleTest extends UnitTestCase {
       }
       if ($file === '.env') {
         return $config['dotenv'] !== NULL;
+      }
+      if ($file === '.logs/cloudflared.pid') {
+        return FALSE;
       }
       if ($file === 'build/package-lock.json') {
         return $config['has_package_lock'];
@@ -307,11 +316,24 @@ final class AssembleTest extends UnitTestCase {
       self::envSet('NVM_DIR', $config['nvm_dir']);
     }
 
+    $this->mockPortListeners($config['webserver_port'], $config['listeners']);
+    $this->mockSleep();
+
     $passthru_responses = [];
 
     $passthru_responses[] = ['cmd' => 'composer validate --ansi --strict'];
 
-    if ($config['drupal_release'] === NULL || $config['expect_php_failure'] || $config['build_dir_remains']) {
+    if ($config['drupal_release'] === NULL || $config['expect_php_failure']) {
+      $this->mockPassthruMultiple($passthru_responses);
+
+      return $config;
+    }
+
+    if ($config['killed'] !== []) {
+      $passthru_responses[] = ['cmd' => self::killProcessesCommand(...$config['killed'])];
+    }
+
+    if ($config['build_dir_remains']) {
       $this->mockPassthruMultiple($passthru_responses);
 
       return $config;
@@ -948,30 +970,33 @@ final class AssembleTest extends UnitTestCase {
   }
 
   public static function dataProviderAssembleFailure(): \Iterator {
-    $build_steps = ['Removing existing build directory', 'Creating Drupal'];
+    // The project's webserver listens while a check fails, and the passthru()
+    // sequence holds no kill for it, so a stop fails the test.
+    $running = [1234 => self::webserverCommandLine(self::PROJECT_ROOT)];
+    $build_steps = ['Stopping the running environment', 'Services stopped', 'Removing existing build directory', 'Creating Drupal'];
 
     yield 'releases cannot be listed' => [
       '11',
-      ['drupal_version' => '11', 'drupal_release' => NULL, 'releases_result_code' => 1, 'has_build_dir' => TRUE],
+      ['drupal_version' => '11', 'drupal_release' => NULL, 'releases_result_code' => 1, 'has_build_dir' => TRUE, 'listeners' => $running],
       'Unable to list the Drupal releases.',
       $build_steps,
     ];
     yield 'no release matches' => [
       '13',
-      ['drupal_version' => '13', 'drupal_release' => NULL, 'releases_result_code' => 0, 'has_build_dir' => TRUE],
+      ['drupal_version' => '13', 'drupal_release' => NULL, 'releases_result_code' => 0, 'has_build_dir' => TRUE, 'listeners' => $running],
       'No Drupal release matches 13.',
       $build_steps,
     ];
     yield 'create-project fails' => ['11', ['create_project_result_code' => 1], 'Unable to create the Drupal 11.4.8 project.', ['Drupal project created']];
     yield 'PHP requirement not met' => [
       '12',
-      ['drupal_version' => '12', 'drupal_release' => '12.0.0-beta1', 'php_requirement' => '>=99', 'expect_php_failure' => TRUE, 'has_build_dir' => TRUE],
+      ['drupal_version' => '12', 'drupal_release' => '12.0.0-beta1', 'php_requirement' => '>=99', 'expect_php_failure' => TRUE, 'has_build_dir' => TRUE, 'listeners' => $running],
       sprintf('Drupal 12.0.0-beta1 requires PHP >=99, but the build runs on PHP %1$s. Run the build on a PHP version that meets the requirement, or set DRUPAL_VERSION to a Drupal version that supports PHP %1$s.', self::phpVersion()),
       $build_steps,
     ];
     yield 'platform PHP not met' => [
       '11',
-      ['extension_config' => ['platform' => ['php' => '8.1.0']], 'php_requirement' => '>=8.3', 'expect_php_failure' => TRUE, 'has_build_dir' => TRUE],
+      ['extension_config' => ['platform' => ['php' => '8.1.0']], 'php_requirement' => '>=8.3', 'expect_php_failure' => TRUE, 'has_build_dir' => TRUE, 'listeners' => $running],
       'Drupal 11.4.8 requires PHP >=8.3, but config.platform.php in composer.dev.json or composer.json resolves the build for PHP 8.1.0. Raise or remove that setting, or set DRUPAL_VERSION to a Drupal version that supports PHP 8.1.0.',
       $build_steps,
     ];
@@ -1006,6 +1031,91 @@ final class AssembleTest extends UnitTestCase {
     $this->assertStringContainsString('Unable to remove directory build.', $output);
     $this->assertStringNotContainsString('Existing build directory removed', $output);
     $this->assertStringNotContainsString('Creating Drupal', $output);
+  }
+
+  /**
+   * @param array<int, string> $listeners
+   *   The command line of each process listening on the port, keyed by
+   *   process ID.
+   * @param array<int, int> $expected_killed
+   *   The process IDs that are killed.
+   * @param array<int, string> $expected_left
+   *   The processes reported as left running, as '<pid> <command line>'.
+   */
+  #[DataProvider('dataProviderAssembleStopsRunningEnvironment')]
+  public function testAssembleStopsRunningEnvironment(array $listeners, array $expected_killed, array $expected_left): void {
+    self::envSet('DRUPAL_VERSION', '11');
+    self::envSet('GITHUB_TOKEN', '');
+    self::envSet('SYMFONY_DEPRECATIONS_HELPER', '');
+
+    $this->setupAssembleMocks(['has_build_dir' => TRUE, 'listeners' => $listeners, 'killed' => $expected_killed]);
+
+    $output = $this->runCommand('eddy-assemble');
+
+    $this->assertStringContainsString('ASSEMBLE COMPLETE', $output);
+
+    if ($expected_killed === []) {
+      $this->assertStringNotContainsString('Stopping the running environment', $output);
+      $this->assertStringNotContainsString('Services stopped', $output);
+    }
+    else {
+      $this->assertMatchesRegularExpression('/supports PHP .*Stopping the running environment before replacing the build directory\..*Services stopped on port 8000\..*Removing existing build directory/s', $output, 'The environment stops after the checks and before the build directory is removed.');
+    }
+
+    if ($expected_left === []) {
+      $this->assertStringNotContainsString('left running', $output);
+    }
+    else {
+      $this->assertStringContainsString('Port 8000 is still in use by another process, which was left running:', $output);
+    }
+
+    foreach ($expected_left as $process) {
+      $this->assertStringContainsString($process, $output);
+    }
+  }
+
+  public static function dataProviderAssembleStopsRunningEnvironment(): \Iterator {
+    $own = self::webserverCommandLine(self::PROJECT_ROOT);
+    $other = self::webserverCommandLine('/www/other');
+
+    yield 'nothing listens' => [[], [], []];
+    yield 'the project server' => [[1234 => $own], [1234], []];
+    yield 'the project server with a worker' => [[1234 => $own, 1235 => $own], [1234, 1235], []];
+    yield 'a process whose command line cannot be read' => [[1234 => ''], [1234], []];
+    yield 'the server of another project' => [[5678 => $other], [], []];
+    yield 'the project server and another' => [[1234 => $own, 5678 => $other], [1234], ['5678 ' . $other]];
+  }
+
+  #[DataProvider('dataProviderAssembleWebserverPort')]
+  public function testAssembleWebserverPort(?string $env_port, ?string $dotenv, string $expected_port, bool $running): void {
+    self::envSet('DRUPAL_VERSION', '11');
+    self::envSet('GITHUB_TOKEN', '');
+    self::envSet('SYMFONY_DEPRECATIONS_HELPER', '');
+
+    if ($env_port !== NULL) {
+      self::envSet('WEBSERVER_PORT', $env_port);
+    }
+
+    $this->setupAssembleMocks([
+      'dotenv' => $dotenv,
+      'webserver_port' => $expected_port,
+      'listeners' => $running ? [1234 => self::webserverCommandLine(self::PROJECT_ROOT, $expected_port)] : [],
+      'killed' => $running ? [1234] : [],
+    ]);
+
+    $output = $this->runCommand('eddy-assemble');
+
+    $this->assertSame($running, str_contains($output, 'Services stopped on port ' . $expected_port . '.'));
+    $this->assertStringNotContainsString('Invalid WEBSERVER_PORT', $output);
+    $this->assertStringContainsString('ASSEMBLE COMPLETE', $output);
+  }
+
+  public static function dataProviderAssembleWebserverPort(): \Iterator {
+    yield 'default port' => [NULL, NULL, '8000', TRUE];
+    yield 'port from the environment' => ['9000', NULL, '9000', TRUE];
+    yield 'port from .env' => [NULL, "WEBSERVER_PORT=8123\n", '8123', TRUE];
+    yield 'environment over .env' => ['9000', "WEBSERVER_PORT=8123\n", '9000', TRUE];
+    yield 'malformed port' => ['abc', NULL, 'abc', FALSE];
   }
 
   /**

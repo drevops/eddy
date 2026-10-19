@@ -86,7 +86,7 @@ Run each tool through its `ahoy` wrapper, never the binary directly:
 <!-- #;< DEV_MAKEFILE -->
 
 **Using Make:**
-- `make build` - Complete build (stop → assemble → start → provision)
+- `make build` - Complete build (assemble → start → provision)
 - `make assemble` - Assemble codebase with dependencies
 - `make start` - Start PHP development server
 - `make stop` - Stop development server

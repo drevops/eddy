@@ -44,7 +44,9 @@ The installer runs Composer only when the constraint, the patches for the packag
 
 Before it touches `build/`, `eddy-assemble` reads the PHP requirement of the Drupal core release it resolved and stops when the PHP running it doesn't meet it, or when the `config.platform.php` that the extension's `composer.dev.json` or `composer.json` sets doesn't. It then sets `config.platform.php` in `build/composer.json` to that setting, or to the running PHP when the extension sets none, so a `platform` setting in the global Composer configuration doesn't change what gets installed. With `GITHUB_TOKEN` set, it passes the token to the Composer commands it runs through `COMPOSER_AUTH`, unless that variable is already set, and leaves the global Composer configuration alone.
 
-`eddy-start` and `eddy-stop` only stop a webserver that serves the project's own `build/web`, so they leave another project's server running when 2 projects record the same port. `eddy-start` fails and names the process that holds the port instead of stopping it. Once it has launched the server, it waits up to `WEBSERVER_WAIT_TIMEOUT` seconds, a whole number of 1 or more that defaults to 5, for the server to accept connections.
+Once those checks pass, and still before it touches `build/`, `eddy-assemble` stops the project's webserver when it's running, the way `eddy-stop` does: it runs the `stop-*.sh` [custom scripts](#custom-scripts), stops the tunnel, then stops the server. A failed check leaves the server running.
+
+`eddy-start`, `eddy-stop` and `eddy-assemble` only stop a webserver that serves the project's own `build/web`, so they leave another project's server running when 2 projects record the same port. `eddy-start` fails and names the process that holds the port instead of stopping it. Once it has launched the server, it waits up to `WEBSERVER_WAIT_TIMEOUT` seconds, a whole number of 1 or more that defaults to 5, for the server to accept connections.
 
 `eddy-browser-stop` treats the WebDriver backend the same way. A chromedriver belongs to the project whose root it runs from, and a Selenium container to the project that its `eddy.project` label names, so `eddy-browser-stop` leaves the backend of another project running, along with any process on the port that isn't a chromedriver.
 
@@ -73,7 +75,7 @@ The processes that keep running after a command returns - the PHP webserver, chr
 
 ## Custom scripts
 
-`eddy-assemble`, `eddy-provision`, `eddy-start` and `eddy-stop` each look for `scripts/<prefix>-*.sh` in the project root and run any matches: `assemble-*.sh` and `provision-*.sh` at the end of their phase, `start-*.sh` once the webserver is serving, and `stop-*.sh` before the webserver stops. Scripts run in lexicographic order from the project root, inherit the parent environment, and a non-zero exit aborts the parent.
+`eddy-assemble`, `eddy-provision`, `eddy-start` and `eddy-stop` each look for `scripts/<prefix>-*.sh` in the project root and run any matches: `assemble-*.sh` and `provision-*.sh` at the end of their phase, `start-*.sh` once the webserver is serving, and `stop-*.sh` before the webserver stops, both in `eddy-stop` and when `eddy-assemble` stops a running webserver. Scripts run in lexicographic order from the project root, inherit the parent environment, and a non-zero exit aborts the parent.
 
 Custom scripts are the way to add project-specific steps. Reach for the next section only when you need to change what a command itself does.
 

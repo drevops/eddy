@@ -110,10 +110,11 @@ What to do:
   - A change to what a command itself does becomes a patch for `drevops/eddy-tooling` in `composer.dev.json`, as [Patching the package](../development/tooling.mdx#patching-the-package) describes. The commands live in the package's `src/` directory, such as `src/eddy-assemble`, and they've changed a lot since 4.x, so write the patch against the current source instead of reusing an old diff. This is the trickiest part of the upgrade.
 - Replace every `.devtools/<script>` call in your own scripts, docs and CI steps with `vendor/bin/eddy-<script>`. Where no wrapper or CI step runs the installer first, run `scripts/eddy-tooling` before it.
 
-The build changed in 2 ways you might notice:
+The build changed in 3 ways you might notice:
 
 - It applies the patches you declare. From 4.14.0 to 4.19.0, the build didn't install `cweagans/composer-patches`. Unless your project required the plugin itself, Composer skipped every patch in `composer.json` and `composer.dev.json` without a word. In 5.x they apply, and a patch that no longer applies fails the build (see [Patching dependencies](../development/dependencies.mdx#patching-dependencies)).
 - It pins Drupal core to 1 exact release, and resolves every other dependency with `minimum-stability: dev` and `prefer-stable: true` (see [How versions are resolved](../development/drupal-versions.mdx#how-versions-are-resolved)). `DRUPAL_VERSION` takes values such as `11`, `11.1.0` or `11@beta`, but no longer `@dev`, because a development branch isn't a release.
+- It stops a webserver that's still running from an earlier build in `assemble`, once the checks pass, instead of running `stop` first. A failed check leaves your site running. `assemble` on its own stops the webserver too, so run `start` after it (see [Assembling the codebase](../development/building.mdx#assembling-the-codebase)).
 
 `start` and `stop` changed too. In 4.x they killed whatever listened on the project's port. In 5.x they only stop the webserver that serves the project's own `build/web`, so the server of another project that recorded the same port keeps running, and `start` fails and names it instead of taking the port over (see [Webserver](../development/webserver.mdx#sharing-a-machine-with-other-projects)). `browser-stop` treats the WebDriver backend the same way, so it leaves the browser of another project running.
 

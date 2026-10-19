@@ -1339,6 +1339,33 @@ function xdebug_state(string $port, string $docroot): string {
   return str_contains(reset($own), 'xdebug.mode=debug') ? 'enabled' : 'disabled';
 }
 
+/**
+ * Stop the development environment of the project.
+ *
+ * Runs the 'scripts/stop-*.sh' custom scripts while the webserver is still
+ * reachable, stops the tunnel, then stops the webserver that serves the
+ * docroot. Another process listening on the port is left running and
+ * reported.
+ *
+ * @param string $port
+ *   The webserver port.
+ * @param string $docroot
+ *   The absolute path of the project's docroot.
+ */
+function environment_stop(string $port, string $docroot): void {
+  run_custom_scripts('scripts', 'stop-');
+
+  tunnel_stop();
+
+  TASK('Stopping previously started services on port %s, if any.', $port);
+  $listeners = webserver_listeners($port, $docroot);
+  kill_processes(array_keys($listeners['own']));
+  sleep(1);
+  PASS('Services stopped on port %s.', $port);
+
+  note_port_in_use($port, $listeners['other']);
+}
+
 // -----------------------------------------------------------------------------
 // WebDriver and Selenium.
 // -----------------------------------------------------------------------------

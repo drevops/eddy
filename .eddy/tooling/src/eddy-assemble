@@ -8,6 +8,7 @@
  * Allows to use the latest Drupal core as well as specified versions (for
  * testing backward compatibility).
  *
+ * - Stops the running development environment before it replaces the build.
  * - Creates a Drupal site from drupal/recommended-project.
  * - Builds Drupal site codebase with current extension and its dependencies.
  * - Adds development dependencies.
@@ -31,6 +32,15 @@ $drupal_version = resolve_env_value('DRUPAL_VERSION', default_drupal_version())[
 
 // The running PHP version, without a distribution suffix such as '-1ubuntu1'.
 $php_version = sprintf('%d.%d.%d', PHP_MAJOR_VERSION, PHP_MINOR_VERSION, PHP_RELEASE_VERSION);
+
+// Webserver port resolved via the env -> '.env' -> default chain, without
+// validation: 'eddy-start' refuses a malformed port, so no server runs on one.
+$webserver_port = resolve_webserver(validate_port: FALSE)['port'];
+
+// The docroot identifies the webserver of this project among the processes
+// that listen on the port.
+$root = (string) getcwd();
+$docroot = $root . '/build/web';
 
 // -----------------------------------------------------------------------------
 
@@ -106,6 +116,13 @@ elseif ($platform_php === NULL) {
 }
 else {
   PASS('Drupal %s supports PHP %s and the platform PHP %s.', $drupal_release, $php_version, $platform_php);
+}
+
+// The webserver serves the codebase that is replaced below. It stops only
+// after the checks above, so a failed check leaves the running site as it is.
+if (webserver_listeners($webserver_port, $docroot)['own'] !== []) {
+  INFO('Stopping the running environment before replacing the build directory.');
+  environment_stop($webserver_port, $docroot);
 }
 
 // Reset the environment.
@@ -341,8 +358,6 @@ if (is_dir($custom_dir)) {
 
 $extension_dir = $custom_dir . '/' . $extension_name;
 mkdir_or_fail($extension_dir);
-
-$root = (string) getcwd();
 
 foreach (glob($root . '/*') ?: [] as $item) {
   $basename = basename($item);
