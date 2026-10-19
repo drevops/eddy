@@ -14,6 +14,11 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class ProvisionTest extends UnitTestCase {
 
+  /**
+   * The Basic page config of a standard profile that ships content types.
+   */
+  protected const string PROFILE_PAGE_TYPE = 'build/web/core/profiles/standard/config/install/node.type.page.yml';
+
   protected function setUp(): void {
     parent::setUp();
     self::envUnset('CLOUDFLARE_TUNNEL');
@@ -28,11 +33,14 @@ final class ProvisionTest extends UnitTestCase {
    * @return array<int, array{cmd: string, output?: string}>
    *   The drush commands of a provision into a new database, in order.
    */
-  protected static function drushCommands(string $prefix, string $db_file, string $site_url, string $drush_version = '13.8.0', string $uli_options = ' --no-browser', string $extension_name = 'test_extension', string $profile = 'standard'): array {
+  protected static function drushCommands(string $prefix, string $db_file, string $site_url, string $drush_version = '13.8.0', string $uli_options = ' --no-browser', string $extension_name = 'test_extension', string $profile = 'standard', bool $content_types = FALSE): array {
+    $recipe = $content_types ? [['cmd' => $prefix . 'recipe ' . escapeshellarg(self::toolingDir() . '/recipes/content_types')]] : [];
+
     return [
       ['cmd' => $prefix . 'status --field=db-status', 'output' => ''],
       ['cmd' => $prefix . sprintf('site-install %s -y --db-url=%s --account-name=admin install_configure_form.enable_update_status_module=NULL install_configure_form.enable_update_status_emails=NULL', escapeshellarg($profile), escapeshellarg('sqlite://localhost/' . $db_file))],
       ['cmd' => $prefix . 'status'],
+      ...$recipe,
       ['cmd' => $prefix . 'pm:enable ' . escapeshellarg($extension_name)],
       ['cmd' => $prefix . 'cr'],
       ['cmd' => $prefix . 'status --field=drush-version', 'output' => $drush_version],
@@ -105,6 +113,7 @@ final class ProvisionTest extends UnitTestCase {
       '.env' => FALSE,
       '.ahoy.yml' => $has_ahoy,
       'Makefile' => $has_makefile,
+      self::PROFILE_PAGE_TYPE => TRUE,
     ]);
 
     $prefix = self::drushPrefix($cwd);
@@ -332,7 +341,7 @@ final class ProvisionTest extends UnitTestCase {
       return '';
     });
 
-    $this->mockIsFile([$extension_name . '.info.yml' => TRUE, 'composer.json' => TRUE, '.env' => TRUE]);
+    $this->mockIsFile([$extension_name . '.info.yml' => TRUE, 'composer.json' => TRUE, '.env' => TRUE, self::PROFILE_PAGE_TYPE => TRUE]);
 
     $prefix = self::drushPrefix(self::PROJECT_ROOT);
     $db_file = site_db_file($extension_name);
@@ -385,7 +394,7 @@ final class ProvisionTest extends UnitTestCase {
       return '';
     });
 
-    $this->mockIsFile([$extension_name . '.info.yml' => TRUE, 'composer.json' => TRUE, '.env' => FALSE]);
+    $this->mockIsFile([$extension_name . '.info.yml' => TRUE, 'composer.json' => TRUE, '.env' => FALSE, self::PROFILE_PAGE_TYPE => TRUE]);
 
     $prefix = self::drushPrefix(self::PROJECT_ROOT);
     $db_file = site_db_file($extension_name);
@@ -401,6 +410,62 @@ final class ProvisionTest extends UnitTestCase {
     yield 'Drush 13' => ['13.8.0', ' --no-browser'];
     yield 'Drush 14' => ['14.0.0', ''];
     yield 'Drush 14 development branch' => ['14.x-dev', ''];
+  }
+
+  #[DataProvider('dataProviderProvisionContentTypes')]
+  public function testProvisionContentTypes(string $profile, bool $profile_has_content_types, bool $expected): void {
+    self::envSet('DRUPAL_PROFILE', $profile);
+
+    $extension_name = 'test_extension';
+    $site_url = 'http://localhost:8000';
+
+    $this->mockFunction('getcwd', fn(): string => self::PROJECT_ROOT);
+    $this->mockFunction('glob', fn(): array => [$extension_name . '.info.yml']);
+
+    $this->mockFunction('file_get_contents', function (string $file): string {
+      if (str_ends_with($file, '.info.yml')) {
+        return "name: Test\ntype: module\n";
+      }
+      if ($file === 'composer.json') {
+        return json_encode(['suggest' => []], JSON_THROW_ON_ERROR);
+      }
+      if (str_starts_with($file, 'http://')) {
+        return '<html></html>';
+      }
+
+      return '';
+    });
+
+    $this->mockIsFile([$extension_name . '.info.yml' => TRUE, 'composer.json' => TRUE, '.env' => FALSE, self::PROFILE_PAGE_TYPE => $profile_has_content_types]);
+
+    $prefix = self::drushPrefix(self::PROJECT_ROOT);
+    $db_file = site_db_file($extension_name);
+    $this->mockPassthruMultiple(self::drushCommands($prefix, $db_file, $site_url, profile: $profile, content_types: $expected));
+
+    $output = $this->runCommand('eddy-provision');
+
+    $content_types = $expected ? ['[TASK] Adding the Basic page and Article content types.', '[ OK ] Content types added.'] : [];
+    $this->assertSame([
+      '[TASK] Installing Drupal into SQLite database ' . $db_file . '.',
+      '[ OK ] Drupal installed.',
+      ...$content_types,
+      '[TASK] Enabling extension ' . $extension_name . '.',
+      '[ OK ] Extension enabled.',
+      '[TASK] Clearing caches.',
+      '[ OK ] Caches cleared.',
+      '[TASK] Enabling suggested extensions, if any.',
+      '[ OK ] Suggested extensions enabled.',
+      '[TASK] Pre-warming caches.',
+      '[ OK ] Caches pre-warmed.',
+      '[TASK] Linking browser test output into .logs/browser_output.',
+      '[ OK ] Browser test output linked.',
+    ], self::statusLines($output));
+  }
+
+  public static function dataProviderProvisionContentTypes(): \Iterator {
+    yield 'standard profile without content types' => ['standard', FALSE, TRUE];
+    yield 'standard profile with content types' => ['standard', TRUE, FALSE];
+    yield 'another profile' => ['minimal', FALSE, FALSE];
   }
 
   public function testProvisionAddsTunnelSettingsWhenEnabled(): void {
@@ -429,7 +494,7 @@ final class ProvisionTest extends UnitTestCase {
       return (string) \file_get_contents($file);
     });
 
-    $this->mockIsFile([$extension_name . '.info.yml' => TRUE, 'composer.json' => TRUE, '.env' => FALSE]);
+    $this->mockIsFile([$extension_name . '.info.yml' => TRUE, 'composer.json' => TRUE, '.env' => FALSE, self::PROFILE_PAGE_TYPE => TRUE]);
 
     $prefix = self::drushPrefix($cwd);
     $db_file = site_db_file($extension_name);

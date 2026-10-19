@@ -54,6 +54,8 @@ Once those checks pass, and still before it touches `build/`, `eddy-assemble` st
 
 When the port holds anything it doesn't reuse, `eddy-browser-start` replaces only the project's own backend, whichever type that is, so switching `WEBDRIVER_BACKEND` doesn't need an `eddy-browser-stop` first. It fails and names anything else that holds the port, such as another project's backend or another process. A stopped Selenium container holds no port, so it never blocks `eddy-browser-start`, and the `selenium` backend replaces it whichever project started it.
 
+`eddy-provision` installs the site from the profile in `DRUPAL_PROFILE`, `standard` by default. From Drupal 11.4, that profile has no content types, so `eddy-provision` applies the `recipes/content_types` recipe of this package right after the install, before it enables the extension. The recipe adds the Basic page and Article content types, and grants content editors the permissions that Drupal's Standard recipe grants for each content type. Their body field has no summary, because Drupal 12 removes the field type that held one.
+
 ## Verbose output
 
 By default the commands print only their own `[TASK]`/`[ OK ]` progress and suppress the output of the tools they run (Composer, npm, Drush). When a tool fails, its captured output is shown so the failure is diagnosable. The output of the project's own commands - `npm run build` and the custom scripts below - is always shown. Set `DEBUG=1` to stream the full output of every tool live, for example `DEBUG=1 make build` or `DEBUG=1 ahoy build`.

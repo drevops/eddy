@@ -6,6 +6,8 @@
  * Provision a website using existing codebase.
  *
  * - Installs Drupal using SQLite database.
+ * - Adds the Basic page and Article content types when the standard profile
+ *   has none.
  * - Enables the extension and its suggested modules and themes.
  * - Serves site and generates one-time login link.
  */
@@ -61,6 +63,14 @@ drush('site-install %s -y --db-url=%s --account-name=admin install_configure_for
 PASS('Drupal installed.');
 
 drush('status');
+
+// The standard profile installs no content types from Drupal 11.4. Add them
+// before the extension, whose install hooks may expect them.
+if ($drupal_profile === 'standard' && !is_file('build/web/core/profiles/standard/config/install/node.type.page.yml')) {
+  TASK('Adding the Basic page and Article content types.');
+  drush('recipe %s', [dirname(__DIR__) . '/recipes/content_types']);
+  PASS('Content types added.');
+}
 
 TASK('Enabling extension %s.', $extension_name);
 

@@ -65,6 +65,12 @@ final class GeneratedProjectTest extends ToolingTestCase {
     $this->assertProcessSuccessful();
     $this->assertProcessAnyOutputContains('"' . $bundled . '"');
 
+    foreach (['page' => 'Basic page', 'article' => 'Article'] as $content_type => $label) {
+      $this->processRun('make', ['drush', '--', 'config:get', 'node.type.' . $content_type, 'name', '--format=json'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
+      $this->assertProcessSuccessful();
+      $this->assertProcessAnyOutputContains('"node.type.' . $content_type . ':name": "' . $label . '"');
+    }
+
     $this->processRun('make', ['lint'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
 
