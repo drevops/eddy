@@ -1,6 +1,6 @@
 # Eddy documentation
 
-The source of the Eddy documentation site, built with [Docusaurus](https://docusaurus.io/). The pages live in `content/`.
+The source of the Eddy documentation site, built with [Docusaurus](https://docusaurus.io/). The pages live in `content/`, and the home page in `src/pages/index.js`.
 
 ```bash
 npm install                  # Install the dependencies
