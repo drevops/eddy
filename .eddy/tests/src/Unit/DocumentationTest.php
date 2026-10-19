@@ -589,10 +589,11 @@ final class DocumentationTest extends UnitTestCase {
     $page = File::read(self::rootDir() . '/.eddy/docs/src/pages/index.js');
 
     preg_match('/^export const ' . preg_quote($name, '/') . ' = \[(.*)\];$/m', $page, $matches);
+    $list = $matches[1] ?? '';
 
-    self::assertArrayHasKey(1, $matches, sprintf('The home page of the documentation site holds no %s list.', $name));
+    self::assertNotSame('', $list, sprintf('The home page of the documentation site holds no %s list.', $name));
 
-    preg_match_all("/'([^']*)'/", $matches[1], $items);
+    preg_match_all("/'([^']*)'/", $list, $items);
 
     return $items[1];
   }
