@@ -1,4 +1,4 @@
-@@ -87,44 +87,10 @@
+@@ -84,44 +84,10 @@
    test:
      usage: Run all tests.
      cmd: |
@@ -43,7 +43,7 @@
    test-javascript:
      usage: Run JavaScript unit tests.
      aliases: [test-js]
-@@ -133,20 +99,11 @@
+@@ -130,20 +96,11 @@
        [ ! -d node_modules ] || npm test
        popd >/dev/null || exit 1
  

@@ -1,4 +1,4 @@
-@@ -57,14 +57,6 @@
+@@ -54,14 +54,6 @@
      usage: Check coding standards for violations.
      cmd: |
        pushd "build" >/dev/null || exit 1
@@ -13,7 +13,7 @@
        [ ! -d node_modules ] || (ahoy title "Running ESLint" && npm run lint)
        popd >/dev/null || exit 1
        ahoy title "Running CSpell"
-@@ -75,12 +67,6 @@
+@@ -72,12 +64,6 @@
      usage: Fix violations in coding standards.
      cmd: |
        pushd "build" >/dev/null || exit 1

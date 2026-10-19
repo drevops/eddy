@@ -61,6 +61,32 @@ abstract class ToolingTestCase extends FunctionalTestCase {
     return is_scalar($value) ? (string) $value : '8000';
   }
 
+  /**
+   * Build an environment whose browser commands are stubs.
+   *
+   * Drush opens a link with 'xdg-open' or 'open', and needs DISPLAY for it on
+   * Linux. Each stub appends its arguments to a log instead of opening a
+   * browser.
+   *
+   * @param string $log
+   *   The file that the stubs append to.
+   *
+   * @return array<string, string>
+   *   The environment variables to run a command with.
+   */
+  protected static function browserStubEnv(string $log): array {
+    $dir = self::$tmp . '/browser_stubs';
+
+    foreach (['open', 'xdg-open'] as $command) {
+      File::dump($dir . '/' . $command, sprintf("#!/bin/sh\necho \"\$@\" >> %s\n", escapeshellarg($log)));
+      chmod($dir . '/' . $command, 0755);
+    }
+
+    $path = self::envGet('PATH');
+
+    return ['DISPLAY' => ':0', 'PATH' => $dir . (is_string($path) && $path !== '' ? ':' . $path : '')];
+  }
+
   protected function assertTestCoverage(?string $dir = NULL): void {
     $dir ??= self::$sut;
     $this->assertFileExists($dir . '/.logs/coverage/phpunit/cobertura.xml');

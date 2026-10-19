@@ -54,7 +54,9 @@ Put `--` before the arguments when they include an option, since `make` reads an
 <CommandTabs
   make={`make login`}
   ahoy={`ahoy login`}
-  none={`build/vendor/bin/drush -l "$(vendor/bin/eddy-info site-url)" uli`}
+  none={`vendor/bin/eddy-login`}
 />
 
-Set `LOGIN_QRCODE=1` in `.env` or your shell to have `make login` and `ahoy login` draw the link as a QR code too, which is handy for opening the site on a phone over a [public tunnel](tunnel.mdx). The wrappers only check that the variable is set, so unset it to turn the QR code off rather than setting it to `0`. The QR code needs [`qrencode`](https://fukuchi.org/works/qrencode/) on `PATH`.
+A one-time link stops working once it's been opened, and Drush 12 and 13 open it in your browser unless `uli` gets `--no-browser`. `login` passes that option on those versions, so the link it prints still works. Drush 14 never opens a browser, and rejects the option. When you run `drush uli` yourself on Drush 12 or 13, add `--no-browser` too.
+
+Set `LOGIN_QRCODE=1` in `.env` or your shell to have `login` draw the link as a QR code too, which is handy for opening the site on a phone over a [public tunnel](tunnel.mdx). `login` only checks that the variable is set, so unset it to turn the QR code off rather than setting it to `0`. The QR code needs [`qrencode`](https://fukuchi.org/works/qrencode/) on `PATH`.

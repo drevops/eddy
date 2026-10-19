@@ -1627,6 +1627,25 @@ function drush(string $command, mixed $args = NULL, ?int &$exit_code = NULL): st
 }
 
 /**
+ * Generate a one-time login link for the site.
+ *
+ * Drush 12 and 13 open the link in a browser unless 'uli' gets '--no-browser',
+ * and the link works only once. Drush 14 rejects the option and never opens a
+ * browser.
+ *
+ * @param string $site_url
+ *   The site URL that the link starts with.
+ *
+ * @return string
+ *   The link.
+ */
+function login_link(string $site_url): string {
+  $options = (int) trim(drush('status --field=drush-version')) < 14 ? ' --no-browser' : '';
+
+  return trim(drush('uli -l %s' . $options, [$site_url]));
+}
+
+/**
  * Redirect Drupal's browser test output directory into the logs directory.
  *
  * Drupal writes functional test HTML dumps - and, for JavaScript tests,

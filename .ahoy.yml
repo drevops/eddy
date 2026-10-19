@@ -48,10 +48,7 @@ commands:
 
   login:
     usage: Login to a website.
-    cmd: |
-      url="$(ahoy drush uli)"
-      printf '%s\n' "$url"
-      if [ -n "$LOGIN_QRCODE" ]; then vendor/bin/eddy-qrcode "$url"; fi
+    cmd: vendor/bin/eddy-login
 
   lint:
     usage: Check coding standards for violations.

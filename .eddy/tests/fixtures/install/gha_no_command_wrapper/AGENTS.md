@@ -56,7 +56,7 @@
 -- `ahoy drush <command>` - Run Drush commands
 -- `ahoy login` - Get one-time login link
 +- `build/vendor/bin/drush -l "$(vendor/bin/eddy-info site-url)" <command>` - Run Drush commands
-+- `build/vendor/bin/drush -l "$(vendor/bin/eddy-info site-url)" uli` - Get one-time login link
++- `vendor/bin/eddy-login` - Get one-time login link
  
  ### Diagnostics
  

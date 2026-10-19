@@ -25,6 +25,7 @@
         "src/eddy-browser-stop",
         "src/eddy-deploy",
         "src/eddy-info",
+        "src/eddy-login",
         "src/eddy-provision",
         "src/eddy-qrcode",
         "src/eddy-start",

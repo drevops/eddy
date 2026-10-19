@@ -34,6 +34,7 @@
             <file>../tooling/src/eddy-deploy</file>
             <file>../tooling/src/helpers.php</file>
             <file>../tooling/src/eddy-info</file>
+            <file>../tooling/src/eddy-login</file>
             <file>../tooling/src/eddy-provision</file>
             <file>../tooling/src/eddy-qrcode</file>
             <file>../tooling/src/eddy-start</file>

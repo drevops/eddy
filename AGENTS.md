@@ -180,7 +180,7 @@ Run the linters and the tests with the commands that `CONTRIBUTING.md` lists.
 <!-- #;> DEV_AHOY -->
 <!-- #;< DEV_NO_COMMAND_WRAPPER -->
 - `build/vendor/bin/drush -l "$(vendor/bin/eddy-info site-url)" <command>` - Run Drush commands
-- `build/vendor/bin/drush -l "$(vendor/bin/eddy-info site-url)" uli` - Get one-time login link
+- `vendor/bin/eddy-login` - Get one-time login link
 <!-- #;> DEV_NO_COMMAND_WRAPPER -->
 
 ### Diagnostics

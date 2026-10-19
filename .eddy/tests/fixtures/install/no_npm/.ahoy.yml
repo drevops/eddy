@@ -1,4 +1,4 @@
-@@ -65,11 +65,7 @@
+@@ -62,11 +62,7 @@
        vendor/bin/rector --clear-cache --dry-run
        ahoy title "Running Twig CS Fixer"
        vendor/bin/twig-cs-fixer
@@ -10,7 +10,7 @@
  
    lint-fix:
      usage: Fix violations in coding standards.
-@@ -81,7 +77,6 @@
+@@ -78,7 +74,6 @@
        vendor/bin/phpcbf
        ahoy title "Running Twig CS Fixer"
        vendor/bin/twig-cs-fixer --no-cache --fix
@@ -18,7 +18,7 @@
        popd >/dev/null || exit 1
  
    test:
-@@ -92,7 +87,6 @@
+@@ -89,7 +84,6 @@
        pushd "build" >/dev/null || exit 1
        ahoy title "Running PHPUnit"
        php -d pcov.directory=.. vendor/bin/phpunit "$@"
@@ -26,7 +26,7 @@
        popd >/dev/null || exit 1
  
    test-unit:
-@@ -123,14 +117,6 @@
+@@ -120,14 +114,6 @@
        export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
        pushd "build" >/dev/null || exit 1
        php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional-javascript "$@"

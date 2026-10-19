@@ -46,13 +46,14 @@ Never modify `scripts/eddy-tooling`, by hand or with AI: your project uses it as
 | `eddy-start`         | Starts the PHP built-in webserver. Discovers a free port from 8000 to 8099 and writes it to `.env`.                     |
 | `eddy-stop`          | Stops the webserver.                                                                                                    |
 | `eddy-provision`     | Installs Drupal on the assembled site and enables the extension.                                                        |
+| `eddy-login`         | Prints a one-time login link without opening it in a browser, and draws it as a QR code when `LOGIN_QRCODE` is set.     |
 | `eddy-deploy`        | Mirrors the extension to a remote git repository, such as Drupal.org. CI runs it.                                       |
 | `eddy-browser-start` | Starts the WebDriver backend for FunctionalJavascript tests. Discovers a free port from 4444 and writes it to `.env`.    |
 | `eddy-browser-stop`  | Stops the WebDriver backend.                                                                                            |
 | `eddy-info`          | Prints a summary of the environment, or a single field such as `site-url` for the wrappers to read.                     |
 | `eddy-qrcode`        | Draws a URL as a QR code in the terminal.                                                                               |
 
-The pages of this section describe what each command does in detail: [Building the site](building.mdx) for `eddy-assemble`, [Webserver](webserver.mdx) for `eddy-start` and `eddy-stop`, [Provisioning](provisioning.mdx) for `eddy-provision`, [FunctionalJavascript tests](../testing/functional-javascript.mdx) for the browser commands, [Public tunnel](tunnel.mdx) for `eddy-qrcode`, and [Deployment](../deployment/README.mdx) for `eddy-deploy`.
+The pages of this section describe what each command does in detail: [Building the site](building.mdx) for `eddy-assemble`, [Webserver](webserver.mdx) for `eddy-start` and `eddy-stop`, [Provisioning](provisioning.mdx) for `eddy-provision` and `eddy-login`, [FunctionalJavascript tests](../testing/functional-javascript.mdx) for the browser commands, [Public tunnel](tunnel.mdx) for `eddy-qrcode`, and [Deployment](../deployment/README.mdx) for `eddy-deploy`.
 
 ## Command output
 
