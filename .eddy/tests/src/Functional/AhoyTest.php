@@ -79,6 +79,12 @@ final class AhoyTest extends ToolingTestCase {
     $this->assertProcessSuccessful();
     $this->assertProcessAnyOutputContains('Webserver port:     9001 (env)');
     $this->assertProcessAnyOutputContains('Drupal profile:     testing');
+
+    // Bash marks a SHELLOPTS from the environment readonly.
+    $this->processRun('ahoy', ['info'], [], ['SHELLOPTS' => 'braceexpand:hashall:interactive-comments', 'WEBSERVER_PORT' => '9001', 'DRUPAL_PROFILE' => FALSE], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->assertProcessSuccessful();
+    $this->assertProcessAnyOutputContains('Webserver port:     9001 (env)');
+    $this->assertProcessAnyOutputContains('Drupal profile:     minimal');
   }
 
   public function testReset(): void {
