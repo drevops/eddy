@@ -34,7 +34,7 @@ final class ProvisionTest extends UnitTestCase {
    *   The drush commands of a provision into a new database, in order.
    */
   protected static function drushCommands(string $prefix, string $db_file, string $site_url, string $drush_version = '13.8.0', string $uli_options = ' --no-browser', string $extension_name = 'test_extension', string $profile = 'standard', bool $content_types = FALSE): array {
-    $recipe = $content_types ? [['cmd' => $prefix . 'recipe ' . escapeshellarg(self::toolingDir() . '/recipes/content_types')]] : [];
+    $recipe = $content_types ? [['cmd' => $prefix . 'recipe ' . escapeshellarg(self::toolingDir() . '/src/../recipes/content_types')]] : [];
 
     return [
       ['cmd' => $prefix . 'status --field=db-status', 'output' => ''],

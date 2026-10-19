@@ -68,7 +68,7 @@ drush('status');
 // before the extension, whose install hooks may expect them.
 if ($drupal_profile === 'standard' && !is_file('build/web/core/profiles/standard/config/install/node.type.page.yml')) {
   TASK('Adding the Basic page and Article content types.');
-  drush('recipe %s', [dirname(__DIR__) . '/recipes/content_types']);
+  drush('recipe %s', [__DIR__ . '/../recipes/content_types']);
   PASS('Content types added.');
 }
 

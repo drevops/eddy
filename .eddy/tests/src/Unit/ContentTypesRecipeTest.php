@@ -41,7 +41,8 @@ final class ContentTypesRecipeTest extends UnitTestCase {
     $config = $dependencies['config'] ?? [];
     $this->assertIsArray($config);
 
-    $this->assertSame([], array_values(array_diff($config, self::providedConfig())), $name . ' depends on config that the recipe neither ships, imports nor creates.');
+    $missing = array_diff(array_filter($config, is_string(...)), self::providedConfig());
+    $this->assertSame([], array_values($missing), $name . ' depends on config that the recipe neither ships, imports nor creates.');
   }
 
   public static function dataProviderConfigDependenciesAreProvided(): \Iterator {
@@ -64,7 +65,9 @@ final class ContentTypesRecipeTest extends UnitTestCase {
       $this->assertIsArray($data, $file . ' holds no YAML mapping.');
 
       array_walk_recursive($data, static function (mixed $value) use (&$values): void {
-        $values[] = $value;
+        if (is_string($value)) {
+          $values[] = $value;
+        }
       });
     }
 
