@@ -150,7 +150,7 @@ const Drop = () => (
     <span className={styles.ring} />
     <span className={styles.ring} />
     <span className={styles.ring} />
-    <svg className={styles.mark} viewBox="60 12 160 222" focusable="false">
+    <svg className={styles.mark} viewBox="47 1 186 277" focusable="false">
       <g fill="none" stroke="currentColor">
         <path strokeWidth="17.5" d="M140 22.8L70.26 145.3A80.25 80.25 0 1 0 209.74 145.3Z" />
         <path strokeWidth="18.5" d="M186.75 185A46.75 46.75 0 1 0 176.84 213.78" />
