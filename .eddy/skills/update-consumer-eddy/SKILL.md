@@ -207,7 +207,7 @@ The script is `install.php` with the `INSTALL_` prefix in releases after 4.x. A 
 
 `<repository>` is the GitHub repository from Step 1. Without it, the badges in the render name the machine name as both the owner and the repository, and every release that changes a badge conflicts with the project's real values. A release that doesn't read `INSTALL_GITHUB_REPOSITORY` ignores it and renders the machine name.
 
-`<branches>` is the list of workflow branches from Step 1. The render runs where `install.php` finds no committed `test.yml`, so without the list it filters the workflows on `1.x`, and a branch filter that the release adds would bring `1.x` into the project. A release that doesn't read `INSTALL_BRANCHES` ignores it and filters on `1.x`.
+`<branches>` is the list of workflow branches from Step 1. The render runs where `install.php` finds no committed `test.yml`, so without the list it writes `1.x` into the branch filters it sets, and a filter that the release adds there would bring `1.x` into the project. A release that doesn't read `INSTALL_BRANCHES` ignores it and filters on `1.x`.
 
 ## Step 5: Render the installed version
 
@@ -399,7 +399,7 @@ git grep -n -e '^<<<<<<< ' -e '^>>>>>>> '
 ```
 
 - **PHP versions**: the `drevops/eddy-tooling` package requires PHP 8.3 or newer, so a job in `.github/workflows/test.yml` with a lower `php-version`, such as Drupal 10 on PHP 8.2, fails at "Install the tooling". The merge keeps the project's matrix, so list those jobs for the pull request and tell the user about them. Leave them as they are: raising them drops a PHP version the extension tests, and that's the user's call.
-- **Branch references**: both renders filter the workflows on the branches from Step 1, so a branch filter that the release adds names the project's branches too. Confirm that every branch filter in `.github/workflows/`, those of a workflow the release added included, lists the branches the project builds from. Where Step 1 found no branches, the release's filters read `1.x`.
+- **Branch references**: both renders write the branches from Step 1 into the branch filters that `install.php` sets, so a filter that the release adds there names the project's branches too. Check every branch filter in `.github/workflows/`, a new workflow's included, and change any that lists other branches to the ones the project builds from. Where Step 1 found no branches, the release's filters read `1.x`.
 - **README.md and CONTRIBUTING.md**: check them as described below.
 - **Added files**: review the files the release added (`A` in `git status --porcelain`). Without a base, they can include template files the project once removed on purpose - remove those again.
 - **Leftover template files**: without a base, files that older releases shipped and this one does not, such as `phpmd.xml`, stay in the project. Leave them, and list them in the pull request description so the maintainer can decide.

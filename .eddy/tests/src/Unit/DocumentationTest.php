@@ -221,11 +221,14 @@ final class DocumentationTest extends UnitTestCase {
   public function testUpdateSkillPassesRepositoryValue(string $variable): void {
     $this->assertContains($variable, self::updateSkillInstallVariables(), sprintf('The update skill renders the new release without %s, so install.php falls back to a value that only a run inside the repository gets right.', $variable));
 
-    preg_match('/^## Step 5:.*?(?=^## )/ms', File::read(self::updateSkillPath()), $matches);
-    $step = $matches[0] ?? '';
+    preg_match('/^## Step 5:.*?(?=^## )/ms', File::read(self::updateSkillPath()), $step_matches);
+    // Step 5 names the variable in other sentences too, so only the installer
+    // instruction counts.
+    preg_match('/^Run the installer .*$/m', $step_matches[0] ?? '', $instruction_matches);
+    $instruction = $instruction_matches[0] ?? '';
 
-    $this->assertNotSame('', $step, 'The update skill has no Step 5.');
-    $this->assertStringContainsString('`' . $variable . '`', $step, sprintf('Step 5 of the update skill does not pass %s, so the 2 renders differ in its value.', $variable));
+    $this->assertNotSame('', $instruction, 'Step 5 of the update skill has no "Run the installer" instruction.');
+    $this->assertStringContainsString('`' . $variable . '`', $instruction, sprintf('Step 5 of the update skill does not pass %s to the installer, so the 2 renders differ in its value.', $variable));
   }
 
   public static function dataProviderUpdateSkillPassesRepositoryValue(): \Iterator {
