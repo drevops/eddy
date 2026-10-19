@@ -15,7 +15,7 @@ export TMPDIR := $(abspath $(TMPDIR))
 endif
 
 # Resolve the site URL through the shared `eddy-info` resolver so `drush`
-# and `login` report the same tunnel-aware URL as start, provision, and info
+# reports the same tunnel-aware URL as start, provision, login, and info
 # (see resolve_site_url()). Lazy `=` so the probe runs only when the recipes
 # that expand it are invoked.
 DRUSH = build/vendor/bin/drush -l "$(shell vendor/bin/eddy-info site-url)"
@@ -144,7 +144,7 @@ drush:
 	$(DRUSH) $(RUN_ARGS)
 
 login:
-	@url="$$($(DRUSH) uli)"; printf '%s\n' "$$url"; if [ -n "$$LOGIN_QRCODE" ]; then vendor/bin/eddy-qrcode "$$url"; fi
+	@vendor/bin/eddy-login
 
 provision:
 	vendor/bin/eddy-provision

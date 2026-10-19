@@ -209,9 +209,11 @@ final class AhoyTest extends ToolingTestCase {
     $this->assertProcessAnyOutputContains('Database         : Connected');
     $this->assertProcessAnyOutputContains('Drupal bootstrap : Successful');
 
-    $this->processRun('ahoy', ['login'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $browser_log = self::$tmp . '/browser.log';
+    $this->processRun('ahoy', ['login'], [], self::browserStubEnv($browser_log), $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
     $this->assertProcessAnyOutputContains('user/reset/1/');
+    $this->assertFileDoesNotExist($browser_log, 'login opened the one-time login link in a browser, so the printed link no longer works.');
 
     $this->processRun('ahoy', ['info'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();

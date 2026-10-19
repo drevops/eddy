@@ -214,9 +214,11 @@ final class MakeTest extends ToolingTestCase {
     $this->assertProcessSuccessful();
     $this->assertProcessAnyOutputContains('"system.site:name"');
 
-    $this->processRun('make', ['login'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $browser_log = self::$tmp . '/browser.log';
+    $this->processRun('make', ['login'], [], self::browserStubEnv($browser_log), $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
     $this->assertProcessAnyOutputContains('user/reset/1/');
+    $this->assertFileDoesNotExist($browser_log, 'login opened the one-time login link in a browser, so the printed link no longer works.');
 
     $this->processRun('make', ['info'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();

@@ -1,0 +1,25 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * @file
+ * Print a one-time login link for the site.
+ *
+ * Prints the link on a line of its own. Any non-empty LOGIN_QRCODE, in the
+ * environment or '.env', also draws the link as a QR code below it.
+ */
+
+declare(strict_types=1);
+
+namespace DrevOps\Eddy\Tooling;
+
+require_once __DIR__ . '/helpers.php';
+
+$webserver = resolve_webserver();
+$login_link = login_link(resolve_site_url($webserver['host'], $webserver['port']));
+
+echo $login_link . PHP_EOL;
+
+if (resolve_env_value('LOGIN_QRCODE', '')['value'] !== '') {
+  print_qrcode($login_link);
+}
