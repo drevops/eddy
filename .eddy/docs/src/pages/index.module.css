@@ -54,7 +54,10 @@
   content: '';
 }
 
+/* A link to a title stops below the sticky navbar and the eyebrow above the
+   title. */
 .sectionTitle {
+  scroll-margin-top: calc(var(--ifm-navbar-height) + 3.25rem);
   margin: 0;
   color: var(--eddy-ink);
   font-size: clamp(1.75rem, 3.6vw, 2.6rem);
