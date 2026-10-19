@@ -1358,6 +1358,9 @@ function origin_github_repository(): ?string {
  * 'npm_specs()'. The text in the tool's 'replacements' is rewritten. Its
  * 'cspell_words' go later, in 'remove_unused_cspell_words()'.
  *
+ * The 'AGENTS.md' note on the quality tools that run in the build names only
+ * the languages of the PHP and JavaScript linters that stay.
+ *
  * '.eddy/CLAUDE.md' lists the steps for adding a tool.
  *
  * @param array<string> $tools_remove
@@ -1397,9 +1400,15 @@ function remove_tools(array $tools_remove): void {
 
   // The shared 'npm run lint' pipeline step covers ESLint and Stylelint;
   // remove it only when both are gone.
-  if (in_array('eslint', $tools_remove, TRUE) && in_array('stylelint', $tools_remove, TRUE)) {
+  $nodejs_lint = array_diff(['eslint', 'stylelint'], $tools_remove) !== [];
+
+  if (!$nodejs_lint) {
     remove_tokens_with_content('DEV_NODEJS_LINT');
   }
+
+  $php_lint = array_diff(['phpcs', 'phpstan', 'rector', 'twigcs'], $tools_remove) !== [];
+  $languages = ['PHP' => $php_lint, 'JavaScript' => $nodejs_lint];
+  replace_string_content(quality_tools_note(array_keys($languages)), quality_tools_note(array_keys(array_filter($languages))));
 
   remove_npm($tools_remove);
 }
@@ -1421,6 +1430,24 @@ function add_dependent_tools(array $tools_remove): array {
   }
 
   return $tools_remove;
+}
+
+/**
+ * Render the 'AGENTS.md' note on the quality tools that run in the build.
+ *
+ * @param array<string> $languages
+ *   The languages of the quality tools, such as 'PHP', in the order the note
+ *   names them.
+ *
+ * @return string
+ *   The note line with its line break, or an empty string for no languages.
+ */
+function quality_tools_note(array $languages): string {
+  if ($languages === []) {
+    return '';
+  }
+
+  return '- The ' . join_list($languages) . ' quality tools run from within the `build/` directory' . "\n";
 }
 
 /**
@@ -1987,7 +2014,8 @@ function run_installer(string $dir, array $args): int {
  * rebuilt from the survivors (or removed when none remain).
  *
  * Without any tool from 'npm_specs()' nothing runs npm, so 'package.json',
- * 'package-lock.json' and the '#;< DEV_NPM' blocks go instead.
+ * 'package-lock.json' and the '#;< DEV_NPM' blocks go instead, and the
+ * 'DEBUG' note in 'AGENTS.md' stops naming npm.
  *
  * @param array<string> $tools_remove
  *   The machine names of the tools to remove.
@@ -2002,6 +2030,7 @@ function remove_npm(array $tools_remove): void {
 
   if (array_diff(array_keys($npm_specs), $remove) === []) {
     remove_tokens_with_content('DEV_NPM');
+    replace_string_content('(Composer, npm, Drush)', '(Composer, Drush)');
     @unlink('package.json');
     @unlink('package-lock.json');
 
