@@ -1,3 +1,12 @@
+@@ -34,7 +34,7 @@
+ 
+ The `provision` command is useful for re-installing the Drupal website without re-assembling the codebase.
+ 
+-The `info` command prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path. The `reset` command stops the development server and the browser that the FunctionalJavascript tests use, and removes the `build`, `.logs` and `vendor` directories.
++The `info` command prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path. The `reset` command stops the development server and removes the `build`, `.logs` and `vendor` directories.
+ 
+ ### Drupal versions
+ 
 @@ -161,36 +161,7 @@
  ahoy test-unit                    # Run Unit tests
  ahoy test-kernel                  # Run Kernel tests

@@ -1,7 +1,17 @@
-@@ -152,62 +152,3 @@
+@@ -34,7 +34,7 @@
+ 
+ The `provision` command is useful for re-installing the Drupal website without re-assembling the codebase.
+ 
+-The `info` command prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path. The `reset` command stops the development server and the browser that the FunctionalJavascript tests use, and removes the `build`, `.logs` and `vendor` directories.
++The `info` command prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path. The `reset` command stops the development server and removes the `build`, `.logs` and `vendor` directories.
+ 
+ ### Drupal versions
+ 
+@@ -151,63 +151,4 @@
+ 
  ```bash
  ahoy test
- ```
+-```
 -
 -The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests, and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both use Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
 -
@@ -60,4 +70,4 @@
 -  web/modules/custom/force_crystal/tests/src/Unit/MyUnitTest.php
 -php -d pcov.directory=.. vendor/bin/phpunit --group=wip
 -php -d pcov.directory=.. vendor/bin/phpunit --filter=MyUnitTest::testSomething
--```
+ ```
