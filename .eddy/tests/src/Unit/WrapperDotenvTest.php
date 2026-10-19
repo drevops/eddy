@@ -150,6 +150,23 @@ final class WrapperDotenvTest extends UnitTestCase {
       ['WEBSERVER_PORT' => '9001'],
       ['WEBSERVER_PORT' => '9001', 'DRUPAL_PROFILE' => '', 'SIMPLETEST_BASE_URL' => 'http://localhost:9001'],
     ];
+    // Bash marks a SHELLOPTS or BASHOPTS from the environment readonly. A
+    // 'posix' in SHELLOPTS starts bash in POSIX mode.
+    yield 'shell exports readonly SHELLOPTS' => [
+      "WEBSERVER_PORT=8001\nDRUPAL_PROFILE=minimal\n",
+      ['SHELLOPTS' => 'braceexpand:hashall:interactive-comments', 'WEBSERVER_PORT' => '9001', 'DRUPAL_PROFILE' => ''],
+      ['WEBSERVER_PORT' => '9001', 'DRUPAL_PROFILE' => 'minimal', 'SIMPLETEST_BASE_URL' => 'http://localhost:9001'],
+    ];
+    yield 'shell exports readonly SHELLOPTS in POSIX mode' => [
+      "WEBSERVER_PORT=8001\nDRUPAL_PROFILE=minimal\n",
+      ['SHELLOPTS' => 'braceexpand:hashall:interactive-comments:posix', 'WEBSERVER_PORT' => '9001', 'DRUPAL_PROFILE' => ''],
+      ['WEBSERVER_PORT' => '9001', 'DRUPAL_PROFILE' => 'minimal', 'SIMPLETEST_BASE_URL' => 'http://localhost:9001'],
+    ];
+    yield 'shell exports readonly BASHOPTS' => [
+      "WEBSERVER_PORT=8001\nDRUPAL_PROFILE=minimal\n",
+      ['BASHOPTS' => 'checkwinsize', 'WEBSERVER_PORT' => '9001', 'DRUPAL_PROFILE' => ''],
+      ['WEBSERVER_PORT' => '9001', 'DRUPAL_PROFILE' => 'minimal', 'SIMPLETEST_BASE_URL' => 'http://localhost:9001'],
+    ];
   }
 
   /**
