@@ -48,10 +48,10 @@ Your own files and your changes to the template stay as they are, apart from `sc
 
 ## Updating by hand
 
-1. [Run the installer](../installation.mdx#running-the-installer) in a new, empty directory and repeat the answers you gave during the initial setup. To update to a release other than the latest, or to the current code, [install from a download](../installation.mdx#installing-from-a-download) instead.
+1. [Run the installer](../installation.mdx#running-the-installer) in a new, empty directory and repeat the answers you gave during the initial setup. That directory isn't a clone of your repository, so pass the branches your workflows run on and your GitHub repository, such as `INSTALL_BRANCHES=1.x,2.x INSTALL_GITHUB_REPOSITORY=owner/myextension php install.php`, and the installer writes them into the workflow branch filters and the README badges. To update to a release other than the latest, or to the current code, [install from a download](../installation.mdx#installing-from-a-download) instead.
 2. Create a new branch in your extension's repository.
 3. Copy all files into your extension's directory, overwriting the existing ones.
-4. Resolve the differences between the new files and yours, and check the release notes for breaking changes. `install.php` ran outside your repository, so keep your own branches in the workflow branch filters and your own repository in the README badges. Keep `scripts/eddy-tooling` exactly as the release ships it.
+4. Resolve the differences between the new files and yours, and check the release notes for breaking changes. If you ran the installer without `INSTALL_BRANCHES`, keep your own branches in the workflow branch filters, and without `INSTALL_GITHUB_REPOSITORY`, keep your own repository in the README badges. Keep `scripts/eddy-tooling` exactly as the release ships it.
 5. [Build the site](../development/building.mdx), [check coding standards](../development/coding-standards.mdx) and [run the tests](../testing/README.mdx).
 6. Commit and push to your GitHub repository, and check that every CI job passes.
 7. Merge the new branch into your main branch, and check that the deployment job works.

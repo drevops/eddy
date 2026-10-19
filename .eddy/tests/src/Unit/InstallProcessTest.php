@@ -1397,6 +1397,29 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   /**
+   * Every branch filter of a workflow that a project gets holds the given
+   * branches.
+   */
+  #[DataProvider('dataProviderProcessSetsBranchesOfShippedWorkflow')]
+  public function testProcessSetsBranchesOfShippedWorkflow(string $file): void {
+    $template = self::workflowBranchFilters(self::$sut . '/.github/workflows/' . $file);
+    $expected = array_map(static fn(mixed $branches): ?array => $branches === NULL ? NULL : ['2.x'], $template);
+
+    process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], [], FALSE, FALSE, ['2.x']);
+
+    $this->assertSame($expected, self::workflowBranchFilters(self::$sut . '/.github/workflows/' . $file), sprintf('The branch filters of %s are not the ones that process_workflow_branches() sets.', $file));
+  }
+
+  public static function dataProviderProcessSetsBranchesOfShippedWorkflow(): \Iterator {
+    foreach (glob(self::rootDir() . '/.github/workflows/*.yml') ?: [] as $path) {
+      // A project gets every workflow but the 'eddy-' ones.
+      if (!str_starts_with(basename($path), 'eddy-')) {
+        yield basename($path) => ['file' => basename($path)];
+      }
+    }
+  }
+
+  /**
    * The README badges name the given GitHub repository, as given.
    */
   #[DataProvider('dataProviderProcessRendersGithubRepository')]
@@ -1597,11 +1620,24 @@ final class InstallProcessTest extends UnitTestCase {
    *   The 'branches' value, or NULL when the trigger has none.
    */
   protected static function triggerBranches(string $file, string $trigger): mixed {
-    $workflow = Yaml::parse(File::read($file));
-    $triggers = is_array($workflow) ? $workflow['on'] ?? NULL : NULL;
-    $filters = is_array($triggers) ? $triggers[$trigger] ?? NULL : NULL;
+    return self::workflowBranchFilters($file)[$trigger] ?? NULL;
+  }
 
-    return is_array($filters) ? $filters['branches'] ?? NULL : NULL;
+  /**
+   * Read the branch filter of every trigger of a workflow.
+   *
+   * @param string $file
+   *   The workflow path.
+   *
+   * @return array<mixed>
+   *   The 'branches' value of each trigger, or NULL when the trigger has
+   *   none, keyed by trigger name.
+   */
+  protected static function workflowBranchFilters(string $file): array {
+    $workflow = Yaml::parse(File::read($file));
+    $triggers = is_array($workflow) && is_array($workflow['on'] ?? NULL) ? $workflow['on'] : [];
+
+    return array_map(static fn(mixed $filters): mixed => is_array($filters) ? $filters['branches'] ?? NULL : NULL, $triggers);
   }
 
   /**

@@ -25,6 +25,10 @@ use PHPUnit\Framework\Attributes\Group;
  * The update skill answers every 'install.php' prompt through a variable and
  * detects every tool it offers, so either can be added to 'install.php' alone.
  *
+ * The update skill renders both releases outside the project's repository, so
+ * it passes the workflow branches and the GitHub repository that
+ * 'install.php' would read from git. Either render can stop passing them.
+ *
  * Step 0 of the update skill lists a permission for each command the skill
  * runs, so a command can be added without its permission.
  *
@@ -211,6 +215,27 @@ final class DocumentationTest extends UnitTestCase {
     foreach (self::updateSkillInstallVariables() as $variable) {
       yield $variable => ['variable' => $variable];
     }
+  }
+
+  #[DataProvider('dataProviderUpdateSkillPassesRepositoryValue')]
+  public function testUpdateSkillPassesRepositoryValue(string $variable): void {
+    $this->assertContains($variable, self::updateSkillInstallVariables(), sprintf('The update skill renders the new release without %s, so install.php falls back to a value that only a run inside the repository gets right.', $variable));
+
+    preg_match('/^## Step 5:.*?(?=^## )/ms', File::read(self::updateSkillPath()), $step_matches);
+    // Step 5 names the variable in other sentences too, so only the installer
+    // instruction counts.
+    preg_match('/^Run the installer .*$/m', $step_matches[0] ?? '', $instruction_matches);
+    $instruction = $instruction_matches[0] ?? '';
+
+    $this->assertNotSame('', $instruction, 'Step 5 of the update skill has no "Run the installer" instruction.');
+    $this->assertStringContainsString('`' . $variable . '`', $instruction, sprintf('Step 5 of the update skill does not pass %s to the installer, so the 2 renders differ in its value.', $variable));
+  }
+
+  public static function dataProviderUpdateSkillPassesRepositoryValue(): \Iterator {
+    // install.php reads the default of each from the git repository it runs
+    // in, and the renders run outside the project's repository.
+    yield 'INSTALL_BRANCHES' => ['variable' => 'INSTALL_BRANCHES'];
+    yield 'INSTALL_GITHUB_REPOSITORY' => ['variable' => 'INSTALL_GITHUB_REPOSITORY'];
   }
 
   #[DataProvider('dataProviderToolingPhpFloorIsDocumented')]

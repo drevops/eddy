@@ -94,6 +94,8 @@ Then read the project to determine the answers for the installation script:
 gh repo view --json nameWithOwner --jq .nameWithOwner
 ```
 
+10. **Workflow branches**: the branches that the `push` trigger of `.github/workflows/test.yml` filters on, the entries under `on.push.branches`, as a comma-separated list (e.g. `1.x,2.x`). Take each entry as written, quotes included, the way `install.php` reads it: a pattern such as `'*.x'` is not valid YAML without its quotes. Use an empty string when there's no such filter, such as in a project that still uses CircleCI.
+
 These answers describe the project as it is now, and Step 5 renders the installed version with them unchanged. When the user asks to add a Drupal major, such as "include Drupal 12", or to drop one, change the Drupal versions for Step 4 only. Step 7 applies the difference between the 2 renders, so the project gains or loses the major's CI jobs, badges and docs only when the 2 renders disagree on it. For Drupal 10 that includes `phpunit.d10.xml`, so dropping Drupal 10 removes the file.
 
 Also detect the **installed version** - the Eddy release the project was created from or last updated to, which Step 5 renders as the base of the merge. Take `extra.eddy.version` from `composer.dev.json` when it is set. Otherwise list the commits that updated the scaffold, newest first:
@@ -181,6 +183,7 @@ INSTALL_EXAMPLES=false \
 INSTALL_REMOVE_SELF=true \
 INSTALL_PROCEED=true \
 INSTALL_GITHUB_REPOSITORY='<repository>' \
+INSTALL_BRANCHES='<branches>' \
 php install.php
 ```
 
@@ -203,6 +206,8 @@ The script is `install.php` with the `INSTALL_` prefix in releases after 4.x. A 
 `<drupal_version>` is a comma-separated list of Drupal majors to target (e.g. `11`, `10,11` or `11,12`): the list from Step 1, with any major the user asked to add or drop. `<tools>` is a comma-separated list of the tools to keep - list every tool the project still uses, since anything omitted is removed.
 
 `<repository>` is the GitHub repository from Step 1. Without it, the badges in the render name the machine name as both the owner and the repository, and every release that changes a badge conflicts with the project's real values. A release that doesn't read `INSTALL_GITHUB_REPOSITORY` ignores it and renders the machine name.
+
+`<branches>` is the list of workflow branches from Step 1. The render runs where `install.php` finds no committed `test.yml`, so without the list it writes `1.x` into the branch filters it sets, and a filter that the release adds there would bring `1.x` into the project. A release that doesn't read `INSTALL_BRANCHES` ignores it and filters on `1.x`.
 
 ## Step 5: Render the installed version
 
@@ -232,13 +237,15 @@ tar -xzf .artifacts/tmp/eddy-update/base.tar.gz --strip-components=1 -C .artifac
 cd .artifacts/tmp/eddy-update/base
 ```
 
-Run the installer of that version here with the answers from Step 1 as they are, `INSTALL_GITHUB_REPOSITORY` included, under the script name and prefix that version uses (see Step 4), then return to the project root. As in Step 4, run each command only after the previous one finishes:
+Run the installer of that version here with the answers from Step 1 as they are, `INSTALL_GITHUB_REPOSITORY` and `INSTALL_BRANCHES` included, under the script name and prefix that version uses (see Step 4), then return to the project root. As in Step 4, run each command only after the previous one finishes:
 
 ```bash
 cd ../../../..
 ```
 
 The Drupal versions stay the ones the project tests now, even when Step 4 adds or drops a major. With the change in both renders, the merge would apply none of it. A 4.x installer also mishandles `12`: 4.19.0 rejects it, which leaves Step 7 without a base, 4.17.0 and 4.18.0 write it into the assemble default, and earlier releases ignore it.
+
+With the same branches in both renders, the merge leaves the project's branch filters alone. A release before 5.0.0-alpha2 doesn't read `INSTALL_BRANCHES` and filters on `1.x`, so with such a base, a branch filter that differs from the project's `push` branches, such as a `pull_request` filter, can conflict in Step 8.
 
 If the download or the installer fails, return to the project root, empty `base` and carry on without a base:
 
@@ -316,6 +323,7 @@ In each conflict, the lines after `<<<<<<< HEAD` are the project's and the lines
 git log -S'<release_pin>' --oneline -- <file>
 ```
 
+- In a workflow's branch filter, keep the project's branches. The installer writes the branches from Step 1 into both renders, or `1.x` into a base from a release before 5.0.0-alpha2 (see Step 5), so the release never brings branches of its own.
 - Leave `package-lock.json` to the lock file step below.
 - A file the release removed and the project changed (`UD` in `git status --porcelain`) goes with the release: remove it with `git rm`, and note it for the pull request as a change that needs a new home (see Step 9).
 - A template file the project removed and the release changed (`DU`) stays removed: remove it with `git rm`.
@@ -393,7 +401,7 @@ git grep -n -e '^<<<<<<< ' -e '^>>>>>>> '
 ```
 
 - **PHP versions**: the `drevops/eddy-tooling` package requires PHP 8.3 or newer, so a job in `.github/workflows/test.yml` with a lower `php-version`, such as Drupal 10 on PHP 8.2, fails at "Install the tooling". The merge keeps the project's matrix, so list those jobs for the pull request and tell the user about them. Leave them as they are: raising them drops a PHP version the extension tests, and that's the user's call.
-- **Branch references**: both renders ran in the scratch directory, where `install.php` finds no committed `test.yml`, so they filter the workflows on `1.x`. The merge keeps the branches the project lists wherever the 2 renders agree, and without a base, Step 8 resolved them as conflicts. Confirm that `.github/workflows/test.yml` and `.github/workflows/draft-release-notes.yml` list the branches the project builds from.
+- **Branch references**: both renders write the branches from Step 1 into the branch filters that `install.php` sets, so a filter that the release adds there names the project's branches too. Check every branch filter in `.github/workflows/`, a new workflow's included, and change any that lists other branches to the ones the project builds from. Where Step 1 found no branches, the release's filters read `1.x`.
 - **README.md and CONTRIBUTING.md**: check them as described below.
 - **Added files**: review the files the release added (`A` in `git status --porcelain`). Without a base, they can include template files the project once removed on purpose - remove those again.
 - **Leftover template files**: without a base, files that older releases shipped and this one does not, such as `phpmd.xml`, stay in the project. Leave them, and list them in the pull request description so the maintainer can decide.

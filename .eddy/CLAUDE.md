@@ -121,9 +121,9 @@ The scaffold builds from `main`, so the branch filters of `.github/workflows/tes
 - Otherwise, when `HEAD` holds a project copy of `test.yml`, as it does when `install.php` runs again in the root of an existing project, the project keeps that copy's `push` branches.
 - Otherwise the project gets `1.x`. A committed copy that still holds `#;` markers is the template's own, such as in a repository created with **Use this template**, so it doesn't count.
 
-The update skill runs `install.php` in a scratch directory, where the lookup finds no committed `test.yml`, so both of its renders get `1.x`. Its 3-way merge then keeps the project's branches, because the 2 renders agree on those lines.
+The update skill runs `install.php` in a scratch directory, where the lookup finds no committed `test.yml`, so it reads the `push` branches of the project's `test.yml` itself and passes them as `INSTALL_BRANCHES` to both renders. A branch filter that a release adds to those 2 files then names the project's branches, and the 3-way merge leaves the filters the project has as they are.
 
-Keep `main` the only branch in those filters: a second branch there ships to every generated project.
+Keep `main` the only branch in those filters: a second branch there ships to every generated project. A new workflow that filters on branches needs a `set_workflow_branches()` call in `process_workflow_branches()`, or it ships `main` to every project: `InstallProcessTest` fails until the branch filters of every shipped workflow hold the branches the installer sets.
 
 ## GitHub repository
 
