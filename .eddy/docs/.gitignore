@@ -11,6 +11,7 @@
 .docusaurus
 .cache-loader
 /static/img/social-card.png
+/static/img/demos
 
 # Misc
 .env.local

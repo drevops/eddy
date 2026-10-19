@@ -22,7 +22,7 @@ npm run spellcheck           # Run only the spell check
 npm run test:accessibility   # Check the built site for accessibility issues
 ```
 
-`npm start` and `npm run build` first copy the social preview card from `.eddy/assets` into `static/img`, where git ignores it. `npm test` writes the coverage of the components to `.logs/coverage`, which git ignores too.
+`npm start` and `npm run build` first copy the social preview card and the 4 animated demos from `.eddy/assets` into `static/img`, where git ignores them. `npm test` writes the coverage of the components and the home page to `.logs/coverage`, which git ignores too.
 
 `npm run test:accessibility` checks the site in `build/`, so run `npm run build` first. It drives a browser through [Playwright](https://playwright.dev/), which needs its own copy of Chromium: `npx playwright install chromium` downloads it once.
 
@@ -47,15 +47,28 @@ npm run test:accessibility   # Check the built site for accessibility issues
 - **Diagrams.** A `mermaid` code block renders as a [Mermaid](https://mermaid.js.org/) diagram.
 - **Spelling.** CSpell checks the pages in US English with the words in `cspell.json`. Add a word the docs use in several places there, and a word only 1 page uses to that page, as `{/* cspell:ignore word */}`.
 
+## The home page
+
+The home page at `/` isn't a Markdown page: it's a React page, `src/pages/index.js`. The introduction it links to lives at `/introduction`, set by the `slug` in the front matter of `content/README.mdx`.
+
+The page's words sit in lists at the top of `src/pages/index.js`, 1 list per section: the demos, the stats, the tools, the features, the parts, the reasons, the steps, the docs cards and the projects. So changing what the page says usually means changing a list, not the markup.
+
+- **Versions.** `DRUPAL_MAJORS` and `PHP_VERSIONS` hold the versions the page states. Keep them as plain lists of strings: `DocumentationTest` reads them and fails until they match what `install.php` offers.
+- **Demos.** The terminal plays the animated demos of `.eddy/assets`, which `npm start` and `npm run build` copy into `static/img/demos`. The page can't import them the way a Markdown page does, because a JavaScript import of an SVG turns it into a React component rather than a URL.
+- **Components.** The terminal, the scrolling tool list, the install command with its copy button and the icons are `DemoTerminal`, `ToolTicker`, `CopyCommand` and `Icon` in `src/components`.
+- **Look.** The colors come from the `--eddy-*` tokens in `src/css/custom.css`. The type is Lexend, which the `@fontsource-variable/lexend` package serves from the site itself, so the page fetches no font from another server. Doc pages keep their system fonts.
+- **Motion.** Each block below the fold plays a short entrance as it scrolls into view. Without JavaScript, or when the reader's system asks for reduced motion, every block shows at once.
+
 ## Accessibility
 
-The site aims for [WCAG 2.2](https://www.w3.org/TR/WCAG22/) level AA in both color modes. `npm run test:accessibility` runs [axe](https://github.com/dequelabs/axe-core) on every page of the build, in light and dark mode, at a desktop width and a phone width, against the WCAG A and AA rules. It also opens the search dropdown, the mobile menu and an animated demo, and checks how they behave from the keyboard. Automated checks catch many problems but miss others, so the writing still needs the care described below.
+The site aims for [WCAG 2.2](https://www.w3.org/TR/WCAG22/) level AA in both color modes. `npm run test:accessibility` runs [axe](https://github.com/dequelabs/axe-core) on every page of the build, in light and dark mode, at a desktop width and a phone width, against the WCAG A and AA rules. These scans run with reduced motion, so the home page shows every block at once, and a separate check scans the home page again after scrolling through it with motion on. It also opens the search dropdown, the mobile menu, an animated demo and the home page's terminal, tool list and copy button, and checks how they behave. Automated checks catch many problems but miss others, so the writing still needs the care described below.
 
 Some of it is handled for you, so a page needs no extra markup:
 
 - Links in page text are underlined, because color alone doesn't set a link apart from the text around it.
 - Text colors reach at least 4.5:1 against their background. The light-mode blue is `#006c99`, a darker shade of the `#009cde` logo blue, which only reaches about 3:1 on white. The code block colors live in `src/codeThemes.js`, and a unit test checks every token color of both themes.
 - An animated SVG added with Markdown image syntax gets a **Pause animation** button, and it starts paused when the reader's system asks for reduced motion.
+- The home page's terminal and its scrolling tool list each have a pause button too, and both hold still when the reader's system asks for reduced motion.
 - A table wider than the page takes keyboard focus, so it scrolls with <kbd>←</kbd> and <kbd>→</kbd>.
 - The mobile menu keeps keyboard focus inside while it's open and closes on <kbd>Esc</kbd>, and the search box gets the ARIA attributes that its autocomplete widget leaves out. Both fixes live in `src/theme/`, so check them when Docusaurus or the search plugin changes its markup.
 
@@ -91,3 +104,5 @@ The workflow reads the site URL and base path from the GitHub Pages settings, so
 Every build serves the installer at `/install`: the root `install.php`, with the version of the build written over its version placeholder. `src/installer.js` writes the file after the build, and the installer downloads the GitHub archive of that version. A release build takes the version above, so a manual run with a version republishes the installer of that release. Any other build, such as the development site or a preview, takes the `git describe` output of its commit, so its installer installs that commit.
 
 Before it deploys, the release workflow installs an extension with the built installer in an empty directory. A version that GitHub has no archive for fails that check, so a mistyped version never reaches the site.
+
+{/* cspell:ignore lexend */}

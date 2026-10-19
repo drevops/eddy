@@ -31,6 +31,8 @@ const config = {
 
   onBrokenLinks: 'throw',
   onBrokenAnchors: 'throw',
+  // Pages and docs share the site root, so a doc slug can shadow a page.
+  onDuplicateRoutes: 'throw',
 
   i18n: {
     defaultLocale: 'en',
@@ -108,6 +110,12 @@ const config = {
         },
         items: [
           {
+            type: 'docSidebar',
+            sidebarId: 'docs',
+            label: 'Docs',
+            position: 'left',
+          },
+          {
             label: 'Download',
             href: 'https://github.com/drevops/eddy/releases/latest',
             position: 'right',
@@ -131,6 +139,7 @@ const config = {
           {
             title: 'Docs',
             items: [
+              {label: 'Introduction', to: '/introduction'},
               {label: 'Installation', to: '/installation'},
               {label: 'Development', to: '/development'},
               {label: 'Updating', to: '/updating'},

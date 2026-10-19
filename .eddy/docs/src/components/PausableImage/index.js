@@ -1,1 +1,1 @@
-export { default, freezeSvg } from './PausableImage';
+export { default } from './PausableImage';

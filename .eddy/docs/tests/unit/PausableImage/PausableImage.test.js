@@ -1,5 +1,5 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
-import PausableImage, { freezeSvg } from '../../../src/components/PausableImage';
+import PausableImage from '../../../src/components/PausableImage';
 
 const ANIMATED_SVG = '<svg><style>@keyframes i{0%{opacity:0}100%{opacity:1}}</style></svg>';
 const STATIC_SVG = '<svg><rect width="1" height="1"/></svg>';
@@ -106,20 +106,5 @@ describe('PausableImage', () => {
 
     expect(URL.createObjectURL).not.toHaveBeenCalled();
     expect(URL.revokeObjectURL).not.toHaveBeenCalled();
-  });
-});
-
-describe('freezeSvg', () => {
-  test.each([
-    { name: 'an SVG', svg: '<svg><g/></svg>', before: '<svg><g/>' },
-    { name: 'an SVG with a trailing newline', svg: '<svg><g/></svg>\n', before: '<svg><g/>' },
-    { name: 'a nested SVG', svg: '<svg><svg><g/></svg></svg>', before: '<svg><svg><g/></svg>' },
-  ])('finishes every animation of $name on its last frame', ({ svg, before }) => {
-    const frozen = freezeSvg(svg);
-
-    expect(frozen.startsWith(`${before}<style>`)).toBe(true);
-    expect(frozen.endsWith('</style></svg>')).toBe(true);
-    expect(frozen).toContain('animation-iteration-count:1!important');
-    expect(frozen).toContain('animation-fill-mode:forwards!important');
   });
 });

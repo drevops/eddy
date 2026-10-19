@@ -9,6 +9,7 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/tests/jest-setup.js'],
   moduleNameMapper: {
     '^@site/(.*)$': '<rootDir>/$1',
+    '^@docusaurus/(Link|useBaseUrl|useBrokenLinks)$': '<rootDir>/tests/__mocks__/docusaurus/$1.js',
     '^@theme/(.*)$': '<rootDir>/tests/__mocks__/theme/$1.js',
     '^@theme-original/(.*)$': '<rootDir>/tests/__mocks__/theme-original/$1.js',
     '\\.css$': '<rootDir>/tests/__mocks__/styleModule.js'
@@ -16,6 +17,7 @@ module.exports = {
   collectCoverageFrom: [
     'src/*.js',
     'src/components/**/*.{js,jsx}',
+    'src/pages/**/*.{js,jsx}',
     'src/theme/**/*.{js,jsx}',
     '!src/**/*.test.{js,jsx}',
     '!src/**/*.spec.{js,jsx}'

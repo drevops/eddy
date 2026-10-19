@@ -1,0 +1,142 @@
+.ticker {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* 'clip' keeps a scroll to a chip from shifting the rows, where 'hidden'
+   would let it scroll them. */
+.rows {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  overflow: clip;
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+
+/* The row holds 2 copies of the same list, so moving it by half its width
+   lands the second copy where the first began. */
+.row {
+  display: flex;
+  width: max-content;
+  animation: eddy-ticker-left 60s linear infinite;
+}
+
+.row + .row {
+  margin-top: 0.75rem;
+  animation-name: eddy-ticker-right;
+}
+
+.ticker:hover .row,
+.paused .row {
+  animation-play-state: paused;
+}
+
+/* The space after each copy matches the gap between chips, so the seam
+   between the copies looks like any other gap. */
+.list {
+  display: flex;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0 0.75rem 0 0;
+  list-style: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--eddy-border);
+  border-radius: 999px;
+  background: var(--eddy-surface);
+  color: var(--eddy-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.chip::before {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--eddy-blue), var(--ifm-color-primary));
+  content: '';
+}
+
+.toggle {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--eddy-border-2);
+  border-radius: 50%;
+  background: var(--eddy-surface);
+  color: var(--eddy-muted);
+  cursor: pointer;
+  transition:
+    color 150ms ease,
+    border-color 150ms ease;
+}
+
+.toggle:hover {
+  border-color: var(--ifm-color-primary);
+  color: var(--ifm-color-primary);
+}
+
+.toggle:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 2px;
+}
+
+.toggleIcon {
+  width: 16px;
+  height: 16px;
+}
+
+@keyframes eddy-ticker-left {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes eddy-ticker-right {
+  from {
+    transform: translateX(-50%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Without motion, each row wraps in place and the second copy goes. */
+@media (prefers-reduced-motion: reduce) {
+  .rows {
+    mask-image: none;
+  }
+
+  .row,
+  .row + .row {
+    width: auto;
+    justify-content: center;
+    animation: none;
+  }
+
+  .list {
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .list[aria-hidden='true'],
+  .toggle {
+    display: none;
+  }
+}

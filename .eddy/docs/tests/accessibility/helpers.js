@@ -27,15 +27,28 @@ export const builtPages = () => {
     .sort();
 };
 
-// Mermaid draws a diagram after hydration and leaves no placeholder before
-// it, so the page source gives the number of diagrams to wait for. A page
-// lives at 'content/<path>.mdx', or at 'content/<path>/README.mdx' when it
-// indexes a folder.
-const diagramCount = (url) => {
-  const base = path.join(CONTENT_DIR, url.split(/[?#]/)[0]);
-  const source = [`${base}.mdx`, path.join(base, 'README.mdx')].find((file) => fs.existsSync(file));
+// Maps the URL of each page to its source. A page lives at the 'slug' of its
+// front matter, or else at 'content/<path>.mdx', or at
+// 'content/<path>/README.mdx' when it indexes a folder.
+const pageSources = () => {
+  const files = fs.readdirSync(CONTENT_DIR, { recursive: true }).filter((file) => file.endsWith('.mdx'));
 
-  return source ? (fs.readFileSync(source, 'utf8').match(/^\s*```mermaid\b/gm) || []).length : 0;
+  return Object.fromEntries(files.map((file) => {
+    const source = fs.readFileSync(path.join(CONTENT_DIR, file), 'utf8');
+    const frontMatter = source.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? '';
+    const slug = frontMatter.match(/^slug:\s*(\S+)\s*$/m)?.[1];
+    const route = file.split(path.sep).join('/').replace(/(^|\/)README\.mdx$/, '').replace(/\.mdx$/, '');
+
+    return [slug ?? `/${route}`, source];
+  }));
+};
+
+// Mermaid draws a diagram after hydration and leaves no placeholder before
+// it, so the page source gives the number of diagrams to wait for.
+const diagramCount = (url) => {
+  const source = pageSources()[url.split(/[?#]/)[0]] ?? '';
+
+  return (source.match(/^\s*```mermaid\b/gm) || []).length;
 };
 
 // Opens a page in a color mode and waits until it is fully drawn.
