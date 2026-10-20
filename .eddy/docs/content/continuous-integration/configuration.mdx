@@ -10,7 +10,7 @@ The `Test` workflow in `.github/workflows/test.yml` works as it is. This page co
 
 ## Distribute tools across CI runners
 
-Each test job lists at its top which tools run on which runner. `CI_RUNNER_INDEX` and `CI_RUNNER_TOTAL` give the runner's position, and each tool has a `CI_IS_<TOOL>_RUNNER` flag inside its own block that only its steps read, so moving a tool to another runner is 1 edit:
+Each leg of the `test` job's matrix is a CI runner of its own, with 1 PHP and Drupal pair. The `env` block at the top of the job decides which tools run on which runner:
 
 ```yaml
 env:
@@ -20,13 +20,23 @@ env:
   CI_IS_PHPUNIT_RUNNER: true
 ```
 
-Each leg of the matrix is a runner of its own, so every flag is `true`, and every tool runs on every leg.
+Each tool that the `test` job runs, Jest and PHPUnit, has a `CI_IS_<TOOL>_RUNNER` flag, and its steps run only on a runner where the flag is `true`. Every flag is `true`, so every tool runs on every runner and tests every PHP and Drupal pair. The linters run in the `lint` jobs, which have no flags.
 
-To shard a tool, add a matrix dimension and compare the tool's flag against it. Check your [branch protection](branch-protection.mdx) first: GitHub names each status check after the leg's `name`, so the legs you add or rename need the same change in your rules. If a test runner names its shards after the runner index, give a tool that needs its own runner the last one: excluding runner 0 orphans the first shard, which is often the catch-all for untagged tests.
+To run a tool on 1 runner only, replace its `true` with an expression that's true on that runner alone. The following flag compares the runner's `matrix.name` with the name of 1 job, so Jest runs on that job only:
+
+```yaml
+CI_IS_JEST_RUNNER: ${{ matrix.name == 'test-php-max-d11-stable' }}
+```
+
+`CI_RUNNER_INDEX` holds the runner's position in the matrix, counting from 0, and `CI_RUNNER_TOTAL` the number of runners. No tool reads them on its own: they're there for a step of yours that splits 1 tool's tests across several runners, which is called sharding.
+
+A sharded tool often gives runner 0 the tests that no other runner picks up. So to give another tool a runner of its own, take the last runner rather than runner 0, or those tests stop running.
+
+Before you add or rename runners, check your [branch protection](branch-protection.mdx): GitHub names each status check after the leg's `name`, so the legs you add or rename need the same change in your rules.
 
 ## Allow a CI step to fail
 
-To let a lint or test step fail without failing its job, set its repository variable to `1` in **Settings** → **Secrets and variables** → **Actions** → **Variables**. The step still runs and reports what it finds, which helps while you work through a backlog of findings from a tool you've added.
+To let a lint or test step fail without failing its job, create the repository variable that the following table names for it, with the value `1`, under **Settings** → **Secrets and variables** → **Actions** → **Variables**. With any other value, a failure of the step still fails the job. The step still runs and reports what it finds, and the steps after it run too, which helps while you work through a backlog of findings from a tool you've added.
 
 The following table lists the variables and the step each one covers:
 
@@ -45,7 +55,7 @@ Your workflow has only the steps of the tools you kept, and so only their variab
 
 ## Upload coverage to Codecov
 
-Every test job uploads its coverage reports as a workflow artifact. To send them to [Codecov](https://codecov.io) as well, add a `CODECOV_TOKEN` repository secret: the upload step runs only when it's set, and fails the job when the upload fails, so a broken upload doesn't go unnoticed.
+Every test job that runs PHPUnit uploads its coverage reports as a workflow artifact. To send them to [Codecov](https://codecov.io) as well, copy the upload token from your repository's settings on Codecov. Add it as the `CODECOV_TOKEN` secret under **Settings** → **Secrets and variables** → **Actions** → **Secrets**. The upload step runs only when the secret is set, and fails the job when the upload fails, so a broken upload doesn't go unnoticed.
 
 ## Deprecations on newer PHP
 

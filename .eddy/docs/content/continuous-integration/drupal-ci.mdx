@@ -6,15 +6,15 @@ description: Run Drupal.org's GitLab CI on the mirrored extension with the 1 ove
 
 # Drupal.org CI
 
-After your extension is [mirrored to Drupal.org](../deployment/README.mdx), Drupal.org can test it with its own GitLab CI, which runs when the repository has a `.gitlab-ci.yml`. Eddy's configuration works with it as it is, including the PHPStan error suppressions, which resolve even though GitLab CI runs the analysis from within the module directory. This page shows the 1 setting it needs.
+After your extension is [mirrored to Drupal.org](../deployment/README.mdx), Drupal.org can test it with its own GitLab CI, which runs when the repository has a `.gitlab-ci.yml`. Eddy doesn't ship that file, so you add it. Eddy's configuration works with GitLab CI apart from 1 setting, which this page shows. The PHPStan error suppressions work too, even though GitLab CI runs the analysis from within the module directory.
 
 PHPUnit needs 1 override there: turn off code coverage. GitLab CI symlinks your project back into the built site's `web/modules/custom/<name>/` directory, so PHPUnit's coverage scan follows that loop into `web/core/node_modules` and runs out of file descriptors. GitHub Actions collects coverage already, so GitLab CI can skip it.
 
-To set it up, add the [standard Drupal.org GitLab CI templates](https://git.drupalcode.org/project/gitlab_templates) to a `.gitlab-ci.yml` in your project root, with this override:
+To set it up, create a `.gitlab-ci.yml` in your project root that includes the [standard Drupal.org GitLab CI templates](https://git.drupalcode.org/project/gitlab_templates), as their instructions show. Then add this override to the same file:
 
 ```yaml title=".gitlab-ci.yml"
 variables:
   _PHPUNIT_EXTRA: '--no-coverage'
 ```
 
-GitLab CI reads the patches declared in your extension's `composer.json`, with composer-patches 1.x, but not the ones in `composer.dev.json`. See [Patch dependencies](../development/dependencies.mdx#patch-dependencies) for where each kind belongs.
+GitLab CI applies the patches declared in your extension's `composer.json` with composer-patches 1.x, and ignores the ones in `composer.dev.json`. So a patch that your tests need on GitLab CI too goes in `composer.json`. See [Patch dependencies](../development/dependencies.mdx#patch-dependencies) for what each file's patches reach.

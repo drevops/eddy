@@ -10,16 +10,16 @@ An Eddy extension runs its CI on [GitHub Actions](https://docs.github.com/en/act
 
 ## The workflows
 
-Your extension gets the following workflows:
+Your extension gets the following workflows, where your branches are the ones in the workflows' branch filters:
 
 | Workflow                                   | Runs on                                                    | What it does                                                                                                   |
 |--------------------------------------------|------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
-| `Test` (`test.yml`)                        | Pushes to your branches and tags, and pull requests that target your branches | Tests the extension on every pair of the [version matrix](#the-version-matrix), and lints it once per Drupal major. |
+| `Test` (`test.yml`)                        | Pushes to your branches and tags, and pull requests that target your branches | Tests the extension on the PHP and Drupal versions of the [version matrix](#the-version-matrix), and lints it once per Drupal major. |
 | `Deploy` (`deploy.yml`)                    | A successful `Test` run of a push                          | Mirrors the code to Drupal.org or another git remote. See [Deployment](../deployment/README.mdx).              |
 | `Draft release notes` (`draft-release-notes.yml`) | Pushes to your branches and tags                    | Keeps a draft GitHub release up to date with the pull requests merged since the last published release.        |
 | `Auto Author Assign` (`assign-author.yml`) | Opened and reopened pull requests                          | Assigns each pull request to its author.                                                                       |
 
-The installer sets the branch filters of `test.yml` and `draft-release-notes.yml` to `1.x`, or to the branches in `INSTALL_BRANCHES`. To build another branch, such as `2.x`, add it to the `push` branches of both files, and to the `pull_request` branches of `test.yml`.
+The installer sets the branch filters of `test.yml` and `draft-release-notes.yml` to the branches in its `INSTALL_BRANCHES` environment variable, such as `1.x,2.x`, or to `1.x` without it. [What the installer changes](../installation.mdx#what-the-installer-changes) has the full rule. To build another branch later, such as `2.x`, add it to the `push` branches of both files, and to the `pull_request` branches of `test.yml`.
 
 ## What each job runs
 
@@ -37,11 +37,11 @@ CI doesn't test every PHP and Drupal pair. 10 jobs cover the lowest and highest 
 | `test-php-max-d10-stable` | `8.4` | `10`       | Drupal 10 on the highest supported PHP  |
 | `test-php-min-d11-stable` | `8.3` | `11`       | Drupal 11 on the lowest supported PHP   |
 | `test-php-max-d11-stable` | `8.5` | `11`       | Drupal 11 on the highest supported PHP  |
-| `test-php-min-d11-legacy` | `8.3` | `11.1.0`   | Oldest tested Drupal 11 minor (pinned)  |
+| `test-php-min-d11-legacy` | `8.3` | `11.1.0`   | Newest patch of the oldest tested Drupal 11 minor |
 | `test-php-max-d11-canary` | `8.5` | `11@beta`  | Next Drupal 11 minor pre-release        |
 | `test-php-min-d12-stable` | `8.5` | `12`       | Drupal 12 on the lowest supported PHP   |
 | `test-php-max-d12-stable` | `8.5` | `12`       | Drupal 12 on the highest supported PHP  |
-| `test-php-min-d12-legacy` | `8.5` | `12.0.0`   | Oldest tested Drupal 12 minor (pinned)  |
+| `test-php-min-d12-legacy` | `8.5` | `12.0.0`   | Newest patch of the oldest tested Drupal 12 minor |
 | `test-php-max-d12-canary` | `8.5` | `12@beta`  | Next Drupal 12 minor pre-release        |
 
 The supported PHP versions are the ones Eddy tests each major on, from PHP 8.3, the floor of the tooling. The `lint` jobs run 1 per Drupal major:
@@ -54,12 +54,12 @@ The supported PHP versions are the ones Eddy tests each major on, from PHP 8.3, 
 
 Your extension gets only the jobs of the Drupal majors you selected in the installer. A `test` job's name gives its PHP bound (`min` or `max`), its Drupal major (`d10`, `d11` or `d12`) and its release tier (`stable`, `legacy` or `canary`), and a `lint` job's name gives its Drupal major. Each job's "Setup PHP" step shows the exact PHP version.
 
-- **Drupal versions float, apart from the `legacy` pins.** `stable` builds the newest stable release, and `canary` the newest release at beta stability or above: the next minor's beta or release candidate when there is one, otherwise the current stable release. New releases reach CI with no changes. The `legacy` minors, `11.1.0` and `12.0.0`, each build the newest patch of an older minor on purpose.
+- **Drupal versions float.** `stable` builds the newest stable release of the major, and `canary` the newest release at beta stability or above: the next minor's beta or release candidate when there is one, otherwise the current stable release. `legacy` pins an older minor on purpose and floats its patch: `11.1.0` builds the newest 11.1.x release, and `12.0.0` the newest 12.0.x. New releases reach CI with no changes.
 - **PHP versions are pinned bounds.** Each job sets an explicit PHP version, so `max` changes when a newer PHP is added, and `min` only when support for an old PHP is dropped. A [scaffold update](../updating/README.mdx) refreshes them, along with the `legacy` pins.
 
 ## Drupal 12
 
-Drupal 12 requires PHP 8.5, so every Drupal 12 job runs it. The jobs use the same kinds of values as the Drupal 11 jobs (`12`, `12.0.0` and `12@beta`) and follow Drupal 12's releases on their own.
+Drupal 12 requires PHP 8.5, so every Drupal 12 job runs it. Eddy tests Drupal 12 on PHP 8.5 alone, so its lowest and highest supported PHP are the same. That's why `test-php-min-d12-stable` and `test-php-max-d12-stable` run the same versions. The jobs use the same kinds of values as the Drupal 11 jobs (`12`, `12.0.0` and `12@beta`) and follow Drupal 12's releases on their own.
 
 Until Drupal 12 has a stable release, every Drupal 12 job builds its newest pre-release. After 12.0.0 ships, all of them build 12.0.0, then `canary` moves on to the 12.1 pre-releases while `legacy` stays on the 12.0.x patches. [Drupal versions](../development/drupal-versions.mdx#drupal-12) covers building Drupal 12 locally.
 
