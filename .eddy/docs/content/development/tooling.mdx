@@ -6,7 +6,7 @@ description: The drevops/eddy-tooling package holds the commands that build, run
 
 # Tooling package
 
-The commands that assemble, start, provision and deploy your extension come from the [`drevops/eddy-tooling`](https://github.com/drevops/eddy-tooling) Composer package, so fixes reach you through a version constraint rather than a manual merge. The `make` and Ahoy commands call them, CI calls them, and you can run them yourself as `vendor/bin/eddy-<command>` from the project root.
+The commands that assemble, start, provision and deploy your extension come from the [`drevops/eddy-tooling`](https://github.com/drevops/eddy-tooling) Composer package, so fixes reach you through a version constraint rather than a manual merge. The `make` and Ahoy commands call them and CI calls them. You can also run them yourself as `vendor/bin/eddy-<command>` from the project root. This page explains how the package gets installed, what each command does and how to change one.
 
 The package is published from the `.eddy/tooling` directory of Eddy, so report bugs and propose changes in [drevops/eddy](https://github.com/drevops/eddy/issues), not in the package's read-only mirror.
 
@@ -28,38 +28,79 @@ The version constraint lives in `composer.dev.json`:
 
 Keep the `~` constraint. It accepts patch releases and holds the minor version, so CI picks up fixes on its own, and a new minor version arrives with the next [scaffold update](../updating/README.mdx) rather than in the middle of a CI run.
 
-The installer runs Composer only when the constraint, the patches for the package or the contents of a local patch file change, or when a command is missing from `vendor/bin`. Otherwise it returns straight away, so running it before every command costs next to nothing. A local checkout keeps its patch release until `vendor/` is removed, which `reset` does.
+The installer records what it installed in `vendor/eddy-tooling.json`, and runs Composer only when that record no longer matches:
+
+- The constraint or the patches for the package change.
+- A local patch file changes.
+- `vendor/eddy-tooling.json` is missing, such as after `reset` removes `vendor/`.
+- A command of the installed package is missing from `vendor/bin`.
+
+Otherwise it returns straight away, so running it before every command costs next to nothing. That's also why a local checkout keeps its patch release until `vendor/` is removed, while CI, which installs from scratch, takes the newest one on every run.
 
 The package requires PHP 8.3 or newer, so every CI job and local build that installs it needs PHP 8.3 or newer too.
 
 :::warning Leave `scripts/eddy-tooling` as it is
 
-Never modify `scripts/eddy-tooling`, by hand or with AI: your project uses it as-is from Eddy, and a scaffold update replaces it with the release's copy. To add a step of your own, use a [lifecycle script](lifecycle-scripts.mdx). To change what a command does, [patch the package](#patching-the-package).
+Never modify `scripts/eddy-tooling`, by hand or with AI: your project uses it as-is from Eddy, and a scaffold update replaces it with the release's copy. To add a step of your own, use a [lifecycle script](lifecycle-scripts.mdx). To change what a command does, [patch the package](#patch-the-package).
 
 :::
 
 ## Commands
 
+The package installs the following commands into `vendor/bin`:
+
 | Command              | Purpose                                                                                                                 |
 |----------------------|-------------------------------------------------------------------------------------------------------------------------|
-| `eddy-assemble`      | Assembles a Drupal codebase in `build/`, installs the dependencies and symlinks the extension.                          |
-| `eddy-start`         | Starts the PHP built-in webserver. Discovers a free port from 8000 to 8099 and writes it to `.env`.                     |
+| `eddy-assemble`      | Assembles a Drupal codebase in `build/`, installs the dependencies and links the extension into it.                     |
+| `eddy-start`         | Starts the PHP built-in webserver. When neither your shell nor `.env` sets `WEBSERVER_PORT`, discovers a free port from 8000 to 8099 and writes it to `.env`. |
 | `eddy-stop`          | Stops the webserver.                                                                                                    |
 | `eddy-provision`     | Installs Drupal on the assembled site and enables the extension.                                                        |
 | `eddy-login`         | Prints a one-time login link without opening it in a browser, and draws it as a QR code when `LOGIN_QRCODE` is set.     |
 | `eddy-deploy`        | Mirrors the extension to a remote git repository, such as Drupal.org. CI runs it.                                       |
-| `eddy-browser-start` | Starts the WebDriver backend for FunctionalJavascript tests. Discovers a free port from 4444 and writes it to `.env`.    |
+| `eddy-browser-start` | Starts the WebDriver backend for FunctionalJavascript tests. When neither your shell nor `.env` sets `WEBDRIVER_PORT`, discovers a free port from 4444 to 4543 and writes it to `.env`. |
 | `eddy-browser-stop`  | Stops the WebDriver backend.                                                                                            |
 | `eddy-info`          | Prints a summary of the environment, or a single field such as `site-url` for the wrappers to read.                     |
 | `eddy-qrcode`        | Draws a URL as a QR code in the terminal.                                                                               |
 
-The pages of this section describe what each command does in detail: [Building the site](building.mdx) for `eddy-assemble`, [Webserver](webserver.mdx) for `eddy-start` and `eddy-stop`, [Provisioning](provisioning.mdx) for `eddy-provision` and `eddy-login`, [FunctionalJavascript tests](../testing/functional-javascript.mdx) for the browser commands, [Public tunnel](tunnel.mdx) for `eddy-qrcode`, and [Deployment](../deployment/README.mdx) for `eddy-deploy`.
+These pages describe each command in detail:
+
+- [Build the site](building.mdx) for `eddy-assemble`
+- [Webserver](webserver.mdx) for `eddy-start` and `eddy-stop`
+- [Provision the site](provisioning.mdx) for `eddy-provision` and `eddy-login`
+- [FunctionalJavascript tests](../testing/functional-javascript.mdx) for the browser commands
+- [Public tunnel](tunnel.mdx) for `eddy-qrcode`
+- [Deployment](../deployment/README.mdx) for `eddy-deploy`
+
+### `eddy-info` fields
+
+`vendor/bin/eddy-info FIELD` prints a single value. An unknown field prints `-` and exits with code `1`. The following table lists the fields:
+
+| Field               | Value                                                                                         |
+|---------------------|-----------------------------------------------------------------------------------------------|
+| `drupal-version`    | The installed Drupal version.                                                                 |
+| `php-version`       | The PHP version on your `PATH`.                                                               |
+| `composer`          | The Composer version.                                                                         |
+| `drush`             | The Drush version of the build.                                                               |
+| `node`              | The Node.js version.                                                                          |
+| `npm`               | The npm version.                                                                              |
+| `webserver-host`    | The webserver host, from `WEBSERVER_HOST`.                                                     |
+| `webserver-port`    | The webserver port, from `WEBSERVER_PORT`.                                                     |
+| `site-url`          | The site URL: the tunnel URL when a [tunnel](tunnel.mdx) is up, the webserver URL otherwise.  |
+| `xdebug`            | `enabled` or `disabled` for the running webserver, or `-` when it isn't running.              |
+| `webdriver-port`    | The WebDriver port, from `WEBDRIVER_PORT`.                                                     |
+| `webdriver-backend` | The WebDriver backend, from `WEBDRIVER_BACKEND`: `chromedriver` or `selenium`.                 |
+| `webdriver-host`    | The value of `WEBDRIVER_HOST`, or an empty line when it isn't set.                            |
+| `build-dir`         | The absolute path of the `build` directory.                                                   |
+| `database`          | The path of the SQLite database.                                                              |
+| `drupal-profile`    | The install profile, from `DRUPAL_PROFILE`.                                                    |
+
+A value that can't be resolved, such as the Drupal version before the first build, prints `-`.
 
 ## Command output
 
-The commands print their own progress and hide the output of the tools they run, such as Composer, npm and Drush, unless one of them fails. [Debugging](debugging.mdx#command-output) explains how to see all of it, and where the processes that keep running write their logs.
+The commands print their own progress and hide the output of the tools they run, such as Composer, `npm ci` and Drush, unless one of them fails. The output of `npm run build` and of your lifecycle scripts always shows. [Debug your extension](debugging.mdx#command-output) explains how to see all of it, and where the processes that keep running write their logs.
 
-## Patching the package
+## Patch the package
 
 The package is installed into `vendor/`, so an edit made there is lost on the next install. To change what a command does, declare a patch for the package in `composer.dev.json`, next to its version constraint:
 
@@ -73,10 +114,10 @@ The package is installed into `vendor/`, so an edit made there is lost on the ne
 }
 ```
 
-The installer applies the patches with [`cweagans/composer-patches`](https://github.com/cweagans/composer-patches), and installs the package again whenever the list changes or a local patch file is edited. Local patch paths are relative to the project root. The patches, like the package, stay out of the site build.
+The installer reads patches for the package from `composer.dev.json` only, and applies them with [`cweagans/composer-patches`](https://github.com/cweagans/composer-patches). A patch for it in your extension's `composer.json` never reaches the tooling. Local patch paths are relative to the project root. The site build leaves out the package and its patch declarations, so it never applies them, although the patch files reach `build/patches` with the rest of the `patches` directory.
 
-Reach for a patch only when a [lifecycle script](lifecycle-scripts.mdx) can't do the job. A script adds a step to a phase, while a patch changes the command itself, and it can stop applying when a tooling release changes the lines it touches.
+Reach for a patch only when a [lifecycle script](lifecycle-scripts.mdx) can't do the job. A script adds a step to a phase, while a patch changes the command itself. A patch can also stop applying when a tooling release changes the lines it touches.
 
 ## How the package is tested
 
-Eddy's own test suite covers every command: unit tests run each one with its external calls mocked, and functional tests build, run and lint a real extension through the same commands. [Scaffold tests](../contributing/scaffold-tests.mdx) describes the suite.
+Eddy's own test suite covers every command. Unit tests run each one with its external calls mocked, and functional tests build, run and lint a real extension through the same commands. [Scaffold tests](../contributing/scaffold-tests.mdx) describes the suite.

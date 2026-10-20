@@ -1,14 +1,16 @@
 ---
 title: Coding standards
 sidebar_position: 11
-description: The linters that check an Eddy extension, where their configuration lives, and how to fix what they report.
+description: The linters that check an Eddy extension, where their configuration lives and how to fix what they report.
 ---
 
 import CommandTabs from '@site/src/components/CommandTabs';
 
 # Coding standards
 
-`lint` checks the codebase with every linter you kept in the installer, and `lint-fix` runs the ones that can fix what they find:
+`lint` checks the codebase with every linter you kept in the installer, and `lint-fix` runs the ones that can fix what they find. Both stop at the first tool that fails. This page lists the tools, where they run and how to fix what they report.
+
+To check and fix the codebase, run the following commands:
 
 <CommandTabs
   make={`make lint       # Check coding standards
@@ -26,31 +28,33 @@ npm install
 npm run lint-spell`}
 />
 
-![Checking coding standards](../../../assets/lint.svg)
+![ahoy lint running the linters on the extension in a terminal](../../../assets/lint.svg)
 
 ## The tools
 
-`lint` runs them in the order of this table. Their configuration files sit in the root of the codebase, so you tune a rule in the same place for your machine and for CI.
+`lint` runs the tools in the order of the following table. Their configuration files sit in the root of the codebase, so you tune a rule in the same place for your machine and for CI.
 
 | Tool                                                            | What it checks                                                                                  | Configuration                         | Fixes |
 |-----------------------------------------------------------------|-------------------------------------------------------------------------------------------------|---------------------------------------|-------|
-| PHPCS                                                           | PHP against the `Drupal`, `DrupalPractice`, `DrevOps` and `PHPCompatibility` standards.          | `phpcs.xml`                           | Yes   |
+| PHPCS                                                           | PHP against the `Drupal`, `DrupalPractice`, `DrevOps` and `PHPCompatibility` standards for PHP 8.3, and `declare(strict_types=1)` in every file. | `phpcs.xml`                           | Yes   |
 | [PHPStan](https://phpstan.org/)                                 | PHP with static analysis, with [PHPStan Drupal](https://github.com/mglaman/phpstan-drupal).    | `phpstan.neon`                        | No    |
-| [Drupal Rector](https://github.com/palantirnet/drupal-rector)   | PHP for deprecated code.                                                                        | `rector.php`                          | Yes   |
+| [Drupal Rector](https://github.com/palantirnet/drupal-rector)   | PHP for deprecated Drupal code. Rector also applies the PHP 8.3 upgrade sets and strict types, plus its dead code, code quality, coding style, type declaration, privatization and naming sets. | `rector.php`                          | Yes   |
 | [Twig CS Fixer](https://github.com/VincentLanglet/Twig-CS-Fixer) | Twig templates.                                                                                | `.twig-cs-fixer.php`                  | Yes   |
-| [ESLint](https://eslint.org/)                                   | JavaScript, with [Prettier](https://prettier.io/) formatting.                                   | `.eslintrc.json`, `.prettierrc.json`  | Yes   |
+| [ESLint](https://eslint.org/)                                   | JavaScript, with [Prettier](https://prettier.io/) formatting.                                   | `.eslintrc.json`, `.eslintignore`, `.prettierrc.json`, `.prettierignore` | Yes   |
 | [Stylelint](https://stylelint.io/)                              | CSS.                                                                                            | `.stylelintrc.js`                     | Yes   |
 | [CSpell](https://cspell.org/)                                   | Spelling across the codebase.                                                                   | `.cspell.json`                        | No    |
 
 ## Where they run
 
-The PHP and JavaScript tools run from the `build` directory, where the assembled site gives them Drupal core and your dependencies, so [build the site](building.mdx) before you lint. ESLint and Stylelint check the extension through its symlink in the site, and they only run when the build installed the frontend dependencies (see [Frontend dependencies](dependencies.mdx#frontend-dependencies)).
+The PHP and JavaScript tools run from the `build` directory, where the assembled site gives them Drupal core and your dependencies, so [build the site](building.mdx) before you lint. ESLint and Stylelint check the extension through its directory in the site, and they only run when the build installed the frontend dependencies (see [Frontend dependencies](dependencies.mdx#frontend-dependencies)).
 
-CSpell runs from the project root instead, and installs the root `package.json` dependencies first when `node_modules` is missing. It checks every file that git doesn't ignore, apart from the paths in the `ignorePaths` of `.cspell.json`.
+`assemble` copies the configuration files into `build`, so an edit to one applies after the next `assemble`. Edit the files in your project, not the copies in `build`.
 
-## Fixing what they report
+CSpell runs from the project root instead, and reads `.cspell.json` in place. It installs the root `package.json` dependencies first when `node_modules` is missing. It checks every text file that git doesn't ignore, apart from hidden files and directories, such as `.github`, and the paths in the `ignorePaths` of `.cspell.json`.
 
-`lint-fix` runs Rector, PHPCBF (the fixer that comes with PHPCS), Twig CS Fixer, ESLint and Stylelint with their fix options:
+## Fix what the linters report
+
+`lint-fix` runs Rector, PHPCBF, Twig CS Fixer, ESLint and Stylelint with their fix options. PHPCBF is the fixer that comes with PHPCS. To fix what the tools can fix, run the following command:
 
 <CommandTabs
   make={`make lint-fix`}
@@ -73,4 +77,4 @@ CSpell checks prose, code and inline code in Markdown, and skips fenced code blo
 
 ## In CI
 
-CI runs the same tools in its `lint` jobs, 1 per Drupal major you test. To let a tool fail without failing its job while you work through its findings, set its [ignore-failure variable](../continuous-integration/configuration.mdx#allowing-a-ci-step-to-fail).
+CI runs the same tools in its `lint` jobs, 1 per Drupal major you test, with CSpell first. To let a tool fail without failing its job while you work through its findings, set its [ignore-failure variable](../continuous-integration/configuration.mdx#allow-a-ci-step-to-fail).

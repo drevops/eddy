@@ -1,14 +1,16 @@
 ---
-title: Building the site
+title: Build the site
 sidebar_position: 1
 description: How Eddy assembles a Drupal codebase around your extension, starts the webserver and installs the site.
 ---
 
 import CommandTabs from '@site/src/components/CommandTabs';
 
-# Building the site
+# Build the site
 
-`build` assembles the codebase in the `build` directory, starts the PHP webserver and installs the Drupal website with your extension enabled. Your extension's files are symlinked into the site, so an edit in your project shows up in the site straight away, and CI builds it the same way.
+`build` assembles the codebase in the `build` directory, starts the PHP webserver and installs the Drupal website with your extension enabled. Your extension's files are linked into the site, so an edit in your project shows up in the site straight away, and CI builds it the same way. This page shows what each step does, and how to see the full output when a step fails.
+
+To build the site, run the following command:
 
 <CommandTabs
   make={`make build`}
@@ -19,7 +21,7 @@ vendor/bin/eddy-start         # Start the PHP server
 vendor/bin/eddy-provision     # Provision the Drupal website`}
 />
 
-![Building the site](../../../assets/build.svg)
+![ahoy build assembling the codebase, starting the webserver and installing Drupal in a terminal](../../../assets/build.svg)
 
 ## What `build` runs
 
@@ -42,6 +44,8 @@ flowchart LR
   assemble --> start --> provision
 ```
 
+To run only part of the job, run the commands on their own:
+
 <CommandTabs
   make={`make assemble     # Assemble the codebase
 make start        # Start the PHP server
@@ -54,30 +58,37 @@ vendor/bin/eddy-start         # Start the PHP server
 vendor/bin/eddy-provision     # Provision the Drupal website`}
 />
 
-Run them on their own when you only need part of the job. `provision` reinstalls the website without reassembling the codebase, which is much faster when only the site's state needs a reset.
+`provision` reinstalls the website without reassembling the codebase, which is much faster when only the site's state needs a reset.
 
-### Assembling the codebase
+### What `assemble` does
 
 `assemble` builds a fresh codebase every time, in this order:
 
-1. Checks your extension and the tools it uses, and resolves the Drupal release to build from `DRUPAL_VERSION` (see [Drupal versions](drupal-versions.mdx)).
-2. Checks that the PHP running the build meets that release's PHP requirement, and stops before it touches `build` when it doesn't.
-3. Stops the webserver when it's still serving an earlier build, running your `scripts/stop-*.sh` [lifecycle scripts](lifecycle-scripts.mdx) first, the way `stop` does. It comes after the checks, so a failed check leaves your site running.
-4. Removes the old `build` directory and creates a Drupal project from [drupal/recommended-project](https://www.drupal.org/docs/develop/using-composer/starting-a-site-using-drupal-composer-project-templates), with core pinned to the resolved release.
-5. Merges the development dependencies and settings of `composer.dev.json` and your extension's `composer.json` into the project, and pins the PHP platform.
-6. Installs the dependencies, applies your [patches](dependencies.mdx#patching-dependencies), and adds the extensions you [`suggest`](dependencies.mdx#optional-dependencies).
-7. Copies the configuration files of the linters and PHPUnit into `build`, because not every tool resolves a symlinked configuration file correctly.
-8. Symlinks every top-level file and directory of your project into the site, apart from `build` and `vendor`: `web/modules/custom/<your_extension>` for a module, or `web/themes/custom/<your_extension>` for a theme.
-9. Runs `npm ci` and `npm run build` in `build` when your project has a `package-lock.json` and no `.skip_npm_build` file (see [Frontend dependencies](dependencies.mdx#frontend-dependencies)).
-10. Runs your `scripts/assemble-*.sh` [lifecycle scripts](lifecycle-scripts.mdx).
-
-The build lists every dependency it installed from a development branch rather than a release, so you can see when a build leans on unreleased code.
+1. Checks your project: its `composer.json` and `.info.yml`, the `composer` command and `composer validate --strict`.
+2. Passes `GITHUB_TOKEN` to Composer as `COMPOSER_AUTH`, unless `COMPOSER_AUTH` is set (see [Set `GITHUB_TOKEN`](dependencies.mdx#set-github_token)).
+3. Resolves the Drupal release to build from `DRUPAL_VERSION` (see [Drupal versions](drupal-versions.mdx)).
+4. Checks the PHP that runs the build, and any `config.platform.php` you set, against that release's PHP requirement, and stops before it touches `build` when either falls short.
+5. Stops the webserver when it's still serving an earlier build of this project, running your `scripts/stop-*.sh` [lifecycle scripts](lifecycle-scripts.mdx) first, the way `stop` does. It comes after the checks, so a failed check leaves your site running.
+6. Removes the old `build` directory and creates a Drupal project from [drupal/recommended-project](https://www.drupal.org/docs/develop/using-composer/starting-a-site-using-drupal-composer-project-templates), with core pinned to the resolved release.
+7. Sets the stability that resolves the other dependencies (see [How versions are resolved](drupal-versions.mdx#how-versions-are-resolved)), and the versions of the test tools that fit the Drupal major. A Drupal 12 build also gets PHPUnit 12, and installs `drupal/core` from source.
+8. Merges the development dependencies and settings of `composer.dev.json`, then those of your extension's `composer.json`, into the project, and pins the PHP platform.
+9. Copies your `patches` directory into `build`, installs the dependencies, which applies your [patches](dependencies.mdx#patch-dependencies), and adds the extensions you [`suggest`](dependencies.mdx#optional-dependencies).
+10. Lists every dependency it installed from a development branch rather than a release, so you can see when a build relies on unreleased code.
+11. Turns off deprecation notices in the site's `index.php` and `default.settings.php` when `SYMFONY_DEPRECATIONS_HELPER` is `disabled` (see [Deprecated code](../testing/README.mdx#deprecated-code)).
+12. Copies the configuration files of the linters, PHPUnit, Jest and npm into `build`, because not every tool resolves a symlinked configuration file correctly. In a Drupal 10 build, `phpunit.d10.xml` replaces `phpunit.xml` there. Edit these files in your project, not in `build`, and run `assemble` again to apply a change.
+13. Creates your extension's directory in the site, `web/modules/custom/<your_extension>` for a module or `web/themes/custom/<your_extension>` for a theme. It holds a symlink to every top-level file and directory of your project, apart from `build`, `vendor` and the names that start with a dot.
+14. Runs `npm ci` and `npm run build` in `build` when your project has a `package-lock.json` and no `.skip_npm_build` file (see [Frontend dependencies](dependencies.mdx#frontend-dependencies)).
+15. Runs your `scripts/assemble-*.sh` [lifecycle scripts](lifecycle-scripts.mdx).
 
 ## Other commands along the way
 
-- `info` (alias `describe`) prints a read-only summary of the environment: the PHP, Drupal, Composer, Drush, Node.js and npm versions, the webserver host and port with where each came from, the site URL, the XDebug state, the WebDriver port, the build directory, the database path and the install profile.
+These commands help you look at the build and clear it away:
+
+- `info` (alias `describe`) prints a read-only summary of the environment: the versions of Drupal, PHP and the tools, the webserver host and port with where each came from, the site URL, the XDebug state, the build directory, the database path and the install profile. With FunctionalJavascript tests, it adds the WebDriver port.
 - `reset` (aliases `delete` and `destroy`) stops the project's webserver and browser, and removes the `build`, `.logs` and `vendor` directories. Removing `vendor` is also how a local checkout picks up a newer patch release of the [tooling](tooling.mdx).
 - `make help` lists the `make` commands, since a bare `make` runs `build` instead. A bare `ahoy` lists the Ahoy ones.
+
+To summarize the environment or start over, run the following commands:
 
 <CommandTabs
   make={`make info     # Summarize the environment
@@ -87,11 +98,15 @@ ahoy reset    # Remove build, .logs and vendor`}
   none={`vendor/bin/eddy-info    # Summarize the environment`}
 />
 
-`vendor/bin/eddy-info` also prints a single field when you name it, such as `vendor/bin/eddy-info site-url`, which is how the wrappers find the site URL.
+Without a wrapper, `reset` is `vendor/bin/eddy-stop` and `vendor/bin/eddy-browser-stop`, then the removal of `build`, `.logs` and `vendor`.
 
-## Seeing the full output
+`vendor/bin/eddy-info` also prints a single field when you name it, such as `vendor/bin/eddy-info site-url`, which is how the wrappers find the site URL. For the full list, see [`eddy-info` fields](tooling.mdx#eddy-info-fields).
 
-The build hides the output of Composer, npm and Drush unless a command fails, so a normal run shows only its own progress. When something goes wrong, the failing command's output appears. To watch everything as it happens, set `DEBUG=1`:
+## See the full output
+
+The build hides the output of Composer, `npm ci` and Drush, unless a command fails, so a normal run shows its own progress. The output of `npm run build` and of your lifecycle scripts always shows. When something goes wrong, the failing command's output appears.
+
+To watch everything as it happens, set `DEBUG=1`:
 
 <CommandTabs
   make={`DEBUG=1 make build`}
@@ -102,7 +117,7 @@ vendor/bin/eddy-start
 vendor/bin/eddy-provision`}
 />
 
-[Debugging](debugging.mdx) covers the logs of the processes that keep running after a command returns.
+[Debug your extension](debugging.mdx) covers the logs of the processes that keep running after a command returns.
 
 ## Your extension's contributors
 

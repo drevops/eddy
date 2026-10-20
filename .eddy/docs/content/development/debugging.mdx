@@ -1,16 +1,25 @@
 ---
-title: Debugging
+title: Debug your extension
 sidebar_position: 10
-description: Step-debug the site with XDebug, see the full output of the build, and find the logs of the background processes.
+description: Step-debug the site with XDebug, see the full output of the build and find the logs of the background processes.
 ---
 
 import CommandTabs from '@site/src/components/CommandTabs';
 
-# Debugging
+# Debug your extension
 
-## Step-debugging with XDebug
+When something goes wrong, you can step through the site's code with XDebug, watch the full output of a command or read the logs that the background processes write. This page covers all 3.
 
-Install the [XDebug](https://xdebug.org/docs/install) PHP extension on your host (`php -v` should mention `with Xdebug`), then restart the webserver with it on or off:
+## Step-debug with XDebug
+
+To step-debug the site:
+
+1. Install the [XDebug](https://xdebug.org/docs/install) PHP extension on your host, and confirm that `php -v` mentions `with Xdebug`.
+2. Run `debug` to restart the webserver with XDebug on.
+3. Start listening for debug connections in your IDE, then open a page of the site.
+4. When you're done, run `start` to restart the webserver without XDebug.
+
+The following commands turn XDebug on and off:
 
 <CommandTabs
   make={`make debug      # Restart with XDebug enabled
@@ -21,19 +30,19 @@ ahoy start      # Restart without XDebug`}
 vendor/bin/eddy-start             # Restart without XDebug`}
 />
 
-`debug` is also available as `debug-on`, `xdebug` and `xdebug-on`, and `start` as `debug-off` and `xdebug-off`. `debug` checks the command line of the running server and skips the restart when XDebug is already on. With XDebug on, every request starts a debug session, because the server runs with `xdebug.mode=debug` and `xdebug.start_with_request=yes`.
+`debug` is also available as `debug-on`, `xdebug` and `xdebug-on`, and `start` as `debug-off` and `xdebug-off`. `debug` checks the command line of the running server and skips the restart when XDebug is already on.
 
-When the extension isn't installed, `start` with `XDEBUG=1` stops with a message rather than starting a server without it.
+The server runs with `xdebug.mode=debug` and `xdebug.start_with_request=yes`, so every request starts a debug session. A browser extension that sets the XDebug trigger has no effect here: to skip debugging, stop listening in your IDE.
+
+`start` turns XDebug off only while `XDEBUG` is empty or unset in both your shell and `.env`. Any other value turns it on, `0` included, so remove `XDEBUG` from `.env` when you're done. When the extension isn't installed, `start` with `XDEBUG` set stops with a message rather than starting a server without it.
 
 Code coverage stays on [pcov](https://github.com/krakjoe/pcov), because the XDebug settings apply only to the webserver, not to the test commands.
 
-To start and stop debug sessions from the browser, install the Xdebug Helper extension for [Chrome](https://chromewebstore.google.com/detail/xdebug-helper-by-jetbrain/aoelhdemabeimdhedkidlnbkfhnhgnhm) or [Firefox](https://addons.mozilla.org/en-US/firefox/addon/xdebug-helper-by-jetbrains/).
-
 ## Command output
 
-The commands print only their own progress, such as `[TASK]` and `[ OK ]` lines, and hide the output of the tools they run, such as Composer, npm and Drush. When a tool fails, its captured output appears, so the failure is still there to read. The output of your project's own commands, `npm run build` and the [lifecycle scripts](lifecycle-scripts.mdx), always shows.
+The commands print only their own progress, such as `[TASK]` and `[ OK ]` lines, and hide the output of the tools they run, such as Composer, `npm ci` and Drush. When a tool fails, its captured output appears, so the failure is still there to read. The output of your project's own commands, `npm run build` and the [lifecycle scripts](lifecycle-scripts.mdx), always shows.
 
-Set `DEBUG=1` to stream the full output of every tool as it runs:
+To stream the output of the tools as they run, set `DEBUG=1`:
 
 <CommandTabs
   make={`DEBUG=1 make build`}
@@ -44,14 +53,24 @@ vendor/bin/eddy-start
 vendor/bin/eddy-provision`}
 />
 
+`DEBUG` takes only `1`, from your shell or `.env`. Composer and npm then stream their full output, and Drush streams its progress, while the results that Drush prints stay captured.
+
 ## Logs
 
 The processes that keep running after a command returns write their output to the project's `.logs` directory:
 
-| File                         | Written by                                                       |
-|------------------------------|------------------------------------------------------------------|
-| `.logs/php.log`              | The PHP webserver.                                               |
-| `.logs/chromedriver.log`     | The chromedriver that FunctionalJavascript tests drive.          |
-| `.logs/cloudflared.log`      | The [public tunnel](tunnel.mdx).                                 |
+| File                         | Written by                                                                                     |
+|------------------------------|------------------------------------------------------------------------------------------------|
+| `.logs/php.log`              | The PHP webserver.                                                                             |
+| `.logs/chromedriver.log`     | The chromedriver that FunctionalJavascript tests drive.                                        |
+| `.logs/cloudflared.log`      | The [public tunnel](tunnel.mdx). Its process ID is in `.logs/cloudflared.pid`.                 |
 
-Functional and FunctionalJavascript tests write their HTML pages and screenshots to `.logs/browser_output` (see [Testing](../testing/README.mdx#test-output)). `reset` removes the whole `.logs` directory.
+With the `selenium` backend, the browser's output stays in its Docker container, named after the WebDriver port, such as `selenium-4444`. Run `docker logs selenium-4444` to read it. When the download of a chromedriver fails, `.chromedriver/install.log` holds the details.
+
+The test runs write their reports to `.logs` too:
+
+- `.logs/test_results/phpunit/phpunit.xml` - the JUnit report of the PHPUnit run.
+- `.logs/coverage/phpunit` and `.logs/coverage/jest` - the coverage reports (see [Code coverage](../testing/README.mdx#code-coverage)).
+- `.logs/browser_output` - the HTML pages and screenshots of Functional and FunctionalJavascript tests (see [Test output](../testing/README.mdx#test-output)). Drupal writes them to `build/web/sites/simpletest/browser_output`, and `provision` links that directory here.
+
+`reset` removes the whole `.logs` directory.

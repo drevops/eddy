@@ -1,14 +1,16 @@
 ---
 title: Webserver
 sidebar_position: 6
-description: Where the development site is served, how its port is picked, and how several projects share a machine.
+description: Where the development site is served, how its port is picked and how several projects share a machine.
 ---
 
 import CommandTabs from '@site/src/components/CommandTabs';
 
 # Webserver
 
-`start` serves the site with PHP's built-in webserver, at `http://localhost:8000` or at the first free port up to 8099 when another process uses 8000. It prints the URL when the server is ready, and `stop` stops it again:
+`start` serves the site with PHP's built-in webserver, at `http://localhost:8000`, or at the first free port up to 8099 when another process uses 8000. This page covers where the site is served, how the port is picked and how several projects share a machine.
+
+`start` prints the URL when the server is ready, and `stop` stops it again:
 
 <CommandTabs
   make={`make start   # Start the webserver
@@ -29,21 +31,29 @@ Set `WEBSERVER_HOST` to change the hostname, such as `0.0.0.0` to serve on every
 2. **`WEBSERVER_PORT` in the project's `.env` file** - used as it is.
 3. **Neither** - `start` picks the first free port from 8000 to 8099 and saves it to `.env` as `WEBSERVER_PORT`.
 
-Once the port is in `.env`, `stop`, `provision`, `drush` and `login` reuse it. `make` and Ahoy load `.env` on their own, and git ignores the file. To pick a new port, delete the `WEBSERVER_PORT` line from `.env` and run `start` again.
+After the port is in `.env`, every command that reaches the site reuses it: `assemble`, `build`, `stop`, `provision`, `info`, `debug`, `drush`, `login` and the test commands. `make` and Ahoy load `.env` on their own, and git ignores the file.
+
+To move the site to another port:
+
+1. Run `stop`.
+2. Delete the `WEBSERVER_PORT` line from `.env`.
+3. Run `start`. It picks the first free port and saves it to `.env`.
 
 :::note A port from your shell lasts 1 run
 
-A `WEBSERVER_PORT` in your shell wins over the one in `.env`, through `make` and Ahoy too, and `start` doesn't save it to `.env`. Commands without the prefix don't know that port, so prefix `stop`, `provision`, `drush` and `login` the same way while that server runs.
+A `WEBSERVER_PORT` in your shell wins over the one in `.env`, through `make` and Ahoy too, and `start` doesn't save it to `.env`. Commands without the prefix use the port in `.env`, so prefix every command the same way while that server runs.
 
 :::
 
-## Sharing a machine with other projects
+## Projects that share a machine
 
-`start`, `stop`, `assemble` and `reset` only stop the webserver that serves the project's own `build/web`. When another process holds the port, such as the server of another project that recorded the same port, `stop`, `assemble` and `reset` leave it running, and `start` fails and names it. Stop that process, or set `WEBSERVER_PORT` in `.env` to a free port.
+`start`, `stop`, `assemble` and `reset` stop only the webserver that serves the project's own `build/web`. A listener whose command line they can't read counts as the project's own too, so the port still gets freed.
 
-## Waiting for the server
+When another process holds the port, such as the server of another project that recorded the same port, `stop`, `assemble` and `reset` leave it running, and `start` fails and names it. Stop that process, or set `WEBSERVER_PORT` in `.env` to a free port.
 
-Once it launches the server, `start` waits up to `WEBSERVER_WAIT_TIMEOUT` seconds for it to accept connections, then checks that it can serve the site. The timeout is a whole number of 1 or more and defaults to 5. Raise it on a slow machine where `start` gives up before the server is up:
+## Startup timeout
+
+After it launches the server, `start` waits up to `WEBSERVER_WAIT_TIMEOUT` seconds for it to accept connections, then checks that it can serve the site. The timeout is a whole number of 1 or more and defaults to 5. To give a slow machine more time, raise it in `.env`:
 
 ```bash title=".env"
 WEBSERVER_WAIT_TIMEOUT=15
