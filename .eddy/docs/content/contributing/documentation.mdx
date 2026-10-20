@@ -10,7 +10,7 @@ These docs live in `.eddy/docs`, a [Docusaurus](https://docusaurus.io/) site wit
 
 ## Run the site locally
 
-The site is an npm project of its own. Run these from `.eddy/docs`:
+The site is an npm project of its own. Run these from the `.eddy/docs` directory of your clone, starting with `npm install`:
 
 ```bash
 npm install                  # Install the dependencies
@@ -22,9 +22,11 @@ npm run spellcheck           # Run only the spell check
 npm run test:accessibility   # Check the built site for accessibility issues
 ```
 
-`npm start` and `npm run build` first copy the social preview card and the 4 animated demos from `.eddy/assets` into `static/img`, where git ignores them. `npm test` runs the Jest tests of `src/`, which cover the components, the theme overrides, the home page and the helper modules, then CSpell. It writes their coverage to `.logs/coverage`, which git ignores too.
+`npm start` serves the site at `http://localhost:3000/`. Both `npm start` and `npm run build` first copy the social preview card from `.eddy/assets` to `static/img/social-card.png`, and the 4 animated demos into `static/img/demos`. Git ignores both copies.
 
-`npm run test:accessibility` checks the site in `build/`, so run `npm run build` first. It drives a browser through [Playwright](https://playwright.dev/), which needs its own copy of Chromium: `npx playwright install chromium` downloads it once.
+`npm test` runs the Jest tests of `src/`, which cover the components, the theme overrides, the home page and the helper modules, then CSpell. It writes their coverage to `.logs/coverage`, which git ignores too.
+
+`npm run test:accessibility` checks the site in `build/`, so run `npm run build` first. It drives a browser through [Playwright](https://playwright.dev/), which needs its own copy of Chromium: `npx playwright install chromium`, run from `.eddy/docs` after `npm install`, downloads it once.
 
 ## Page conventions
 
@@ -32,7 +34,7 @@ Every page follows these conventions:
 
 - **1 topic per page.** The sidebar follows the folder tree of `content/`, ordered by the `sidebar_position` in each page's front matter. A folder's `README.mdx` is its index page.
 - **Link by file.** Link to another page by its relative path, such as `[Webserver](../development/webserver.mdx#how-the-port-is-picked)`. The build checks every link and anchor, and fails on a broken one.
-- **Commands for every setup.** A generated project has Make, Ahoy, both or neither, so show commands with the `CommandTabs` component. It renders a tab for each of **Make**, **Ahoy** and **No wrapper**, in that order, and every tab set on the site follows the reader's last choice, which a shared link carries in its query string:
+- **Commands for every setup.** A generated project has Make, Ahoy, both or neither, so show commands with the `CommandTabs` component. Its `make`, `ahoy` and `none` props fill the **Make**, **Ahoy** and **No wrapper** tabs, in that order, and a prop can hold several commands, 1 per line:
 
   ```jsx
   import CommandTabs from '@site/src/components/CommandTabs';
@@ -44,10 +46,10 @@ Every page follows these conventions:
   />
   ```
 
-  Leave out a prop, or leave it empty, when a setup has no equivalent command, and its tab goes with it. A `language` prop, `bash` by default, sets the highlighting of the commands.
-- **Images.** The animated demos stay in `.eddy/assets`, and pages import them by relative path, such as `![Building the site](../../../assets/build.svg)`, so the build fails when one goes missing. Put any other image in `static/img`.
+  Leave out a prop, or leave it empty, when a setup has no equivalent command, and its tab goes with it. A first-time reader sees the first tab. After that, every tab set on the site follows the reader's last choice, which a shared link carries in its `command-wrapper` query parameter. A `language` prop, `bash` by default, sets the highlighting of the commands.
+- **Images.** The animated demos stay in `.eddy/assets`, and pages import them by relative path, such as `![Building the site](../../../assets/build.svg)`, so the build fails when one goes missing. Put any other image in `static/img`: git ignores only the copies that the build makes there.
 - **Diagrams.** A `mermaid` code block renders as a [Mermaid](https://mermaid.js.org/) diagram.
-- **Spelling.** CSpell checks the pages and the README of the site in US English with the words in `cspell.json`, and skips fenced code and `CommandTabs` blocks. Add a word the docs use in several places there, and a word only 1 page uses to that page, as `{/* cspell:ignore word */}`. Nothing checks the spelling of the home page's words in `src/pages/index.js`.
+- **Spelling.** CSpell checks the pages and the README of the site in US English with the words in `.eddy/docs/cspell.json`, and skips fenced code and `CommandTabs` blocks. Add a word the docs use in several places to that file. Add a word only 1 page uses to that page, as `{/* cspell:ignore word */}` anywhere in it, such as on its last line. 1 comment can list several words separated by spaces. Nothing checks the spelling of the home page's words in `src/pages/index.js`.
 
 ## The home page
 
@@ -55,7 +57,7 @@ The home page at `/` isn't a Markdown page: it's a React page, `src/pages/index.
 
 Most of the page's words sit in lists at the top of `src/pages/index.js`, 1 list per section: `STATIONS` for the stops of the stream, `TOOLS`, `PROJECTS`, `LAYERS` for the 3 parts of the deep end and `DOCS` for the links into the docs. So changing what the page says usually means changing a list, not the markup. These parts need care:
 
-- **Versions.** `DRUPAL_MAJORS` and `PHP_VERSIONS` hold the versions the page states. `DocumentationTest` fails until `DRUPAL_MAJORS` matches the majors that `install.php` offers, and `PHP_VERSIONS` the PHP versions those majors support. Keep each list on 1 line with its items in single quotes, because the test reads them that way.
+- **Versions.** `DRUPAL_MAJORS` and `PHP_VERSIONS` hold the versions the page states. `DocumentationTest` fails until `DRUPAL_MAJORS` matches the majors that `install.php` offers, and `PHP_VERSIONS` the PHP versions those majors support. Keep each list on 1 line with its items in single quotes, because the test reads them that way. To run the test, see [Checks on pull requests](#checks-on-pull-requests).
 - **Install command.** `INSTALL_COMMAND` holds the command that the copy button copies, and `tests/accessibility/interactions.spec.js` repeats it, so change both together.
 - **Demos.** The first 4 stops of the stream play the animated demos of `.eddy/assets`, which `npm start` and `npm run build` copy into `static/img/demos`. The page can't import them the way a Markdown page does, because a JavaScript import of an SVG turns it into a React component rather than a URL.
 - **Components.** The install command with its copy button is `CopyCommand`, and each demo is a `PausableImage`, the same component that gives the animated demos of the doc pages their pause button. Both live in `src/components`.
@@ -93,7 +95,7 @@ The rest depends on the writing:
 
 ## Checks on pull requests
 
-The `Test Eddy` workflow runs on pushes to `main` and on pull requests against `main` or a `feature/**` branch. Its `eddy-test-docs` job installs the dependencies, builds the site, runs `npm test`, uploads the coverage of `src/` to [Codecov](https://codecov.io) and runs `npm run test:accessibility`. The upload runs only when the `CODECOV_TOKEN` repository secret is set.
+The `Test Eddy` workflow, `.github/workflows/eddy-test.yml`, runs on pushes to `main` and on pull requests against `main` or a `feature/**` branch. Its `eddy-test-docs` job installs the dependencies, builds the site, runs `npm test`, uploads the coverage of `src/` to [Codecov](https://codecov.io) and runs `npm run test:accessibility`. The upload runs only when the `CODECOV_TOKEN` repository secret is set.
 
 The job fails on any of these:
 
@@ -105,9 +107,11 @@ The job fails on any of these:
 
 A failed check skips the Netlify deployment of the [development site and the previews](#the-development-site-and-previews).
 
+Besides the `eddy-test-docs` job, the `p0` group of the [scaffold tests](scaffold-tests.mdx) checks the pages against the code with `DocumentationTest`. To run it from the root of your clone, install the suite's dependencies once with `composer --working-dir=.eddy/tests install`, then run `composer --working-dir=.eddy/tests test -- --filter=DocumentationTest`.
+
 ## The development site and previews
 
-The same job deploys the built site to [Netlify](https://www.netlify.com/). Every push to `main` updates the [development site](https://drevops-eddy-docs.netlify.app), and every pull request from the repository itself, against `main` or a `feature/**` branch, gets a preview of its own, linked in a comment on the pull request. The deployment runs only when the `NETLIFY_SITE_ID` and `NETLIFY_AUTH_TOKEN` repository secrets are set, so a pull request from a fork still builds and tests the docs without one.
+The `eddy-test-docs` job deploys the built site to [Netlify](https://www.netlify.com/). Every push to `main` updates the [development site](https://drevops-eddy-docs.netlify.app), and every pull request from the repository itself, against `main` or a `feature/**` branch, gets a preview of its own, linked in a comment on the pull request. The deployment runs only when the `NETLIFY_SITE_ID` and `NETLIFY_AUTH_TOKEN` repository secrets are set. GitHub doesn't pass repository secrets to a pull request from a fork, so such a pull request gets no preview, though it still builds and tests the docs.
 
 These builds show "development" as the version in the footer, and search engines don't index them.
 
@@ -115,7 +119,7 @@ These builds show "development" as the version in the footer, and search engines
 
 `.github/workflows/eddy-release-docs.yml` publishes the docs to [eddy.drevops.com](https://eddy.drevops.com) on GitHub Pages, in these cases:
 
-- On every tag push, with the tag as the version.
+- On every tag push, with the tag as the version. The workflow's tag filter, `*`, matches every tag without a `/`, so a pre-release tag such as `5.0.0-rc2` publishes too.
 - On a manual run of the `Release Eddy docs` workflow from **Actions**, with the version you type. Without one, it takes the tag you run it from, or the `git describe` output of the branch, such as `5.0.0-3-g1a2b3c4`.
 
 The workflow runs only in `drevops/eddy`, and a newer run cancels 1 that's still in progress. The repository's GitHub Pages source must be **GitHub Actions**, and the `github-pages` environment must let the tag or the branch you run from deploy.

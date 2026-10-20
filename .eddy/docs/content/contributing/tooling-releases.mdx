@@ -10,12 +10,15 @@ Changes to the [tooling commands](../development/tooling.mdx) go into `.eddy/too
 
 ## How the package is published
 
-On every push to `main`, `.github/workflows/eddy-publish-tooling.yml` mirrors the `.eddy/tooling/` directory to the `main` branch of [`drevops/eddy-tooling`](https://github.com/drevops/eddy-tooling), which Packagist serves. The workflow pushes with the `EDDY_TOOLING_DEPLOY_KEY` secret, a deploy key with write access to that repository, and runs only in `drevops/eddy`, so a push to a fork publishes nothing.
+On every push to `main`, `.github/workflows/eddy-publish-tooling.yml` mirrors the `.eddy/tooling/` directory to the `main` branch of [`drevops/eddy-tooling`](https://github.com/drevops/eddy-tooling), which Packagist serves. The workflow pushes with the `EDDY_TOOLING_DEPLOY_KEY` secret, a deploy key with write access to that repository, and runs only in `drevops/eddy`, so a push to a fork publishes nothing. A published change reaches generated projects only with the next [release](#release-the-package), since they require `~1.0.0`, which only release tags match.
 
-A branch whose name contains `eddy-tooling`, such as `feature/123-eddy-tooling-fix`, is published too, into the mirror branch of the same name. A generated project can then try the change before it merges by requiring that branch in `composer.dev.json`, for example `"drevops/eddy-tooling": "dev-feature/123-eddy-tooling-fix"`. Other branches leave the mirror untouched.
+A branch of `drevops/eddy` whose name contains `eddy-tooling`, such as `feature/123-eddy-tooling-fix`, is published too, into the mirror branch of the same name. Other branches leave the mirror untouched.
 
-Each run adds 1 commit to the mirror branch, with the subject of the pushed commit:
+To try the change in a generated project before it merges, require that branch in the `require-dev` of the project's `composer.dev.json`, with Composer's `dev-` prefix, for example `"drevops/eddy-tooling": "dev-feature/123-eddy-tooling-fix"`. The changed constraint makes `scripts/eddy-tooling` install the branch on its next run (see [Tooling package](../development/tooling.mdx#how-its-installed)). To switch back, restore the `~1.0.0` constraint.
 
+Each run adds 1 commit to the mirror branch, with the subject of the pushed commit. These rules apply to the runs:
+
+- Every push to a published branch runs the workflow, even one that leaves `.eddy/tooling/` alone, and its commit is then empty.
 - A branch that the mirror doesn't have yet starts without history.
 - Runs of a branch queue rather than overlap, and a newer push cancels a run that's still waiting. A push in a quick burst can get no commit of its own, but the latest state is always published.
 - A published branch stays on the mirror until you delete it there.
@@ -24,7 +27,9 @@ Each run adds 1 commit to the mirror branch, with the subject of the pushed comm
 
 Releases are created on the mirror by hand:
 
-1. [Create a release](https://github.com/drevops/eddy-tooling/releases/new) on `drevops/eddy-tooling` in the GitHub UI, with a new tag on `main`, for example `1.0.1`. Generated projects require `~1.0.0`, so they pick up a patch release on their next fresh install. Save the release as a draft, or publish it straight away.
-2. From a clone of Eddy, ask Claude Code for the tooling release notes, or run `/create-eddy-tooling-release-notes`. The skill lists the commits that changed `.eddy/tooling/` since the previous release, and describes each one from its subject, or from its pull request, its issue or its diff when the subject isn't enough. It writes the notes to `.artifacts/release-notes-tooling-<version>.md`, and needs `git` and an authenticated GitHub CLI (`gh`).
+1. [Create a release](https://github.com/drevops/eddy-tooling/releases/new) on `drevops/eddy-tooling` in the GitHub UI, with a new tag on `main`, for example `1.0.1`. The tags have no `v` prefix. Generated projects require `~1.0.0`, so they pick up a patch release on their next fresh install. Save the release as a draft, or publish it straight away.
+2. From a clone of Eddy, ask Claude Code for the tooling release notes, or run `/create-eddy-tooling-release-notes`. The skill takes the version from the newest release on the mirror while that release has no notes, and the previous release from the highest published release below it. It lists the commits that changed `.eddy/tooling/` between the 2, and describes each one from its subject, or from its pull request, its issue or its diff when the subject isn't enough. It writes the notes to `.artifacts/release-notes-tooling-<version>.md`, and needs `git` and an authenticated GitHub CLI (`gh`).
 3. Paste the notes into the release description, and publish the release if it's still a draft.
-4. For a new minor or major version, also raise the constraint in `composer.dev.json`, for example to `~1.1.0`, and in the example on the [Tooling package](../development/tooling.mdx#how-its-installed) page. Generated projects receive the new constraint with their next scaffold update.
+4. After you publish a new minor or major version, raise the `drevops/eddy-tooling` constraint in Eddy's own `composer.dev.json`, for example to `~1.1.0`, in the example on the [Tooling package](../development/tooling.mdx#how-its-installed) page and in the `~1.0.0` mentions on this page. The order matters: `~1.1.0` matches release tags only, so a project with it can't install the tooling until 1.1.0 is out. Generated projects receive the new constraint with their next scaffold update.
+
+When the newest release on the mirror already has notes, the skill prepares the notes of a release you haven't created yet: it suggests a version from the changes and asks you to confirm it.
