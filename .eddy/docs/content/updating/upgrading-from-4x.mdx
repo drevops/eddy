@@ -1,29 +1,35 @@
 ---
-title: Upgrading a 4.x project to 5.x
-sidebar_label: Upgrading from 4.x
+title: Upgrade a 4.x project to 5.x
+sidebar_label: Upgrade from 4.x
 sidebar_position: 1
 description: Upgrade a Drupal module or theme created from a 4.x release of the template to Eddy 5.x.
 ---
 
-# Upgrading a 4.x project to 5.x
+# Upgrade a 4.x project to 5.x
 
-This guide upgrades a Drupal module or theme created from a 4.x release of this template to 5.x.
+This guide is for maintainers of a Drupal module or theme created from a 4.x release of this template, then called the Drupal Extension Scaffold. It upgrades the project to Eddy 5.x, and covers what changed and what each change asks of you.
 
-5.x is a bigger step than a usual update. Since `4.19.0`, the last 4.x release, the template became Eddy and moved to [`drevops/eddy`](https://github.com/drevops/eddy), the scripts in `.devtools/` turned into the `drevops/eddy-tooling` Composer package, and CircleCI support went away. The upgrade rewrites most of your build and CI files in one go, and a few of the changes need decisions only you can make.
+5.x is a bigger step than a usual update. Since `4.19.0`, the last 4.x release, the template became Eddy and moved to [`drevops/eddy`](https://github.com/drevops/eddy), and the scripts in `.devtools/` turned into the `drevops/eddy-tooling` Composer package. CircleCI support went away too. The upgrade rewrites most of your build and CI files at once, and a few of the changes need decisions only you can make.
 
-More immediately, a 4.x project can't update itself anymore. From 4.15.0, its `AGENTS.md` fetches the update skill from the `.scaffold/` directory of the old repository, and that URL returns 404 now that the skill lives in `.eddy/`. The steps below get you past it.
+From 4.15.0, a 4.x project's `AGENTS.md` fetches the update skill from the `1.x` branch of the old repository. The repository has no `1.x` branch, so the URL returns 404 and a 4.x project can't update itself. The following steps get you past it.
 
 ## Before you start
 
+Prepare the following before you upgrade:
+
 - Commit or stash your work in progress. The upgrade changes most of the files in the project root, and the update skill won't start while the working tree has changes, apart from untracked files in `.claude/` and `.idea/`.
-- Find the edits you made to `.devtools/` and, in a project created from 4.18.0 or 4.19.0, to the `scripts/*-cloudflared.sh` hooks. The upgrade deletes both, so each edit needs a new home (see [`.devtools/` is a package now](#devtools-is-a-package-now)). `git log -p -- .devtools 'scripts/*-cloudflared.sh'` shows every change to those files, template updates included, so look for the commits that are yours. If every commit there is a template update, your edits went in with them, and the log can't tell the 2 apart. The update skill can, as long as it knows the release your project is on: each file you changed comes up as a modify/delete conflict, and the pull request lists it.
+- Find the edits you made to `.devtools/`, and to the `scripts/*-cloudflared.sh` hooks that a project created from or updated to 4.18.0 or 4.19.0 can have. The upgrade deletes both, so each edit needs a new home (see [`.devtools/` is a package now](#devtools-is-a-package-now)).
+
+  `git log -p -- .devtools 'scripts/*-cloudflared.sh'` shows every change to those files, template updates included, so look for the commits that are yours. If every commit there is a template update, your edits went in with them, and the log can't tell the 2 apart. The update skill can, as long as it knows a release your project is on from 4.14.0 or later: each file you changed comes up as a modify/delete conflict, and the pull request lists it.
 - If your project runs on CircleCI, keep its project settings at hand. Its deployment settings move to GitHub Actions (see [CircleCI is gone](#circleci-is-gone)).
 - Check the PHP versions your CI tests. The `drevops/eddy-tooling` package that replaces `.devtools/` requires PHP 8.3 or newer, so a job on an older PHP, such as Drupal 10 on PHP 8.2, fails at "Install the tooling" because Composer can't install the package. Raising those jobs to PHP 8.3 drops a PHP version your extension tests, so decide that before you start. The update skill lists the jobs it finds below PHP 8.3 in its pull request.
-- If your project is on a release from 4.15.0 to 4.18.0 and deploys from GitHub Actions, set the `DEPLOY_PROCEED` secret to `0` before you start, and back to `1` just before you merge. Otherwise the upgrade pull request's test runs deploy your default branch to your Drupal.org repository (see [Deployment](#deployment)). The update skill stops before it pushes when it finds a `DEPLOY_REMOTE` secret, and its pull request lists what's left to do around the merge.
+- If your project is on a release from 4.15.0 to 4.18.0 and deploys from GitHub Actions, set the `DEPLOY_PROCEED` secret to `0` before you start, and back to `1` right before you merge. Otherwise the upgrade pull request's test runs deploy your default branch to your Drupal.org repository (see [Deployment](#deployment)). The update skill stops before it pushes when it finds a `DEPLOY_REMOTE` secret, and its pull request lists what's left to do around the merge.
 
 ## Upgrade with Claude Code
 
-The `update-consumer-eddy` skill does most of the work. It renders the latest release and the release your project is on with your project's answers, merges the difference into your project and opens a pull request. Your own files stay as they are, and so do the changes you made to the template's files, such as the versions Renovate bumped. The skill reads the release your project is on from your last scaffold update commit. Without one, every difference between your files and the new release's comes up for a decision. It already knows about 4.x projects: it drops `.devtools/` and the Cloudflare hooks, and it reads your Drupal versions from `.circleci/config.yml` when your project has no GitHub Actions workflow.
+The `update-consumer-eddy` skill does most of the work. It renders the latest release and the release your project is on with your project's answers, merges the difference into your project and opens a pull request. Your own files stay as they are, and so do the changes you made to the template's files, such as the versions Renovate bumped.
+
+The skill reads the release your project is on from your last scaffold update commit. Without one, or with a release older than 4.14.0, every difference between your files and the new release's comes up for a decision. It already knows about 4.x projects: it drops `.devtools/` and the Cloudflare hooks, and it reads your Drupal versions from `.circleci/config.yml` when your project has no GitHub Actions workflow.
 
 It can't fetch itself into a 4.x project, though, so you do that part once, from the project root:
 
@@ -44,36 +50,39 @@ It can't fetch itself into a 4.x project, though, so you do that part once, from
      https://raw.githubusercontent.com/drevops/eddy/main/.eddy/skills/update-consumer-eddy/SKILL.md
    ```
 
-3. Start Claude Code in the project and run `/update-consumer-eddy`, or ask Claude to run the `update-consumer-eddy` skill. If Claude Code was already running when you downloaded the skill, restart it first: a session that started before the download may not list the skill yet, and answers "Unknown skill: update-consumer-eddy".
+3. Start Claude Code in the project and run `/update-consumer-eddy`, or ask Claude to run the `update-consumer-eddy` skill. If Claude Code was already running when you downloaded the skill, restart it first: a session that started before the download might not list the skill, and answers "Unknown skill: update-consumer-eddy".
 
-   On its first run, the skill may add a few command permissions to `.claude/settings.local.json` and ask you to restart Claude Code. Run it again after the restart. If Claude Code won't let it write that file, as in auto mode, the skill prints the permissions for you to add yourself, and carries on when the session doesn't ask before running commands anyway.
+   On its first run, the skill might add a few command permissions to `.claude/settings.local.json` and ask you to restart Claude Code. Run it again after the restart. If Claude Code won't let it write that file, as in auto mode, the skill prints the permissions for you to add yourself, and carries on when the session doesn't ask before running commands anyway.
 
-   Without a tag, the skill upgrades to the release with the highest version that isn't a draft or marked as a pre-release on GitHub, whenever it was published. Only that mark makes a release a pre-release here, so an alpha or a release candidate published without it counts as a regular release. On the [releases page](https://github.com/drevops/eddy/releases), that's the highest version without a "Pre-release" label. To upgrade to a particular release, name its tag after the command: `/update-consumer-eddy <tag>`.
+   Without a tag, the skill upgrades to the release with the highest version among the 10 most recently published releases that aren't drafts or marked as pre-releases on GitHub. Only that mark makes a release a pre-release here, so an alpha or a release candidate published without it counts as a regular release. On the [releases page](https://github.com/drevops/eddy/releases), that's the highest version without a "Pre-release" label. To upgrade to a particular release, name its tag after the command: `/update-consumer-eddy <tag>`.
 
    To add Drupal 12 as well, ask for it in the same request, such as `/update-consumer-eddy add Drupal 12` (see [Drupal 12](#drupal-12)).
 
-4. Go through [What changed](#what-changed) while you review the pull request it opens, and make the changes the skill leaves to you: moving your `.devtools/` edits and the CircleCI settings. If your project has FunctionalJavascript tests, the pull request also brings their base class in line with 5.x, and if you asked for Drupal 12, it makes the Drupal 12 code changes. Each is a commit of its own, so review those too.
+4. Go through [What changed](#what-changed) while you review the pull request that the skill opens.
+5. Make the changes the skill leaves to you: move your `.devtools/` edits and the CircleCI settings.
+
+If your project has FunctionalJavascript tests, the pull request also brings their base class in line with 5.x, and if you asked for Drupal 12, it makes the Drupal 12 code changes. Each is a commit of its own, so review those too.
 
 The upgrade rewrites `AGENTS.md`, so from then on "update Eddy" works the way it does in any 5.x project.
 
 ## Upgrade by hand
 
-Follow the manual steps in [Updating your extension](README.mdx#updating-by-hand), with these differences for a 4.x project:
+Follow the manual steps in [Update your extension](README.mdx#update-by-hand), with these differences for a 4.x project:
 
-- The installer is `install.php`, not `init.php` (`init.sh` before 4.12.0). It no longer asks for a CI provider or about the Cloudflare hooks, and it reads pre-filled answers from `INSTALL_*` variables instead of `DEX_*` (4.19.0) or `PROMPTY_*` (4.14.0 to 4.18.0). Earlier releases took them as positional arguments. `php install.php --help` lists the variables.
-- Before you copy the new files in, delete whichever of these your project has: `.devtools/`, `.circleci/`, `scripts/provision-cloudflared.sh`, `scripts/start-cloudflared.sh`, `scripts/stop-cloudflared.sh` and `.claude/skills/update-consumer-drupal-extension-scaffold/`.
-- `scripts/` holds your own hooks, but take `scripts/eddy-tooling` from the release. It's the installer of the tooling package, and it's new in 5.x.
+- The installer is `install.php`, not `init.php`, which was `init.sh` from 4.8.0 to 4.11.x. It doesn't ask for a CI provider or about the Cloudflare hooks, and it reads pre-filled answers from `INSTALL_*` variables instead of `DEX_*` (4.19.0) or `PROMPTY_*` (4.14.0 to 4.18.0). Earlier releases took them as positional arguments. `php install.php --help` lists the variables.
+- Before you copy the new files in, delete whichever of these your project has: `.devtools/`, `.circleci/`, `phpmd.xml`, `scripts/provision-cloudflared.sh`, `scripts/start-cloudflared.sh`, `scripts/stop-cloudflared.sh` and `.claude/skills/update-consumer-drupal-extension-scaffold/`. A project with `phpmd.xml`, which 4.4.0 to 4.11.x shipped, also has a `phpmd/phpmd` entry in `composer.dev.json` to remove, and maybe a `CI_PHPMD_IGNORE_FAILURE` repository variable that nothing reads.
+- `scripts/` holds your own hooks, but take `scripts/eddy-tooling` from the release. It's the installer of the tooling package, which 5.x adds.
 - Merge `composer.dev.json` rather than overwriting it, so your own dependencies and patches survive. [`.devtools/` is a package now](#devtools-is-a-package-now) lists the entries 5.x adds.
 
 Then work through [What changed](#what-changed) for the decisions the merge leaves to you.
 
 ## What changed
 
-Each change below covers what it was in 4.x, what it is in 5.x, and what your project needs.
+Each of the following changes covers what it was in 4.x, what it is in 5.x and what your project needs.
 
 ### Name and repository
 
-In 4.x, the template was the Drupal Extension Scaffold at `AlexSkrypnyk/drupal_extension_scaffold`. It kept its own files in `.scaffold/`, and from 4.15.0 your `AGENTS.md` fetched the `update-consumer-drupal-extension-scaffold` skill from there, on the `1.x` branch.
+In 4.x, the template was the Drupal Extension Scaffold at `AlexSkrypnyk/drupal_extension_scaffold`. From 4.8.0, it kept its own files in `.scaffold/`, and from 4.15.0 your `AGENTS.md` fetched the `update-consumer-drupal-extension-scaffold` skill from there, on the `1.x` branch.
 
 In 5.x, it's Eddy at [`drevops/eddy`](https://github.com/drevops/eddy), on the `main` branch. Its own files live in `.eddy/`, which never reaches your project. The update skill is `update-consumer-eddy`, and the installer is `install.php`.
 
@@ -81,14 +90,21 @@ What to do:
 
 - Delete `.claude/skills/update-consumer-drupal-extension-scaffold/`.
 - In `AGENTS.md`, replace the "Updating the scaffold" section with [the one Eddy ships](https://github.com/drevops/eddy/blob/main/AGENTS.md#updating-the-scaffold). It downloads the skill with `curl -fsSL`, which fails on an HTTP error instead of saving the error page.
-- In `.gitignore`, delete the `.claude/skills/update-consumer-drupal-extension-scaffold/` line. The `.claude/*` rule above it already ignores everything in `.claude/` except `settings.json`, the new skill's directory included.
+- In `.gitignore`, delete the `.claude/skills/update-consumer-drupal-extension-scaffold/` line. The `.claude/*` rule before it already ignores everything in `.claude/` except `settings.json`, the new skill's directory included.
 - In `README.md`, credit [Eddy](https://github.com/drevops/eddy) in the closing line instead of the Drupal Extension Scaffold.
 
-The upgrade makes the last 3 changes for you.
+The update skill makes all 4 changes for you, and a hand merge of the release's files makes the last 3.
 
 ### `.devtools/` is a package now
 
-In 4.x, every project carried its own copy of the build, run and deploy scripts in `.devtools/`: `assemble`, `start`, `stop`, `provision`, `deploy`, `browser`, `info` and `qrcode`, with `helpers.php` behind them. The command wrappers and CI ran them as `.devtools/<script>`, so a fix reached your project only when you merged the next release by hand.
+From 4.5.0, every 4.x project carried its own copy of the build, run and deploy scripts in `.devtools/`. The set grew with the releases:
+
+- 4.5.0 to 4.7.x: `build-codebase.sh`, `deploy.sh`, `provision.sh`, `start-server.sh` and `test.sh`
+- 4.8.0 to 4.11.x: `assemble.sh`, `deploy.sh`, `provision.sh`, `start.sh` and `stop.sh`
+- 4.12.0 to 4.15.x: `assemble`, `deploy`, `provision`, `start` and `stop`, with `helpers.php` behind them
+- 4.16.0 and later: `info` as well, and from 4.18.0, `browser` and `qrcode`
+
+The command wrappers and CI ran them from `.devtools/`, so a fix reached your project only when you merged the next release: by hand before 4.15.0, and with the update skill after.
 
 In 5.x, the scripts ship as the [`drevops/eddy-tooling`](https://github.com/drevops/eddy-tooling) Composer package, so fixes arrive through its version constraint instead. The package requires PHP 8.3 or newer (see [Before you start](#before-you-start)). `scripts/eddy-tooling` installs the package into `vendor/`, and each script becomes a command in `vendor/bin/`: `.devtools/assemble` is `vendor/bin/eddy-assemble`, and `.devtools/browser start` and `stop` are `eddy-browser-start` and `eddy-browser-stop`.
 
@@ -103,23 +119,23 @@ What to do:
   - `extra.eddy.drupal-version`, set to the newest Drupal major you build that has a stable release, such as `"11"`. A local build uses it when `DRUPAL_VERSION` isn't set, and Drupal 11 when neither is.
   - The release's `drush/drush` constraint, which adds Drush 14 for Drupal 12.
   - `extra.eddy.version`, set to the release you upgrade to, such as `"5.0.0"`. The update skill reads it to find the release your project is on.
-  - Without FunctionalJavascript tests, the Mink packages that Functional tests need in `require-dev`: `behat/mink`, `behat/mink-browserkit-driver`, `symfony/browser-kit`, `symfony/css-selector` and `symfony/dom-crawler`. From 4.16.3, 4.x removed them along with those tests.
+  - When you keep PHPUnit without FunctionalJavascript tests, the Mink packages that Functional tests need in `require-dev`: `behat/mink`, `behat/mink-browserkit-driver`, `symfony/browser-kit`, `symfony/css-selector` and `symfony/dom-crawler`. From 4.16.3, 4.x removed them along with those tests.
 - Move each edit you made to `.devtools/`:
-  - A project-specific step, such as importing extra configuration once the site is installed, becomes a [lifecycle script](../development/lifecycle-scripts.mdx): `scripts/assemble-*.sh`, `scripts/provision-*.sh`, `scripts/start-*.sh` or `scripts/stop-*.sh`.
-  - A change to what a command itself does becomes a patch for `drevops/eddy-tooling` in `composer.dev.json`, as [Patching the package](../development/tooling.mdx#patching-the-package) describes. The commands live in the package's `src/` directory, such as `src/eddy-assemble`, and they've changed a lot since 4.x, so write the patch against the current source instead of reusing an old diff. This is the trickiest part of the upgrade.
+  - A project-specific step, such as importing extra configuration after the site is installed, becomes a [lifecycle script](../development/lifecycle-scripts.mdx): `scripts/assemble-*.sh`, `scripts/provision-*.sh`, `scripts/start-*.sh` or `scripts/stop-*.sh`.
+  - A change to what a command itself does becomes a patch for `drevops/eddy-tooling` in `composer.dev.json`, as [Patch the package](../development/tooling.mdx#patch-the-package) describes. The commands live in the package's `src/` directory, such as `src/eddy-assemble`, and they've changed a lot since 4.x, so write the patch against the current source instead of reusing an old diff. This is the trickiest part of the upgrade.
 - Replace every `.devtools/<script>` call in your own scripts, docs and CI steps with `vendor/bin/eddy-<script>`. Where no wrapper or CI step runs the installer first, run `scripts/eddy-tooling` before it.
 
 The build changed in 3 ways you might notice:
 
-- It applies the patches you declare. From 4.14.0 to 4.19.0, the build didn't install `cweagans/composer-patches`. Unless your project required the plugin itself, Composer skipped every patch in `composer.json` and `composer.dev.json` without a word. In 5.x they apply, and a patch that no longer applies fails the build (see [Patching dependencies](../development/dependencies.mdx#patching-dependencies)).
-- It pins Drupal core to 1 exact release, and resolves every other dependency with `minimum-stability: dev` and `prefer-stable: true` (see [How versions are resolved](../development/drupal-versions.mdx#how-versions-are-resolved)). `DRUPAL_VERSION` takes values such as `11`, `11.1.0` or `11@beta`, but no longer `@dev`, because a development branch isn't a release.
-- It stops a webserver that's still running from an earlier build in `assemble`, once the checks pass, instead of running `stop` first. A failed check leaves your site running. `assemble` on its own stops the webserver too, so run `start` after it (see [Assembling the codebase](../development/building.mdx#assembling-the-codebase)).
+- It applies the patches you declare. From 4.14.0 to 4.19.0, the build didn't install `cweagans/composer-patches`, so unless your project required the plugin itself, Composer skipped every patch in `composer.json` and `composer.dev.json` without a word. In 5.x they apply, and a patch that no longer applies fails the build (see [Patch dependencies](../development/dependencies.mdx#patch-dependencies)).
+- It pins Drupal core to 1 exact release, and resolves every other dependency with `minimum-stability: dev` and `prefer-stable: true` (see [How versions are resolved](../development/drupal-versions.mdx#how-versions-are-resolved)). `DRUPAL_VERSION` takes values such as `11`, `11.1.0` or `11@beta`, but not `@dev`, because a development branch isn't a release.
+- `assemble` stops a webserver that's still running from an earlier build after its checks pass, instead of running `stop` first, so a failed check leaves your site running. `assemble` on its own stops the webserver too, so run `start` after it (see [What `assemble` does](../development/building.mdx#what-assemble-does)).
 
-`start` and `stop` changed too. In 4.x they killed whatever listened on the project's port. In 5.x they only stop the webserver that serves the project's own `build/web`, so the server of another project that recorded the same port keeps running, and `start` fails and names it instead of taking the port over (see [Webserver](../development/webserver.mdx#sharing-a-machine-with-other-projects)). `browser-stop` treats the WebDriver backend the same way, so it leaves the browser of another project running.
+`start` and `stop` changed too. From 4.12.0, they killed whatever listened on the project's port, and from 4.8.0 to 4.11.x, every PHP process. In 5.x they only stop the webserver that serves the project's own `build/web`, so the server of another project that recorded the same port keeps running, and `start` fails and names it instead of taking the port over (see [Projects that share a machine](../development/webserver.mdx#projects-that-share-a-machine)). `browser-stop` treats the WebDriver backend the same way, so it leaves the browser of another project running.
 
 ### Cloudflare tunnel hooks
 
-In 4.18.0 and 4.19.0, `init.php` could keep 3 hooks that ran a Cloudflare quick tunnel: `scripts/provision-cloudflared.sh`, `scripts/start-cloudflared.sh` and `scripts/stop-cloudflared.sh`.
+In 4.18.0 and 4.19.0, `init.php` could keep 3 hooks that ran a Cloudflare quick tunnel: `scripts/provision-cloudflared.sh`, `scripts/start-cloudflared.sh` and `scripts/stop-cloudflared.sh`. Its prompt kept them by default, so an update to either release could add them to an older project too.
 
 In 5.x, `eddy-start`, `eddy-provision` and `eddy-stop` run the tunnel themselves when `CLOUDFLARE_TUNNEL=1` is set, in the shell or in `.env` (see [Public tunnel](../development/tunnel.mdx)). They also fix a bug in the hooks: the hooks made `*.trycloudflare.com` the only trusted host, so after a tunnel provision the site answered 400 on `http://localhost:<port>`.
 
@@ -128,24 +144,24 @@ What to do:
 - Delete the 3 hooks. Left in place, they act on the same tunnel as the commands, and the start hook can restart it.
 - Carry any edit you made to them as a patch for `drevops/eddy-tooling`, the same way as an edit to `.devtools/`.
 
-A project created before 4.18.0 never had these hooks.
+A project that was never on 4.18.0 or 4.19.0 never had these hooks.
 
 ### CircleCI is gone
 
-In 4.x, `init.php` asked which CI provider to use. A CircleCI project got `.circleci/config.yml` instead of the GitHub Actions workflows, kept its deployment key in CircleCI with the key's fingerprint in the config, and deployed every branch that passed its tests.
+From 4.8.0, the 4.x installer asked which CI provider to use. A CircleCI project got `.circleci/config.yml` instead of the GitHub Actions workflows, kept its deployment key in CircleCI with the key's fingerprint in the config, and deployed every branch that passed its tests.
 
 In 5.x, GitHub Actions is the only CI, and every project gets `.github/workflows/test.yml`, `deploy.yml`, `draft-release-notes.yml` and `assign-author.yml`.
 
 What to do, if your project ran on CircleCI:
 
 - Delete `.circleci/`. The upgrade adds the GitHub Actions workflows.
-- Move the deployment settings to the repository's **Settings** → **Secrets and variables** → **Actions**, as [Setting up deployment](../deployment/setup.mdx) describes:
+- Move the deployment settings to the repository's **Settings** → **Secrets and variables** → **Actions**, as [Set up deployment](../deployment/setup.mdx) describes:
   - The private deployment key becomes the `DEPLOY_SSH_KEY` secret. GitHub Actions doesn't need its fingerprint.
   - `DEPLOY_REMOTE`, `DEPLOY_USER_NAME`, `DEPLOY_USER_EMAIL` and `DEPLOY_PROCEED` become secrets.
   - `DEPLOY_BRANCH`, if you set it, becomes a repository variable.
   - `CODECOV_TOKEN`, if you upload coverage to Codecov, becomes a secret.
-  - Each `CI_*_IGNORE_FAILURE` toggle you set becomes a repository variable (see [Allowing a CI step to fail](../continuous-integration/configuration.mdx#allowing-a-ci-step-to-fail)).
-- Check which branches deploy. GitHub Actions deploys release tags and pushes to the branches in the `push` filter of `test.yml`, which is `1.x` unless you change it, so a branch outside that list stops deploying.
+  - Each `CI_*_IGNORE_FAILURE` toggle you set becomes a repository variable (see [Allow a CI step to fail](../continuous-integration/configuration.mdx#allow-a-ci-step-to-fail)).
+- Check which branches deploy. GitHub Actions deploys tags and pushes to the branches in the `push` filter of `test.yml`, which is `1.x` unless you change it, so a branch outside that list stops deploying.
 - In your branch protection rules, or the ruleset that protects your default branch, swap the `ci/circleci: <job>` checks for the GitHub Actions jobs that [Branch protection](../continuous-integration/branch-protection.mdx) lists for your Drupal majors. From 4.18.0, each CircleCI job has a GitHub Actions job of the same name.
 - Stop building the project in CircleCI. Otherwise every push gets a failing "CircleCI Pipeline" check that can't find a configuration.
 
@@ -153,24 +169,32 @@ A project on GitHub Actions has nothing to do here.
 
 ### Deployment
 
-In 4.19.0, and on CircleCI, a release tag also force-pushed the tagged commit to a branch of your Drupal.org repository, so a tag behind that branch's tip rewound it. A test run that finished late, or that you re-ran, could rewind a branch the same way. Earlier releases' GitHub Actions `Deploy` workflow pushed whatever your default branch held when it ran, and from 4.15.0 to 4.17.0 a release tag pushed it to a branch named after the tag. The first deployment of a new branch failed, and the `Deploy` workflow failed on every run until you set up deployment. From 4.15.0 to 4.18.0, a pull request's successful test run deployed too, pushing your default branch to a branch of your Drupal.org repository named after the pull request's branch. In 4.18.0, a `DEPLOY_BRANCH` repository variable, when set, names the branch instead.
+Deployment changed several times during 4.x:
 
-In 5.x:
+- Before 4.19.0, the GitHub Actions `Deploy` workflow pushed whatever your default branch held when it ran.
+- From 4.15.0 to 4.17.0, a release tag pushed your default branch to a branch named after the tag.
+- From 4.15.0 to 4.18.0, a pull request's successful test run deployed too, pushing your default branch to a branch of your Drupal.org repository named after the pull request's branch. In 4.18.0, a `DEPLOY_BRANCH` repository variable, when set, names the branch instead.
+- In 4.19.0, and on CircleCI, a release tag also force-pushed the tagged commit to a branch of your Drupal.org repository, so a tag behind that branch's tip rewound it. A test run that finished late, or that you re-ran, could rewind a branch the same way.
+- In 4.19.0 and in CircleCI tag builds, the first deployment to a new branch failed.
+- The `Deploy` workflow failed on every run until you set up deployment.
+
+In 5.x, deployment works like this:
 
 - Only a push to your repository deploys. A pull request's test run never does.
-- A release tag deploys only the tag and leaves your branches alone. `DEPLOY_BRANCH` applies to branch pushes only.
+- A tag deploys only the tag and leaves your branches alone. `DEPLOY_BRANCH` applies to branch pushes only.
 - A branch push deploys only while its commit is still the tip of the branch. An older commit is skipped with a notice, so it never replaces a newer one.
 - Deployments of the same branch wait for each other instead of running side by side, so 2 of them can't push out of order.
 - The first deployment of a branch creates it.
+- A branch deployment also force-pushes the repository's tags (see [What deploys](../deployment/README.mdx#what-deploys)).
 - Until the `DEPLOY_REMOTE` secret is set, the `Deploy` workflow skips its steps and reports a notice instead of failing.
 
 What to do:
 
 - If your release process relied on a tag push to update a branch, push the branch as well.
-- On a release from 4.15.0 to 4.18.0, the upgrade pull request still deploys the 4.x way described above. GitHub runs a `workflow_run` workflow, such as `Deploy`, from the copy on your default branch, so the 4.x `deploy.yml` stays in charge until you merge. To skip that, set the `DEPLOY_PROCEED` secret to `0` before the pull request opens, and back to `1` just before you merge. Otherwise, once you've merged, delete every branch named after a pull request from your Drupal.org repository, such as with `git push <remote> --delete <branch>`, including any that earlier pull requests left there.
-- On a release from 4.15.0 to 4.17.0, also delete every branch named after a release tag from your Drupal.org repository. Those releases created one for each tag they deployed.
+- On a release from 4.15.0 to 4.18.0, the upgrade pull request still deploys the 4.x way described in this section. GitHub runs a `workflow_run` workflow, such as `Deploy`, from the copy on your default branch, so the 4.x `deploy.yml` stays in charge until you merge. To skip that, set the `DEPLOY_PROCEED` secret to `0` before the pull request opens, and back to `1` right before you merge. Otherwise, after you've merged, delete every branch named after a pull request from your Drupal.org repository, such as with `git push <remote> --delete <branch>`, including any that earlier pull requests left there.
+- On a release from 4.15.0 to 4.17.0, also delete every branch named after a release tag from your Drupal.org repository. Those releases created 1 for each tag they deployed.
 
-[Deployment](../deployment/README.mdx) describes the new behavior in full.
+[Deployment](../deployment/README.mdx) describes the 5.x behavior in full.
 
 ### FunctionalJavascript tests
 
@@ -180,11 +204,11 @@ From 4.13.0 to 4.17.0, FunctionalJavascript tests ran in a Selenium container, w
 
 In 5.x, the class is the 4.18.0 one without the CircleCI check, and its `getMinkDriverArgs()` declares the `string|false` return type that Drupal 12 needs.
 
-No 4.x update touched `tests/`, so your project still has the class it was created with, even after an update to 4.18.0 or 4.19.0.
+No 4.x update changed the files your project had in `tests/`, so your project still has the class it was created with, even after an update to 4.18.0 or 4.19.0.
 
 What to do, if your project has FunctionalJavascript tests: bring their base class in line with [the 5.x copy](https://github.com/drevops/eddy/blob/main/tests/src/FunctionalJavascript/YourExtensionFunctionalJavascriptTestBase.php). Keep its name, so the tests that extend it stay as they are. What that takes depends on the class you have:
 
-- If it has no `getMinkDriverArgs()`, as in a project created from 4.13.0 to 4.17.0, replace the `CIRCLECI` check in `setUp()`, the comment above it included, with the base URL setup of the 5.x copy, and add the 5.x copy's `getMinkDriverArgs()`. `CONTRIBUTING.md` tells contributors to extend `<MachineName>FunctionalJavascriptTestBase`, so point it at your class instead.
+- If it has no `getMinkDriverArgs()`, as in a project created from 4.13.0 to 4.17.0, replace the `CIRCLECI` check in `setUp()`, with the comment before it, with the base URL setup of the 5.x copy, and add the 5.x copy's `getMinkDriverArgs()`. `CONTRIBUTING.md` tells contributors to extend `<MachineName>FunctionalJavascriptTestBase`, so point it at your class instead.
 
   Until you do, `ahoy test` and `make test` send the local Chrome to an address that doesn't reach the webserver, so every FunctionalJavascript test fails in `setUp()`, such as with `net::ERR_NAME_NOT_RESOLVED` on a Mac. A green pull request doesn't mean the class is fine: CI keeps passing, because the 5.x `test.yml` still runs the browser in a Selenium container, the setup the class was written for.
 
@@ -196,7 +220,7 @@ A project created before 4.13.0 never had the class. If yours has FunctionalJava
 
 ### Drupal 12
 
-5.x can test your extension on Drupal 12 next to Drupal 10 and 11. It's opt-in: the upgrade keeps the Drupal majors your CI tests today. To add Drupal 12, select `12` when `install.php` asks for the Drupal versions, or ask for it when you run the update skill, such as `/update-consumer-eddy add Drupal 12`. Once you're on 5.x, the skill can add it later the same way, even when there's no newer release to update to.
+5.x can test your extension on Drupal 12 next to Drupal 10 and 11. It's opt-in: the upgrade keeps the Drupal majors your CI tests today. To add Drupal 12, select `12` when `install.php` asks for the Drupal versions, or ask for it when you run the update skill, such as `/update-consumer-eddy add Drupal 12`. After you're on 5.x, the skill can add it later the same way, even when there's no newer release to update to.
 
 Drupal 12 brings 5 CI jobs (`lint-d12`, `test-php-min-d12-stable`, `test-php-max-d12-stable`, `test-php-min-d12-legacy` and `test-php-max-d12-canary`) and a README badge, plus a PHP 8.5 badge if you don't test Drupal 11. It also needs 3 changes in your own code, which no template merge makes. When you add Drupal 12 with the update skill, the skill makes them after the merge, each in a commit of its own, so review them in the pull request. Otherwise make them yourself:
 
@@ -208,11 +232,11 @@ Drupal 12 requires PHP 8.5. CI runs every Drupal 12 job on PHP 8.5, and adding D
 
 Your own tests can run into more of what changed in Drupal 12. These are the breaks a contrib module is most likely to meet when it adds Drupal 12 next to 10 and 11, and each fix works on all 3 majors:
 
-- **Update path dumps.** Drupal 12 ships only `drupal-11.3.0.bare.standard.php.gz` and `drupal-11.3.0.filled.standard.php.gz` in `core/modules/system/tests/fixtures/update/`. Drupal 10.6 and 11.0 to 11.3 don't have the 11.3.0 dumps, and 11.4 has them next to the `drupal-10.3.0.*` ones that Drupal 12 dropped. An update path test that runs on every major sets `$databaseDumpFiles` to the 11.3.0 dump when its file exists, and to the 10.3.0 one otherwise.
+- **Update path dumps.** The only database dumps that Drupal 12 ships in `core/modules/system/tests/fixtures/update/` are `drupal-11.3.0.bare.standard.php.gz` and `drupal-11.3.0.filled.standard.php.gz`. Drupal 10.6 and 11.0 to 11.3 don't have the 11.3.0 dumps, and 11.4 has them next to the `drupal-10.3.0.*` ones that Drupal 12 dropped. An update path test that runs on every major sets `$databaseDumpFiles` to the 11.3.0 dump when its file exists, and to the 10.3.0 one otherwise.
 - **Typed `KernelTestBase` properties.** Drupal 12 declares `$strictConfigSchema` as `bool`, along with properties such as `$container` and `$siteDirectory` that Drupal 10 and 11 leave untyped. PHP rejects a redeclaration whose type differs from the parent's, so no redeclaration works on all 3 majors. Set the value in `setUp()` before `parent::setUp()` instead, such as `$this->strictConfigSchema = FALSE;`.
-- **`text_with_summary`.** The field type, its `text_textarea_with_summary` widget and its `text_summary_or_trimmed` formatter moved from core to the contrib [`drupal/text_with_summary`](https://www.drupal.org/project/text_with_summary) module, and `node_add_body_field()` is gone. That module supports only Drupal 11.5 and 12, so a module that needs it on Drupal 12 can't require it on Drupal 10. When only your tests use the field type, a [lifecycle script](../development/lifecycle-scripts.mdx) can add the contrib module to the builds whose core no longer has it.
+- **`text_with_summary`.** The field type, its `text_textarea_with_summary` widget and its `text_summary_or_trimmed` formatter moved from core to the contrib [`drupal/text_with_summary`](https://www.drupal.org/project/text_with_summary) module, and `node_add_body_field()` is gone. That module supports only Drupal 11.5 and 12, so a module that needs it on Drupal 12 can't require it on Drupal 10. When only your tests use the field type, a [lifecycle script](../development/lifecycle-scripts.mdx) can add the contrib module to the builds whose core doesn't have it.
 - **Traits in `#[CoversClass]`.** PHPUnit 12 rejects a trait named in `#[CoversClass]` with a warning that it "is not a valid target for code coverage", and the template's `failOnWarning="true"` turns that warning into a failed job even when every test passes. Name a trait with `#[CoversTrait]` instead: PHPUnit 11 has it, PHPUnit 10.5 skips attribute classes it doesn't know, and PHPUnit 9 ignores attributes.
-- **The `filter` module in kernel tests.** `TextItemBase::applyDefaultValue()` now asks the `filter` module for the fallback text format, so a kernel test that creates an entity with a text field needs `filter` in `$modules`: kernel tests don't enable dependencies for you. Core's `11.5.x` branch has the same change, so the Drupal 11 `canary` job meets it once 11.5 pre-releases are out.
+- **The `filter` module in Kernel tests.** `TextItemBase::applyDefaultValue()` asks the `filter` module for the fallback text format, so a Kernel test that creates an entity with a text field needs `filter` in `$modules`: Kernel tests don't enable dependencies for you. Core's `11.5.x` branch has the same change, so the Drupal 11 `canary` job meets it after an 11.5 beta or release candidate is out.
 - **Mocks without expectations.** PHPUnit 12.5, which Drupal 12 builds run, reports a notice for every mock object a test creates without an expectation, and `expects($this->any())` doesn't count as one. The template's `phpunit.xml` only reports the notices, but a module with hundreds of such mocks gets hundreds of notices in every run, and Drupal 12 core's own `phpunit.xml.dist` fails the run on them. Create test doubles that only return values with `createStub()`, which every PHPUnit version that Drupal 10 to 12 runs provides. A test class that keeps such mocks on purpose can opt out with `#[AllowMockObjectsWithoutExpectations]`, which older PHPUnit versions ignore.
 
 Check that the dependencies in your `composer.json` support Drupal 12 too, and add the new jobs to your branch protection rules or ruleset (see [Branch protection](../continuous-integration/branch-protection.mdx)). [Continuous integration](../continuous-integration/README.mdx#drupal-12) explains how the Drupal 12 jobs follow Drupal releases.
@@ -221,26 +245,40 @@ Check that the dependencies in your `composer.json` support Drupal 12 too, and a
 
 The rest of the template moved on as well, and an upgrade merges these files like any template update:
 
-- `.ahoy.yml` and `Makefile` call `vendor/bin/eddy-*` and install the tooling first. When you keep FunctionalJavascript tests, `test` now starts the browser before PHPUnit, so it needs Chrome, or Docker with `WEBDRIVER_BACKEND=selenium`. `test-unit`, `test-kernel` and `test-functional` don't. `reset` stops only the project's own webserver, and its browser when you keep FunctionalJavascript tests, rather than every PHP process you're running, and it also removes `vendor/`, which is how a local checkout picks up a newer patch release of the tooling. `make start` discovers a free port the way `ahoy start` does: the 4.x `Makefile` exported `WEBSERVER_PORT ?= 8000`, so it always took port 8000. Both wrappers now give a variable set in your shell precedence over its value in `.env`, the other way round from 4.x, so a variable you export from your shell profile overrides the `.env` of every project (see [Environment variables](../development/environment-variables.mdx)). Ahoy now reads `.env` as a Bash script, so put quotes around a value that holds a space.
-- `.github/workflows/test.yml` installs the tooling and calls `vendor/bin/eddy-*`. Its Composer cache works now: the 4.x cache step pointed at a directory Composer never wrote to, so it never stored anything.
+- `.ahoy.yml` and `Makefile` changed in these ways:
+  - They call `vendor/bin/eddy-*` and install the tooling first.
+  - When you keep FunctionalJavascript tests, `test` starts the browser before PHPUnit, so it needs Chrome, or Docker with `WEBDRIVER_BACKEND=selenium`. `test-unit`, `test-kernel` and `test-functional` don't.
+  - `reset` stops only the project's own webserver, and its browser when you keep FunctionalJavascript tests, rather than every PHP process you're running. It also removes `vendor/`, which is how a local checkout picks up a newer patch release of the tooling.
+  - `make start` discovers a free port the way `ahoy start` does. The 4.x `Makefile` exported `WEBSERVER_PORT ?= 8000`, so it always took port 8000.
+  - Both wrappers give a variable set in your shell precedence over its value in `.env`, the other way round from 4.x, so a variable you export from your shell profile overrides the `.env` of every project (see [Environment variables](../development/environment-variables.mdx)).
+  - Ahoy reads `.env` as a Bash script, so put quotes around a value that holds a space.
+- `.github/workflows/test.yml` installs the tooling and calls `vendor/bin/eddy-*`. Its Composer cache works: the 4.x cache step pointed at a directory Composer never wrote to, so it never stored anything.
 - `.github/workflows/deploy.yml` installs the tooling and calls `vendor/bin/eddy-deploy` (see [Deployment](#deployment)).
-- Since 4.18.0, `phpunit.xml`, `phpunit.d10.xml`, `phpcs.xml`, `phpstan.neon` and `jest.config.js` changed only in their comments, and `rector.php` didn't change at all, so keep any settings you added to them. The exceptions are the `MINK_DRIVER_ARGS_WEBDRIVER` entries in both PHPUnit files. 4.19.0 dropped their `force="true"`: in a project on 4.18.0 or earlier, a value you export now overrides the one in the file instead of the other way round. A project without FunctionalJavascript tests loses the entries altogether, since only those tests read them. A project that doesn't test Drupal 10 loses `phpunit.d10.xml`, which only a Drupal 10 build reads.
-- `.cspell.json` adds the word `cweagans`, which `composer.dev.json` now contains, drops `killall` and `pkill`, which nothing uses any more, drops the `ignorePaths` that pointed into `.scaffold/`, and drops the words of the tools you don't keep, such as `lullabot` without FunctionalJavascript tests. It also swaps `autologout` for `linkit`, the example module the template's `composer.json` suggests, so keep `autologout` if your project still uses that word. Merge it with your own words.
-- `AGENTS.md` describes the tooling commands, `vendor/` and `scripts/eddy-tooling` in place of `.devtools/`, drops CircleCI, and carries the new "Updating the scaffold" section.
+- `phpunit.xml`, `phpunit.d10.xml`, `phpcs.xml`, `phpstan.neon`, `rector.php` and `jest.config.js` changed in these ways since 4.18.0, apart from their comments, so keep any settings you added to them:
+  - Each names only the custom directory of your extension's type, `web/modules/custom` or `web/themes/custom`.
+  - Both PHPUnit files count a module's `.module` and `.install` files, or a theme's `.theme` file, towards coverage.
+  - 4.19.0 dropped the `force="true"` of the `MINK_DRIVER_ARGS_WEBDRIVER` entries in both PHPUnit files. In a project on 4.18.0 or earlier, a value you export overrides the one in the file in 5.x, instead of the other way round.
+
+  A project without FunctionalJavascript tests loses those entries altogether, since only those tests read them. A project that doesn't test Drupal 10 loses `phpunit.d10.xml`, which only a Drupal 10 build reads.
+- `.twig-cs-fixer.php` and the lint scripts of `package.json` also name only the custom directory of your extension's type.
+- `.editorconfig` loses its `[Makefile*]` section without a `Makefile`, and its `[package.json]` section without the npm tools. `.gitignore` loses `/.chromedriver` without FunctionalJavascript tests.
+- `renovate.json` turns on the weekly lock file maintenance (see [Dependency updates](renovate.mdx)).
+- `.cspell.json` adds `cweagans`, which `composer.dev.json` contains, and `isig`. It drops `killall` and `pkill`, which nothing in 5.x uses, the `ignorePaths` that pointed into `.scaffold/` and the words of the tools you don't keep, such as `lullabot` without FunctionalJavascript tests. It also swaps `autologout` for `linkit`, the example module the template's `composer.json` suggests, so keep `autologout` if your project still uses that word. Merge it with your own words.
+- `AGENTS.md` describes the tooling commands, `vendor/` and `scripts/eddy-tooling` in place of `.devtools/`, drops CircleCI and carries the new "Updating the scaffold" section.
 - `CONTRIBUTING.md` documents only the command wrappers you keep, or the `vendor/bin/eddy-*` commands when you keep neither. Carry your own notes over from the old copy.
-- `README.md` drops the CircleCI badge, shows Drupal badges only for the majors you test and PHP badges only for the PHP versions they support, and credits Eddy.
-- `.gitattributes` drops its `.circleci` and `.devtools` lines.
+- `README.md` drops the CircleCI badge, and shows Drupal badges only for the majors you test and PHP badges only for the PHP versions they support. It states the license as GPL-2.0-or-later instead of reading it from GitHub, and credits Eddy.
+- `.gitattributes` drops its `.circleci` and `.devtools` lines, and the lines of a command wrapper, the npm files or `phpunit.d10.xml` that your project doesn't have.
 
 ## After the upgrade
 
 Before you merge the upgrade:
 
-1. Build, lint and test the project with `ahoy build`, `ahoy lint` and `ahoy test`, or the same `make` commands, which install the tooling into `vendor/` first. Without a wrapper, run `scripts/eddy-tooling`, then the commands that [Building the site](../development/building.mdx), [Coding standards](../development/coding-standards.mdx) and [Testing](../testing/README.mdx) show under **No wrapper**.
+1. Build, lint and test the project with `ahoy build`, `ahoy lint` and `ahoy test`, or the same `make` commands, which install the tooling into `vendor/` first. Without a wrapper, run `scripts/eddy-tooling`, then the commands that [Build the site](../development/building.mdx), [Coding standards](../development/coding-standards.mdx) and [Testing](../testing/README.mdx) show under **No wrapper**.
 2. Check that every CI job passes on the pull request.
 3. Check that the branch filters in `.github/workflows/test.yml` and `.github/workflows/draft-release-notes.yml` list the branches you build from.
 4. Check that your branch protection rules, or the ruleset that protects your default branch, require the jobs in [Branch protection](../continuous-integration/branch-protection.mdx) for the Drupal majors you test, and no `ci/circleci: <job>` checks.
 5. If you set the `DEPLOY_PROCEED` secret to `0` for the upgrade, set it back to `1`.
 
-After you merge it, check that the next `Deploy` run reaches your Drupal.org repository, or reports a notice that says why it didn't. If your project was on a release from 4.15.0 to 4.18.0, also delete the branches that pull requests left in your Drupal.org repository, and from 4.15.0 to 4.17.0 the branches named after release tags (see [Deployment](#deployment)).
+After you merge it, confirm that the next `Deploy` run reaches your Drupal.org repository, or reports a notice that says why it didn't. If your project was on a release from 4.15.0 to 4.18.0, also delete the branches that pull requests left in your Drupal.org repository, and from 4.15.0 to 4.17.0 the branches named after release tags (see [Deployment](#deployment)).
 
-{/* cspell:ignore autologout killall pkill */}
+{/* cspell:ignore autologout killall pkill isig phpmd */}
