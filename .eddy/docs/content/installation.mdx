@@ -10,16 +10,29 @@ import CommandTabs from '@site/src/components/CommandTabs';
 
 These steps take you from an empty directory to an extension that builds, passes its checks and deploys to Drupal.org. Each step links to the page with the details, so you can follow the list once and come back to the parts you need.
 
+## Before you start
+
+Make sure your machine has the following:
+
+- PHP 8.3 or newer, with SQLite support. A Drupal 12 build needs PHP 8.5.
+- [Composer](https://getcomposer.org/).
+- curl, for the download command.
+- Node.js with npm, when you keep ESLint, Stylelint, CSpell or Jest.
+- [Ahoy](https://github.com/ahoy-cli/ahoy) or Make, for the command wrapper you choose.
+- Google Chrome or Docker, when you keep FunctionalJavascript tests.
+
+To publish your extension, you also need a GitHub account and push access to your project's repository on Drupal.org.
+
 ## Overview
 
-1. [Run the installer](#running-the-installer) in a new, empty directory and answer its questions.
+1. [Run the installer](#run-the-installer) in a new, empty directory and answer its questions.
 2. If you already have extension code, copy it into the directory.
 3. [Build the site](development/building.mdx) to check that everything works.
 4. [Check coding standards](development/coding-standards.mdx).
 5. [Run the tests](testing/README.mdx).
 6. Create your extension's repository on GitHub, then commit and push.
 7. [Configure branch protection](continuous-integration/branch-protection.mdx).
-8. [Configure deployment](deployment/setup.mdx) to Drupal.org.
+8. [Set up deployment](deployment/setup.mdx) to Drupal.org.
 
 :::tip Starting from GitHub instead
 
@@ -27,7 +40,7 @@ Eddy is a GitHub template, so you can also create your repository with **Use thi
 
 :::
 
-## Running the installer
+## Run the installer
 
 Download the installer into a new, empty directory and run it there:
 
@@ -35,43 +48,45 @@ Download the installer into a new, empty directory and run it there:
 curl -fsSL https://eddy.drevops.com/install > install.php && php install.php
 ```
 
-It downloads the Eddy release that this site documents, the one in the footer, and expands it into the directory. Then it asks about your extension, renames and rewrites the template's files to match, and removes what you didn't select. It finishes by deleting itself, unless you answer no to "Remove this script". `php install.php --version` prints the release it installs.
+The installer downloads the Eddy release that this site documents, the one in the footer, and expands it into the directory. Then it asks about your extension, renames and rewrites the template's files to match and removes what you didn't select. It finishes by deleting itself, unless you answer no to **Remove this script**. `php install.php --version` prints the release it installs.
 
-Hidden entries such as `.git` don't count, so an empty repository you've just cloned works too. In a directory that holds other files but no copy of Eddy, the installer stops without changing anything.
+Hidden entries such as `.git` don't count, so an empty repository you've cloned works too. In a directory that holds other files but no copy of Eddy, the installer stops without changing anything.
 
-![The installer asking its questions](../../assets/install.svg)
+To install from another archive, such as one of a fork, set `INSTALL_TEMPLATE_ARCHIVE` to its URL or path before you run the installer in the empty directory. It takes a `.tar.gz` archive with the files in 1 top-level directory, the layout that GitHub builds.
 
-| Question                       | What it decides                                                                                                                                                       | Default    |
-|--------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|
-| Extension name                 | The human-readable name, such as `My Extension`.                                                                                                                      | -          |
-| Machine name                   | The machine name, such as `my_extension`, which files, classes and services are renamed after.                                                                       | -          |
-| Extension type                 | Module or theme.                                                                                                                                                      | Module     |
-| Target Drupal versions         | The Drupal majors CI tests: 10, 11 and 12. See [Drupal versions](development/drupal-versions.mdx).                                                                    | 11         |
-| Command wrapper                | Ahoy, Makefile, both or neither. Without a wrapper, you run the [tooling commands](development/tooling.mdx) yourself.                                                  | Neither    |
-| Tools                          | The tools to keep: PHPCS, PHPStan, Rector, Twig CS Fixer, ESLint, Stylelint, CSpell, Jest, PHPUnit, FunctionalJavascript tests and Renovate.                           | All 11     |
-| Keep example lifecycle scripts | 4 example [lifecycle scripts](development/lifecycle-scripts.mdx), 1 per phase, that print a marker line when their phase runs.                                        | No         |
-| Remove this script             | Whether `install.php` deletes itself when it's done.                                                                                                                  | Yes        |
-| Proceed with installation      | A last check before anything changes.                                                                                                                                 | Yes        |
+![php install.php asking about the extension in a terminal, then installing it](../../assets/install.svg)
 
-:::tip Installing without the prompts
+The installer asks the following questions:
+
+| Question                       | What it decides                                                                                                                                                       | Default                        |
+|--------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------|
+| Extension name                 | The human-readable name, such as `My Extension`.                                                                                                                      | `My Extension`                 |
+| Machine name                   | The machine name that files, classes and services are renamed after, such as `my_extension`. It starts with a lowercase letter and holds only lowercase letters, digits and underscores. | Derived from the extension name |
+| Extension type                 | Module or theme.                                                                                                                                                      | Module                         |
+| Target Drupal versions         | The Drupal majors your extension supports: 10, 11 and 12. They decide the CI jobs, `core_version_requirement`, the README badges and the version a local build uses. See [Drupal versions](development/drupal-versions.mdx). | 11                             |
+| Command wrapper                | Ahoy, Makefile, both or neither. Without a wrapper, you run the [tooling commands](development/tooling.mdx) yourself.                                                  | Neither                        |
+| Tools                          | The tools to keep: PHPCS, PHPStan, Rector, Twig CS Fixer, ESLint, Stylelint, CSpell, Jest, PHPUnit, FunctionalJavascript tests and Renovate.                           | All 11                         |
+| Keep example lifecycle scripts | 4 example [lifecycle scripts](development/lifecycle-scripts.mdx), 1 per phase, that print a marker line when their phase runs.                                        | No                             |
+| Remove this script             | Whether `install.php` deletes itself when it's done.                                                                                                                  | Yes                            |
+| Proceed with installation      | The last check before the installer rewrites the template's files.                                                                                                    | Yes                            |
+
+:::tip Skip the prompts
 
 Every answer can come from an environment variable instead, which is handy in scripts and for AI agents. `php install.php --help` lists them.
 
 :::
 
-### Installing from a download
+### Install from a download
 
-The installer also works on a copy of Eddy you've downloaded yourself: the [latest release](https://github.com/drevops/eddy/releases/latest), another release, or the current code with **Code** → **Download ZIP** in the GitHub UI. Expand it into a new directory and run the installer there, where it works on the files in place:
+The installer also works on a copy of Eddy you've downloaded yourself: the [latest release](https://github.com/drevops/eddy/releases/latest), another release or the current code with **Code** → **Download ZIP** in the GitHub UI. Expand it into a new directory and run the installer there, where it works on the files in place:
 
 ```bash
 php install.php
 ```
 
-To have the installer download another archive, such as one of a fork, set `INSTALL_TEMPLATE_ARCHIVE` to its URL or path. GitHub builds its archives with the files in 1 top-level directory, and the installer expects that layout.
+### Install the development version
 
-### Installing the development version
-
-The [development site](https://drevops-eddy-docs.netlify.app) serves the installer of the current `main` branch, for trying out changes that aren't released yet:
+The [development site](https://drevops-eddy-docs.netlify.app) serves the installer of the `main` branch, for trying out changes that aren't released:
 
 ```bash
 curl -fsSL https://drevops-eddy-docs.netlify.app/install > install.php && php install.php
@@ -81,15 +96,44 @@ curl -fsSL https://drevops-eddy-docs.netlify.app/install > install.php && php in
 
 The installer works on the directory in place:
 
-- Renames the `your_extension.*` files, classes and tests after your machine name and replaces the placeholders inside them. A theme drops what only the example module uses: the `.module`, `.install`, routing, services and menu links files, the service class, the settings form with its configuration schema, the Unit, Kernel and Functional tests that cover them, and the module dependencies in the `.info.yml`. It gets `base theme: false` and its global library under `libraries` in the `.info.yml` instead, a `.theme` file that adds the element its JavaScript fills, and FunctionalJavascript tests that run with the theme as the default theme. A module drops the `.theme` file.
-- Points the linter and test configurations at the custom directory of your extension's type only, `web/modules/custom` or `web/themes/custom`. To ship an extension of the other type with yours, see [Bundled extensions](development/bundled-extensions.mdx).
-- Removes what you didn't select: the CI jobs and README badge of a Drupal major, a tool with its configuration and CI steps, or a command wrapper with its file. Dropping PHPUnit drops FunctionalJavascript tests too, since they run on PHPUnit. The README keeps a PHP badge for each PHP version your selected majors support, so a Drupal 10-only extension doesn't claim PHP 8.5.
-- Turns `README.dist.md` and `CONTRIBUTING.dist.md` into your `README.md` and `CONTRIBUTING.md`, and downloads a placeholder `logo.png` with your extension name on it.
-- Deletes Eddy's own files: `.eddy/`, `MIGRATION.md`, `SECURITY.md`, `LICENSE.txt`, `logo.svg` and the `eddy-*` workflows. Drupal.org adds `LICENSE.txt` to every release it packages and [asks projects not to commit one](https://www.drupal.org/node/1663716), so the README's license badge states GPL-2.0-or-later instead of reading it from a license file.
-- Sets the branch filters of the workflows to `1.x`. Run the installer again in an existing project and it keeps the branches of the committed `.github/workflows/test.yml` instead. A list in `INSTALL_BRANCHES`, such as `1.x,2.x`, overrides both. [Deployment](deployment/README.mdx) explains how to build and deploy other branches.
-- Records the Eddy release you installed as `extra.eddy.version` in `composer.dev.json`, or the commit of a branch download or of the development version, such as `5.0.0-3-g1a2b3c4`, so a later [update](updating/README.mdx) knows where your project started.
+- It renames the `your_extension.*` files, classes and tests after your machine name and replaces the placeholders inside them.
+- It keeps only what your extension type uses. A theme drops these parts of the example module:
 
-The README badges name your GitHub repository when you run the installer in a clone of it, and your machine name for both the owner and the name otherwise, so check them before your first commit.
+  - The `.module`, `.install`, routing, services and menu links files
+  - The service class and the settings form with its configuration schema
+  - The Unit, Kernel and Functional tests that cover them
+  - The module dependencies in the `.info.yml`
+
+  A theme gets these instead:
+
+  - `base theme: false` and its global library under `libraries` in the `.info.yml`
+  - A `.theme` file that adds the element its JavaScript fills, with a Unit test of that hook
+  - FunctionalJavascript tests that run with the theme as the default theme
+
+  A module drops the `.theme` file and its Unit test.
+- It points the linter and test configurations at the custom directory of your extension's type only, `web/modules/custom` or `web/themes/custom`. To ship an extension of the other type with yours, see [Bundled extensions](development/bundled-extensions.mdx).
+- It removes what you didn't select:
+
+  - A Drupal major: its CI jobs, its README badge and its part of `core_version_requirement`. Without Drupal 10, `phpunit.d10.xml` goes too.
+  - A tool: its configuration and its CI steps. Dropping PHPUnit drops FunctionalJavascript tests too, since they run on PHPUnit.
+  - A command wrapper: its file and its command permission in `.claude/settings.json`.
+  - The example lifecycle scripts, unless you keep them.
+
+  The README keeps a PHP badge for each PHP version your selected majors support, so a Drupal 10-only extension doesn't claim PHP 8.5.
+- It turns `README.dist.md` and `CONTRIBUTING.dist.md` into your `README.md` and `CONTRIBUTING.md`, and downloads a placeholder `logo.png` with your extension name on it.
+- It deletes Eddy's own files: `.eddy/`, `MIGRATION.md`, `SECURITY.md`, `LICENSE.txt`, `logo.svg`, the `eddy-*` workflows and the Claude Code skills that maintain Eddy. Drupal.org adds `LICENSE.txt` to every release it packages and [asks projects not to commit one](https://www.drupal.org/node/1663716), so the README's license badge states GPL-2.0-or-later instead of reading it from a license file.
+- It uncomments the `export-ignore` lines of `.gitattributes`, so the release archives that Drupal.org packages leave out the development files, such as `composer.dev.json`, `scripts` and `tests`.
+- It sets the branch filters of the workflows from the first of these that applies:
+
+  1. The branches in `INSTALL_BRANCHES`, such as `1.x,2.x`
+  2. The `push` branches of the `.github/workflows/test.yml` that your project commits, when you run the installer in the root of an existing project
+  3. `1.x`
+
+  [Deployment](deployment/README.mdx) explains how to build and deploy other branches.
+- It sets `extra.eddy.drupal-version` in `composer.dev.json` to the Drupal major that a local build uses by default.
+- It records the Eddy release you installed as `extra.eddy.version` in `composer.dev.json`, so a later [update](updating/README.mdx) knows where your project started. A branch download or the development version records its commit instead, such as `5.0.0-3-g1a2b3c4`, and a clone records nothing.
+
+The README badges name your GitHub repository. They take it from `INSTALL_GITHUB_REPOSITORY`, such as `owner/my_extension`, or from the GitHub `origin` when you run the installer in the root of a clone. Otherwise they use your machine name for both the owner and the name, so check them before your first commit.
 
 ## Next steps
 
@@ -103,5 +147,7 @@ vendor/bin/eddy-assemble      # Assemble the codebase
 vendor/bin/eddy-start         # Start the PHP server
 vendor/bin/eddy-provision     # Provision the Drupal website`}
 />
+
+Confirm that the site works: the build ends by printing the site URL and a one-time login link, which logs you in as `admin`.
 
 Then work through the rest of the [overview](#overview): coding standards, tests, the GitHub repository, branch protection and deployment.
