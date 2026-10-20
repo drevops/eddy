@@ -38,6 +38,13 @@ final class AssembleTest extends UnitTestCase {
   protected array $putenvCalls = [];
 
   /**
+   * Content appended to each file, keyed by path.
+   *
+   * @var array<string, string>
+   */
+  protected array $appendedContent = [];
+
+  /**
    * Build mocks and expected passthru sequence for an assemble run.
    *
    * @param array $config
@@ -270,7 +277,8 @@ final class AssembleTest extends UnitTestCase {
     });
 
     $this->capturedBuildComposerJson = [];
-    $this->mockFunction('file_put_contents', function (string $file, string $content) use ($config): int|false {
+    $this->appendedContent = [];
+    $this->mockFunction('file_put_contents', function (string $file, string $content, int $flags = 0) use ($config): int|false {
       if ($file === 'build/composer.json') {
         if ($config['failing_call'] === 'file_put_contents') {
           return FALSE;
@@ -278,6 +286,11 @@ final class AssembleTest extends UnitTestCase {
 
         $this->capturedBuildComposerJson[] = $content;
       }
+
+      if (($flags & FILE_APPEND) !== 0) {
+        $this->appendedContent[$file] = ($this->appendedContent[$file] ?? '') . $content;
+      }
+
       return 100;
     });
 
@@ -452,6 +465,13 @@ final class AssembleTest extends UnitTestCase {
     if (($config['github_token'] ?? '') !== '') {
       $this->assertStringContainsString('GitHub token passed to Composer.', $output);
       $this->assertContains('COMPOSER_AUTH={"github-oauth":{"github.com":"' . $config['github_token'] . '"}}', $this->putenvCalls);
+    }
+
+    $settings_files = ['build/web/sites/default/default.settings.php', 'build/web/core/assets/scaffold/files/default.settings.php'];
+
+    foreach ($settings_files as $settings_file) {
+      $expected = ($config['has_deprecations_disabled'] ?? FALSE) ? "error_reporting(E_ALL & ~E_DEPRECATED);\n" : NULL;
+      $this->assertSame($expected, $this->appendedContent[$settings_file] ?? NULL, sprintf('%s gets the deprecation suppression only when deprecations are disabled.', $settings_file));
     }
 
     if ($config['has_deprecations_disabled'] ?? FALSE) {

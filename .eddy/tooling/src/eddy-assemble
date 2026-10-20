@@ -305,6 +305,10 @@ if (getenv('SYMFONY_DEPRECATIONS_HELPER') === 'disabled') {
 
   file_write_or_fail($build_dir . '/web/sites/default/default.settings.php', "error_reporting(E_ALL & ~E_DEPRECATED);\n", FILE_APPEND);
 
+  // Functional test sites copy their settings.php from core's scaffold copy
+  // of default.settings.php, not from the one in sites/default.
+  file_write_or_fail($build_dir . '/web/core/assets/scaffold/files/default.settings.php', "error_reporting(E_ALL & ~E_DEPRECATED);\n", FILE_APPEND);
+
   replace_in_file($build_dir . '/web/index.php', '/^<\?php/', '<?php error_reporting(E_ALL & ~E_DEPRECATED);');
 
   $bootstrap_file = $build_dir . '/vendor/symfony/polyfill-php83/bootstrap.php';

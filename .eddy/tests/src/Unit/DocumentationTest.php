@@ -366,6 +366,22 @@ final class DocumentationTest extends UnitTestCase {
     }
   }
 
+  #[DataProvider('dataProviderNoWrapperRunExportsBrowserOutputDirectory')]
+  public function testNoWrapperRunExportsBrowserOutputDirectory(string $block): void {
+    $this->assertStringContainsString('export BROWSERTEST_OUTPUT_DIRECTORY="$PWD/.logs/browser_output"', $block, 'A run in CONTRIBUTING.dist.md sets SIMPLETEST_BASE_URL for the tests but does not export BROWSERTEST_OUTPUT_DIRECTORY, so its browser tests save no pages.');
+  }
+
+  public static function dataProviderNoWrapperRunExportsBrowserOutputDirectory(): \Iterator {
+    preg_match_all('/```bash\n(.*?)```/s', File::read(self::rootDir() . '/CONTRIBUTING.dist.md'), $matches);
+    $blocks = array_values(array_filter($matches[1], static fn(string $block): bool => str_contains($block, 'export SIMPLETEST_BASE_URL')));
+
+    self::assertNotSame([], $blocks, 'CONTRIBUTING.dist.md has no command block that exports SIMPLETEST_BASE_URL.');
+
+    foreach ($blocks as $index => $block) {
+      yield 'block ' . ($index + 1) => ['block' => $block];
+    }
+  }
+
   #[DataProvider('dataProviderUpdateSkillDetectsTool')]
   public function testUpdateSkillDetectsTool(string $tool): void {
     $skill = File::read(self::updateSkillPath());
