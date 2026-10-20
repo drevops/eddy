@@ -129,6 +129,32 @@ final class InfoTest extends UnitTestCase {
     $this->assertStringContainsString('Site URL:           http://localhost:8123', $output);
   }
 
+  /**
+   * @param array<string, string> $env
+   *   The environment variables to set.
+   */
+  #[DataProvider('dataProviderInfoWebserverSourceWithDotenv')]
+  public function testInfoWebserverSourceWithDotenv(array $env, string $expected_host, string $expected_port): void {
+    self::envSetMultiple($env);
+
+    $this->setupInfoMocks(
+      shell_exec_map: ['*' => ''],
+      files: ['.env' => TRUE],
+      file_contents: ['.env' => "WEBSERVER_HOST=example.com\nWEBSERVER_PORT=8002\n"],
+    );
+
+    $output = $this->runInfoSummary();
+
+    $this->assertStringContainsString('Webserver host:     ' . $expected_host . "\n", $output);
+    $this->assertStringContainsString('Webserver port:     ' . $expected_port . "\n", $output);
+  }
+
+  public static function dataProviderInfoWebserverSourceWithDotenv(): \Iterator {
+    yield 'values loaded from .env into the environment' => [['WEBSERVER_HOST' => 'example.com', 'WEBSERVER_PORT' => '8002'], 'example.com (.env)', '8002 (.env)'];
+    yield 'environment values over .env' => [['WEBSERVER_HOST' => 'example.org', 'WEBSERVER_PORT' => '9001'], 'example.org (env)', '9001 (env)'];
+    yield '1 environment value over .env' => [['WEBSERVER_HOST' => 'example.com', 'WEBSERVER_PORT' => '9001'], 'example.com (.env)', '9001 (env)'];
+  }
+
   public function testInfoSiteUrlPrefersTunnelUrl(): void {
     $tunnel_url = 'https://random-words.trycloudflare.com';
 

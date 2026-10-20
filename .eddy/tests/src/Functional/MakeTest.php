@@ -66,13 +66,12 @@ final class MakeTest extends ToolingTestCase {
   }
 
   public function testShellOverridesDotenv(): void {
-    // The tooling reads DRUPAL_PROFILE only from the environment, so 'info'
-    // prints the value that the wrapper exported.
+    // 'info' labels a value that the wrapper exports from .env as '.env'.
     File::dump(self::$sut . '/.env', "WEBSERVER_PORT=8001\nDRUPAL_PROFILE=minimal\n");
 
     $this->processRun('make', ['info'], [], ['WEBSERVER_PORT' => FALSE, 'DRUPAL_PROFILE' => FALSE], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
-    $this->assertProcessAnyOutputContains('Webserver port:     8001 (env)');
+    $this->assertProcessAnyOutputContains('Webserver port:     8001 (.env)');
     $this->assertProcessAnyOutputContains('Drupal profile:     minimal');
 
     $this->processRun('make', ['info'], [], ['WEBSERVER_PORT' => '9001', 'DRUPAL_PROFILE' => 'testing'], $this->defaultTimeout, $this->defaultIdleTimeout);

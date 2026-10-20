@@ -6,6 +6,7 @@ namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\resolve_webserver;
 use PHPUnit\Framework\Attributes\CoversFunction;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
@@ -80,7 +81,12 @@ final class HelpersResolveWebserverTest extends UnitTestCase {
     $this->assertSame('8000', $persisted, 'find_free_port() result was persisted to .env.');
   }
 
-  public function testAutoDiscoverySkippedWhenDotenvHasPort(): void {
+  #[DataProvider('dataProviderAutoDiscoverySkippedWhenDotenvHasPort')]
+  public function testAutoDiscoverySkippedWhenDotenvHasPort(?string $env_port): void {
+    if ($env_port !== NULL) {
+      self::envSet('WEBSERVER_PORT', $env_port);
+    }
+
     $this->mockIsFile(['.env' => TRUE]);
     $this->mockFunction('file_get_contents', fn(): string => "WEBSERVER_PORT=8123\n");
 
@@ -103,6 +109,11 @@ final class HelpersResolveWebserverTest extends UnitTestCase {
     $this->assertSame('.env', $resolved['port_source']);
     $this->assertFalse($write_called, 'No write should occur when .env already supplies the port.');
     $this->assertFalse($probe_called, 'find_free_port() should not run when .env already supplies the port.');
+  }
+
+  public static function dataProviderAutoDiscoverySkippedWhenDotenvHasPort(): \Iterator {
+    yield 'port in .env' => [NULL];
+    yield 'port loaded from .env into the environment' => ['8123'];
   }
 
   public function testValidationFailsOnMalformedPort(): void {

@@ -1169,6 +1169,7 @@ final class AssembleTest extends UnitTestCase {
     yield 'no token' => ['', '', NULL, NULL, FALSE];
     yield 'token from .env' => ['', '', "GITHUB_TOKEN=ghp_dotenv\n", '{"github-oauth":{"github.com":"ghp_dotenv"}}', TRUE];
     yield 'COMPOSER_AUTH from .env' => ['ghp_test123', '', 'COMPOSER_AUTH=' . $dotenv_auth . "\n", $dotenv_auth, FALSE];
+    yield 'COMPOSER_AUTH loaded from .env into the environment' => ['ghp_test123', $dotenv_auth, 'COMPOSER_AUTH=' . $dotenv_auth . "\n", $dotenv_auth, FALSE];
     yield "the caller's COMPOSER_AUTH over .env" => ['', $own, 'COMPOSER_AUTH=' . $dotenv_auth . "\n", NULL, FALSE];
   }
 
