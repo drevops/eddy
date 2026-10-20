@@ -6,11 +6,11 @@ description: How the bundled Renovate configuration keeps npm packages, GitHub A
 
 # Dependency updates
 
-Eddy includes a [Renovate](https://docs.renovatebot.com/) configuration, `renovate.json`, that keeps the GitHub Actions and Docker images in `.github/workflows/*.yml` up to date, and the npm packages in `package.json` within their major versions. Your extension gets it when you keep Renovate in the installer. To turn it on, install the [Renovate GitHub app](https://github.com/apps/renovate) on your repository. This page explains what Renovate does with this configuration, and what it leaves to you.
+Eddy includes a [Renovate](https://docs.renovatebot.com/) configuration, `renovate.json`, that keeps the GitHub Actions and Docker images in `.github/workflows/*.yml` up to date, and the npm packages in `package.json` within their major versions. Your extension gets it when you keep Renovate in the installer. To turn it on, install the [Renovate GitHub app](https://github.com/apps/renovate) on your repository. Without ESLint, Stylelint, CSpell and Jest, your extension has no `package.json`, so its `renovate.json` turns on only the GitHub Actions manager, with no npm package rules and no lock file maintenance. This page explains what Renovate does with this configuration, and what it leaves to you.
 
 To add Renovate to an extension that left it out in the installer:
 
-1. Copy [`renovate.json`](https://github.com/drevops/eddy/blob/main/renovate.json) from Eddy into the root of your project.
+1. Copy [`renovate.json`](https://github.com/drevops/eddy/blob/main/renovate.json) from Eddy into the root of your project. If your project has no `package.json`, remove `"npm"` from `enabledManagers`, the 2 `packageRules` that match `npm` and the `lockFileMaintenance` block.
 2. Add a `renovate.json export-ignore` line to `.gitattributes`, so the file stays out of the release archives that Drupal.org packages.
 3. Install the Renovate GitHub app on your repository.
 

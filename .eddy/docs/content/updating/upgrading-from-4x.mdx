@@ -274,7 +274,7 @@ The rest of the template moved on as well, and an upgrade merges these files lik
   A project without FunctionalJavascript tests loses those entries altogether, since only those tests read them. A project that doesn't test Drupal 10 loses `phpunit.d10.xml`, which only a Drupal 10 build reads.
 - `.twig-cs-fixer.php` and the lint scripts of `package.json` also name only the custom directory of your extension's type.
 - `.editorconfig` loses its `[Makefile*]` section without a `Makefile`, and its `[package.json]` section without the npm tools. `.gitignore` loses `/.chromedriver` without FunctionalJavascript tests.
-- `renovate.json` turns on the weekly lock file maintenance (see [Dependency updates](renovate.mdx)).
+- `renovate.json` turns on the weekly lock file maintenance (see [Dependency updates](renovate.mdx)). Without the npm tools, it loses the npm manager and its package rules instead.
 - `.cspell.json` adds `cweagans`, which `composer.dev.json` contains, and `isig`. It drops `killall` and `pkill`, which nothing in 5.x uses, the `ignorePaths` that pointed into `.scaffold/` and the words of the tools you don't keep, such as `lullabot` without FunctionalJavascript tests. It also swaps `autologout` for `linkit`, the example module the template's `composer.json` suggests, so keep `autologout` if your project still uses that word. Merge it with your own words.
 - `AGENTS.md` describes the tooling commands, `vendor/` and `scripts/eddy-tooling` in place of `.devtools/`, drops CircleCI and carries the new "Updating the scaffold" section.
 - `CONTRIBUTING.md` documents only the command wrappers you keep, or the `vendor/bin/eddy-*` commands when you keep neither. Carry your own notes over from the old copy.

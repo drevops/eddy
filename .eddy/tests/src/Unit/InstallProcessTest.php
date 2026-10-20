@@ -1203,6 +1203,39 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   /**
+   * The npm configuration of 'renovate.json' stays while any npm tool does.
+   *
+   * @param array<string> $tools_remove
+   */
+  #[DataProvider('dataProviderProcessRemovesRenovateNpm')]
+  public function testProcessRemovesRenovateNpm(array $tools_remove, bool $expect_npm): void {
+    process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], $tools_remove, FALSE, FALSE);
+
+    $renovate = File::read(self::$sut . '/renovate.json');
+    $config = json_decode($renovate, TRUE);
+    $this->assertIsArray($config);
+    $rules = $config['packageRules'] ?? NULL;
+    $this->assertIsArray($rules);
+
+    $this->assertSame($expect_npm, str_contains($renovate, 'npm'), 'renovate.json npm presence mismatch.');
+    $this->assertSame($expect_npm, array_key_exists('lockFileMaintenance', $config), 'renovate.json lock file maintenance presence mismatch.');
+    $this->assertSame($expect_npm, $renovate === File::read(self::rootDir() . '/renovate.json'), 'renovate.json differs from the template only without npm.');
+    $this->assertSame($expect_npm ? ['github-actions', 'npm'] : ['github-actions'], $config['enabledManagers'] ?? NULL, 'renovate.json enabled managers mismatch.');
+    $this->assertContains(['matchPackageNames' => ['*'], 'groupName' => 'all dependencies', 'groupSlug' => 'all'], $rules, 'renovate.json keeps the rule that groups every update.');
+  }
+
+  public static function dataProviderProcessRemovesRenovateNpm(): \Iterator {
+    yield 'every npm tool' => [['eslint', 'stylelint', 'cspell', 'jest'], FALSE];
+    yield 'every tool but Renovate' => [['phpcs', 'phpstan', 'rector', 'twigcs', 'eslint', 'stylelint', 'cspell', 'jest', 'phpunit', 'functional_javascript'], FALSE];
+    yield 'all npm tools but ESLint' => [['stylelint', 'cspell', 'jest'], TRUE];
+    yield 'all npm tools but Stylelint' => [['eslint', 'cspell', 'jest'], TRUE];
+    yield 'all npm tools but CSpell' => [['eslint', 'stylelint', 'jest'], TRUE];
+    yield 'all npm tools but Jest' => [['eslint', 'stylelint', 'cspell'], TRUE];
+    yield 'no npm tool' => [['phpcs', 'phpstan'], TRUE];
+    yield 'no tool' => [[], TRUE];
+  }
+
+  /**
    * The 'package.json' description names the extension once.
    */
   public function testProcessRendersPackageDescription(): void {

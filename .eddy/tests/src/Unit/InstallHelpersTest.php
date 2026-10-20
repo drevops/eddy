@@ -30,6 +30,7 @@ use function get_files;
 use function get_marker_files;
 use function github_repository_from_url;
 use function gitignore_rules;
+use function inline_json_lists;
 use function install_from_archive;
 use function is_binary_file;
 use function is_empty_directory;
@@ -51,6 +52,7 @@ use function process_drupal_version_text;
 use function process_extension_type_text;
 use function quality_tools_note;
 use function read_composer_dev_json;
+use function read_json_file;
 use function remove_composer_dev_dependencies;
 use function remove_composer_scaffold_mapping;
 use function remove_cspell_eddy_paths;
@@ -60,6 +62,7 @@ use function remove_extension_types;
 use function remove_file;
 use function remove_lines;
 use function remove_npm;
+use function remove_renovate_npm;
 use function remove_special_comments;
 use function remove_string_content;
 use function remove_tokens_with_content;
@@ -77,6 +80,7 @@ use function tool_cspell_words;
 use function tool_specs;
 use function uncomment_line;
 use function workflow_push_branches;
+use function write_json_file;
 
 #[Group('p0')]
 final class InstallHelpersTest extends UnitTestCase {
@@ -1337,6 +1341,94 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'no npm tool' => [$package, ['phpcs'], $package];
     yield 'dependencies left' => [$package, ['eslint'], ['name' => 'test', 'scripts' => ['test' => 'jest'], 'devDependencies' => ['jest' => '^29']]];
     yield 'no dependencies left' => [['name' => 'test', 'scripts' => ['test' => 'jest'], 'devDependencies' => ['eslint' => '^8']], ['eslint'], ['name' => 'test', 'scripts' => ['test' => 'jest']]];
+  }
+
+  #[DataProvider('dataProviderRemoveRenovateNpm')]
+  public function testRemoveRenovateNpm(?string $content, ?string $expected): void {
+    chdir(self::$sut);
+
+    if ($content !== NULL) {
+      File::dump('renovate.json', $content);
+    }
+
+    remove_renovate_npm();
+
+    if ($expected === NULL) {
+      $this->assertFileDoesNotExist('renovate.json');
+
+      return;
+    }
+
+    $this->assertSame($expected, File::read('renovate.json'));
+  }
+
+  public static function dataProviderRemoveRenovateNpm(): \Iterator {
+    $no_npm = '{"extends": ["config:recommended"], "enabledManagers": ["github-actions"], "packageRules": [{"matchManagers": ["github-actions"], "enabled": false}]}';
+
+    yield 'missing file' => [NULL, NULL];
+    yield 'no npm configuration' => [$no_npm, $no_npm];
+
+    yield 'npm manager, rules and lock file maintenance' => [
+      '{"extends": ["config:recommended"], "lockFileMaintenance": {"enabled": true}, "enabledManagers": ["github-actions", "npm"], "packageRules": [{"matchDepNames": ["node", "yarn"], "matchManagers": ["npm"], "enabled": false}, {"matchPackageNames": ["*"], "groupSlug": "all"}]}',
+      "{\n    \"extends\": [\"config:recommended\"],\n    \"enabledManagers\": [\"github-actions\"],\n    \"packageRules\": [\n        {\n            \"matchPackageNames\": [\"*\"],\n            \"groupSlug\": \"all\"\n        }\n    ]\n}\n",
+    ];
+
+    yield 'rule for npm and another manager' => [
+      '{"enabledManagers": ["github-actions", "npm"], "packageRules": [{"matchManagers": ["npm", "github-actions"], "matchUpdateTypes": ["major"], "enabled": false}]}',
+      "{\n    \"enabledManagers\": [\"github-actions\"],\n    \"packageRules\": [\n        {\n            \"matchManagers\": [\"github-actions\"],\n            \"matchUpdateTypes\": [\"major\"],\n            \"enabled\": false\n        }\n    ]\n}\n",
+    ];
+
+    yield 'rules that name no npm' => [
+      '{"enabledManagers": ["npm", "github-actions"], "packageRules": [{"matchManagers": [], "enabled": false}, {"matchDepNames": ["node"], "enabled": false}]}',
+      "{\n    \"enabledManagers\": [\"github-actions\"],\n    \"packageRules\": [\n        {\n            \"matchManagers\": [],\n            \"enabled\": false\n        },\n        {\n            \"matchDepNames\": [\"node\"],\n            \"enabled\": false\n        }\n    ]\n}\n",
+    ];
+
+    yield 'manager with a lock file left' => [
+      '{"lockFileMaintenance": {"enabled": true}, "enabledManagers": ["composer", "npm", "github-actions"]}',
+      "{\n    \"lockFileMaintenance\": {\n        \"enabled\": true\n    },\n    \"enabledManagers\": [\"composer\", \"github-actions\"]\n}\n",
+    ];
+
+    yield 'every manager enabled' => [
+      '{"lockFileMaintenance": {"enabled": true}, "packageRules": [{"matchManagers": ["npm"], "enabled": false}]}',
+      "{\n    \"lockFileMaintenance\": {\n        \"enabled\": true\n    },\n    \"packageRules\": []\n}\n",
+    ];
+  }
+
+  /**
+   * The template's 'renovate.json' survives a read and an inline-list write.
+   *
+   * 'remove_renovate_npm()' writes the file this way, so any other layout of
+   * the template would reformat the whole file in a project without npm.
+   */
+  public function testRenovateJsonKeepsLayout(): void {
+    $template = self::rootDir() . '/renovate.json';
+    $config = read_json_file($template);
+    $this->assertIsArray($config);
+
+    write_json_file(self::$sut . '/renovate.json', $config, inline_lists: TRUE);
+
+    $this->assertSame(File::read($template), File::read(self::$sut . '/renovate.json'), 'renovate.json must keep each list of scalars on 1 line and lay out everything else as JSON_PRETTY_PRINT does, so a project without npm gets only the npm lines removed.');
+  }
+
+  /**
+   * @param array<int|string, mixed> $content
+   */
+  #[DataProvider('dataProviderInlineJsonLists')]
+  public function testInlineJsonLists(array $content, string $expected): void {
+    $this->assertSame($expected, inline_json_lists((string) json_encode($content, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)));
+  }
+
+  public static function dataProviderInlineJsonLists(): \Iterator {
+    yield 'list of strings' => [['a' => ['x', 'y']], "{\n    \"a\": [\"x\", \"y\"]\n}"];
+    yield 'list of other scalars' => [['a' => [1, -2.5, 1.0e25, TRUE, FALSE, NULL]], "{\n    \"a\": [1, -2.5, 1.0e+25, true, false, null]\n}"];
+    yield 'strings with quotes, commas and brackets' => [['a' => ['say "hi"', 'x, y', '[z]', 'back\\slash']], "{\n    \"a\": [\"say \\\"hi\\\"\", \"x, y\", \"[z]\", \"back\\\\slash\"]\n}"];
+    yield 'string with a new line' => [['a' => ["x\ny"]], "{\n    \"a\": [\"x\\ny\"]\n}"];
+    yield 'empty list' => [['a' => []], "{\n    \"a\": []\n}"];
+    yield 'list of objects' => [['a' => [['b' => 1]]], "{\n    \"a\": [\n        {\n            \"b\": 1\n        }\n    ]\n}"];
+    yield 'list of scalars and objects' => [['a' => [1, ['b' => 2]]], "{\n    \"a\": [\n        1,\n        {\n            \"b\": 2\n        }\n    ]\n}"];
+    yield 'list of lists' => [['a' => [[1, 2], [3]]], "{\n    \"a\": [\n        [1, 2],\n        [3]\n    ]\n}"];
+    yield 'lists in objects' => [['a' => ['x'], 'b' => ['c' => ['y', 'z']]], "{\n    \"a\": [\"x\"],\n    \"b\": {\n        \"c\": [\"y\", \"z\"]\n    }\n}"];
+    yield 'top-level list' => [['x', 'y'], '["x", "y"]'];
   }
 
   #[DataProvider('dataProviderParseGithubRepository')]
