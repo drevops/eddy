@@ -151,6 +151,12 @@ In a directory that holds nothing but itself and hidden entries such as `.git`, 
 
 The `export-subst` line sits under "Remove the lines below in your project." in `.gitattributes`, and `install.php` removes it from generated projects.
 
+## Tooling constraint
+
+Generated projects install the tooling from the releases that the `drevops/eddy-tooling` constraint in `composer.dev.json` allows, and a checkout keeps the release it installed until the constraint changes. So the lowest release the constraint allows has to ship everything the template relies on. Raise the constraint to the first release that ships a command or an `eddy-info` field the template starts to call, or a step that moves from the command wrappers into a command. Publish that release first: the "Raise the constraint" section of `.eddy/docs/content/contributing/tooling-releases.mdx` explains why.
+
+`ToolingConstraintTest` lists the first release that ships each command and `eddy-info` field that `.ahoy.yml`, the `Makefile`, the shipped workflows, `AGENTS.md` and `CONTRIBUTING.dist.md` call, and fails while the constraint allows an older release. A new call needs its entry there, and an entry that nothing calls fails too. The test can't see a step that moves into a command, so raise the constraint for that yourself. `DocumentationTest` fails until the examples in `.eddy/tooling/README.md` and `.eddy/docs/content/development/tooling.mdx` show the constraint.
+
 ## Test groups
 
 PHPUnit tests are tagged with `#[Group('p0'..'p5')]` so CI can shard them across parallel jobs:

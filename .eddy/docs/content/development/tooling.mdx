@@ -22,11 +22,11 @@ The version constraint lives in `composer.dev.json`:
 
 ```json
 "require-dev": {
-    "drevops/eddy-tooling": "~1.0.0"
+    "drevops/eddy-tooling": "~1.0.4"
 }
 ```
 
-Keep the `~` constraint. It accepts patch releases and holds the minor version, so CI picks up fixes on its own, and a new minor version arrives with the next [scaffold update](../updating/README.mdx) rather than in the middle of a CI run.
+Keep the `~` constraint. It accepts patch releases and holds the minor version, so CI picks up fixes on its own, and a new minor version arrives with the next [scaffold update](../updating/README.mdx) rather than in the middle of a CI run. A scaffold update also raises the constraint whenever the new scaffold needs a newer release, so the next run of the installer replaces a release that lacks what the scaffold calls.
 
 The installer records what it installed in `vendor/eddy-tooling.json`, and runs Composer only in these cases:
 

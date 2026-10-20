@@ -16,6 +16,9 @@ use PHPUnit\Framework\Attributes\Group;
  * it uninstalled. It can also lack a row in the package README and the
  * documentation site.
  *
+ * The package README and the documentation site show the tooling constraint
+ * of 'composer.dev.json', which can be raised without them.
+ *
  * A path can be copied into a PHPUnit config without being rebased onto the
  * build root.
  *
@@ -254,6 +257,20 @@ final class DocumentationTest extends UnitTestCase {
   public static function dataProviderToolingPhpFloorIsDocumented(): \Iterator {
     yield 'update skill' => ['path' => self::updateSkillPath()];
     yield 'upgrade guide' => ['path' => self::upgradeGuidePath()];
+    yield 'tooling README' => ['path' => self::toolingDir() . '/README.md'];
+    yield 'tooling page' => ['path' => self::docsDir() . '/development/tooling.mdx'];
+  }
+
+  #[DataProvider('dataProviderToolingConstraintIsDocumented')]
+  public function testToolingConstraintIsDocumented(string $path): void {
+    $line = sprintf('"drevops/eddy-tooling": "%s"', self::toolingConstraint());
+
+    $documented = str_contains(File::read($path), $line);
+
+    $this->assertTrue($documented, sprintf('%s does not show the tooling constraint of composer.dev.json: `%s` is missing.', self::relativePath($path), $line));
+  }
+
+  public static function dataProviderToolingConstraintIsDocumented(): \Iterator {
     yield 'tooling README' => ['path' => self::toolingDir() . '/README.md'];
     yield 'tooling page' => ['path' => self::docsDir() . '/development/tooling.mdx'];
   }

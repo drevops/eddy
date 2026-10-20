@@ -25,8 +25,7 @@ final class ToolingConstraintTest extends UnitTestCase {
   /**
    * The first tooling release that ships each call the template makes.
    *
-   * A call is a command, or 'eddy-info' with the field it prints. A call that
-   * no release ships yet takes the release that will ship it.
+   * A call is a command, or 'eddy-info' with the field it prints.
    */
   protected const array RELEASES = [
     'eddy-assemble' => '1.0.0',

@@ -93,5 +93,5 @@ To add or drop a Drupal major by hand:
 
 Between scaffold updates, these parts stay current on their own:
 
-- The [tooling package](../development/tooling.mdx) takes its patch releases within the `~` constraint in `composer.dev.json`. CI installs the newest on every run, and a local checkout takes it after [`reset`](../development/README.mdx#commands-at-a-glance). A scaffold update raises the constraint for a new minor version.
+- The [tooling package](../development/tooling.mdx) takes its patch releases within the `~` constraint in `composer.dev.json`. CI installs the newest on every run, and a local checkout takes it after [`reset`](../development/README.mdx#commands-at-a-glance). A scaffold update raises the constraint for a new minor version, or when the new scaffold needs a newer release, and the next run of the installer then installs one.
 - When you keep Renovate, it keeps the GitHub Actions and Docker images up to date, and the npm packages within their major versions (see [Dependency updates](renovate.mdx)).
