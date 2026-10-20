@@ -11,7 +11,7 @@ When Eddy changes, you can merge the changes into your extension: new CI jobs, t
 
 :::info Coming from 4.x?
 
-An extension created from a 4.x release needs a one-off upgrade to 5.x first: its `AGENTS.md` fetches the update skill from a URL that returns 404, and the upgrade replaces `.devtools/` with the tooling package and CircleCI with GitHub Actions. [Upgrade a 4.x project to 5.x](upgrading-from-4x.mdx) walks you through it.
+An extension created from a 4.x release needs a one-off upgrade to 5.x first. From 4.15.0, its `AGENTS.md` fetches the update skill from a URL that returns 404, and earlier releases have no update skill. The upgrade also replaces `.devtools/` with the tooling package and CircleCI with GitHub Actions. [Upgrade a 4.x project to 5.x](upgrading-from-4x.mdx) walks you through it.
 
 :::
 
@@ -86,7 +86,7 @@ To update without Claude Code:
 To add or drop a Drupal major by hand:
 
 1. Select the majors you want when you run the installer in step 2 of the update.
-2. To add a major, add it to the `core_version_requirement` of every `*.info.yml` your project has. Those files stay out of the copy in step 4 of the update.
+2. To add a major, add it to the `core_version_requirement` of every `*.info.yml` your project has. Those files stay out of the copy in step 4 of the update. Dropping a major from CI needs no change there, and the update skill leaves `core_version_requirement` as it is. Remove a major from it only when your extension stops supporting that major.
 3. For Drupal 12, also make the other code changes that [Drupal 12](upgrading-from-4x.mdx#drupal-12) lists.
 
 ## What else stays current

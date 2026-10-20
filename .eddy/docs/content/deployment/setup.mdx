@@ -34,7 +34,7 @@ Make sure you have the following:
    - `DEPLOY_USER_NAME` - the git user name on the CI runner, such as your name on Drupal.org. The deployment fails without it. The name doesn't appear on Drupal.org: the deployment makes no commits of its own, and the deployed commits keep their own authors.
    - `DEPLOY_USER_EMAIL` - the git email address on the runner, such as your email address on Drupal.org. It's required, like `DEPLOY_USER_NAME`.
 
-5. Optional: To push every deployed branch to 1 branch of the `DEPLOY_REMOTE` repository, set `DEPLOY_BRANCH` to that branch's name, such as `1.x`. It isn't a secret: add it as a repository variable under **Settings** → **Secrets and variables** → **Actions** → **Variables**. Without it, each branch goes to the branch of the same name. Tags are always pushed as tags.
+5. Optional: To push every deployed branch to 1 branch of the `DEPLOY_REMOTE` repository, set `DEPLOY_BRANCH` to that branch's name, such as `1.x`. It isn't a secret: add it as a repository variable under **Settings** → **Secrets and variables** → **Actions** → **Variables**. Without it, each branch goes to the branch of the same name. Tags are always pushed as tags. Set it only when 1 branch deploys, since several branches would replace each other's code in that 1 destination branch.
 
 The **Actions** secrets of your repository then list `DEPLOY_SSH_KEY`, `DEPLOY_REMOTE`, `DEPLOY_USER_NAME` and `DEPLOY_USER_EMAIL`. The fifth secret, `DEPLOY_PROCEED`, turns the push on, and you add it after the test in the next section.
 

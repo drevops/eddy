@@ -30,7 +30,7 @@ The 2 kinds of push deploy differently:
 - **A branch push** force-pushes the commit that CI tested to the branch of the same name in the destination repository. The first deployment of a branch creates it there. It then force-pushes every tag of the repository too, so a tag whose own `Test` run failed still reaches the destination with the next branch deployment.
 - **A tag** is deployed as that tag alone and leaves the destination branches untouched, so a tag behind a branch's tip can't rewind the branch.
 
-To send the branches to a destination branch of another name, set the `DEPLOY_BRANCH` repository variable to it, such as `1.x` when you develop on `main` and have added `main` to the `push` filter. It applies to every branch that deploys, while tags stay tags.
+To send the branches to a destination branch of another name, set the `DEPLOY_BRANCH` repository variable to it, such as `1.x` when you develop on `main` and have added `main` to the `push` filter. It applies to every branch that deploys, while tags stay tags. So use it when only 1 branch deploys: with several, they all force-push to that 1 destination branch, and the latest deployment replaces the others.
 
 ## Deployment order
 
