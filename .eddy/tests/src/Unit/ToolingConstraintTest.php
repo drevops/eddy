@@ -79,6 +79,27 @@ final class ToolingConstraintTest extends UnitTestCase {
     }
   }
 
+  #[DataProvider('dataProviderParseCalls')]
+  public function testParseCalls(string $content, array $expected): void {
+    $this->assertSame($expected, self::parseCalls($content));
+  }
+
+  public static function dataProviderParseCalls(): \Iterator {
+    yield 'command' => ['content' => 'vendor/bin/eddy-login', 'expected' => ['eddy-login']];
+    yield 'command with a redirection' => ['content' => 'vendor/bin/eddy-stop > /dev/null 2>&1 || true', 'expected' => ['eddy-stop']];
+    yield 'argument of another command' => ['content' => 'vendor/bin/eddy-start site-url', 'expected' => ['eddy-start']];
+    yield 'summary' => ['content' => 'cmd: vendor/bin/eddy-info', 'expected' => ['eddy-info']];
+    yield 'field' => ['content' => '"$(vendor/bin/eddy-info site-url)"', 'expected' => ['eddy-info site-url']];
+    yield 'field in single quotes' => ['content' => "vendor/bin/eddy-info 'webdriver-host'", 'expected' => ['eddy-info webdriver-host']];
+    yield 'field in double quotes' => ['content' => 'vendor/bin/eddy-info "webdriver-host"', 'expected' => ['eddy-info webdriver-host']];
+    yield 'field after spaces and a tab' => ['content' => "vendor/bin/eddy-info  \twebdriver-port", 'expected' => ['eddy-info webdriver-port']];
+    yield 'field with an unclosed quote' => ['content' => "vendor/bin/eddy-info 'site-url", 'expected' => ['eddy-info']];
+    yield 'word on the next line' => ['content' => "cmd: vendor/bin/eddy-info\n\n  debug:", 'expected' => ['eddy-info']];
+    yield 'placeholder field' => ['content' => 'vendor/bin/eddy-info FIELD', 'expected' => ['eddy-info']];
+    yield 'placeholder commands' => ['content' => 'vendor/bin/eddy-<command> and vendor/bin/eddy-*', 'expected' => []];
+    yield 'repeated calls' => ['content' => "vendor/bin/eddy-info xdebug\nvendor/bin/eddy-start\nvendor/bin/eddy-info xdebug", 'expected' => ['eddy-info xdebug', 'eddy-start']];
+  }
+
   /**
    * Read the lowest release that the tooling constraint allows.
    *
@@ -113,12 +134,8 @@ final class ToolingConstraintTest extends UnitTestCase {
     $calls = [];
 
     foreach ($paths as $path) {
-      preg_match_all('#vendor/bin/(eddy-[a-z]+(?:-[a-z]+)*)(?: ([a-z]+(?:-[a-z]+)*))?#', File::read(self::rootDir() . '/' . $path), $matches, PREG_SET_ORDER);
-
-      foreach ($matches as $match) {
-        // Only 'eddy-info' reads its first argument as a field name.
-        $call = $match[1] === 'eddy-info' && isset($match[2]) ? $match[1] . ' ' . $match[2] : $match[1];
-        $calls[$call][$path] = $path;
+      foreach (self::parseCalls(File::read(self::rootDir() . '/' . $path)) as $call) {
+        $calls[$call][] = $path;
       }
     }
 
@@ -126,7 +143,30 @@ final class ToolingConstraintTest extends UnitTestCase {
 
     ksort($calls);
 
-    return array_map(array_values(...), $calls);
+    return $calls;
+  }
+
+  /**
+   * Find the tooling calls in a text.
+   *
+   * @param string $content
+   *   The text to search.
+   *
+   * @return array<int, string>
+   *   The calls, each listed once, in the order they first appear.
+   */
+  protected static function parseCalls(string $content): array {
+    // A field follows on the same line, quoted or not.
+    preg_match_all('#vendor/bin/(eddy-[a-z]+(?:-[a-z]+)*)(?:[ \t]+([\'"]?)([a-z]+(?:-[a-z]+)*)\2)?#', $content, $matches, PREG_SET_ORDER);
+
+    $calls = [];
+
+    foreach ($matches as $match) {
+      // Only 'eddy-info' reads its first argument as a field name.
+      $calls[] = $match[1] === 'eddy-info' && isset($match[3]) ? $match[1] . ' ' . $match[3] : $match[1];
+    }
+
+    return array_values(array_unique($calls));
   }
 
 }
