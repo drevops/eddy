@@ -35,9 +35,8 @@ final class DeployRemoteTest extends UnitTestCase {
     $output = self::runDeploy($clone, $remote, ['DEPLOY_BRANCH' => self::BRANCH]);
 
     $this->assertSame(self::commit($clone, 'tip'), self::remoteCommit($remote, 'refs/heads/' . self::BRANCH));
-    $this->assertSame(self::commit($clone, 'released'), self::remoteCommit($remote, 'refs/tags/' . self::RELEASE_TAG));
-    $this->assertSame(self::commit($clone, 'tip'), self::remoteCommit($remote, 'refs/tags/' . self::LATER_TAG));
-    $this->assertStringContainsString('Tags pushed to', $output);
+    $this->assertSame(['refs/heads/' . self::BRANCH], self::remoteRefs($remote), 'A branch deployment must push only its branch, and none of the tags of the clone.');
+    $this->assertStringContainsString('Code pushed to', $output);
   }
 
   public function testTagDeployment(): void {
@@ -58,26 +57,6 @@ final class DeployRemoteTest extends UnitTestCase {
     $this->assertNull(self::remoteCommit($remote, 'refs/heads/' . self::RELEASE_TAG), 'A tag deployment must not push a branch that shares the tag name.');
     $this->assertNull(self::remoteCommit($remote, 'refs/tags/' . self::LATER_TAG), 'A tag deployment must push only its own tag.');
     $this->assertStringContainsString('Tag pushed to', $output);
-  }
-
-  public function testRefusedTagIsReported(): void {
-    $clone = self::createClone();
-    $remote = self::createRemote();
-    self::gitRun($clone, ['checkout', '--quiet', '--detach', 'main']);
-
-    // The update hook refuses the later tag and accepts every other ref.
-    $hook = $remote . '/hooks/update';
-    File::dump($hook, sprintf("#!/usr/bin/env bash\n[ \"\$1\" != %s ]\n", escapeshellarg('refs/tags/' . self::LATER_TAG)));
-    chmod($hook, 0755);
-
-    $output = self::runDeploy($clone, $remote, ['DEPLOY_BRANCH' => self::BRANCH]);
-
-    $this->assertSame(self::commit($clone, 'tip'), self::remoteCommit($remote, 'refs/heads/' . self::BRANCH));
-    $this->assertSame(self::commit($clone, 'released'), self::remoteCommit($remote, 'refs/tags/' . self::RELEASE_TAG));
-    $this->assertNull(self::remoteCommit($remote, 'refs/tags/' . self::LATER_TAG));
-    $this->assertStringContainsString('[remote rejected] ' . self::LATER_TAG, $output);
-    $this->assertStringContainsString('Some tags were not pushed to', $output);
-    $this->assertStringContainsString('DEPLOY COMPLETE', $output);
   }
 
   /**
@@ -190,6 +169,19 @@ final class DeployRemoteTest extends UnitTestCase {
     $process->run();
 
     return $process->isSuccessful() ? trim($process->getOutput()) : NULL;
+  }
+
+  /**
+   * List the refs of the remote.
+   *
+   * @param string $remote
+   *   Directory of the remote repository.
+   *
+   * @return array<int, string>
+   *   The full names of the refs, in the order git lists them.
+   */
+  protected static function remoteRefs(string $remote): array {
+    return preg_split('/\R/', self::gitRun($remote, ['for-each-ref', '--format=%(refname)']), -1, PREG_SPLIT_NO_EMPTY) ?: [];
   }
 
 }
