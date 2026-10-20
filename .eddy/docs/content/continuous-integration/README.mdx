@@ -6,18 +6,20 @@ description: The GitHub Actions workflows of an Eddy extension and the PHP and D
 
 # Continuous integration
 
-An Eddy extension runs its CI on [GitHub Actions](https://docs.github.com/en/actions). Each job builds the site with the same [tooling](../development/tooling.mdx) commands you run locally, so a failure in CI reproduces on your machine with the same Drupal and PHP versions.
+An Eddy extension runs its CI on [GitHub Actions](https://docs.github.com/en/actions). Each job builds the site with the same [tooling](../development/tooling.mdx) commands you run locally, so a failure in CI reproduces on your machine with the same Drupal and PHP versions. This page lists the workflows, what their jobs run and which PHP and Drupal versions they test.
 
 ## The workflows
 
+Your extension gets the following workflows:
+
 | Workflow                                   | Runs on                                                    | What it does                                                                                                   |
 |--------------------------------------------|------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
-| `Test` (`test.yml`)                        | Pushes to your branches and tags, and pull requests        | Lints and tests the extension on every Drupal and PHP pair below.                                              |
+| `Test` (`test.yml`)                        | Pushes to your branches and tags, and pull requests that target your branches | Tests the extension on every pair of the [version matrix](#the-version-matrix), and lints it once per Drupal major. |
 | `Deploy` (`deploy.yml`)                    | A successful `Test` run of a push                          | Mirrors the code to Drupal.org or another git remote. See [Deployment](../deployment/README.mdx).              |
-| `Draft release notes` (`draft-release-notes.yml`) | Pushes to your branches and tags                    | Keeps a draft GitHub release up to date with the pull requests merged since the last tag.                      |
+| `Draft release notes` (`draft-release-notes.yml`) | Pushes to your branches and tags                    | Keeps a draft GitHub release up to date with the pull requests merged since the last published release.        |
 | `Auto Author Assign` (`assign-author.yml`) | Opened and reopened pull requests                          | Assigns each pull request to its author.                                                                       |
 
-The installer sets the branch filters of `test.yml` and `draft-release-notes.yml` to `1.x`. To build another branch, such as `2.x`, add it to the `push` branches of both files.
+The installer sets the branch filters of `test.yml` and `draft-release-notes.yml` to `1.x`, or to the branches in `INSTALL_BRANCHES`. To build another branch, such as `2.x`, add it to the `push` branches of both files, and to the `pull_request` branches of `test.yml`.
 
 ## What each job runs
 
@@ -42,7 +44,7 @@ CI doesn't test every PHP and Drupal pair. 10 jobs cover the lowest and highest 
 | `test-php-min-d12-legacy` | `8.5` | `12.0.0`   | Oldest tested Drupal 12 minor (pinned)  |
 | `test-php-max-d12-canary` | `8.5` | `12@beta`  | Next Drupal 12 minor pre-release        |
 
-The `lint` jobs run 1 per Drupal major:
+The supported PHP versions are the ones Eddy tests each major on, from PHP 8.3, the floor of the tooling. The `lint` jobs run 1 per Drupal major:
 
 | Job        | PHP   | Drupal |
 |------------|-------|--------|
@@ -50,19 +52,19 @@ The `lint` jobs run 1 per Drupal major:
 | `lint-d11` | `8.5` | `11`   |
 | `lint-d12` | `8.5` | `12`   |
 
-Your extension gets only the jobs of the Drupal majors you selected in the installer. A job's name gives its PHP bound (`min` or `max`), its Drupal major (`d10`, `d11` or `d12`) and its release tier (`stable`, `legacy` or `canary`), and its "Setup PHP" step shows the exact PHP version.
+Your extension gets only the jobs of the Drupal majors you selected in the installer. A `test` job's name gives its PHP bound (`min` or `max`), its Drupal major (`d10`, `d11` or `d12`) and its release tier (`stable`, `legacy` or `canary`), and a `lint` job's name gives its Drupal major. Each job's "Setup PHP" step shows the exact PHP version.
 
 - **Drupal versions float, apart from the `legacy` pins.** `stable` builds the newest stable release, and `canary` the newest release at beta stability or above: the next minor's beta or release candidate when there is one, otherwise the current stable release. New releases reach CI with no changes. The `legacy` minors, `11.1.0` and `12.0.0`, each build the newest patch of an older minor on purpose.
-- **PHP versions are pinned bounds.** Each job sets an explicit PHP version, so `max` changes when a newer PHP is added, and `min` only when support for an old PHP is dropped. [Updating your extension](../updating/README.mdx) from the scaffold refreshes them, along with the `legacy` pins.
+- **PHP versions are pinned bounds.** Each job sets an explicit PHP version, so `max` changes when a newer PHP is added, and `min` only when support for an old PHP is dropped. A [scaffold update](../updating/README.mdx) refreshes them, along with the `legacy` pins.
 
 ## Drupal 12
 
-Drupal 12 has no stable release yet, so its jobs build the newest Drupal 12 pre-release for now. They use the same kinds of values as the Drupal 11 jobs (`12`, `12.0.0` and `12@beta`) and move on their own: all of them to 12.0.0 when it ships, then `canary` to the 12.1 pre-releases while `legacy` stays on the 12.0.x patches.
+Drupal 12 requires PHP 8.5, so every Drupal 12 job runs it. The jobs use the same kinds of values as the Drupal 11 jobs (`12`, `12.0.0` and `12@beta`) and follow Drupal 12's releases on their own.
 
-Drupal 12 requires PHP 8.5, so every Drupal 12 job runs it. [Drupal versions](../development/drupal-versions.mdx#drupal-12) covers building Drupal 12 locally.
+Until Drupal 12 has a stable release, every Drupal 12 job builds its newest pre-release. After 12.0.0 ships, all of them build 12.0.0, then `canary` moves on to the 12.1 pre-releases while `legacy` stays on the 12.0.x patches. [Drupal versions](../development/drupal-versions.mdx#drupal-12) covers building Drupal 12 locally.
 
 ## Next steps
 
-- [Configuring CI](configuration.mdx) - spreading tools across runners, letting a step fail, and Codecov.
+- [Configure CI](configuration.mdx) - spreading tools across runners, letting a step fail and Codecov.
 - [Branch protection](branch-protection.mdx) - the jobs to require before a merge.
 - [Drupal.org CI](drupal-ci.mdx) - the 1 setting that GitLab CI on Drupal.org needs.

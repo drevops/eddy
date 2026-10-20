@@ -1,14 +1,14 @@
 ---
-title: Configuring CI
+title: Configure CI
 sidebar_position: 1
-description: Spread tools across CI runners, let a lint or test step fail without failing its job, and upload coverage to Codecov.
+description: Spread tools across CI runners, let a lint or test step fail without failing its job and upload coverage to Codecov.
 ---
 
-# Configuring CI
+# Configure CI
 
-The `Test` workflow in `.github/workflows/test.yml` works as it is. This page covers the settings you're most likely to change.
+The `Test` workflow in `.github/workflows/test.yml` works as it is. This page covers the settings you're most likely to change: which runner runs which tool, which steps may fail and where the coverage goes.
 
-## Distributing tools across CI runners
+## Distribute tools across CI runners
 
 Each test job lists at its top which tools run on which runner. `CI_RUNNER_INDEX` and `CI_RUNNER_TOTAL` give the runner's position, and each tool has a `CI_IS_<TOOL>_RUNNER` flag inside its own block that only its steps read, so moving a tool to another runner is 1 edit:
 
@@ -20,13 +20,15 @@ env:
   CI_IS_PHPUNIT_RUNNER: true
 ```
 
-Every leg of the matrix covers a different Drupal and PHP pair, so every flag is `true`.
+Each leg of the matrix is a runner of its own, so every flag is `true`, and every tool runs on every leg.
 
-To shard a tool, add a matrix dimension and compare the tool's flag against it, after checking your [branch protection](branch-protection.mdx), since a renamed or duplicated leg renames its status check. If a test runner names its shards after the runner index, give a tool that needs its own runner the last one: excluding runner 0 orphans the first shard, which is often the catch-all for untagged tests.
+To shard a tool, add a matrix dimension and compare the tool's flag against it. Check your [branch protection](branch-protection.mdx) first: GitHub names each status check after the leg's `name`, so the legs you add or rename need the same change in your rules. If a test runner names its shards after the runner index, give a tool that needs its own runner the last one: excluding runner 0 orphans the first shard, which is often the catch-all for untagged tests.
 
-## Allowing a CI step to fail
+## Allow a CI step to fail
 
-To let a lint or test step fail without failing its job, set its repository variable to `1` in **Settings** → **Secrets and variables** → **Actions** → **Variables**. The step still runs and reports what it finds, which helps while you work through a backlog of findings from a newly added tool.
+To let a lint or test step fail without failing its job, set its repository variable to `1` in **Settings** → **Secrets and variables** → **Actions** → **Variables**. The step still runs and reports what it finds, which helps while you work through a backlog of findings from a tool you've added.
+
+The following table lists the variables and the step each one covers:
 
 | Variable                         | Step                 |
 |----------------------------------|----------------------|
@@ -41,10 +43,10 @@ To let a lint or test step fail without failing its job, set its repository vari
 
 Your workflow has only the steps of the tools you kept, and so only their variables.
 
-## Uploading coverage to Codecov
+## Upload coverage to Codecov
 
 Every test job uploads its coverage reports as a workflow artifact. To send them to [Codecov](https://codecov.io) as well, add a `CODECOV_TOKEN` repository secret: the upload step runs only when it's set, and fails the job when the upload fails, so a broken upload doesn't go unnoticed.
 
 ## Deprecations on newer PHP
 
-Test jobs on PHP 8.4 or newer set `SYMFONY_DEPRECATIONS_HELPER` to `disabled`, because not every tested Drupal version fully supports the newer PHP versions yet. [Deprecated code](../testing/README.mdx#deprecated-code) explains how to tune this to your project's deprecation policy.
+Test jobs on PHP 8.4 or newer set `SYMFONY_DEPRECATIONS_HELPER` to `disabled`, which turns off the deprecation checks of Symfony's PHPUnit Bridge. [Deprecated code](../testing/README.mdx#deprecated-code) explains what that changes for each Drupal major, and how to tune it to your project's deprecation policy.
