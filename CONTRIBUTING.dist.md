@@ -339,6 +339,7 @@ export WEBDRIVER_HOST="$(vendor/bin/eddy-info webdriver-host)"
 #;< DEV_PHPUNIT
 export WEBSERVER_PORT="$(vendor/bin/eddy-info webserver-port)"
 export SIMPLETEST_BASE_URL="http://localhost:${WEBSERVER_PORT}"
+export BROWSERTEST_OUTPUT_DIRECTORY="$PWD/.logs/browser_output"
 #;> DEV_PHPUNIT
 cd build
 #;< DEV_PHPUNIT
@@ -381,6 +382,7 @@ ahoy test-functional-javascript   # Run FunctionalJavascript tests
 ```bash
 export WEBSERVER_PORT="$(vendor/bin/eddy-info webserver-port)"
 export SIMPLETEST_BASE_URL="http://localhost:${WEBSERVER_PORT}"
+export BROWSERTEST_OUTPUT_DIRECTORY="$PWD/.logs/browser_output"
 cd build
 php -d pcov.directory=.. vendor/bin/phpunit --testsuite unit
 php -d pcov.directory=.. vendor/bin/phpunit --testsuite kernel
@@ -422,6 +424,7 @@ export WEBDRIVER_BACKEND="$(vendor/bin/eddy-info webdriver-backend)"
 export WEBDRIVER_HOST="$(vendor/bin/eddy-info webdriver-host)"
 export WEBSERVER_PORT="$(vendor/bin/eddy-info webserver-port)"
 export SIMPLETEST_BASE_URL="http://localhost:${WEBSERVER_PORT}"
+export BROWSERTEST_OUTPUT_DIRECTORY="$PWD/.logs/browser_output"
 cd build
 php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional-javascript
 cd ..
@@ -464,6 +467,7 @@ export WEBDRIVER_PORT="$(vendor/bin/eddy-info webdriver-port)"
 export WEBDRIVER_HOST="$(vendor/bin/eddy-info webdriver-host)"
 export WEBSERVER_PORT="$(vendor/bin/eddy-info webserver-port)"
 export SIMPLETEST_BASE_URL="http://localhost:${WEBSERVER_PORT}"
+export BROWSERTEST_OUTPUT_DIRECTORY="$PWD/.logs/browser_output"
 cd build
 WEBDRIVER_BACKEND=selenium php -d pcov.directory=.. vendor/bin/phpunit \
   --testsuite functional-javascript
