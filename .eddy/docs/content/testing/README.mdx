@@ -55,7 +55,7 @@ php -d pcov.directory=.. vendor/bin/phpunit --testsuite kernel
 php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional`}
 />
 
-Without a wrapper, [FunctionalJavascript tests](functional-javascript.mdx) need the browser commands that their page shows, and the [JavaScript tests](#javascript-tests) run with `npm test` in `build`.
+Without a wrapper, [FunctionalJavascript tests](functional-javascript.mdx) need the browser commands that their page shows, and the [JavaScript tests](#javascript-tests) run with `npm test` in `build`. The no-wrapper commands on this page save no pages from Functional and FunctionalJavascript tests until you export `BROWSERTEST_OUTPUT_DIRECTORY` (see [Test output](#test-output)).
 
 The following table lists the suites and what each one needs:
 
@@ -66,9 +66,11 @@ The following table lists the suites and what each one needs:
 | Functional            | `tests/src/Functional`          | The running webserver.                                                                     |
 | FunctionalJavascript  | `tests/src/FunctionalJavascript`| The running webserver and a browser. See [FunctionalJavascript tests](functional-javascript.mdx). |
 
+Functional and FunctionalJavascript tests load their pages from the webserver that `build` leaves running. `stop` and `assemble` stop it, so after either one, run `start` before these tests (see [Build the site](../development/building.mdx)).
+
 ## Run specific tests
 
-Pass a test file, or PHPUnit options such as `--filter` or `--group`, to a test command. PHPUnit runs inside `build`, so a test path starts at your extension's directory in the assembled site (`web/themes/custom/` for a theme):
+Pass a test file, or PHPUnit options such as `--filter` or `--group`, to a test command. PHPUnit runs inside `build`, so a test path is relative to it, and starts with your extension's directory in the assembled site, `web/modules/custom/<your_extension>`, or `web/themes/custom/<your_extension>` for a theme:
 
 <CommandTabs
   make={`make test-unit web/modules/custom/your_extension/tests/src/Unit/MyUnitTest.php
@@ -78,16 +80,16 @@ make test-unit -- --filter=MyUnitTest::testSomething`}
 ahoy test-unit -- --group=wip
 ahoy test-unit -- --filter=MyUnitTest::testSomething`}
   none={`cd build
-php -d pcov.directory=.. vendor/bin/phpunit \\
+php -d pcov.directory=.. vendor/bin/phpunit --testsuite unit \\
   web/modules/custom/your_extension/tests/src/Unit/MyUnitTest.php
-php -d pcov.directory=.. vendor/bin/phpunit --group=wip
-php -d pcov.directory=.. vendor/bin/phpunit --filter=MyUnitTest::testSomething`}
+php -d pcov.directory=.. vendor/bin/phpunit --testsuite unit --group=wip
+php -d pcov.directory=.. vendor/bin/phpunit --testsuite unit --filter=MyUnitTest::testSomething`}
 />
 
 `make` reads its command line first, so a few rules apply there:
 
 - Put `--` before the arguments when they include an option, since `make` would read the option as its own.
-- An argument can't hold a space or name another `make` target, such as `test` in `make test-unit`, unless it's an option value joined with `=`, as in `--filter='my test'` or `--filter=test`.
+- An argument can't hold a space or name another `make` target, such as `test`, which `make` would run as a target of its own, unless it's an option value joined with `=`, as in `--filter='my test'` or `--filter=test`.
 - `make` keeps 1 value per option joined with `=`, so repeat an option with a space instead, as in `--group wip --group slow`.
 
 ## JavaScript tests
@@ -105,7 +107,7 @@ npm test`}
 
 ## Code coverage
 
-PHPUnit collects code coverage with [pcov](https://github.com/krakjoe/pcov) and Jest with V8, and both write their reports to `.logs/coverage`: an HTML report to browse and a Cobertura file for tools, in `phpunit` and `jest` subdirectories. CI uploads the reports as a workflow artifact, and to [Codecov](https://codecov.io) when the `CODECOV_TOKEN` repository secret is set. Both uploads belong to PHPUnit, so a project that keeps Jest but drops PHPUnit uploads no coverage.
+PHPUnit collects code coverage with [pcov](https://github.com/krakjoe/pcov) and Jest with V8, and both write their reports to `.logs/coverage` in the root of your project: an HTML report to browse and a Cobertura file for tools, in `phpunit` and `jest` subdirectories. CI uploads the reports as a workflow artifact, and to [Codecov](https://codecov.io) when the `CODECOV_TOKEN` repository secret is set. Both uploads belong to PHPUnit, so a project that keeps Jest but drops PHPUnit uploads no coverage.
 
 The PHPUnit coverage counts your extension's `.php` files, plus a module's `.module` and `.install` files or a theme's `.theme` file. It leaves out the `tests` directory, `rector.php` and `node_modules`.
 
@@ -118,11 +120,13 @@ How a deprecation affects a run depends on the Drupal major:
 - In a Drupal 10 build, Symfony's PHPUnit Bridge handles deprecations, and `SYMFONY_DEPRECATIONS_HELPER` decides whether they fail the run.
 - In Drupal 11 and 12 builds, PHPUnit reports deprecations without failing the run. A PHP deprecation that the webserver raises during a Functional test still fails that test, because Drupal sends it back to the test.
 
-To ignore some deprecations, add a `.deprecation-ignore.txt` file to the root of the codebase and set `SYMFONY_DEPRECATIONS_HELPER` to `ignoreFile=../.deprecation-ignore.txt` in `phpunit.xml`, and in `phpunit.d10.xml` for Drupal 10. Both files hold that setting as a comment to uncomment. PHPUnit runs from the `build` directory, so the path is relative to it. On Drupal 11 and newer, your file replaces the list of deprecations that core ignores. See [the change record](https://www.drupal.org/node/3285162) for details.
+To ignore some deprecations, add a `.deprecation-ignore.txt` file to the root of your project and set `SYMFONY_DEPRECATIONS_HELPER` to `ignoreFile=../.deprecation-ignore.txt` in `phpunit.xml`, and in `phpunit.d10.xml` when your project has it for Drupal 10. Each file holds that setting as a comment to uncomment. PHPUnit runs from the `build` directory, so the path is relative to it. `assemble` copies the PHPUnit files into `build`, so run it again after you edit one.
+
+The file holds 1 regular expression per line, and a line that starts with `#` is a comment. A deprecation whose message matches a line is ignored: a Drupal 10 build doesn't count it towards failing the run, and Drupal 11 and 12 builds leave it out of the report. While `SYMFONY_DEPRECATIONS_HELPER` is unset, core ignores the deprecations that its own `web/core/.deprecation-ignore.txt` lists, and your file replaces that list rather than adding to it. See [the change record](https://www.drupal.org/node/3285162) for details.
 
 CI test jobs on PHP 8.4 or newer set `SYMFONY_DEPRECATIONS_HELPER` to `disabled`. To match your project's deprecation policy, change that step of `.github/workflows/test.yml`.
 
-When `SYMFONY_DEPRECATIONS_HELPER` is `disabled` in the environment that runs `assemble`, as it is in those CI jobs, `assemble` also turns off deprecation notices in the site's `index.php` and `default.settings.php`. It also patches a function signature in the PHP 8.3 polyfill that PHP 8.4 reports as deprecated.
+When `SYMFONY_DEPRECATIONS_HELPER` is `disabled` in the environment that runs `assemble`, as it is in those CI jobs, `assemble` turns off PHP deprecation notices at the start of the site's `index.php` and in `sites/default/default.settings.php`. It also patches a function signature in the PHP 8.3 polyfill that PHP 8.4 reports as deprecated. Drupal turns the notices back on when it boots, and the sites that Functional tests install start from core's own copy of `default.settings.php`. So in those jobs, a PHP deprecation raised after Drupal boots still fails a Functional test.
 
 ## Test output
 

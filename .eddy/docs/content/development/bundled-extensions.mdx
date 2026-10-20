@@ -10,7 +10,7 @@ Your project is 1 extension, and it can bundle others. A theme can bring a modul
 
 ## Where they go
 
-Put each bundled extension in a directory of its own inside your project:
+Put each bundled extension in a directory of its own. The following table lists the directories, relative to the root of your project:
 
 | Directory               | What goes there                         | In a release |
 |-------------------------|-----------------------------------------|--------------|
@@ -19,23 +19,25 @@ Put each bundled extension in a directory of its own inside your project:
 | `tests/modules/<name>/` | A module that only your tests use       | No           |
 | `tests/themes/<name>/`  | A theme that only your tests use        | No           |
 
-While you keep PHPUnit, `.gitattributes` keeps `tests/` out of the release archives that Drupal.org packages, so a site that installs a release of yours doesn't get the test-only extensions.
+While you keep PHPUnit, `.gitattributes` keeps `tests/` out of the release archives that Drupal.org packages, so a site that installs a release of yours doesn't get the test-only extensions. Without PHPUnit, the installer removes `tests/` and its `.gitattributes` entry, so a `tests/` directory you add later ships in your releases until you add `tests export-ignore` to `.gitattributes`.
 
 ## How Drupal finds them
 
-`assemble` creates your extension's directory in the site, `web/modules/custom/<your_extension>` or `web/themes/custom/<your_extension>` for a theme. It holds a symlink to every top-level item of your project apart from `build`, `vendor` and hidden items, so a bundled extension arrives inside yours. Drupal finds extensions at any depth below `modules/` and `themes/`, and it reads each one's type from its own `.info.yml`. A module inside a theme's directory is found as a module, and a theme inside a module's directory as a theme. Drupal core relies on this too: the System module holds dozens of test themes.
+`assemble` assembles the site in the `build` directory, and the paths on this page that start with `web/` are relative to it. It creates your extension's directory at `web/modules/custom/<your_extension>`, or `web/themes/custom/<your_extension>` for a theme. The directory holds a symlink to every top-level item of your project apart from `build`, `vendor` and hidden items, so a bundled extension arrives inside yours.
+
+Drupal finds extensions at any depth below the site's `web/modules` and `web/themes` directories, and it reads each one's type from its own `.info.yml`. A module inside a theme's directory is found as a module, and a theme inside a module's directory as a theme. Drupal core relies on this too: the System module holds dozens of test themes.
 
 So there's no mapping step. Adding one anyway, such as a second symlink to the same module in `web/modules/custom`, makes Drupal find the module twice and keep 1 copy, with no warning.
 
 A few limits apply:
 
 - Drupal doesn't look inside hidden directories or directories named `src`, `lib`, `vendor`, `assets`, `css`, `files`, `images`, `js`, `misc`, `templates`, `includes`, `fixtures`, `Drupal` or `config`. The site's settings add `node_modules` and `bower_components` to that list. A bundled extension can't live in any of them.
-- Outside test runs, Drupal skips `tests/` directories, unless `$settings['extension_discovery_scan_tests']` is `TRUE`. A test-only extension exists for PHPUnit but not for your development site, so put one you also need on the site in `modules/` or `themes/` instead.
-- Machine names are shared by the whole site, so give a bundled extension a name no other extension uses. Of 2 extensions of the same type with 1 name, Drupal keeps 1 and drops the other with no warning. A module and a theme with 1 name make the second one fail to install.
+- Outside test runs, Drupal skips `tests/` directories, unless `$settings['extension_discovery_scan_tests']` is `TRUE`. A test-only extension exists for PHPUnit but not for your development site, so put one you also need on the site in your project's `modules/` or `themes/` directory instead.
+- Machine names are shared by the whole site, so give a bundled extension a name no other extension uses. Of 2 extensions of the same type that share 1 name, Drupal keeps 1 and drops the other with no warning. When a module and a theme share 1 name, the one that installs second fails.
 
 ## Enable a bundled extension on your site
 
-`provision` enables your extension, the `drupal/*` extensions in `suggest` and the extensions of the install profile, and nothing else. To enable a bundled extension, add a [`provision-*.sh` lifecycle script](lifecycle-scripts.mdx), which runs after your extension is enabled:
+`provision` enables your extension, the `drupal/*` extensions in `suggest` and the extensions of the install profile, and nothing else. To enable a bundled extension, add a [`provision-*.sh` lifecycle script](lifecycle-scripts.mdx) to `scripts/`, which runs after your extension is enabled:
 
 ```bash title="scripts/provision-bundled.sh"
 #!/usr/bin/env bash
@@ -49,7 +51,7 @@ build/vendor/bin/drush -l "$(vendor/bin/eddy-info site-url)" pm:enable my_theme_
 
 Make the script executable with `chmod +x`. For a bundled theme, use `theme:enable` instead of `pm:enable`.
 
-A theme can't list a bundled module in its `dependencies`. `provision` enables the theme before your script runs, and Drupal stops with an error when a theme's modules aren't installed yet. Leave the module out of `dependencies` and enable it from the script.
+A theme can't list a bundled module in its `dependencies`. `provision` enables the theme before your script runs, and Drupal stops with an error when a theme's modules aren't installed yet. Leave the module out of `dependencies` and enable it from the script. Without the dependency, a site that installs a release of your theme doesn't get the module enabled either, so tell the maintainers of those sites to enable the module, such as in your README.
 
 ## Use a bundled extension in tests
 
@@ -65,6 +67,8 @@ To install a bundled theme in a Kernel test, list `system` in `$modules` and cal
 $this->container->get('theme_installer')->install(['my_module_test_theme']);
 ```
 
+The call works in `setUp()`, after the `installConfig()` call, or in a test method.
+
 A Functional test can also set `$defaultTheme` to a bundled theme.
 
 ## What the tooling covers
@@ -78,4 +82,4 @@ The tool configurations name only the custom directory of your extension's type,
 
 `assemble` copies these configuration files into `build`, so run it again after you edit one.
 
-Nothing outside your extension's type directory is linted or tested, so an extension of the other type that comes in through `suggest` can't fail your checks.
+The PHP and JavaScript tools check nothing outside your extension's type directory in the site, and CSpell checks only your project, so an extension of the other type that comes in through `suggest` can't fail your checks.
