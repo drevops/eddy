@@ -405,6 +405,9 @@ function dotenv_unset_var(string $key, string $dotenv_file = '.env'): void {
  * together with a source label identifying which leg of the chain
  * produced it.
  *
+ * An environment value that equals the dotenv value is labeled with the file
+ * path, since the environment can hold values loaded from that file.
+ *
  * @param string $name
  *   Variable name to resolve.
  * @param string $default
@@ -422,15 +425,14 @@ function dotenv_unset_var(string $key, string $dotenv_file = '.env'): void {
  */
 function resolve_env_value(string $name, string $default, string $dotenv_file = '.env'): array {
   $env = getenv($name);
+  $dotenv_value = dotenv_read($dotenv_file)[$name] ?? '';
 
   if ($env !== FALSE && $env !== '') {
-    return ['value' => $env, 'source' => 'env'];
+    return ['value' => $env, 'source' => $env === $dotenv_value ? $dotenv_file : 'env'];
   }
 
-  $dotenv = dotenv_read($dotenv_file);
-
-  if (isset($dotenv[$name]) && $dotenv[$name] !== '') {
-    return ['value' => $dotenv[$name], 'source' => $dotenv_file];
+  if ($dotenv_value !== '') {
+    return ['value' => $dotenv_value, 'source' => $dotenv_file];
   }
 
   return ['value' => $default, 'source' => 'default'];

@@ -91,7 +91,7 @@ final class InfoTest extends UnitTestCase {
       info_files: ['your_extension.info.yml'],
     );
 
-    $output = $this->runInfo();
+    $output = $this->runInfoSummary();
 
     $this->assertStringContainsString('Drupal version:     11.3.11', $output);
     $this->assertStringContainsString('PHP version:        8.3.14 (/usr/bin/php)', $output);
@@ -122,11 +122,37 @@ final class InfoTest extends UnitTestCase {
       file_contents: ['.env' => "WEBSERVER_PORT=8123\n"],
     );
 
-    $output = $this->runInfo();
+    $output = $this->runInfoSummary();
 
     $this->assertStringContainsString('Webserver host:     localhost (default)', $output);
     $this->assertStringContainsString('Webserver port:     8123 (.env)', $output);
     $this->assertStringContainsString('Site URL:           http://localhost:8123', $output);
+  }
+
+  /**
+   * @param array<string, string> $env
+   *   The environment variables to set.
+   */
+  #[DataProvider('dataProviderInfoWebserverSourceWithDotenv')]
+  public function testInfoWebserverSourceWithDotenv(array $env, string $expected_host, string $expected_port): void {
+    self::envSetMultiple($env);
+
+    $this->setupInfoMocks(
+      shell_exec_map: ['*' => ''],
+      files: ['.env' => TRUE],
+      file_contents: ['.env' => "WEBSERVER_HOST=example.com\nWEBSERVER_PORT=8002\n"],
+    );
+
+    $output = $this->runInfoSummary();
+
+    $this->assertStringContainsString('Webserver host:     ' . $expected_host . "\n", $output);
+    $this->assertStringContainsString('Webserver port:     ' . $expected_port . "\n", $output);
+  }
+
+  public static function dataProviderInfoWebserverSourceWithDotenv(): \Iterator {
+    yield 'values loaded from .env into the environment' => [['WEBSERVER_HOST' => 'example.com', 'WEBSERVER_PORT' => '8002'], 'example.com (.env)', '8002 (.env)'];
+    yield 'environment values over .env' => [['WEBSERVER_HOST' => 'example.org', 'WEBSERVER_PORT' => '9001'], 'example.org (env)', '9001 (env)'];
+    yield '1 environment value over .env' => [['WEBSERVER_HOST' => 'example.com', 'WEBSERVER_PORT' => '9001'], 'example.com (.env)', '9001 (env)'];
   }
 
   public function testInfoSiteUrlPrefersTunnelUrl(): void {
@@ -139,7 +165,7 @@ final class InfoTest extends UnitTestCase {
       file_contents: ['.env' => "WEBSERVER_PORT=8000\nTUNNEL_URL=" . $tunnel_url . "\n"],
     );
 
-    $output = $this->runInfo();
+    $output = $this->runInfoSummary();
 
     $this->assertStringContainsString('Webserver port:     8000 (.env)', $output);
     $this->assertStringContainsString('Site URL:           ' . $tunnel_url, $output);
@@ -168,7 +194,7 @@ final class InfoTest extends UnitTestCase {
       command_php_path: FALSE,
     );
 
-    $output = $this->runInfo();
+    $output = $this->runInfoSummary();
 
     $this->assertStringContainsString('Drupal version:     -', $output);
     $this->assertStringContainsString('PHP version:        -', $output);
@@ -195,7 +221,7 @@ final class InfoTest extends UnitTestCase {
       command_php_path: FALSE,
     );
 
-    $output = $this->runInfo();
+    $output = $this->runInfoSummary();
 
     $this->assertStringContainsString("PHP version:        8.3.14\n", $output);
     $this->assertStringNotContainsString('PHP version:        8.3.14 (', $output);
@@ -213,7 +239,7 @@ final class InfoTest extends UnitTestCase {
       info_files: [],
     );
 
-    $output = $this->runInfo();
+    $output = $this->runInfoSummary();
 
     $this->assertStringContainsString('XDebug:             ' . $expected_state, $output);
   }
@@ -244,7 +270,7 @@ final class InfoTest extends UnitTestCase {
       info_files: [],
     );
 
-    $output = $this->runInfo();
+    $output = $this->runInfoSummary();
 
     $this->assertSame($has_functional_javascript, str_contains($output, "\nWebDriver port:     4455\n"), 'WebDriver port line presence mismatch.');
     $this->assertSame($has_functional_javascript, str_contains($output, 'WebDriver'), 'WebDriver text presence mismatch.');
@@ -274,7 +300,7 @@ final class InfoTest extends UnitTestCase {
       info_files: [],
     );
 
-    $output = $this->runInfo();
+    $output = $this->runInfoSummary();
 
     $this->assertStringContainsString('Drush:              13.3.0', $output);
     $this->assertStringContainsString('Drupal version:     -', $output);
@@ -480,7 +506,7 @@ final class InfoTest extends UnitTestCase {
     $this->assertStringContainsString('ENVIRONMENT INFO', $output);
   }
 
-  protected function runInfo(): string {
+  protected function runInfoSummary(): string {
     return $this->runCommand('eddy-info');
   }
 

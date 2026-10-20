@@ -34,6 +34,12 @@ final class HelpersResolveEnvValueTest extends UnitTestCase {
 
   public static function dataProviderResolveEnvValue(): \Iterator {
     yield 'env wins over dotenv' => ["FOO=from_dotenv\n", 'from_env', 'fallback', 'from_env', 'env'];
+    yield 'env without a dotenv file' => [NULL, 'from_env', 'fallback', 'from_env', 'env'];
+    yield 'env over an empty dotenv value' => ["FOO=\n", 'from_env', 'fallback', 'from_env', 'env'];
+    yield 'env equal to dotenv reads as dotenv' => ["FOO=same\n", 'same', 'fallback', 'same', 'file'];
+    yield 'env equal to a quoted dotenv value reads as dotenv' => ["FOO=\"same\"\n", 'same', 'fallback', 'same', 'file'];
+    yield 'env equal to an earlier assignment of a repeated key' => ["FOO=first\nFOO=last\n", 'first', 'fallback', 'first', 'env'];
+    yield 'env equal to the last assignment of a repeated key' => ["FOO=first\nFOO=last\n", 'last', 'fallback', 'last', 'file'];
     yield 'dotenv when env is unset' => ["FOO=from_dotenv\n", NULL, 'fallback', 'from_dotenv', 'file'];
     yield 'dotenv skipped when its value is empty' => ["FOO=\n", NULL, 'fallback', 'fallback', 'default'];
     yield 'env skipped when its value is empty' => ["FOO=from_dotenv\n", '', 'fallback', 'from_dotenv', 'file'];
