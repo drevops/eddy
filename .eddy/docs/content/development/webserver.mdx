@@ -35,6 +35,29 @@ The search for a free port runs only in the third case. A port from your shell o
 
 After the port is in `.env`, every command that reaches the site reuses it: `assemble`, `build`, `stop`, `reset`, `provision`, `info`, `debug`, `drush`, `login` and the test commands. `make` and Ahoy load `.env` on their own, and git ignores the file.
 
+To check where the port came from, run `info`:
+
+<CommandTabs
+  make={`make info`}
+  ahoy={`ahoy info`}
+  none={`vendor/bin/eddy-info`}
+/>
+
+`info` is read-only, so it never picks a port or saves one. Its `Webserver port` line ends with the port's source, such as `8002 (.env)`.
+
+`make` and Ahoy load the port from `.env` into the environment, where it looks the same as a port from your shell. So `info` labels the port by comparing it with `.env`, with or without a wrapper:
+
+- `(env)` - your shell sets the port, and `.env` holds a different one or none.
+- `(.env)` - the port is the one in `.env`, even when your shell sets the same port.
+- `(default)` - neither sets the port, so `info` shows 8000, the first port that `start` tries.
+
+To switch from a port in your shell to the one in `.env`:
+
+1. Run `stop` while your shell still sets the port. It stops the server on that port.
+2. Run `unset WEBSERVER_PORT`.
+3. If your shell profile exports `WEBSERVER_PORT`, remove that line, so new shells don't set it again.
+4. Run `start`. It serves the site on the port in `.env`, and `info` shows `(.env)`.
+
 To move the site to another port:
 
 1. Run `stop`. It finds the server through the port in `.env`, so stop the server before you change that port.
@@ -43,7 +66,7 @@ To move the site to another port:
 
 To have `start` pick a port again, delete the `WEBSERVER_PORT` line from `.env` instead of changing it. `start` then takes the first free port from 8000, which can be the port you left, since `stop` freed it.
 
-:::note A port from your shell lasts 1 run
+:::note A port from your shell isn't saved
 
 A `WEBSERVER_PORT` in your shell wins over the one in `.env`, through `make` and Ahoy too, and `start` doesn't save it to `.env`. Commands without the prefix use the port in `.env`, so prefix every command the same way while that server runs.
 
