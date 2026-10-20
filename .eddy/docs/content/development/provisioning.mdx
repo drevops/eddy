@@ -1,14 +1,16 @@
 ---
-title: Provisioning
+title: Provision the site
 sidebar_position: 5
 description: Install the Drupal site with your extension enabled, run Drush against it and log in.
 ---
 
 import CommandTabs from '@site/src/components/CommandTabs';
 
-# Provisioning
+# Provision the site
 
-`provision` installs Drupal on the assembled codebase with your extension enabled, and prints a one-time login link when it finishes. Run it on its own to get a clean site without reassembling the codebase:
+`provision` installs Drupal on the codebase that [`assemble` built](building.mdx), with your extension enabled, and prints a one-time login link when it finishes. This page covers what it does and where the database lives, and how to run Drush and log in.
+
+To get a clean site without reassembling the codebase, run `provision` on its own:
 
 <CommandTabs
   make={`make provision`}
@@ -18,20 +20,23 @@ import CommandTabs from '@site/src/components/CommandTabs';
 
 ## What it does
 
-1. Installs Drupal from the `standard` profile into a fresh SQLite database, with an `admin` account and without the Update Status module. Set `DRUPAL_PROFILE` to install from another profile.
+`provision` runs these steps in order:
+
+1. Installs Drupal from the `standard` profile into a fresh SQLite database, with an `admin` account and without the Update Status module. To install from another profile, set `DRUPAL_PROFILE` to its machine name, such as `minimal`, in your shell or `.env` (see [Environment variables](environment-variables.mdx)).
 2. Enables your extension, as a module or as a theme.
-3. Enables each `drupal/*` extension in the `suggest` section of your `composer.json`, as a module or as a theme (see [Optional dependencies](dependencies.mdx#optional-dependencies)).
-4. Requests the front page once, so the caches are warm before you open the site.
-5. Links Drupal's browser test output into `.logs/browser_output`, next to the other test artifacts.
-6. Adds the reverse-proxy and trusted-host settings that a [public tunnel](tunnel.mdx) needs, when the tunnel is on.
-7. Runs your `scripts/provision-*.sh` [lifecycle scripts](lifecycle-scripts.mdx).
-8. Prints the site URL and a one-time login link.
+3. Rebuilds the caches.
+4. Enables each `drupal/*` extension in the `suggest` section of your `composer.json`, as a module or as a theme (see [Optional dependencies](dependencies.mdx#optional-dependencies)).
+5. Requests the front page once, so the caches are warm before you open the site.
+6. Links Drupal's browser test output into `.logs/browser_output`, next to the other test artifacts.
+7. Adds the reverse-proxy and trusted-host settings that a [public tunnel](tunnel.mdx) needs, when the tunnel is on.
+8. Runs your `scripts/provision-*.sh` [lifecycle scripts](lifecycle-scripts.mdx).
+9. Prints the site URL and a one-time login link.
 
 ## The database
 
 The site keeps its data in an SQLite file at `/tmp/site_<extension>.sqlite`, named after your extension's machine name. Each provision starts it from scratch. [DB Browser for SQLite](https://sqlitebrowser.org/) can open it when you want to look inside.
 
-## Running Drush
+## Run Drush
 
 `drush` runs a Drush command against the site, with the site URL already set:
 
@@ -45,9 +50,14 @@ ahoy drush config:get system.site --format=json`}
   none={`build/vendor/bin/drush -l "$(vendor/bin/eddy-info site-url)" status`}
 />
 
-Put `--` before the arguments when they include an option, since `make` reads an option on its command line as its own. An argument can't hold a space or name a `make` target, such as `help`, unless it's an option value joined with `=`. Ahoy passes the arguments through as they are.
+Ahoy passes the arguments through as they are. `make` reads its command line first, so a few rules apply there:
 
-## Logging in
+- Put `--` before the arguments when they include an option, since `make` would read the option as its own.
+- An argument can't hold a space or name a `make` target, such as `help`, unless it's an option value joined with `=`.
+- An option joined with `=` reaches Drush after the other arguments, whatever its position.
+- A `NAME=value` word that isn't named like an option, such as `DEBUG=1`, stays a `make` variable and doesn't reach Drush.
+
+## Log in
 
 `login` prints a one-time login link for the `admin` account:
 
@@ -57,6 +67,6 @@ Put `--` before the arguments when they include an option, since `make` reads an
   none={`vendor/bin/eddy-login`}
 />
 
-A one-time link stops working once it's been opened, and Drush 12 and 13 open it in your browser unless `uli` gets `--no-browser`. `login` passes that option on those versions, so the link it prints still works. Drush 14 never opens a browser, and rejects the option. When you run `drush uli` yourself on Drush 12 or 13, add `--no-browser` too.
+A one-time link stops working after it's been opened, and Drush 12 and 13 open it in your browser unless `uli` gets `--no-browser`. `login` passes that option on those versions, so the link it prints still works. Drush 14 never opens a browser, and rejects the option. When you run `drush uli` yourself on Drush 12 or 13, add `--no-browser` too.
 
-Set `LOGIN_QRCODE=1` in `.env` or your shell to have `login` draw the link as a QR code too, which is handy for opening the site on a phone over a [public tunnel](tunnel.mdx). `login` only checks that the variable is set, so unset it to turn the QR code off rather than setting it to `0`. The QR code needs [`qrencode`](https://fukuchi.org/works/qrencode/) on `PATH`.
+To have `login` draw the link as a QR code too, set `LOGIN_QRCODE=1` in `.env` or your shell. It's handy for opening the site on a phone over a [public tunnel](tunnel.mdx). The link that `provision` prints never gets a QR code. Any non-empty value turns the QR code on, `0` included, so to turn it off, remove the variable from `.env` and your shell. The QR code needs [`qrencode`](https://fukuchi.org/works/qrencode/) on `PATH`: without it, `login` prints the link and then fails.

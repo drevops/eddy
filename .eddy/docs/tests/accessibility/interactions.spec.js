@@ -3,7 +3,7 @@ import { COLOR_MODES, open, scan } from './helpers';
 
 const MOBILE = { width: 390, height: 844 };
 const DEMO_URL = '/development/building';
-const DEMO_NAME = 'Building the site';
+const DEMO_NAME = 'ahoy build assembling the codebase, starting the webserver and installing Drupal in a terminal';
 
 test.describe('search', () => {
   for (const colorMode of COLOR_MODES) {

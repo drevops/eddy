@@ -1,29 +1,33 @@
 ---
 title: Lifecycle scripts
 sidebar_position: 7
-description: Add your own steps to the assemble, provision, start and stop phases with shell scripts in scripts/.
+description: Add your own steps to the assemble, start, provision and stop phases with shell scripts in scripts/.
 ---
 
 # Lifecycle scripts
 
-`assemble`, `provision`, `start` and `stop` run your own shell scripts from the `scripts/` directory during their phase. They're the place for project-specific steps, such as importing extra configuration once the site is installed. They're your own files, so a [tooling](tooling.mdx) or [scaffold](../updating/README.mdx) update leaves them alone.
+`assemble`, `start`, `provision` and `stop` run your own shell scripts from the `scripts/` directory of your project during their phase. `build` runs the first 3 of them in that order (see [Build the site](building.mdx)). The scripts are the place for project-specific steps, such as importing extra configuration after the site is installed. They're your own files, so a [tooling](tooling.mdx) or [scaffold](../updating/README.mdx) update leaves them alone. This page shows when each script runs and how to write one.
 
 ## When each script runs
 
+The following table lists the scripts of each phase and when they run:
+
 | Script                      | Runs                                                                                                                      |
 |-----------------------------|---------------------------------------------------------------------------------------------------------------------------|
-| `scripts/assemble-*.sh`     | At the end of `assemble`, after the dependencies are installed and the extension is symlinked into `build/`.              |
+| `scripts/assemble-*.sh`     | At the end of `assemble`, after the dependencies are installed and the extension is linked into `build/`.                 |
+| `scripts/start-*.sh`        | At the end of `start`, after the webserver is serving.                                                                    |
 | `scripts/provision-*.sh`    | At the end of `provision`, after the site is installed, the extension is enabled and the caches are warmed.               |
-| `scripts/start-*.sh`        | At the end of `start`, once the webserver is serving.                                                                     |
-| `scripts/stop-*.sh`         | During `stop`, and during `assemble` while the webserver runs, before it stops and while it's still reachable.            |
+| `scripts/stop-*.sh`         | During `stop` and `reset`, before the webserver stops, and during `assemble` when the webserver of an earlier build still runs. `reset` hides their output and ignores a failure. |
 
-The scripts of a phase run in lexicographic order from the project root, with the environment of the command that runs them. A script that exits with a non-zero code aborts that command, so a failed step can't go unnoticed.
+The scripts of a phase run from the project root, with the environment of the command that runs them. They run in lexicographic order of their filenames, so `provision-10-users.sh` runs before `provision-2-content.sh`, and a number prefix needs leading zeros, such as `provision-02-content.sh`. A script that exits with a non-zero code fails the command that runs it, and the scripts after it don't run, so a failed step can't go unnoticed. `reset` is the 1 exception, as the preceding table shows.
 
 The command runs each script directly, so give it a shebang line and make it executable:
 
 ```bash
 chmod +x scripts/provision-site-name.sh
 ```
+
+A script without the executable bit fails with "Permission denied", which fails the command like any other failure. Git stores the bit with the file, so CI and other checkouts get it once you commit the script.
 
 ## An example
 
@@ -39,14 +43,16 @@ set -eu
 build/vendor/bin/drush -l "$(vendor/bin/eddy-info site-url)" config:set system.site name "My Extension demo" -y
 ```
 
-A `start-*.sh` script that launches something, such as another tunnel, pairs well with a `stop-*.sh` script that tears it down: `stop` runs it while the webserver is still up.
+A `start-*.sh` script that launches something, such as another tunnel, pairs well with a `stop-*.sh` script that tears it down: `stop` runs it while the webserver is still up. A restart doesn't run the stop script, though. `start` and `debug` stop a running webserver directly, then run the `start-*.sh` scripts again, so a start script should check whether what it launches is already running.
 
 ## The example scripts
 
-The installer can keep 4 example scripts, 1 per phase, that print a marker line when their phase runs. Answer yes to "Keep example lifecycle scripts" if you want them as a starting point.
+The installer can keep 4 example scripts, 1 per phase, that print a marker line when their phase runs. To use them as a starting point, answer yes to **Keep example lifecycle scripts** in the installer.
 
 ## Good to know
 
-- `.gitattributes` keeps `scripts/` out of the archives published to Drupal.org, so the scripts never reach the sites that install your extension.
+These points apply to every lifecycle script:
+
+- The `.gitattributes` that the installer generates keeps `scripts/` out of the release archives that Drupal.org packages, so a site that installs a release of your extension doesn't get them.
 - The directory also holds `scripts/eddy-tooling`, the [tooling installer](tooling.mdx#how-its-installed), which isn't a lifecycle script. Leave it as it is.
-- A lifecycle script adds a step to a phase. To change what a command itself does, [patch the tooling package](tooling.mdx#patching-the-package) instead.
+- A lifecycle script adds a step to a phase. To change what a command itself does, [patch the tooling package](tooling.mdx#patch-the-package) instead.
