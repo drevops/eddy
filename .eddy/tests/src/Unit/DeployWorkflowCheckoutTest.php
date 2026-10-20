@@ -44,7 +44,7 @@ final class DeployWorkflowCheckoutTest extends UnitTestCase {
     yield 'fetch-depth' => [
       'fetch-depth',
       0,
-      sprintf('The "%s" step must fetch every branch and tag: the deploy step compares the commit with its branch tip, detects tag pushes and pushes every tag.', self::STEP),
+      sprintf('The "%s" step must fetch every branch and tag: the deploy step compares the commit with its branch tip and detects tag pushes.', self::STEP),
     ];
   }
 
