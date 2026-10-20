@@ -36,15 +36,19 @@ To send the branches to a destination branch of another name, set the `DEPLOY_BR
 
 A tag reaches the destination only through its own deployment, after its own `Test` run passes. That keeps a tag that fails its tests off Drupal.org, where a tag can't be moved or deleted after a release uses it. A tag stays off the destination in these cases:
 
-- **Its `Test` run fails.** Fix the code and release the fix under a new tag. When the failure has nothing to do with the code, such as a flaky test, re-run the `Test` run instead.
+- **Its `Test` run fails.** Fix the code and release the fix under a new tag, such as `1.2.1` after a failed `1.2.0`. When the failure has nothing to do with the code, such as a flaky test, re-run the `Test` run instead.
 - **Deployment was off when its `Test` run passed.** The `DEPLOY_REMOTE` secret wasn't set yet, or `DEPLOY_PROCEED` wasn't `1`.
-- **Its deployment failed.** For example, the destination was unreachable.
+- **Its deployment failed.** For example, the `DEPLOY_SSH_KEY` secret was missing, or the destination was unreachable.
 - **It came in a push of more than 3 tags.** GitHub [creates no push event](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#push) for the tags of such a push, so no `Test` run starts. Push tags 3 at a time at most.
-- **A workflow created it with `GITHUB_TOKEN`.** GitHub starts no workflow run for an event that `GITHUB_TOKEN` causes, so no `Test` run starts.
+- **A workflow created it with `GITHUB_TOKEN`.** GitHub starts no workflow run for an event that `GITHUB_TOKEN` causes, so no `Test` run starts. To give each tag a `Test` run, create the tags with a [GitHub App installation token or a personal access token](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow) instead.
 
-To deploy a tag that has a `Test` run, re-run that run from the **Actions** tab of your repository. When the re-run passes, a new `Deploy` run pushes the tag. That run reads the secrets as they are when it starts, so a tag that passed while deployment was off deploys after you turn deployment on. GitHub lets you [re-run a workflow run](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/re-run-workflows-and-jobs) up to 30 days after it first ran.
+To deploy a tag that has a `Test` run, re-run that run from the **Actions** tab of your repository. When the re-run passes, a new `Deploy` run pushes the tag. The `Deploy` run reads the secrets as they are when it starts, so a tag that passed while deployment was off deploys after you turn deployment on. GitHub lets you [re-run a workflow run](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/re-run-workflows-and-jobs) up to 30 days after it first ran.
 
-Push any other tag to the destination yourself, such as a tag without a `Test` run or with 1 older than 30 days. From a clone that holds the tag, run `git push <remote> refs/tags/<tag>`, where `<remote>` is the destination repository. Git refuses a short name that matches both a branch and a tag, so the command names the tag in full. This push skips `Test`, so push only a tag whose commit passed it, such as a commit that deployed as the tip of its branch.
+A tag without a `Test` run, or whose `Test` run is more than 30 days old, has no run to re-run. If its commit passed `Test`, for example when it deployed as the tip of its branch, push the tag to the destination yourself. Otherwise, release the commit under a new tag, which gets a `Test` run of its own.
+
+To push a tag yourself, run `git push <remote> refs/tags/<tag>` from a clone that holds it, with your own access to the destination. `<remote>` is the address you set as the `DEPLOY_REMOTE` secret, such as `git@git.drupal.org:project/myextension.git`. Git refuses a short name that matches both a branch and a tag, so the command names the tag in full. The push skips `Test`, so use it only for a commit that already passed.
+
+To confirm that a tag reached the destination, run `git ls-remote --tags <remote>`, or look for "Tag pushed to" in the `Deploy to Remote` step of its `Deploy` run.
 
 ## Deployment order
 
