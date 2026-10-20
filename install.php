@@ -1639,15 +1639,44 @@ function read_json_file(string $file): ?array {
  *   The file path.
  * @param array<int|string, mixed> $content
  *   The content to encode.
+ * @param bool $inline_lists
+ *   Whether to write each list of scalars on 1 line, such as '["a", "b"]'.
  */
-function write_json_file(string $file, array $content): void {
+function write_json_file(string $file, array $content, bool $inline_lists = FALSE): void {
   $encoded = json_encode($content, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+
+  if ($inline_lists) {
+    $encoded = inline_json_lists($encoded);
+  }
 
   if (file_put_contents($file, $encoded . PHP_EOL) === FALSE) {
     // @codeCoverageIgnoreStart
     throw new \RuntimeException('Unable to write ' . $file . '.');
     // @codeCoverageIgnoreEnd
   }
+}
+
+/**
+ * Put each list of scalars in pretty-printed JSON on 1 line.
+ *
+ * A list that holds an object or another list stays expanded. 'json_encode()'
+ * escapes the new lines inside strings, so each item of an expanded list is
+ * 1 line.
+ *
+ * @param string $json
+ *   The JSON, as 'JSON_PRETTY_PRINT' encodes it.
+ *
+ * @return string
+ *   The JSON with each list of scalars on 1 line, such as '["a", "b"]'.
+ */
+function inline_json_lists(string $json): string {
+  $scalar = '"(?:[^"\\\\]|\\\\.)*"|-?\d[\d.eE+-]*|true|false|null';
+
+  return preg_replace_callback('/\[\n((?: +(?:' . $scalar . '),?\n)+) *\]/', static function (array $matches) use ($scalar): string {
+    preg_match_all('/^ +(' . $scalar . '),?$/m', $matches[1], $items);
+
+    return '[' . implode(', ', $items[1]) . ']';
+  }, $json) ?? $json;
 }
 
 /**
@@ -2015,8 +2044,9 @@ function run_installer(string $dir, array $args): int {
  * rebuilt from the survivors (or removed when none remain).
  *
  * Without any tool from 'npm_specs()' nothing runs npm, so 'package.json',
- * 'package-lock.json' and the '#;< DEV_NPM' blocks go instead, and the
- * 'DEBUG' note in 'AGENTS.md' stops naming npm.
+ * 'package-lock.json' and the '#;< DEV_NPM' blocks go instead, along with the
+ * npm configuration of 'renovate.json'. The 'DEBUG' note in 'AGENTS.md' stops
+ * naming npm.
  *
  * @param array<string> $tools_remove
  *   The machine names of the tools to remove.
@@ -2034,6 +2064,7 @@ function remove_npm(array $tools_remove): void {
     replace_string_content('(Composer, npm, Drush)', '(Composer, Drush)');
     @unlink('package.json');
     @unlink('package-lock.json');
+    remove_renovate_npm();
 
     return;
   }
@@ -2095,6 +2126,59 @@ function remove_npm(array $tools_remove): void {
     throw new \RuntimeException('Unable to write ' . $file . '.');
     // @codeCoverageIgnoreEnd
   }
+}
+
+/**
+ * Remove the npm configuration from 'renovate.json'.
+ *
+ * 'npm' goes from 'enabledManagers' and from the 'matchManagers' of each
+ * package rule, and a rule left with no manager goes with it. The
+ * 'lockFileMaintenance' block goes too, since it configures the updates of
+ * 'package-lock.json'.
+ *
+ * Each list of scalars stays on 1 line, as the template writes it, so the
+ * file changes only where npm goes.
+ */
+function remove_renovate_npm(): void {
+  $file = 'renovate.json';
+  $config = read_json_file($file);
+
+  if ($config === NULL) {
+    return;
+  }
+
+  $without_npm = static fn(array $managers): array => array_values(array_filter($managers, static fn(mixed $manager): bool => $manager !== 'npm'));
+  $updated = $config;
+
+  if (is_array($updated['enabledManagers'] ?? NULL)) {
+    $updated['enabledManagers'] = $without_npm($updated['enabledManagers']);
+  }
+
+  if (is_array($updated['packageRules'] ?? NULL)) {
+    $rules = [];
+
+    foreach ($updated['packageRules'] as $rule) {
+      if (is_array($rule) && is_array($rule['matchManagers'] ?? NULL) && in_array('npm', $rule['matchManagers'], TRUE)) {
+        $rule['matchManagers'] = $without_npm($rule['matchManagers']);
+
+        if ($rule['matchManagers'] === []) {
+          continue;
+        }
+      }
+
+      $rules[] = $rule;
+    }
+
+    $updated['packageRules'] = $rules;
+  }
+
+  unset($updated['lockFileMaintenance']);
+
+  if ($updated === $config) {
+    return;
+  }
+
+  write_json_file($file, $updated, inline_lists: TRUE);
 }
 
 /**
