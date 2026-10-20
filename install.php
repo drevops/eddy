@@ -2132,9 +2132,11 @@ function remove_npm(array $tools_remove): void {
  * Remove the npm configuration from 'renovate.json'.
  *
  * 'npm' goes from 'enabledManagers' and from the 'matchManagers' of each
- * package rule, and a rule left with no manager goes with it. The
- * 'lockFileMaintenance' block goes too, since it configures the updates of
- * 'package-lock.json'.
+ * package rule, and a rule left with no manager goes with it.
+ *
+ * The 'lockFileMaintenance' block goes once every manager left has no lock
+ * file. An empty or missing 'enabledManagers' enables every manager, so the
+ * block stays then.
  *
  * Each list of scalars stays on 1 line, as the template writes it, so the
  * file changes only where npm goes.
@@ -2147,6 +2149,7 @@ function remove_renovate_npm(): void {
     return;
   }
 
+  $managers_without_lock_file = ['github-actions'];
   $without_npm = static fn(array $managers): array => array_values(array_filter($managers, static fn(mixed $manager): bool => $manager !== 'npm'));
   $updated = $config;
 
@@ -2172,7 +2175,12 @@ function remove_renovate_npm(): void {
     $updated['packageRules'] = $rules;
   }
 
-  unset($updated['lockFileMaintenance']);
+  $managers = is_array($updated['enabledManagers'] ?? NULL) ? $updated['enabledManagers'] : [];
+  $managers_with_lock_file = array_filter($managers, static fn(mixed $manager): bool => !in_array($manager, $managers_without_lock_file, TRUE));
+
+  if ($managers !== [] && $managers_with_lock_file === []) {
+    unset($updated['lockFileMaintenance']);
+  }
 
   if ($updated === $config) {
     return;

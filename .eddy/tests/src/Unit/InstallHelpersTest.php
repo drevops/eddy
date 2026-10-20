@@ -1383,9 +1383,14 @@ final class InstallHelpersTest extends UnitTestCase {
       "{\n    \"enabledManagers\": [\"github-actions\"],\n    \"packageRules\": [\n        {\n            \"matchManagers\": [],\n            \"enabled\": false\n        },\n        {\n            \"matchDepNames\": [\"node\"],\n            \"enabled\": false\n        }\n    ]\n}\n",
     ];
 
-    yield 'lock file maintenance only' => [
-      '{"extends": ["config:recommended"], "lockFileMaintenance": {"enabled": true}}',
-      "{\n    \"extends\": [\"config:recommended\"]\n}\n",
+    yield 'manager with a lock file left' => [
+      '{"lockFileMaintenance": {"enabled": true}, "enabledManagers": ["composer", "npm", "github-actions"]}',
+      "{\n    \"lockFileMaintenance\": {\n        \"enabled\": true\n    },\n    \"enabledManagers\": [\"composer\", \"github-actions\"]\n}\n",
+    ];
+
+    yield 'every manager enabled' => [
+      '{"lockFileMaintenance": {"enabled": true}, "packageRules": [{"matchManagers": ["npm"], "enabled": false}]}',
+      "{\n    \"lockFileMaintenance\": {\n        \"enabled\": true\n    },\n    \"packageRules\": []\n}\n",
     ];
   }
 
