@@ -15,7 +15,7 @@ The installer reads the version constraint from `composer.dev.json`:
 
 ```json
 "require-dev": {
-    "drevops/eddy-tooling": "~1.0.0"
+    "drevops/eddy-tooling": "~1.0.4"
 }
 ```
 

@@ -152,13 +152,13 @@ If `gh` is unavailable or auth fails, fall back to writing conservative paragrap
 - **The release exists**, as a draft or published: `NEW_VERSION` is its tag, which the maintainer chose in the GitHub UI. Check it against the rules below and warn the user before writing if it looks wrong. Don't change the release.
 - **The release isn't created yet**: suggest `NEW_VERSION` by bumping the highest published release according to the nature of the changes, then **confirm it with the user** before writing. The version only labels the notes; no tag is created.
 
-Projects require `~1.<minor>.0` in `composer.dev.json`, so they install a new patch release on their next fresh install, without a scaffold update. A minor or major release reaches them only when the scaffold raises that constraint. A patch release must therefore hold nothing that needs the matching scaffold update: never suggest a patch for such a change, and warn when the maintainer chose one.
+Projects require `~1.<minor>.<patch>` in `composer.dev.json`, so they install a new patch release on their next fresh install, without a scaffold update. A minor or major release reaches them only when the scaffold raises that constraint. A patch release must therefore hold nothing that needs the matching scaffold update: never suggest a patch for such a change, and warn when the maintainer chose one.
 
 - **Major** (e.g. `2.0.0`): a command was removed or renamed; an environment variable projects set was removed or renamed; a default changed in a way that breaks existing usage; the PHP requirement in `composer.json` was raised.
 - **Minor** (e.g. `1.1.0`): a new command or a new opt-in capability, flag or environment variable; a change that needs the matching scaffold update; new behaviour that existing projects are unaffected by.
 - **Patch** (e.g. `1.0.1`): a bug fix, a hardening change, an internal refactor with no contract change, or documentation fixes, all of them safe for projects on their current scaffold.
 
-For a minor or major release, remind the user to raise the constraint in `composer.dev.json` in `drevops/eddy`, as `.eddy/docs/content/contributing/tooling-releases.mdx` describes.
+Remind the user to raise the constraint in `composer.dev.json` in `drevops/eddy` to the new release when it's a minor or major release, or when an entry from Step 3 changed the command wrappers or the workflows along with the package, since the scaffold then relies on what the release ships. The "Raise the constraint" section of `.eddy/docs/content/contributing/tooling-releases.mdx` describes the raise.
 
 ### Step 5: Write and display the notes
 

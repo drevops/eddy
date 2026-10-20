@@ -131,6 +131,22 @@ abstract class UnitTestCase extends UpstreamUnitTestCase {
   }
 
   /**
+   * Read the constraint that the template requires the tooling package with.
+   *
+   * @return string
+   *   The 'drevops/eddy-tooling' constraint in 'composer.dev.json'.
+   */
+  protected static function toolingConstraint(): string {
+    $manifest = json_decode(File::read(self::rootDir() . '/composer.dev.json'), TRUE);
+    $require_dev = is_array($manifest) && is_array($manifest['require-dev'] ?? NULL) ? $manifest['require-dev'] : [];
+    $constraint = $require_dev['drevops/eddy-tooling'] ?? NULL;
+
+    self::assertIsString($constraint, 'composer.dev.json does not require drevops/eddy-tooling.');
+
+    return $constraint;
+  }
+
+  /**
    * Build the command line that 'ps' prints for the webserver of a project.
    */
   protected static function webserverCommandLine(string $root, string $port = '8000'): string {
