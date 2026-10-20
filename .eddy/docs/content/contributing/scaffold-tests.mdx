@@ -88,7 +88,7 @@ After any change that affects the output of `install.php`, regenerate the fixtur
 
 The `Test Eddy` workflow, `.github/workflows/eddy-test.yml`, runs on pushes to `main` and on pull requests against `main` or a `feature/**` branch. It has 3 jobs:
 
-- `eddy-test-tooling` runs the suite across the `p0` to `p5` groups on Ubuntu and macOS, and runs `p3` and `p4` once per WebDriver backend: Selenium on Ubuntu only, chromedriver on both. Its `p0` leg also validates the `composer.json` files of the suite and the tooling, checks that they're normalized, and lints the suite.
+- `eddy-test-tooling` runs the suite across the `p0` to `p5` groups on Ubuntu and macOS, and runs `p3` and `p4` once per WebDriver backend: Selenium on Ubuntu only, chromedriver on both. Its `p0` leg also validates the `composer.json` files of the suite and the tooling and checks that they're normalized. It lints the suite too.
 - `eddy-test-docs` builds and tests these docs, and deploys them to Netlify (see [Documentation](documentation.mdx)).
 - `eddy-test-actions` lints the workflows with yamllint and actionlint, and checks them for security issues with Zizmor.
 

@@ -24,7 +24,7 @@ Make sure you have the following:
    ssh-keygen -m PEM -t rsa -b 4096 -C "your_email+project_name@example.com"
    ```
 
-   The `-C` comment only labels the key, so any text you'll recognize works. `ssh-keygen` asks where to save the key and suggests `id_rsa` in your `.ssh` directory. Type the same path with a file name of its own in place of `id_rsa`, such as `id_rsa_myextension`, so the new key doesn't replace one you already use. The private key goes to that file, and the public key to the same name with `.pub` added. Then press <kbd>Enter</kbd> at both passphrase prompts to leave the passphrase empty, since CI can't type one.
+   The `-C` comment only labels the key, so any text you'll recognize works. `ssh-keygen` asks where to save the key and suggests `id_rsa` in your `.ssh` directory. Type the same path with a filename of its own in place of `id_rsa`, such as `id_rsa_myextension`, so the new key doesn't replace one you already use. The private key goes to that file, and the public key to the same name with `.pub` added. Then press <kbd>Enter</kbd> at both passphrase prompts to leave the passphrase empty, since CI can't type one.
 
 2. Add the **public** key to your [Drupal.org account](https://git.drupalcode.org/-/user_settings/ssh_keys).
 3. Add the **private** key as the `DEPLOY_SSH_KEY` secret in your repository's **Settings** → **Secrets and variables** → **Actions**. Paste the whole file, from its `-----BEGIN` line to its `-----END` line.

@@ -122,7 +122,7 @@ How a deprecation affects a run depends on the Drupal major:
 
 To ignore some deprecations, add a `.deprecation-ignore.txt` file to the root of your project and set `SYMFONY_DEPRECATIONS_HELPER` to `ignoreFile=../.deprecation-ignore.txt` in `phpunit.xml`, and in `phpunit.d10.xml` when your project has it for Drupal 10. Each file holds that setting as a comment to uncomment. PHPUnit runs from the `build` directory, so the path is relative to it. `assemble` copies the PHPUnit files into `build`, so run it again after you edit one.
 
-The file holds 1 regular expression per line, and a line that starts with `#` is a comment. A deprecation whose message matches a line is ignored: a Drupal 10 build doesn't count it towards failing the run, and Drupal 11 and 12 builds leave it out of the report. While `SYMFONY_DEPRECATIONS_HELPER` is unset, core ignores the deprecations that its own `web/core/.deprecation-ignore.txt` lists, and your file replaces that list rather than adding to it. See [the change record](https://www.drupal.org/node/3285162) for details.
+The file holds 1 regular expression per line, and a line that starts with `#` is a comment. A deprecation whose message matches a line is ignored: a Drupal 10 build doesn't count it toward failing the run, and Drupal 11 and 12 builds leave it out of the report. While `SYMFONY_DEPRECATIONS_HELPER` is unset, core ignores the deprecations that its own `web/core/.deprecation-ignore.txt` lists, and your file replaces that list rather than adding to it. See [the change record](https://www.drupal.org/node/3285162) for details.
 
 CI test jobs on PHP 8.4 or newer set `SYMFONY_DEPRECATIONS_HELPER` to `disabled`. To match your project's deprecation policy, change that step of `.github/workflows/test.yml`.
 

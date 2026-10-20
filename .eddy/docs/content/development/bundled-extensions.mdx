@@ -61,13 +61,15 @@ Test runs find extensions under `tests/` too, so a test uses a bundled extension
 protected static $modules = ['my_theme_test'];
 ```
 
-To install a bundled theme in a Kernel test, list `system` in `$modules` and call `$this->installConfig(['system'])` in `setUp()`. Then install the theme through the theme installer:
+To install a bundled theme in a Kernel test:
 
-```php
-$this->container->get('theme_installer')->install(['my_module_test_theme']);
-```
+1. List `system` in `$modules`.
+2. Call `$this->installConfig(['system'])` in `setUp()`.
+3. Install the theme through the theme installer, in `setUp()` after the `installConfig()` call or in a test method:
 
-The call works in `setUp()`, after the `installConfig()` call, or in a test method.
+   ```php
+   $this->container->get('theme_installer')->install(['my_module_test_theme']);
+   ```
 
 A Functional test can also set `$defaultTheme` to a bundled theme.
 
@@ -77,7 +79,7 @@ The tool configurations name only the custom directory of your extension's type,
 
 - PHPCS, PHPStan, Rector, Twig CS Fixer, ESLint and Stylelint check your bundled extensions along with your own code, and CSpell checks the whole project apart from hidden paths.
 - PHPUnit runs the tests in your extension's `tests/src` only. A bundled extension's own tests run after you add their directories to the testsuites of `phpunit.xml`, such as `web/themes/custom/*/modules/*/tests/src/Unit`, and to `phpunit.d10.xml` when you target Drupal 10. Add the matching `tests` directory to the `<exclude>` of the coverage source as well, so the test classes don't count as uncovered code.
-- PHPUnit counts the `.php` files of a bundled extension towards coverage, and the hook files of a bundled extension of your own type: `.module` and `.install` in a module, `.theme` in a theme. Other files, such as `.inc` files, don't count. A bundled theme's `.theme` file in a module, or a bundled module's `.module` and `.install` files in a theme, count only after you add a `<directory suffix=".theme">`, `<directory suffix=".module">` or `<directory suffix=".install">` line for them.
+- PHPUnit counts the `.php` files of a bundled extension toward coverage, and the hook files of a bundled extension of your own type: `.module` and `.install` in a module, `.theme` in a theme. Other files, such as `.inc` files, don't count. A bundled theme's `.theme` file in a module, or a bundled module's `.module` and `.install` files in a theme, count only after you add a `<directory suffix=".theme">`, `<directory suffix=".module">` or `<directory suffix=".install">` line for them.
 - Jest runs the `*.test.js` files in the `js/` directory of each extension directly inside the `dirs` of `jest.config.js`. To run a bundled extension's tests, add the directory that holds it, such as `web/themes/custom/my_theme/modules`, to `dirs`.
 
 `assemble` copies these configuration files into `build`, so run it again after you edit one.

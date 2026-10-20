@@ -16,8 +16,10 @@ To step-debug the site:
 
 1. Install the [XDebug](https://xdebug.org/docs/install) PHP extension on your host, and confirm that `php -v` mentions `with Xdebug`.
 2. Run `debug`. It starts the webserver with XDebug on, and restarts it when it's running without XDebug.
-3. Start listening for debug connections in your IDE, then open a page of the site.
-4. When you're done, run `start` to restart the webserver without XDebug. If you set `XDEBUG` in `.env` or your shell yourself, remove it first.
+3. Start listening for debug connections in your IDE.
+4. Open a page of the site. The request starts a debug session in your IDE.
+5. When you're done and you set `XDEBUG` in `.env` or your shell yourself, remove it.
+6. Run `start` to restart the webserver without XDebug.
 
 The following commands turn XDebug on and off:
 

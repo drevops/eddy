@@ -8,7 +8,11 @@ description: How the bundled Renovate configuration keeps npm packages, GitHub A
 
 Eddy includes a [Renovate](https://docs.renovatebot.com/) configuration, `renovate.json`, that keeps the GitHub Actions and Docker images in `.github/workflows/*.yml` up to date, and the npm packages in `package.json` within their major versions. Your extension gets it when you keep Renovate in the installer. To turn it on, install the [Renovate GitHub app](https://github.com/apps/renovate) on your repository. This page explains what Renovate does with this configuration, and what it leaves to you.
 
-To add Renovate to an extension that left it out in the installer, copy [`renovate.json`](https://github.com/drevops/eddy/blob/main/renovate.json) from Eddy into the root of your project. Add a `renovate.json export-ignore` line to `.gitattributes` too, so the file stays out of the release archives that Drupal.org packages. Then install the app.
+To add Renovate to an extension that left it out in the installer:
+
+1. Copy [`renovate.json`](https://github.com/drevops/eddy/blob/main/renovate.json) from Eddy into the root of your project.
+2. Add a `renovate.json export-ignore` line to `.gitattributes`, so the file stays out of the release archives that Drupal.org packages.
+3. Install the Renovate GitHub app on your repository.
 
 ## What it does
 

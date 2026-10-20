@@ -68,14 +68,26 @@ To update without Claude Code:
    - The tools in their configuration files, such as `phpcs.xml` for PHPCS and `renovate.json` for Renovate
 3. Create a new branch in your extension's repository.
 4. Copy the new files into your extension's directory, apart from your extension's own code: `src`, `tests`, `config`, `css`, `js`, `composer.json`, `logo.png`, the files named after your machine name and `scripts/*-example.sh`. The new files hold the example extension under your machine name, so copying those would overwrite your code.
-5. Remove the template files that the new release dropped. To find them, [install from a download](../installation.mdx#install-from-a-download) of the release your project is on, into another new directory and with the same answers. Then remove from your project each file that this directory has and the one from step 2 doesn't, apart from the paths that step 4 leaves out.
-6. Resolve the differences between the new files and yours. Keep your own branches in the workflow branch filters and your repository in the README badges, unless you passed them in step 2. Keep the `extra.eddy.version` of the new `composer.dev.json`, so the next update knows the release you're on. Take `scripts/eddy-tooling` as the release ships it, and drop any change you made to it: to change what a tooling command does, [patch the package](../development/tooling.mdx#patch-the-package) instead.
-7. When your project has a `package-lock.json`, restore your own copy with `git checkout HEAD -- package-lock.json`. If `package.json` changed, run `npm install --package-lock-only` to bring the lock file in line with it.
-8. [Build the site](../development/building.mdx), [check coding standards](../development/coding-standards.mdx) and [run the tests](../testing/README.mdx).
-9. Commit and push to your GitHub repository, and check that every CI job passes.
-10. Merge the new branch into your main branch, and check that the deployment job works.
+5. Remove the template files that the new release dropped:
+   1. [Install from a download](../installation.mdx#install-from-a-download) of the release your project is on into another new directory, with the same answers.
+   2. Remove from your project each file that this directory has and the one from step 2 doesn't, apart from the paths that step 4 leaves out.
+6. Resolve the differences between the new files and yours:
+   - Unless you passed them in step 2, keep your own branches in the workflow branch filters and your repository in the README badges.
+   - Keep the `extra.eddy.version` of the new `composer.dev.json`, since the next update reads the release you're on from it.
+   - Take `scripts/eddy-tooling` as the release ships it, and drop any change you made to it. To change what a tooling command does, [patch the package](../development/tooling.mdx#patch-the-package) instead.
+7. When your project has a `package-lock.json`, restore your own copy with `git checkout HEAD -- package-lock.json`.
+8. If `package.json` changed, run `npm install --package-lock-only` to bring the lock file in line with it.
+9. [Build the site](../development/building.mdx).
+10. [Check coding standards](../development/coding-standards.mdx).
+11. [Run the tests](../testing/README.mdx).
+12. Commit and push to your GitHub repository, and check that every CI job passes.
+13. Merge the new branch into your main branch, and check that the deployment job works.
 
-To add or drop a Drupal major by hand, select the majors you want in step 2. Your `.info.yml` files stay out of the copy, so add a new major to their `core_version_requirement` yourself, in every `*.info.yml` your project has. For Drupal 12, also make the other code changes that [Drupal 12](upgrading-from-4x.mdx#drupal-12) lists.
+To add or drop a Drupal major by hand:
+
+1. Select the majors you want when you run the installer in step 2 of the update.
+2. To add a major, add it to the `core_version_requirement` of every `*.info.yml` your project has. Those files stay out of the copy in step 4 of the update.
+3. For Drupal 12, also make the other code changes that [Drupal 12](upgrading-from-4x.mdx#drupal-12) lists.
 
 ## What else stays current
 

@@ -19,7 +19,7 @@ The following table lists the scripts of each phase and when they run:
 | `scripts/provision-*.sh`    | At the end of `provision`, after the site is installed, the extension is enabled and the caches are warmed.               |
 | `scripts/stop-*.sh`         | During `stop` and `reset`, before the webserver stops, and during `assemble` when the webserver of an earlier build still runs. `reset` hides their output and ignores a failure. |
 
-The scripts of a phase run from the project root, with the environment of the command that runs them. They run in lexicographic order of their file names, so `provision-10-users.sh` runs before `provision-2-content.sh`, and a number prefix needs leading zeros, such as `provision-02-content.sh`. A script that exits with a non-zero code aborts the command that runs it, and the scripts after it don't run, so a failed step can't go unnoticed. `reset` is the 1 exception, as the preceding table shows.
+The scripts of a phase run from the project root, with the environment of the command that runs them. They run in lexicographic order of their filenames, so `provision-10-users.sh` runs before `provision-2-content.sh`, and a number prefix needs leading zeros, such as `provision-02-content.sh`. A script that exits with a non-zero code fails the command that runs it, and the scripts after it don't run, so a failed step can't go unnoticed. `reset` is the 1 exception, as the preceding table shows.
 
 The command runs each script directly, so give it a shebang line and make it executable:
 
@@ -27,7 +27,7 @@ The command runs each script directly, so give it a shebang line and make it exe
 chmod +x scripts/provision-site-name.sh
 ```
 
-A script without the executable bit fails with "Permission denied", which aborts the command like any other failure. Git stores the bit with the file, so CI and other checkouts get it once you commit the script.
+A script without the executable bit fails with "Permission denied", which fails the command like any other failure. Git stores the bit with the file, so CI and other checkouts get it once you commit the script.
 
 ## An example
 

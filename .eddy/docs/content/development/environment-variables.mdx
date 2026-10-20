@@ -46,7 +46,7 @@ The following variables configure the webserver and the site URL:
 | `XDEBUG`                 | Unset                                           | Any non-empty value starts the webserver with XDebug step-debugging, `0` included. `debug` sets it for the server it starts, without saving it to `.env`. See [Step-debug with XDebug](debugging.mdx#step-debug-with-xdebug). |
 | `CLOUDFLARE_TUNNEL`      | Unset                                           | `1`, or any value other than `0`, `false`, `no` and `off` in any letter case, exposes the site through a public Cloudflare quick tunnel. An empty value in your shell counts as unset, so it doesn't override a `.env` that turns the tunnel on. See [Public tunnel](tunnel.mdx). |
 | `TUNNEL_URL`             | Written to `.env` by `start`                    | The public URL of a tunnel, which the commands use as the site URL.                                       |
-| `LOGIN_QRCODE`           | Unset                                           | Any value makes `login` also draw the login link as a QR code.                                            |
+| `LOGIN_QRCODE`           | Unset                                           | Any non-empty value makes `login` also draw the login link as a QR code.                                  |
 
 ## Tests
 
