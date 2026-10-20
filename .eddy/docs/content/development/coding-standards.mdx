@@ -32,7 +32,7 @@ npm run lint-spell`}
 
 ## The tools
 
-`lint` runs the tools in the order of the following table. Their configuration files sit in the root of the codebase, so you tune a rule in the same place for your machine and for CI.
+Locally, `lint` runs the tools in the order of the following table, while CI runs CSpell first (see [In CI](#in-ci)). The configuration files live in your project root, and CI uses the same files, so 1 edit tunes a rule for your machine and for CI. The PHP and JavaScript tools read copies that [`assemble`](building.mdx#what-assemble-does) makes, as [Where they run](#where-they-run) explains.
 
 | Tool                                                            | What it checks                                                                                  | Configuration                         | Fixes |
 |-----------------------------------------------------------------|-------------------------------------------------------------------------------------------------|---------------------------------------|-------|
@@ -46,9 +46,9 @@ npm run lint-spell`}
 
 ## Where they run
 
-The PHP and JavaScript tools run from the `build` directory, where the assembled site gives them Drupal core and your dependencies, so [build the site](building.mdx) before you lint. ESLint and Stylelint check the extension through its directory in the site, and they only run when the build installed the frontend dependencies (see [Frontend dependencies](dependencies.mdx#frontend-dependencies)).
+The PHP and JavaScript tools run from the `build` directory, where the assembled site gives them Drupal core and your dependencies, so run `assemble`, or [build the site](building.mdx), before you lint. ESLint and Stylelint check the extension through its directory in the site. They run only when the build installed the frontend dependencies, and otherwise `lint` and `lint-fix` skip them without a warning (see [Frontend dependencies](dependencies.mdx#frontend-dependencies)).
 
-`assemble` copies the configuration files into `build`, so an edit to one applies after the next `assemble`. Edit the files in your project, not the copies in `build`.
+`assemble` copies the configuration files of the PHP and JavaScript tools into `build`, so an edit to one applies after the next `assemble`. Edit the files in your project, not the copies in `build`.
 
 CSpell runs from the project root instead, and reads `.cspell.json` in place. It installs the root `package.json` dependencies first when `node_modules` is missing. It checks every text file that git doesn't ignore, apart from hidden files and directories, such as `.github`, and the paths in the `ignorePaths` of `.cspell.json`.
 
@@ -73,8 +73,10 @@ Review the changes before you commit them. When an automatic fix is wrong, adjus
 CSpell checks prose, code and inline code in Markdown, and skips fenced code blocks. An unknown word fails the check, so a new term needs a home:
 
 - Add a word the whole project uses to the `words` of `.cspell.json`.
-- Add a word only 1 file uses to that file, in a comment such as `cspell:ignore laminas` written in the file's own comment syntax.
+- Add a word only 1 file uses to that file, in a comment such as `cspell:ignore laminas` written in the file's own comment syntax. 1 comment can list several words, separated by spaces.
 
 ## In CI
 
-CI runs the same tools in its `lint` jobs, 1 per Drupal major you test, with CSpell first. To let a tool fail without failing its job while you work through its findings, set its [ignore-failure variable](../continuous-integration/configuration.mdx#allow-a-ci-step-to-fail).
+CI runs the same tools in its `lint` jobs, 1 per Drupal major you test. Each tool runs in a step of its own, apart from ESLint and Stylelint, which share 1. CSpell runs first, then the others in the order of the table. A step that fails stops the job, so the steps after it don't run.
+
+To let a step fail without failing the job while you work through its findings, set the step's [ignore-failure variable](../continuous-integration/configuration.mdx#allow-a-ci-step-to-fail). It's a repository variable, so it covers that step in every `lint` job, and the steps after it then still run.

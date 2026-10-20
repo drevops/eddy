@@ -6,15 +6,15 @@ description: Every environment variable that the Eddy commands, tests and workfl
 
 # Environment variables
 
-This page lists every environment variable that the Eddy commands, the tests and the CI workflows read, with its default and what it does. The variables of the first 3 sections configure your machine, and the deployment and CI ones are settings of your GitHub repository.
+This page lists every environment variable that the Eddy commands, the tests and the CI workflows read, with its default and what it does. The variables under [Build](#build), [Webserver and site](#webserver-and-site) and [Tests](#tests) configure your machine, and the ones under [Deployment](#deployment) and [Continuous integration](#continuous-integration) configure the workflows of your GitHub repository.
 
 ## Where values come from
 
-The tooling commands read a variable from your shell first and from the project's `.env` file second, and an empty value in your shell counts as unset. Git ignores `.env`, so it's the place for values that belong to your machine, such as the ports that `start` and `browser-start` save there.
+The [tooling commands](tooling.mdx) read a variable from your shell first and from the project's `.env` file second, and an empty value in your shell counts as unset. Git ignores `.env`, so it's the place for values that belong to your machine, such as the ports that `start` and `browser-start` save there.
 
 `make` and Ahoy load `.env` into the environment of every command, and keep a variable that your shell sets to a non-empty value. So a prefix such as `WEBSERVER_PORT=9000` changes a value for 1 command without touching `.env`, and a variable you export from your shell profile overrides the `.env` of every project.
 
-A few variables follow other rules:
+A few variables and readers follow other rules:
 
 - `TUNNEL_URL` comes from `.env` only.
 - `make` and Ahoy always set `SIMPLETEST_BASE_URL`, `SIMPLETEST_DB` and `BROWSERTEST_OUTPUT_DIRECTORY` themselves, over both your shell and `.env`.
@@ -43,8 +43,8 @@ The following variables configure the webserver and the site URL:
 | `WEBSERVER_HOST`         | `localhost`                                     | The host the webserver listens on and the site URL names.                                                 |
 | `WEBSERVER_PORT`         | The first free port from 8000, saved to `.env`  | The port of the webserver. See [How the port is picked](webserver.mdx#how-the-port-is-picked).            |
 | `WEBSERVER_WAIT_TIMEOUT` | `5`                                             | Seconds that `start` waits for the webserver to accept connections. A whole number of 1 or more.          |
-| `XDEBUG`                 | Unset                                           | Any value starts the webserver with XDebug step-debugging, `0` included. `debug` sets it for you.         |
-| `CLOUDFLARE_TUNNEL`      | Unset                                           | `1` exposes the site through a public Cloudflare quick tunnel; an empty value, `0`, `false`, `no` or `off` keeps it off. See [Public tunnel](tunnel.mdx). |
+| `XDEBUG`                 | Unset                                           | Any non-empty value starts the webserver with XDebug step-debugging, `0` included. `debug` sets it for the server it starts, without saving it to `.env`. See [Step-debug with XDebug](debugging.mdx#step-debug-with-xdebug). |
+| `CLOUDFLARE_TUNNEL`      | Unset                                           | `1`, or any value other than `0`, `false`, `no` and `off` in any letter case, exposes the site through a public Cloudflare quick tunnel. An empty value in your shell counts as unset, so it doesn't override a `.env` that turns the tunnel on. See [Public tunnel](tunnel.mdx). |
 | `TUNNEL_URL`             | Written to `.env` by `start`                    | The public URL of a tunnel, which the commands use as the site URL.                                       |
 | `LOGIN_QRCODE`           | Unset                                           | Any value makes `login` also draw the login link as a QR code.                                            |
 
@@ -56,10 +56,10 @@ The following variables configure the tests. `make`, Ahoy and `phpunit.xml` set 
 |--------------------------------|----------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
 | `WEBDRIVER_BACKEND`            | `chromedriver`                                                             | The browser for FunctionalJavascript tests: `chromedriver` drives your local Chrome, `selenium` a Docker container. |
 | `WEBDRIVER_PORT`               | The first free port from 4444, saved to `.env`                             | The port of the WebDriver endpoint.                                                                                  |
-| `WEBDRIVER_HOST`               | `localhost`, or `host.docker.internal` (macOS) or `172.17.0.1` with `selenium` | The address the browser uses to reach the webserver.                                                             |
+| `WEBDRIVER_HOST`               | `localhost`. With `selenium`, `host.docker.internal` on macOS and `172.17.0.1` on other systems | The address the browser uses to reach the webserver.                                            |
 | `SIMPLETEST_BASE_URL`          | Set by `make` and Ahoy, otherwise `http://localhost:8000` from `phpunit.xml` | The site URL that Functional tests request. The FunctionalJavascript base class swaps its host for `WEBDRIVER_HOST`. |
 | `SIMPLETEST_DB`                | Set by `make` and Ahoy, otherwise a database from `phpunit.xml`            | The SQLite database that Kernel and Functional tests install into.                                                   |
-| `BROWSERTEST_OUTPUT_DIRECTORY` | Set by `make` and Ahoy to `.logs/browser_output`                           | Turns on the saving of the HTML pages that tests visit. Drupal saves the pages to `sites/simpletest/browser_output`, which `provision` links into `.logs/browser_output`. See [Test output](../testing/README.mdx#test-output). |
+| `BROWSERTEST_OUTPUT_DIRECTORY` | Set by `make` and Ahoy to `.logs/browser_output`, otherwise unset          | Turns on the saving of the HTML pages that tests visit, and must name an existing, writable directory. Drupal saves the pages themselves to `sites/simpletest/browser_output`, which `provision` links into `.logs/browser_output`. Without a wrapper, export it before you run the tests. See [Test output](../testing/README.mdx#test-output). |
 | `BROWSERTEST_OUTPUT_BASE_URL`  | Empty in `phpunit.xml`                                                     | The base URL of the links to saved pages, for when `SIMPLETEST_BASE_URL` isn't reachable from your browser.           |
 | `BROWSERTEST_OUTPUT_VERBOSE`   | Unset                                                                      | `false` stops a run from listing the saved pages at its end.                                                         |
 | `MINK_DRIVER_CLASS`            | Empty in `phpunit.xml`                                                     | The Mink driver class of browser tests.                                                                              |
@@ -69,14 +69,21 @@ The following variables configure the tests. `make`, Ahoy and `phpunit.xml` set 
 
 ## Deployment
 
-CI reads these from the repository's **Settings** → **Secrets and variables** → **Actions**, and passes them to `eddy-deploy`. [Set up deployment](../deployment/setup.mdx) walks through them. The following table lists them:
+These variables configure the deployment that the `Deploy` workflow runs with `eddy-deploy`, and [Set up deployment](../deployment/setup.mdx) walks through them. The **Set as** column of the deployment and CI tables names where each value is set:
+
+- **Secret** - a repository secret, under **Settings** → **Secrets and variables** → **Actions** → **Secrets**.
+- **Variable** - a repository variable, on the **Variables** tab of the same page.
+- **Workflow** - the workflow itself.
+- **Your workflow** - a workflow of your own, since the `Deploy` workflow doesn't pass it.
+
+The following table lists the deployment variables:
 
 | Variable                     | Set as        | What it does                                                                                                          |
 |------------------------------|---------------|-----------------------------------------------------------------------------------------------------------------------|
 | `DEPLOY_REMOTE`              | Secret        | The git remote to deploy to, such as `git@git.drupal.org:project/myextension.git`. Deployment is skipped until it's set. |
 | `DEPLOY_SSH_KEY`             | Secret        | The private SSH key that pushes to the remote. Required when `DEPLOY_REMOTE` is set.                                  |
-| `DEPLOY_USER_NAME`           | Secret        | The name that git uses on the runner. Required: the deployment fails without it, although the deployed commits keep their own authors. |
-| `DEPLOY_USER_EMAIL`          | Secret        | The email address that git uses on the runner. Required, like `DEPLOY_USER_NAME`.                                     |
+| `DEPLOY_USER_NAME`           | Secret        | The name that git uses on the runner. Required when `DEPLOY_REMOTE` is set: the deployment fails without it, although the deployed commits keep their own authors. |
+| `DEPLOY_USER_EMAIL`          | Secret        | The email address that git uses on the runner. Required when `DEPLOY_REMOTE` is set, like `DEPLOY_USER_NAME`.         |
 | `DEPLOY_PROCEED`             | Secret        | `1` lets the deployment push. Any other value runs the job without pushing.                                           |
 | `DEPLOY_BRANCH`              | Variable      | The branch to push to in the remote repository. Defaults to the branch that triggered the build.                      |
 | `DEPLOY_TAG`                 | Workflow      | The tag to deploy. The `Deploy` workflow sets it for a tag push, and `eddy-deploy` then pushes only that tag.          |
@@ -84,12 +91,12 @@ CI reads these from the repository's **Settings** → **Secrets and variables** 
 
 ## Continuous integration
 
-The following variables configure the `Test` workflow:
+The following variables configure the `Test` workflow. Here, **Workflow** means that `.github/workflows/test.yml` sets the value:
 
 | Variable                     | Set as     | What it does                                                                                                           |
 |------------------------------|------------|------------------------------------------------------------------------------------------------------------------------|
 | `CODECOV_TOKEN`              | Secret     | Uploads code coverage to [Codecov](https://codecov.io) when it's set.                                                  |
 | `CI_<TOOL>_IGNORE_FAILURE`   | Variable   | `1` lets that lint or test step fail without failing its job. See [Allow a CI step to fail](../continuous-integration/configuration.mdx#allow-a-ci-step-to-fail). |
-| `CI_RUNNER_INDEX`            | Workflow   | The position of the job among the legs of its matrix. See [Distribute tools across CI runners](../continuous-integration/configuration.mdx#distribute-tools-across-ci-runners). |
-| `CI_RUNNER_TOTAL`            | Workflow   | The number of legs in the matrix.                                                                                      |
+| `CI_RUNNER_INDEX`            | Workflow   | The position of the job among the legs of its matrix, counting from 0. The workflow takes it from `strategy.job-index`. See [Distribute tools across CI runners](../continuous-integration/configuration.mdx#distribute-tools-across-ci-runners). |
+| `CI_RUNNER_TOTAL`            | Workflow   | The number of legs in the matrix. The workflow takes it from `strategy.job-total`.                                    |
 | `CI_IS_<TOOL>_RUNNER`        | Workflow   | `true` runs that tool's steps on the job. Each test job sets the flags of the tools it runs.                           |

@@ -6,7 +6,7 @@ description: The local development environment of an Eddy extension and the comm
 
 # Development
 
-You develop an Eddy extension against a real Drupal site. The build assembles a Drupal codebase in the `build` directory, links your extension into it, serves it with PHP's built-in webserver and installs Drupal on an SQLite database. The site doesn't run in a container, so it uses the PHP and Composer on your machine, and CI builds it the same way.
+You develop an Eddy extension against a real Drupal site. The build assembles a Drupal codebase in the `build` directory, links your extension into it, serves it with PHP's built-in webserver and installs Drupal on an SQLite database. The site doesn't run in a container, so it uses the PHP and Composer on your machine, and CI builds it the same way. The browser of FunctionalJavascript tests runs on your machine too, unless you choose a Selenium container (see [FunctionalJavascript tests](../testing/functional-javascript.mdx)).
 
 This section covers the commands you use every day, how the build works and how to change what it does.
 
@@ -22,23 +22,23 @@ Each command runs through `make` or Ahoy, whichever wrapper you kept, such as `m
 | `stop`                       | Stops the webserver.                                                                               | None                              |
 | `provision`                  | Installs Drupal with the extension enabled.                                                        | None                              |
 | `info`                       | Prints a read-only summary of the environment.                                                     | `describe`                        |
-| `debug`                      | Restarts the webserver with XDebug, unless XDebug is already on.                                   | `debug-on`, `xdebug`, `xdebug-on` |
+| `debug`                      | Starts the webserver with XDebug, or restarts it with XDebug when it runs without. Does nothing while XDebug is on. | `debug-on`, `xdebug`, `xdebug-on` |
 | `drush`                      | Runs a Drush command against the site.                                                             | None                              |
 | `login`                      | Prints a one-time login link.                                                                      | None                              |
 | `lint`                       | Checks coding standards.                                                                           | None                              |
 | `lint-fix`                   | Fixes what the linters can fix.                                                                    | None                              |
-| `test`                       | Starts the FunctionalJavascript browser, then runs every PHPUnit suite and the Jest tests.         | None                              |
+| `test`                       | Starts the FunctionalJavascript browser and leaves it running, then runs every PHPUnit suite and the Jest tests. | None                              |
 | `test-unit`                  | Runs the PHPUnit Unit suite.                                                                       | None                              |
 | `test-kernel`                | Runs the PHPUnit Kernel suite.                                                                     | None                              |
 | `test-functional`            | Runs the PHPUnit Functional suite.                                                                 | None                              |
-| `test-functional-javascript` | Starts the browser, then runs the PHPUnit FunctionalJavascript suite.                              | None                              |
+| `test-functional-javascript` | Starts the browser and leaves it running, then runs the PHPUnit FunctionalJavascript suite.        | None                              |
 | `test-javascript`            | Runs the Jest tests.                                                                               | `test-js`                         |
 | `browser-start`              | Starts the browser for FunctionalJavascript tests.                                                 | None                              |
 | `browser-stop`               | Stops that browser.                                                                                | None                              |
 | `reset`                      | Stops the webserver and the browser, and removes `build`, `.logs` and `vendor`.                    | `delete`, `destroy`               |
-| `tooling`                    | Installs the [tooling package](tooling.mdx) into `vendor`. Make only. Make runs it before the commands that need it, and Ahoy before every command apart from `reset`. | None                              |
+| `tooling`                    | Installs the [tooling package](tooling.mdx) into `vendor`. Only Make has this command, and runs it before the commands that need it. Ahoy installs the package itself before every command apart from `reset`. | None                              |
 
-The commands of a tool you didn't keep aren't there: without PHPUnit, for example, the suite commands go with it. `lint`, `lint-fix` and `test` stay, and run the tools you kept. A bare `make` runs `build`, so `make help` lists the `make` commands. A bare `ahoy` lists the Ahoy ones.
+The commands of a tool you didn't keep aren't there: without PHPUnit, for example, the suite commands go with it. `lint`, `lint-fix` and `test` stay, and run the tools you kept. A bare `make` runs `build`, so use `make help` to list the `make` commands. A bare `ahoy` lists the Ahoy ones.
 
 Without a wrapper, the [tooling commands](tooling.mdx) cover `assemble`, `start`, `stop`, `provision`, `info`, `login`, `browser-start` and `browser-stop`. The `CONTRIBUTING.md` of your extension lists the commands for the rest.
 

@@ -8,7 +8,7 @@ import CommandTabs from '@site/src/components/CommandTabs';
 
 # Webserver
 
-`start` serves the site with PHP's built-in webserver, at `http://localhost:8000`, or at the first free port up to 8099 when another process uses 8000. This page covers where the site is served, how the port is picked and how several projects share a machine.
+`start` serves the site with PHP's built-in webserver, at a URL such as `http://localhost:8000`. This page covers where the site is served, how the port is picked and how several projects share a machine.
 
 `start` prints the URL when the server is ready, and `stop` stops it again:
 
@@ -21,7 +21,7 @@ ahoy stop    # Stop it`}
 vendor/bin/eddy-stop    # Stop it`}
 />
 
-Set `WEBSERVER_HOST` to change the hostname, such as `0.0.0.0` to serve on every interface. The server serves `build/web` through Drupal's own router, and writes its output to `.logs/php.log`.
+The hostname is `localhost` unless you set `WEBSERVER_HOST`, such as to `0.0.0.0` to serve on every interface. The server serves `build/web` through Drupal's own router, and writes its output to `.logs/php.log` in the project root. Each `start` empties that file first, so it holds the output of the running server only.
 
 ## How the port is picked
 
@@ -31,13 +31,17 @@ Set `WEBSERVER_HOST` to change the hostname, such as `0.0.0.0` to serve on every
 2. **`WEBSERVER_PORT` in the project's `.env` file** - used as it is.
 3. **Neither** - `start` picks the first free port from 8000 to 8099 and saves it to `.env` as `WEBSERVER_PORT`.
 
-After the port is in `.env`, every command that reaches the site reuses it: `assemble`, `build`, `stop`, `provision`, `info`, `debug`, `drush`, `login` and the test commands. `make` and Ahoy load `.env` on their own, and git ignores the file.
+The search for a free port runs only in the third case. A port from your shell or `.env` is used as it is, so when another process holds it, `start` fails instead of looking for another one (see [Projects that share a machine](#projects-that-share-a-machine)).
+
+After the port is in `.env`, every command that reaches the site reuses it: `assemble`, `build`, `stop`, `reset`, `provision`, `info`, `debug`, `drush`, `login` and the test commands. `make` and Ahoy load `.env` on their own, and git ignores the file.
 
 To move the site to another port:
 
-1. Run `stop`.
-2. Delete the `WEBSERVER_PORT` line from `.env`.
-3. Run `start`. It picks the first free port and saves it to `.env`.
+1. Run `stop`. It finds the server through the port in `.env`, so stop the server before you change that port.
+2. Set `WEBSERVER_PORT` in `.env` to the new port, such as `WEBSERVER_PORT=8010`.
+3. Run `start`. It serves the site on the new port.
+
+To have `start` pick a port again, delete the `WEBSERVER_PORT` line from `.env` instead of changing it. `start` then takes the first free port from 8000, which can be the port you left, since `stop` freed it.
 
 :::note A port from your shell lasts 1 run
 
@@ -47,16 +51,18 @@ A `WEBSERVER_PORT` in your shell wins over the one in `.env`, through `make` and
 
 ## Projects that share a machine
 
-`start`, `stop`, `assemble` and `reset` stop only the webserver that serves the project's own `build/web`. A listener whose command line they can't read counts as the project's own too, so the port still gets freed.
+`start`, `stop`, `assemble` and `reset` stop only the webserver that serves the project's own `build/web`, which they recognize by its command line. Where they can't read command lines, such as on a system without `ps`, they treat every process that listens on the port as the project's own and stop it, another project's server included.
 
-When another process holds the port, such as the server of another project that recorded the same port, `stop`, `assemble` and `reset` leave it running, and `start` fails and names it. Stop that process, or set `WEBSERVER_PORT` in `.env` to a free port.
+When another process holds the port, such as the server of another project that recorded the same port, `stop`, `assemble` and `reset` leave it running. `start` fails instead, and prints the process ID and command line of each process on the port. Stop that process, or set `WEBSERVER_PORT` in `.env` to a free port.
 
 ## Startup timeout
 
-After it launches the server, `start` waits up to `WEBSERVER_WAIT_TIMEOUT` seconds for it to accept connections, then checks that it can serve the site. The timeout is a whole number of 1 or more and defaults to 5. To give a slow machine more time, raise it in `.env`:
+After it launches the server, `start` waits up to `WEBSERVER_WAIT_TIMEOUT` seconds for it to accept connections, then checks that it can serve the site. The timeout is a whole number of 1 or more and defaults to 5, and `start` stops with an error on any other value. To give a slow machine more time, raise it in `.env`:
 
 ```bash title=".env"
 WEBSERVER_WAIT_TIMEOUT=15
 ```
+
+When the server doesn't accept connections in time, `start` fails and prints the server's log. The check that follows has a limit of its own, which the timeout doesn't change: `start` requests the front page, waits up to 5 seconds for the answer and fails unless it has a `200` or `302` status.
 
 `start` then starts the [public tunnel](tunnel.mdx) when you've turned it on, and runs your `scripts/start-*.sh` [lifecycle scripts](lifecycle-scripts.mdx).

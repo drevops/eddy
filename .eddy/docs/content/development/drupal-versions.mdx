@@ -54,11 +54,13 @@ vendor/bin/eddy-start
 vendor/bin/eddy-provision`}
 />
 
-To keep a version for every build, set `DRUPAL_VERSION` in your project's `.env` file instead.
+To keep a version for every build, add a line such as `DRUPAL_VERSION=11.1.0` to your project's `.env` file instead. A non-empty value in your shell wins over the one in `.env`.
 
-The value names a release line rather than an exact release, and the build picks the newest release on it. Every number before the last one is fixed: `11.1.0` builds the newest 11.1.x release, while `11` and `11.1` both build the newest 11.x release.
+After you change the version, [build the site](building.mdx) again. `assemble` rebuilds the codebase from scratch every time, so you don't need to run `reset` first.
 
-A stability flag of `@stable`, `@rc`, `@beta` or `@alpha` lets pre-releases down to that stability qualify, as in `11@beta`. A development branch isn't a release, so the build rejects `@dev` and stops with "No Drupal release matches".
+The value names a release line rather than an exact release, and the build picks the newest release on it. The major is always fixed, and so is every number before the last one. So `11.1.0` and `11.1.5` both build the newest 11.1.x release, while `11` and `11.1` both build the newest 11.x release. The build can't pin an exact patch release.
+
+A pre-release is an alpha, a beta or a release candidate. A stability flag of `@stable`, `@rc`, `@beta` or `@alpha` lets pre-releases down to that stability qualify, as in `11@beta`. A development branch isn't a release, so the build rejects `@dev` and stops with "No Drupal release matches".
 
 ## The default version
 
@@ -72,7 +74,7 @@ The default comes from `extra.eddy.drupal-version` in `composer.dev.json`:
 }
 ```
 
-The installer sets it to the highest Drupal major you selected that has a stable release, which Eddy records as 11 and lower. When none of the majors you selected has one, it sets the lowest of them. When neither `DRUPAL_VERSION` nor `extra.eddy.drupal-version` is set, the build uses Drupal 11.
+The installer sets it to the highest Drupal major you selected that has a stable release. Eddy treats 11 as the newest major with one, so selecting 10, 11 and 12 sets `11`. When you selected only majors newer than 11, it sets the lowest of them. When neither `DRUPAL_VERSION` nor `extra.eddy.drupal-version` is set, the build uses Drupal 11.
 
 ## How versions are resolved
 
@@ -97,7 +99,7 @@ The following table shows the core release that each kind of value builds:
 | `11.1.0`         | The newest stable 11.1.x release.                                                                                 |
 | `11@beta`        | The newest 11.x release at beta stability or above: the next minor's beta or release candidate when one exists, otherwise the newest stable release. |
 | `11@alpha`       | The same as `11@beta`, with alphas too.                                                                           |
-| `12`             | The newest stable 12.x release.                                                                                   |
+| `12`             | The newest stable 12.x release, or the newest 12.x pre-release while 12.x has no stable release.                  |
 | `11@dev`         | None: the build stops with "No Drupal release matches".                                                           |
 
 When no release on a line qualifies, the build takes the newest pre-release on that line, so `12` builds the newest Drupal 12 pre-release until 12.0.0 ships.
@@ -106,7 +108,7 @@ Drush resolves like any other dependency, so each build gets the most stable Dru
 
 ## Drupal 12
 
-Drupal 12 requires PHP 8.5, so a local Drupal 12 build needs PHP 8.5 too:
+Drupal 12 requires PHP 8.5 or newer, so a local Drupal 12 build needs it too:
 
 <CommandTabs
   make={`DRUPAL_VERSION=12 make build`}

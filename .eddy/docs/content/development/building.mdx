@@ -8,7 +8,7 @@ import CommandTabs from '@site/src/components/CommandTabs';
 
 # Build the site
 
-`build` assembles the codebase in the `build` directory, starts the PHP webserver and installs the Drupal website with your extension enabled. Your extension's files are linked into the site, so an edit in your project shows up in the site straight away, and CI builds it the same way. This page shows what each step does, and how to see the full output when a step fails.
+`build` assembles the codebase in the `build` directory, starts the PHP webserver and installs the Drupal website with your extension enabled, the same way CI builds it. Your extension's files are linked into the site, so an edit in your project shows up in the site straight away. The tool configuration files that `assemble` copies into `build` are the exception, so an edit to one applies after the next `assemble`. This page shows what each step does, and how to see the full output when a step fails.
 
 To build the site, run the following command:
 
@@ -20,6 +20,8 @@ vendor/bin/eddy-assemble      # Assemble the codebase
 vendor/bin/eddy-start         # Start the PHP server
 vendor/bin/eddy-provision     # Provision the Drupal website`}
 />
+
+Run the commands from the root of your project. Without a wrapper, run `scripts/eddy-tooling` first: it installs the `vendor/bin/eddy-*` commands that run after it. `make` and Ahoy run it for you (see [Tooling package](tooling.mdx)).
 
 ![ahoy build assembling the codebase, starting the webserver and installing Drupal in a terminal](../../../assets/build.svg)
 
@@ -75,8 +77,12 @@ vendor/bin/eddy-provision     # Provision the Drupal website`}
 9. Copies your `patches` directory into `build`, installs the dependencies, which applies your [patches](dependencies.mdx#patch-dependencies), and adds the extensions you [`suggest`](dependencies.mdx#optional-dependencies).
 10. Lists every dependency it installed from a development branch rather than a release, so you can see when a build relies on unreleased code.
 11. Turns off deprecation notices in the site's `index.php` and `default.settings.php` when `SYMFONY_DEPRECATIONS_HELPER` is `disabled` (see [Deprecated code](../testing/README.mdx#deprecated-code)).
-12. Copies the configuration files of the linters, PHPUnit, Jest and npm into `build`, because not every tool resolves a symlinked configuration file correctly. In a Drupal 10 build, `phpunit.d10.xml` replaces `phpunit.xml` there. Edit these files in your project, not in `build`, and run `assemble` again to apply a change.
-13. Creates your extension's directory in the site, `web/modules/custom/<your_extension>` for a module or `web/themes/custom/<your_extension>` for a theme. It holds a symlink to every top-level file and directory of your project, apart from `build`, `vendor` and the names that start with a dot.
+12. Copies the configuration files of the tools into `build`, because not every tool resolves a symlinked configuration file correctly. Edit these files in your project, not in `build`, and run `assemble` again to apply a change. It copies each of the following files that your project has:
+    - `phpcs.xml`, `phpstan.neon`, `rector.php` and `.twig-cs-fixer.php`, for the PHP linters
+    - `.eslintrc.json`, `.eslintignore`, `.prettierrc.json`, `.prettierignore` and `.stylelintrc.js`, for the JavaScript and CSS linters
+    - `phpunit.xml`, or `phpunit.d10.xml` in its place in a Drupal 10 build
+    - `jest.config.js`, `package.json` and `package-lock.json`, for Jest and npm
+13. Creates your extension's directory in the site, `build/web/modules/custom/<your_extension>` for a module or `build/web/themes/custom/<your_extension>` for a theme. It holds a symlink to every top-level file and directory of your project, apart from `build`, `vendor` and the names that start with a dot.
 14. Runs `npm ci` and `npm run build` in `build` when your project has a `package-lock.json` and no `.skip_npm_build` file (see [Frontend dependencies](dependencies.mdx#frontend-dependencies)).
 15. Runs your `scripts/assemble-*.sh` [lifecycle scripts](lifecycle-scripts.mdx).
 
@@ -85,7 +91,7 @@ vendor/bin/eddy-provision     # Provision the Drupal website`}
 These commands help you look at the build and clear it away:
 
 - `info` (alias `describe`) prints a read-only summary of the environment: the versions of Drupal, PHP and the tools, the webserver host and port with where each came from, the site URL, the XDebug state, the build directory, the database path and the install profile. With FunctionalJavascript tests, it adds the WebDriver port.
-- `reset` (aliases `delete` and `destroy`) stops the project's webserver and browser, and removes the `build`, `.logs` and `vendor` directories. Removing `vendor` is also how a local checkout picks up a newer patch release of the [tooling](tooling.mdx).
+- `reset` (aliases `delete` and `destroy`) stops the project's webserver and browser, and removes the `build`, `.logs` and `vendor` directories from the project root. Removing `vendor` is also how a local checkout picks up a newer patch release of the [tooling](tooling.mdx). It leaves the [database](provisioning.mdx#the-database), which the next `provision` starts from scratch.
 - `make help` lists the `make` commands, since a bare `make` runs `build` instead. A bare `ahoy` lists the Ahoy ones.
 
 To summarize the environment or start over, run the following commands:
@@ -116,6 +122,8 @@ vendor/bin/eddy-assemble
 vendor/bin/eddy-start
 vendor/bin/eddy-provision`}
 />
+
+`scripts/eddy-tooling` streams its Composer output under `DEBUG=1` too, on the runs that install the package (see [How it's installed](tooling.mdx#how-its-installed)).
 
 [Debug your extension](debugging.mdx) covers the logs of the processes that keep running after a command returns.
 

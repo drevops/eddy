@@ -15,9 +15,9 @@ When something goes wrong, you can step through the site's code with XDebug, wat
 To step-debug the site:
 
 1. Install the [XDebug](https://xdebug.org/docs/install) PHP extension on your host, and confirm that `php -v` mentions `with Xdebug`.
-2. Run `debug` to restart the webserver with XDebug on.
+2. Run `debug`. It starts the webserver with XDebug on, and restarts it when it's running without XDebug.
 3. Start listening for debug connections in your IDE, then open a page of the site.
-4. When you're done, run `start` to restart the webserver without XDebug.
+4. When you're done, run `start` to restart the webserver without XDebug. If you set `XDEBUG` in `.env` or your shell yourself, remove it first.
 
 The following commands turn XDebug on and off:
 
@@ -34,7 +34,7 @@ vendor/bin/eddy-start             # Restart without XDebug`}
 
 The server runs with `xdebug.mode=debug` and `xdebug.start_with_request=yes`, so every request starts a debug session. A browser extension that sets the XDebug trigger has no effect here: to skip debugging, stop listening in your IDE.
 
-`start` turns XDebug off only while `XDEBUG` is empty or unset in both your shell and `.env`. Any other value turns it on, `0` included, so remove `XDEBUG` from `.env` when you're done. When the extension isn't installed, `start` with `XDEBUG` set stops with a message rather than starting a server without it.
+`start` and its aliases `debug-off` and `xdebug-off` turn XDebug off only while `XDEBUG` is empty or unset in both your shell and `.env`. Any other value turns it on, `0` included, so remove `XDEBUG` from `.env` when you're done. `debug` sets `XDEBUG` only for the server it starts, and doesn't save it to `.env`. When the extension isn't installed, `start` with `XDEBUG` set stops with a message rather than starting a server without it.
 
 Code coverage stays on [pcov](https://github.com/krakjoe/pcov), because the XDebug settings apply only to the webserver, not to the test commands.
 
@@ -53,11 +53,11 @@ vendor/bin/eddy-start
 vendor/bin/eddy-provision`}
 />
 
-`DEBUG` takes only `1`, from your shell or `.env`. Composer and npm then stream their full output, and Drush streams its progress, while the results that Drush prints stay captured.
+`DEBUG` takes only `1`, from your shell or `.env`, and works for every command that runs these tools, not only `build`. Composer and npm then stream their full output, and Drush streams its progress, while the results that Drush prints stay captured. `scripts/eddy-tooling` streams its Composer output too, but without a wrapper it reads `DEBUG` from your shell only.
 
 ## Logs
 
-The processes that keep running after a command returns write their output to the project's `.logs` directory:
+The processes that keep running after a command returns write their output to the `.logs` directory in the project root:
 
 | File                         | Written by                                                                                     |
 |------------------------------|------------------------------------------------------------------------------------------------|
@@ -65,7 +65,7 @@ The processes that keep running after a command returns write their output to th
 | `.logs/chromedriver.log`     | The chromedriver that FunctionalJavascript tests drive.                                        |
 | `.logs/cloudflared.log`      | The [public tunnel](tunnel.mdx). Its process ID is in `.logs/cloudflared.pid`.                 |
 
-With the `selenium` backend, the browser's output stays in its Docker container, named after the WebDriver port, such as `selenium-4444`. Run `docker logs selenium-4444` to read it. When the download of a chromedriver fails, `.chromedriver/install.log` holds the details.
+With the `selenium` backend, the browser's output stays in its Docker container, named after the WebDriver port, such as `selenium-4444`. Run `docker logs selenium-4444` to read it, with your own port in the name. `info` prints the port, and so does `vendor/bin/eddy-info webdriver-port` (see [`eddy-info` fields](tooling.mdx#eddy-info-fields)). When the download of a chromedriver fails, `.chromedriver/install.log` holds the details.
 
 The test runs write their reports to `.logs` too:
 

@@ -8,7 +8,7 @@ import CommandTabs from '@site/src/components/CommandTabs';
 
 # Public tunnel
 
-A remote development environment, such as Codespaces, DevPod, a remote Docker host or an SSH dev box, can't reach the PHP webserver on `localhost`. The [tooling](tooling.mdx) can expose it through a [Cloudflare quick tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/), a public `*.trycloudflare.com` HTTPS URL that needs no account, DNS or configuration. This page shows how to turn the tunnel on, what it changes and how to open the site on a phone.
+In a remote development environment, such as Codespaces, DevPod, a remote Docker host or an SSH dev box, the PHP webserver listens on the `localhost` of the remote machine, which your own browser can't reach. The [tooling](tooling.mdx) can expose it through a [Cloudflare quick tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/), a public `*.trycloudflare.com` HTTPS URL that needs no account, DNS or configuration. This page shows how to turn the tunnel on, what it changes and how to open the site on a phone.
 
 :::warning Anyone with the URL can reach the site
 
@@ -22,7 +22,7 @@ To turn on the tunnel:
 
 1. Install [`cloudflared`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/) so it's on your `PATH`.
 2. Set `CLOUDFLARE_TUNNEL=1` in `.env` or in your shell.
-3. Build the site.
+3. Build the site. On a site you've already built, running `start` and then `provision` is enough.
 
 The following commands set the variable in your shell, then build:
 
@@ -38,9 +38,9 @@ vendor/bin/eddy-start
 vendor/bin/eddy-provision`}
 />
 
-Confirm that the tunnel is up: the build prints a `*.trycloudflare.com` address as the site URL.
+Confirm that the tunnel is up: the build prints a `*.trycloudflare.com` address as the site URL, and `info` prints it too.
 
-The tunnel stays off while `CLOUDFLARE_TUNNEL` is empty or unset in both your shell and `.env`, or set to `0`, `false`, `no` or `off` in any letter case. An empty value in your shell counts as unset. To override a `.env` that turns the tunnel on, set it to `0`, `false`, `no` or `off` in your shell instead.
+The tunnel stays off while `CLOUDFLARE_TUNNEL` is empty or unset in both your shell and `.env`, or set to `0`, `false`, `no` or `off` in any letter case. Any other value, such as `1`, turns it on. An empty value in your shell counts as unset, so to override a `.env` that turns the tunnel on, set `0`, `false`, `no` or `off` in your shell instead. For a single command, prefix it, such as `CLOUDFLARE_TUNNEL=0 make start`.
 
 ## What happens
 
@@ -51,13 +51,19 @@ The tunnel changes what these commands do:
 - `start`, `provision`, `info`, `drush` and `login` use the tunnel URL as the site URL.
 - `stop` closes the tunnel and removes its URL from `.env`, whatever `CLOUDFLARE_TUNNEL` holds. `assemble` and `reset` close it too.
 
-Turning the variable off doesn't close a running tunnel: `start` leaves it running, and the site public, until the next `stop`.
+Turning the variable off doesn't close a running tunnel: `start` leaves it running, and the site public, until the next `stop`. To close the tunnel, run the following command:
 
-`cloudflared` writes its output to `.logs/cloudflared.log`, which is the place to look when a tunnel doesn't come up.
+<CommandTabs
+  make={`make stop`}
+  ahoy={`ahoy stop`}
+  none={`vendor/bin/eddy-stop`}
+/>
+
+`cloudflared` writes its output to `.logs/cloudflared.log` in the project root, which is the place to look when a tunnel doesn't come up.
 
 ## Bring your own tunnel
 
-The commands treat any `TUNNEL_URL` in `.env` as the site URL, whichever tool wrote it. So a different tunnel, such as ngrok, can stand in when a [lifecycle script](lifecycle-scripts.mdx) starts it and writes its URL to `.env`. 2 things don't carry over:
+The commands treat any `TUNNEL_URL` in `.env` as the site URL, whichever tool wrote it. So a different tunnel, such as ngrok, can stand in when a [lifecycle script](lifecycle-scripts.mdx), such as `scripts/start-ngrok.sh`, starts it and writes its URL to `.env`. Keep `CLOUDFLARE_TUNNEL` off then, since the trusted-host settings it adds accept only the Cloudflare and local hosts. 2 things don't carry over:
 
 - `provision` adds its settings for a Cloudflare tunnel only. Behind another tunnel, add the settings it needs to `settings.php` yourself, such as `reverse_proxy`, so Drupal detects HTTPS.
 - `stop` removes only a `*.trycloudflare.com` URL from `.env`, so remove your tunnel's URL from a `stop-*.sh` script.

@@ -12,7 +12,7 @@ The package is published from the `.eddy/tooling` directory of Eddy, so report b
 
 ## How it's installed
 
-A project created from Eddy doesn't install the package with a plain `composer install`: its `composer.json` belongs to the extension, and the tooling assembles the Drupal site into `build` itself. `scripts/eddy-tooling` installs the package into `vendor/` instead, with each command in `vendor/bin/eddy-*`. `make` and Ahoy run the installer before the commands that need it, and CI runs it as a step of its own. Without a wrapper, run it yourself first:
+A project created from Eddy doesn't install the package with a plain `composer install`: its `composer.json` belongs to the extension, and the tooling assembles the Drupal site into `build` itself. `scripts/eddy-tooling` installs the package into `vendor/` instead, with each command in `vendor/bin/eddy-*`. `make` and Ahoy run the installer before the commands that need it, and CI runs it as a step of its own. Without `make` or Ahoy, run it yourself first:
 
 ```bash
 scripts/eddy-tooling
@@ -28,14 +28,14 @@ The version constraint lives in `composer.dev.json`:
 
 Keep the `~` constraint. It accepts patch releases and holds the minor version, so CI picks up fixes on its own, and a new minor version arrives with the next [scaffold update](../updating/README.mdx) rather than in the middle of a CI run.
 
-The installer records what it installed in `vendor/eddy-tooling.json`, and runs Composer only when that record no longer matches:
+The installer records what it installed in `vendor/eddy-tooling.json`, and runs Composer only in these cases:
 
 - The constraint or the patches for the package change.
 - A local patch file changes.
-- `vendor/eddy-tooling.json` is missing, such as after `reset` removes `vendor/`.
+- `vendor/eddy-tooling.json` is missing, such as after [`reset`](building.mdx#other-commands-along-the-way) removes `vendor/`.
 - A command of the installed package is missing from `vendor/bin`.
 
-Otherwise it returns straight away, so running it before every command costs next to nothing. That's also why a local checkout keeps its patch release until `vendor/` is removed, while CI, which installs from scratch, takes the newest one on every run.
+Otherwise it returns straight away, so running it before each command costs next to nothing. That's also why a local checkout keeps its patch release until `vendor/` is removed, while CI, which installs from scratch, takes the newest one on every run. To take the newest patch release locally without removing `vendor/`, delete `vendor/eddy-tooling.json`, and the installer reinstalls the package the next time it runs.
 
 The package requires PHP 8.3 or newer, so every CI job and local build that installs it needs PHP 8.3 or newer too.
 
@@ -89,12 +89,12 @@ These pages describe each command in detail:
 | `xdebug`            | `enabled` or `disabled` for the running webserver, or `-` when it isn't running.              |
 | `webdriver-port`    | The WebDriver port, from `WEBDRIVER_PORT`.                                                     |
 | `webdriver-backend` | The WebDriver backend, from `WEBDRIVER_BACKEND`: `chromedriver` or `selenium`.                 |
-| `webdriver-host`    | The value of `WEBDRIVER_HOST`, or an empty line when it isn't set.                            |
+| `webdriver-host`    | The value of `WEBDRIVER_HOST`. It prints an empty line rather than `-` when the variable isn't set, since the default depends on the backend. |
 | `build-dir`         | The absolute path of the `build` directory.                                                   |
 | `database`          | The path of the SQLite database.                                                              |
 | `drupal-profile`    | The install profile, from `DRUPAL_PROFILE`.                                                    |
 
-A value that can't be resolved, such as the Drupal version before the first build, prints `-`.
+Apart from `webdriver-host`, a value that can't be resolved, such as the Drupal version before the first build, prints `-`.
 
 ## Command output
 
@@ -114,7 +114,7 @@ The package is installed into `vendor/`, so an edit made there is lost on the ne
 }
 ```
 
-The installer reads patches for the package from `composer.dev.json` only, and applies them with [`cweagans/composer-patches`](https://github.com/cweagans/composer-patches). A patch for it in your extension's `composer.json` never reaches the tooling. Local patch paths are relative to the project root. The site build leaves out the package and its patch declarations, so it never applies them, although the patch files reach `build/patches` with the rest of the `patches` directory.
+The installer reads patches for the package from `composer.dev.json` only, and applies them with [`cweagans/composer-patches`](https://github.com/cweagans/composer-patches). A patch for the package in your extension's `composer.json` never reaches the tooling. Local patch paths are relative to the project root. The site build leaves out the package and its patch declarations, so it never applies them, although the patch files reach `build/patches` with the rest of the `patches` directory.
 
 Reach for a patch only when a [lifecycle script](lifecycle-scripts.mdx) can't do the job. A script adds a step to a phase, while a patch changes the command itself. A patch can also stop applying when a tooling release changes the lines it touches.
 
