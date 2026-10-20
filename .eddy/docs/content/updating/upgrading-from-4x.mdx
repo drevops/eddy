@@ -183,6 +183,7 @@ Deployment changed several times during 4.x:
 - In 4.19.0, and on CircleCI, a release tag also force-pushed the tagged commit to a branch of your Drupal.org repository, so a tag behind that branch's tip rewound it. A test run that finished late, or that you re-ran, could rewind a branch the same way.
 - In 4.19.0 and in CircleCI tag builds, the first deployment to a new branch failed.
 - The `Deploy` workflow failed on every run until you set up deployment.
+- Every deployment also force-pushed every tag of your repository, so a tag whose own test run failed still reached your Drupal.org repository.
 
 In 5.x, deployment works like this:
 
@@ -191,12 +192,13 @@ In 5.x, deployment works like this:
 - A branch push deploys only while its commit is still the tip of the branch. An older commit is skipped with a notice, so it never replaces a newer one.
 - Deployments of the same branch wait for each other instead of running side by side, so 2 of them can't push out of order.
 - The first deployment of a branch creates it.
-- A branch deployment also force-pushes the repository's tags (see [What deploys](../deployment/README.mdx#what-deploys)).
+- A branch deployment pushes no tags, so a tag reaches your Drupal.org repository only through its own deployment, after its own test run passes (see [Tags that don't deploy](../deployment/README.mdx#tags-that-dont-deploy)).
 - Until the `DEPLOY_REMOTE` secret is set, the `Deploy` workflow skips its steps and reports a notice instead of failing.
 
 What to do:
 
 - If your release process relied on a tag push to update a branch, push the branch as well.
+- If you push more than 3 tags at once, or a workflow creates your tags with `GITHUB_TOKEN`, those tags don't deploy, since GitHub starts no test run for them. Push tags 3 at a time at most, and deploy a tag that missed its deployment as [Tags that don't deploy](../deployment/README.mdx#tags-that-dont-deploy) describes.
 - On a release from 4.15.0 to 4.18.0, the upgrade pull request still deploys the 4.x way described in this section. GitHub runs a `workflow_run` workflow, such as `Deploy`, from the copy on your default branch, so the 4.x `deploy.yml` stays in charge until you merge. To skip that, set the `DEPLOY_PROCEED` secret to `0` before the pull request opens, and back to `1` right before you merge.
 - On a release from 4.15.0 to 4.18.0, the pull requests that deployed left branches in your Drupal.org repository, each named after a pull request's branch. After you've merged, delete them with `git push <remote> --delete <branch>`, where `<remote>` is your Drupal.org repository. Keep the branches you release from, such as `1.x`, and the one `DEPLOY_BRANCH` names.
 - On a release from 4.15.0 to 4.17.0, also delete every branch named after a release tag from your Drupal.org repository. Those releases created 1 for each tag they deployed.
