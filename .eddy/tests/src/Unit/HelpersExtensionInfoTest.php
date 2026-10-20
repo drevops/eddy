@@ -16,8 +16,8 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class HelpersExtensionInfoTest extends UnitTestCase {
 
-  #[DataProvider('dataProviderExtensionInfo')]
-  public function testExtensionInfo(string $filename, string $content, string $expected_name, string $expected_type): void {
+  #[DataProvider('dataProviderExtensionInfoNameAndType')]
+  public function testExtensionInfoNameAndType(string $filename, string $content, string $expected_name, string $expected_type): void {
     $dir = self::$tmp . '/ext_' . uniqid();
     File::dump($dir . '/' . $filename, $content);
     chdir($dir);
@@ -25,7 +25,7 @@ final class HelpersExtensionInfoTest extends UnitTestCase {
     $this->assertSame(['name' => $expected_name, 'type' => $expected_type], extension_info());
   }
 
-  public static function dataProviderExtensionInfo(): \Iterator {
+  public static function dataProviderExtensionInfoNameAndType(): \Iterator {
     yield 'module' => [
       'filename' => 'my_module.info.yml',
       'content' => "name: My Module\ntype: module\ncore_version_requirement: ^10\n",
