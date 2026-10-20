@@ -13,7 +13,7 @@ CI pushes to your extension's Drupal.org repository with an SSH key. This page w
 Make sure you have the following:
 
 - Admin access to your extension's GitHub repository, to add secrets and variables.
-- Push access to your extension's repository on Drupal.org.
+- A Drupal.org account that can push to your extension's repository.
 - `ssh-keygen`, which comes with OpenSSH.
 
 ## Add the SSH key and the secrets
@@ -24,24 +24,27 @@ Make sure you have the following:
    ssh-keygen -m PEM -t rsa -b 4096 -C "your_email+project_name@example.com"
    ```
 
-   `ssh-keygen` asks where to save the key. The private key goes to that file, and the public key to the same name with `.pub` added.
+   The `-C` comment only labels the key, so any text you'll recognize works. `ssh-keygen` asks where to save the key and suggests `id_rsa` in your `.ssh` directory. Type the same path with a file name of its own in place of `id_rsa`, such as `id_rsa_myextension`, so the new key doesn't replace one you already use. The private key goes to that file, and the public key to the same name with `.pub` added. Then press <kbd>Enter</kbd> at both passphrase prompts to leave the passphrase empty, since CI can't type one.
 
 2. Add the **public** key to your [Drupal.org account](https://git.drupalcode.org/-/user_settings/ssh_keys).
-3. Add the **private** key as the `DEPLOY_SSH_KEY` secret in your repository's **Settings** → **Secrets and variables** → **Actions**.
+3. Add the **private** key as the `DEPLOY_SSH_KEY` secret in your repository's **Settings** → **Secrets and variables** → **Actions**. Paste the whole file, from its `-----BEGIN` line to its `-----END` line.
 4. Add these secrets in the same place:
 
-   - `DEPLOY_REMOTE` - your extension's Drupal.org repository, such as `git@git.drupal.org:project/myextension.git`. Until it's set, the deployment job reports a notice and skips deployment.
-   - `DEPLOY_USER_NAME` - the name that git uses on the CI runner, such as your name on Drupal.org. The deployment fails without it, although the deployed commits keep their own authors.
-   - `DEPLOY_USER_EMAIL` - the email address that git uses on the runner, such as your email address on Drupal.org. It's required, like `DEPLOY_USER_NAME`.
-   - `DEPLOY_PROCEED` - set to `1` after CI works and you're ready to deploy. Without it, the deployment job runs but doesn't push, which lets you test the job.
+   - `DEPLOY_REMOTE` - your extension's Drupal.org repository, such as `git@git.drupal.org:project/myextension.git`. Until it's set, the `Deploy` job reports a notice and skips deployment.
+   - `DEPLOY_USER_NAME` - the git user name on the CI runner, such as your name on Drupal.org. The deployment fails without it. The name doesn't appear on Drupal.org: the deployment makes no commits of its own, and the deployed commits keep their own authors.
+   - `DEPLOY_USER_EMAIL` - the git email address on the runner, such as your email address on Drupal.org. It's required, like `DEPLOY_USER_NAME`.
 
-5. Optional: Set `DEPLOY_BRANCH` to the branch to push to in the destination repository. It isn't a secret: add it as a repository variable under **Settings** → **Secrets and variables** → **Actions** → **Variables**. Without it, the code goes to the branch that triggered the build. Tags are always pushed as tags.
+5. Optional: To push every deployed branch to 1 branch of the `DEPLOY_REMOTE` repository, set `DEPLOY_BRANCH` to that branch's name, such as `1.x`. It isn't a secret: add it as a repository variable under **Settings** → **Secrets and variables** → **Actions** → **Variables**. Without it, each branch goes to the branch of the same name. Tags are always pushed as tags.
 
-The **Actions** secrets of your repository then list `DEPLOY_SSH_KEY`, `DEPLOY_REMOTE`, `DEPLOY_USER_NAME`, `DEPLOY_USER_EMAIL` and, when you've set it, `DEPLOY_PROCEED`.
+The **Actions** secrets of your repository then list `DEPLOY_SSH_KEY`, `DEPLOY_REMOTE`, `DEPLOY_USER_NAME` and `DEPLOY_USER_EMAIL`. The fifth secret, `DEPLOY_PROCEED`, turns the push on, and you add it after the test in the next section.
 
 ## Confirm that it works
 
-Before you set `DEPLOY_PROCEED`, push a commit to a branch that deploys, such as `1.x`, and watch the `Deploy` workflow that starts after `Test` passes. The job ends with "Skip deployment because DEPLOY_PROCEED is not set to 1." Set `DEPLOY_PROCEED` to `1`, and the next push reaches your Drupal.org repository.
+Until the `DEPLOY_PROCEED` secret is `1`, the `Deploy` job runs but doesn't push, so you can test it first:
+
+1. Push a commit to a branch that deploys, such as `1.x`, and watch the `Deploy` workflow that starts after `Test` passes. The job ends with "Skip deployment because DEPLOY_PROCEED is not set to 1." This run checks that the secrets are set, but doesn't connect to `DEPLOY_REMOTE` yet.
+2. Add the `DEPLOY_PROCEED` secret, set to `1`, in the same place as the other secrets.
+3. Push another commit to the branch. After `Test` passes, the `Deploy` job pushes it, and the commit appears in your Drupal.org repository.
 
 :::tip Other destinations
 
