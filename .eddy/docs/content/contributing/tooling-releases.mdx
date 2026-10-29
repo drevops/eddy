@@ -6,39 +6,64 @@ description: How the drevops/eddy-tooling package is published from Eddy and rel
 
 # Tooling releases
 
-Changes to the [tooling commands](../development/tooling.mdx) go into `.eddy/tooling/`, where the scaffold's own tests and builds use them straight away. Generated projects get them later, through the `drevops/eddy-tooling` package. This page explains how the package is published and how to release it.
+Changes to the [tooling commands](../development/tooling.mdx) go into `.eddy/tooling/`, where the scaffold's own tests and builds use them straight away. Generated projects get them through releases of the `drevops/eddy-tooling` package. This page covers how the package is published and how to release it.
 
 ## How the package is published
 
-On every push to `main`, `.github/workflows/eddy-publish-tooling.yml` mirrors the `.eddy/tooling/` directory to the `main` branch of [`drevops/eddy-tooling`](https://github.com/drevops/eddy-tooling), which Packagist serves. The workflow pushes with the `EDDY_TOOLING_DEPLOY_KEY` secret, a deploy key with write access to that repository, and runs only in `drevops/eddy`, so a push to a fork publishes nothing. A published change reaches generated projects only with the next [release](#release-the-package), since their `~` constraint matches release tags only.
+On every push to `main`, `.github/workflows/eddy-publish-tooling.yml` mirrors the `.eddy/tooling/` directory to the `main` branch of [`drevops/eddy-tooling`](https://github.com/drevops/eddy-tooling), which Packagist serves. The workflow pushes with the `EDDY_TOOLING_DEPLOY_KEY` secret, a deploy key with write access to the mirror. It runs only in `drevops/eddy`, so a push to a fork publishes nothing.
 
-A branch of `drevops/eddy` whose name contains `eddy-tooling`, such as `feature/123-eddy-tooling-fix`, is published too, into the mirror branch of the same name. Other branches leave the mirror untouched.
+The workflow also publishes each `drevops/eddy` branch whose name contains `eddy-tooling`, such as `feature/123-eddy-tooling-fix`, to the mirror branch of the same name. A change on either kind of branch reaches generated projects only with the next [release](#release-the-package), because their `~` constraint matches release tags only.
 
-To try the change in a generated project before it merges, require that branch in the `require-dev` of the project's `composer.dev.json`, with Composer's `dev-` prefix, for example `"drevops/eddy-tooling": "dev-feature/123-eddy-tooling-fix"`. The changed constraint makes `scripts/eddy-tooling` install the branch on its next run (see [Tooling package](../development/tooling.mdx#how-its-installed)). To switch back, restore the `~` constraint you replaced.
+To try a published branch in a generated project before it merges:
 
-Each run adds 1 commit to the mirror branch, with the subject of the pushed commit. These rules apply to the runs:
+1. In the project's `composer.dev.json`, set the `drevops/eddy-tooling` constraint in `require-dev` to the branch name with Composer's `dev-` prefix:
 
-- Every push to a published branch runs the workflow, even one that leaves `.eddy/tooling/` alone, and its commit is then empty.
-- A branch that the mirror doesn't have yet starts without history.
-- Runs of a branch queue rather than overlap, and a newer push cancels a run that's still waiting. A push in a quick burst can get no commit of its own, but the latest state is always published.
+   ```json
+   "drevops/eddy-tooling": "dev-feature/123-eddy-tooling-fix"
+   ```
+
+2. Run `scripts/eddy-tooling`, or any command that runs it, such as `ahoy build`. The changed constraint makes it install the branch (see [Tooling package](../development/tooling.mdx#how-its-installed)).
+
+To switch back, restore the `~` constraint you replaced and run `scripts/eddy-tooling` again.
+
+Each run of the workflow adds 1 commit to the mirror branch, with the subject of the pushed commit. The runs follow these rules:
+
+- Every push to a published branch runs the workflow. A push that leaves `.eddy/tooling/` unchanged adds an empty commit.
+- A branch that's new to the mirror starts without history.
+- Runs of 1 branch queue one after another, and a newer push cancels a run that's still waiting. In a quick burst of pushes, some pushes get no commit of their own, and the mirror still ends on the latest state.
 - A published branch stays on the mirror until you delete it there.
 
 ## Release the package
 
-Releases are created on the mirror by hand:
+You create each release on the mirror by hand, and the `create-eddy-tooling-release-notes` skill writes its notes. The skill needs `git` and an authenticated GitHub CLI (`gh`).
 
-1. [Create a release](https://github.com/drevops/eddy-tooling/releases/new) on `drevops/eddy-tooling` in the GitHub UI, with a new tag on `main`, for example `1.0.1`. The tags have no `v` prefix. Generated projects accept every patch release within their `~` constraint, so they pick up a patch release on their next fresh install. Save the release as a draft, or publish it straight away.
-2. From a clone of Eddy, ask Claude Code for the tooling release notes, or run `/create-eddy-tooling-release-notes`. The skill takes the version from the newest release on the mirror while that release has no notes, and the previous release from the highest published release below it. It lists the commits that changed `.eddy/tooling/` between the 2, and describes each one from its subject, or from its pull request, its issue or its diff when the subject isn't enough. It writes the notes to `.artifacts/release-notes-tooling-<version>.md`, and needs `git` and an authenticated GitHub CLI (`gh`).
+To release the package:
+
+1. [Create a release](https://github.com/drevops/eddy-tooling/releases/new) on `drevops/eddy-tooling` in the GitHub UI, with a new tag on the mirror's `main`, such as `1.0.1`. Leave out the `v` prefix: the tags have none. Save the release as a draft, or publish it straight away.
+2. From a clone of Eddy, run `/create-eddy-tooling-release-notes` in Claude Code, or ask Claude Code for the tooling release notes. The skill writes the notes to `.artifacts/release-notes-tooling-<version>.md`.
 3. Paste the notes into the release description.
 4. If the release is still a draft, publish it.
 5. If the release is a new minor or major version, or Eddy relies on what it ships, [raise the constraint](#raise-the-constraint) to it.
 
-When the newest release on the mirror already has notes, the skill prepares the notes of a release you haven't created yet: it suggests a version from the changes and asks you to confirm it.
+The skill takes the version from the newest release on the mirror while that release has no notes. The previous release is the highest published release below it. The skill lists the commits that changed `.eddy/tooling/` between the 2. It describes each commit from its subject, or from its pull request, its issue or its diff when the subject isn't enough.
+
+When the newest release on the mirror already has notes, the skill prepares the notes of a release you haven't created yet. It suggests a version from the changes and asks you to confirm it.
+
+Generated projects accept every patch release within their `~` constraint. A project picks up a patch release when it installs the tooling from scratch, such as after `vendor/` is removed.
 
 ## Raise the constraint
 
-Eddy's own `composer.dev.json` holds the `drevops/eddy-tooling` constraint that generated projects get. Raise it to a new release, for example to `~1.1.0`, when the release is a new minor or major version, or when Eddy relies on what the release ships: a command or an `eddy-info` field that the command wrappers, the workflows or the docs of a generated project call, or a step that moves from the command wrappers into a command. Update the examples on the [Tooling package](../development/tooling.mdx#how-its-installed) page and in the package's `README.md` to match.
+Eddy's own `composer.dev.json` holds the `drevops/eddy-tooling` constraint that generated projects get. Raise it to a new release, such as `~1.1.0`, in any of these cases:
 
-The order matters: `~1.1.0` matches release tags only, so a project with it can't install the tooling until 1.1.0 is out. Generated projects receive the new constraint with their next scaffold update, and the changed constraint makes `scripts/eddy-tooling` install the release on its next run. Without the raise, a checkout keeps the release it installed, even one that lacks what the new scaffold calls.
+- The release is a new minor or major version.
+- The command wrappers, the workflows or the docs of a generated project call a command or an `eddy-info` field that the release ships.
+- A step moves from the command wrappers into a command of the release.
 
-The [scaffold tests](scaffold-tests.mdx) guard the constraint. `ToolingConstraintTest` lists the first release that ships each command and `eddy-info` field the scaffold calls, and fails while the constraint allows an older release, so a new call goes into that list with its release. The test can't see a step that moves into a command, so that raise is up to you. `DocumentationTest` fails until both examples show the constraint.
+Then update the examples on the [Tooling package](../development/tooling.mdx#how-its-installed) page and in the package's `README.md` to match.
+
+Publish the release before you raise the constraint. `~1.1.0` matches release tags only, so a project with it can't install the tooling until 1.1.0 is out. Generated projects receive the new constraint with their next scaffold update. The changed constraint makes `scripts/eddy-tooling` install the release on its next run. Without the raise, a project's checkout keeps the release it installed, even one that lacks what the new scaffold calls.
+
+2 [scaffold tests](scaffold-tests.mdx) guard the constraint:
+
+- `ToolingConstraintTest` lists the first release that ships each command and `eddy-info` field the scaffold calls. It fails while the constraint allows an older release, so add each new call to that list with its release. The test can't detect a step that moves into a command, so raise the constraint for that case yourself.
+- `DocumentationTest` fails until both examples show the constraint.

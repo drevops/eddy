@@ -6,19 +6,19 @@ description: Work on Eddy itself - how the repository is laid out and how to bui
 
 # Contributing
 
-Contributions to Eddy are welcome, whether it's a bug report, a fix or a better sentence in these docs. Report bugs and suggest changes in the [issue queue](https://github.com/drevops/eddy/issues), and send code and docs changes as pull requests against `main`.
+Eddy welcomes bug reports, fixes and changes to these docs. Report bugs and suggest changes in the [issue queue](https://github.com/drevops/eddy/issues), and send code and docs changes as pull requests against `main`.
 
-This section covers working on the template itself. To work on an extension created from Eddy, see [Development](../development/README.mdx).
+This section is for people who work on the Eddy template itself. To work on an extension created from Eddy, see [Development](../development/README.mdx).
 
 ## What lives where
 
-The repository is a working Drupal extension, the demo extension in the project root, plus the tooling that turns it into a reusable template:
+The project root holds a working Drupal module, the demo extension. The rest of the repository turns it into a reusable template:
 
 - `install.php` - the one-off interactive installer that renames, rewrites and prunes the template files for a new project. In an empty directory, it downloads the template first. It deletes itself at the end, unless you answer no to **Remove this script**.
-- `scripts/eddy-tooling` - installs the `drevops/eddy-tooling` package, whose commands build, provision and deploy the extension, into `vendor/`. Generated projects get the package from Packagist; this repository installs `.eddy/tooling` as a symlink, so an edit there applies to the next command without a release.
-- `.eddy/` - everything used to develop and test the scaffold itself, including the source of the tooling package. It's removed from generated projects.
-- `.claude/skills/` - the Claude Code skills used to maintain the scaffold, such as `create-eddy-tooling-release-notes`. `install.php` removes them from generated projects by the directory names that its `eddy_skills()` function lists, so add a new skill there too. `InstallHelpersTest` fails until that list matches the skills that git tracks in `.claude/skills/`.
-- `.github/workflows/eddy-*.yml` - the workflows that test Eddy and publish the tooling and these docs. `install.php` deletes every workflow with the `eddy-` prefix from generated projects, so a workflow that ships to projects must not use that prefix.
+- `scripts/eddy-tooling` - installs the `drevops/eddy-tooling` package into `vendor/`. The package's commands build, provision and deploy the extension. Generated projects get the package from Packagist. This repository installs `.eddy/tooling` as a symlink, so an edit there applies to the next command without a release.
+- `.eddy/` - everything used to develop and test the scaffold itself, including the source of the tooling package. `install.php` removes it from generated projects.
+- `.claude/skills/` - the Claude Code skills for maintaining the scaffold, such as `create-eddy-tooling-release-notes`. `install.php` removes each skill that its `eddy_skills()` function lists from generated projects, so add a new skill to that list. `InstallHelpersTest` fails until the list matches the skills that git tracks in `.claude/skills/`.
+- `.github/workflows/eddy-*.yml` - the workflows that test Eddy and publish the tooling and these docs. `install.php` deletes every workflow with the `eddy-` prefix from generated projects, so give the prefix only to a workflow that stays in Eddy.
 
 The `.eddy/` directory holds these parts:
 
@@ -29,11 +29,13 @@ The `.eddy/` directory holds these parts:
 - `.eddy/skills/` - the `update-consumer-eddy` skill that generated projects fetch to update themselves.
 - `.eddy/CLAUDE.md` - the [maintenance reference](#the-maintenance-reference).
 
-`README.md`, `CONTRIBUTING.md`, `MIGRATION.md`, `SECURITY.md`, `LICENSE.txt` and `logo.svg` belong to Eddy too. A generated project gets its own `README.md` and `CONTRIBUTING.md`, rendered from `README.dist.md` and `CONTRIBUTING.dist.md`, so keep consumer-facing notes in those templates.
+`README.md`, `CONTRIBUTING.md`, `MIGRATION.md`, `SECURITY.md`, `LICENSE.txt` and `logo.svg` belong to Eddy itself. A generated project gets its own `README.md` and `CONTRIBUTING.md`, rendered from `README.dist.md` and `CONTRIBUTING.dist.md`, so keep consumer-facing notes in those templates.
 
 ## Build and test the demo extension
 
-The scaffold builds and tests itself the same way a generated project does, apart from the tooling package, which comes from `.eddy/tooling`. So the [Development](../development/README.mdx) commands apply here too:
+The demo extension builds and tests like a generated project, so the [Development](../development/README.mdx) commands apply here too. The 1 difference is the tooling package, which comes from `.eddy/tooling`.
+
+To build, lint and test the demo extension, run:
 
 ```bash
 ahoy build   # or: make build
@@ -41,11 +43,11 @@ ahoy lint    # or: make lint
 ahoy test    # or: make test
 ```
 
-These commands test the demo extension. The PHPUnit suite in `.eddy/tests/` that validates the scaffold runs separately, as [Scaffold tests](scaffold-tests.mdx) shows.
+The PHPUnit suite in `.eddy/tests/` that validates the scaffold runs separately, as [Scaffold tests](scaffold-tests.mdx) shows.
 
 ## The maintenance reference
 
-[`.eddy/CLAUDE.md`](https://github.com/drevops/eddy/blob/main/.eddy/CLAUDE.md) is the full maintenance reference, written for AI agents and humans alike. It covers what these pages don't:
+[`.eddy/CLAUDE.md`](https://github.com/drevops/eddy/blob/main/.eddy/CLAUDE.md) is the full maintenance reference, written for AI agents and humans alike. It also covers these topics:
 
 - The marker blocks that `install.php` prunes the template with, and the rules a block must follow
 - The text that `install.php` renders from the answers

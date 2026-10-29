@@ -14,11 +14,11 @@ The PHPUnit suite in `.eddy/tests` validates the scaffold itself. It covers thes
 - The docs and the update skill, checked against the code
 - The generator of the animated demos
 
-This page shows how to run the suite, what each group of tests needs and how to regenerate the snapshot fixtures.
+This page covers running the suite, what each group of tests needs and regenerating the snapshot fixtures.
 
 ## Run the self-tests
 
-Run these commands from the repository root. The commands that regenerate the snapshot fixtures are the exception: they run from `.eddy/tests` (see [Regenerate the snapshot fixtures](#regenerate-the-snapshot-fixtures)). Install the dependencies once:
+Run the suite's commands from the repository root, except `composer update-snapshots`, which runs from `.eddy/tests`. To install the suite's dependencies, run the following command once:
 
 ```bash
 composer --working-dir=.eddy/tests install
@@ -37,17 +37,23 @@ The following table lists the commands of the suite:
 | Regenerate the demos         | `composer --working-dir=.eddy/tests update-assets`                |
 | Regenerate the fixtures      | `composer update-snapshots`, from `.eddy/tests`                   |
 
-`lint` runs PHPCS, PHPStan and Rector without changes, and `lint-fix` runs Rector and PHPCBF. The demos are the animated SVGs that these docs embed, and [`.eddy/CLAUDE.md`](https://github.com/drevops/eddy/blob/main/.eddy/CLAUDE.md) explains what regenerating them needs. [Regenerate the snapshot fixtures](#regenerate-the-snapshot-fixtures) covers the fixtures.
+`lint` runs PHPCS, PHPStan and a Rector dry run. `lint-fix` runs Rector and PHPCBF. The demos are the animated SVGs that these docs embed, and [`.eddy/CLAUDE.md`](https://github.com/drevops/eddy/blob/main/.eddy/CLAUDE.md) lists what regenerating them needs.
 
-`--filter` matches classes by name, and the suite has 2 `AssembleTest` and 2 `ToolingInstallerTest` classes: the unit ones in `p0` and the functional ones in `p2`. Add `--group` to run only 1 of them, such as `composer --working-dir=.eddy/tests test -- --filter=AssembleTest --group=p2` for the functional `AssembleTest`.
+`--filter` matches classes by name. The suite has 2 `AssembleTest` classes and 2 `ToolingInstallerTest` classes: a unit class in `p0` and a functional class in `p2`. To run only 1 of them, add `--group`. For example, the following command runs the functional `AssembleTest`:
 
-The coverage run needs pcov. It writes a Clover file to `.eddy/tests/.logs/coverage/phpunit/clover.xml`, and an HTML report to the `.coverage-html` directory next to it, which opens at its `index.html`. CI uploads the reports of `p0` to Codecov when the `CODECOV_TOKEN` secret is set. The suite writes Clover rather than the template's Cobertura, because Cobertura leaves out code outside functions, which is most of every tooling command.
+```bash
+composer --working-dir=.eddy/tests test -- --filter=AssembleTest --group=p2
+```
 
-`phpunit.xml` stops the run at the first error, failure, warning or risky test, and fails the run on any of them and on a skipped test. A run that stopped at a warning or a risky test can still print an "OK, but there were issues!" footer, so check the exit code, which is 1 for a failed run. To see how many tests the run should have reached, run it again with the same options and `--list-tests`, which prints 1 line per test.
+The coverage run needs pcov. It writes a Clover file to `.eddy/tests/.logs/coverage/phpunit/clover.xml` and an HTML report to `.eddy/tests/.logs/coverage/phpunit/.coverage-html`. Open the report's `index.html` to browse it. CI uploads the coverage of `p0` to Codecov when the `CODECOV_TOKEN` secret is set.
+
+The suite writes Clover, where the `phpunit.xml` of a generated project writes Cobertura. Cobertura leaves out code outside functions, and most of every tooling command sits outside functions.
+
+`phpunit.xml` stops the run at the first error, failure, warning or risky test. A skipped test fails the run without stopping it. A run that stops at a warning or a risky test can still print an "OK, but there were issues!" footer, so check the exit code: a failed run exits with 1. To see how many tests the run should have reached, run it again with the same options and `--list-tests`, which prints 1 line per test.
 
 ## Test groups
 
-Tests are tagged `p0` to `p5` so CI can run them as parallel jobs:
+Tests are tagged `p0` to `p5` so CI can run them as parallel jobs. In the **Needs** column, the build setup is PHP with the `gd`, `sqlite` and `pdo_sqlite` extensions, plus Node.js with npm. A WebDriver backend is a Selenium container or a local Chrome driven by chromedriver.
 
 | Group | What it covers                                                                                                         | Needs                                         |
 |-------|------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------|
@@ -58,17 +64,17 @@ Tests are tagged `p0` to `p5` so CI can run them as parallel jobs:
 | `p4`  | `MakeTest`, plus `GeneratedProjectTest`, which generates a theme and a module that each bundle an extension of the other type, then builds, lints and tests them through `make`. | The build setup, `make` and a WebDriver backend. |
 | `p5`  | `XdebugTest`, the XDebug toggle through both wrappers.                                                                 | The build setup, Ahoy, `make` and xdebug with `xdebug.mode=off`. |
 
-Every group needs Composer and PHP 8.3 or newer, which the suite's dependencies require. The build setup is that PHP with the `gd`, `sqlite` and `pdo_sqlite` extensions, plus Node.js with npm. CI also upgrades SQLite on its runners.
-
-A WebDriver backend is a Selenium container or a local Chrome driven by chromedriver. `p5` is the only group that runs with the real xdebug extension instead of pcov.
+Every group needs Composer and PHP 8.3 or newer, which the suite's dependencies require. CI also upgrades SQLite for every group except `p0`. `p5` is the only group that loads the xdebug extension in place of pcov.
 
 Only `p0` collects coverage in CI. The other groups run the tooling and `install.php` as subprocesses, where pcov records nothing. Their reports would hold only the static analysis of files they never load, and Codecov would count lines such as the shebang there as missed.
 
 ## Regenerate the snapshot fixtures
 
-`InstallTest` runs `install.php` end to end and compares the result with the fixtures in `.eddy/tests/fixtures/install/`: a `_baseline` directory plus 1 directory per dataset. The fixtures are generated, so never edit them by hand, apart from the `.ignorecontent` rule files.
+`InstallTest` runs `install.php` end to end and compares the result with the fixtures in `.eddy/tests/fixtures/install/`: a `_baseline` directory plus 1 directory per dataset. The fixtures are generated, so never edit them by hand. The `.ignorecontent` rule files are the 1 exception: you write those by hand.
 
-After any change that affects the output of `install.php`, regenerate the fixtures:
+Regenerate the fixtures after any change that affects the output of `install.php`. A change confined to `.eddy/tooling/` doesn't, because the tooling isn't part of a generated project.
+
+To regenerate the fixtures:
 
 1. Commit your source changes first, as their own commit.
 2. From `.eddy/tests`, run the update command:
@@ -78,20 +84,19 @@ After any change that affects the output of `install.php`, regenerate the fixtur
    composer update-snapshots
    ```
 
-   It makes 1 commit: the changed baseline together with the dataset fixtures, or the dataset fixtures alone when the baseline didn't change. It exits with 0 when every dataset passed or had its fixtures rewritten, and with a non-zero code when a dataset fails for another reason or times out.
+   It makes 1 commit: the changed baseline together with the dataset fixtures, or the dataset fixtures alone when the baseline didn't change. It exits with 0 when every dataset passed or had its fixtures rewritten. It exits with a non-zero code when a dataset fails on something other than its fixtures, or times out.
 
-3. Review the result with `git show --stat`. Then confirm that `composer test -- --filter=InstallTest`, run from `.eddy/tests` too, passes before you push.
-
-`.eddy/tooling/` isn't part of a generated project, so a change confined to it needs no regeneration.
+3. Review the commit with `git show --stat`.
+4. Still in `.eddy/tests`, confirm that `composer test -- --filter=InstallTest` passes before you push.
 
 ## Continuous integration
 
 The `Test Eddy` workflow, `.github/workflows/eddy-test.yml`, runs on pushes to `main` and on pull requests against `main` or a `feature/**` branch. It has 3 jobs:
 
-- `eddy-test-tooling` runs the suite across the `p0` to `p5` groups on Ubuntu and macOS, and runs `p3` and `p4` once per WebDriver backend: Selenium on Ubuntu only, chromedriver on both. Its `p0` leg also validates the `composer.json` files of the suite and the tooling and checks that they're normalized. It lints the suite too.
+- `eddy-test-tooling` runs the suite in the `p0` to `p5` groups on Ubuntu and macOS. It runs `p3` and `p4` once per WebDriver backend: Selenium on Ubuntu only and chromedriver on both. Its `p0` jobs also lint the suite, validate the `composer.json` files of the suite and the tooling and check that they're normalized.
 - `eddy-test-docs` builds and tests these docs, and deploys them to Netlify (see [Documentation](documentation.mdx)).
 - `eddy-test-actions` lints the workflows with yamllint and actionlint, and checks them for security issues with Zizmor.
 
-`install.php` deletes every `.github/workflows/eddy-*.yml` from a generated project, so a maintenance-only workflow takes the `eddy-` prefix and a workflow that ships to projects never does.
+`install.php` deletes the workflows with the `eddy-` prefix from generated projects (see [What lives where](README.mdx#what-lives-where)).
 
 {/* cspell:ignore ignorecontent */}
