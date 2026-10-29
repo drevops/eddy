@@ -8,7 +8,7 @@ import CommandTabs from '@site/src/components/CommandTabs';
 
 # FunctionalJavascript tests
 
-FunctionalJavascript tests drive a real browser through WebDriver. By default they use the Google Chrome or Chromium on your machine, so you don't need Docker. This page shows how to run them with either backend, how each project gets its WebDriver port and how projects share a machine.
+FunctionalJavascript tests drive a real browser through WebDriver. By default they use the Google Chrome or Chromium on your machine, so you don't need Docker. Follow this page to run them with either backend. It also covers how each project gets its WebDriver port and how projects share a machine.
 
 To run the tests with your local Chrome, run the following commands:
 
@@ -35,9 +35,9 @@ cd ..
 vendor/bin/eddy-browser-stop`}
 />
 
-`test` and `test-functional-javascript` start the browser first and leave it running, so the next run reuses it. When the browser can't start, they stop before any test runs. Stop the browser with `browser-stop` when you're done.
+With Make or Ahoy, `test` and `test-functional-javascript` start the browser before the tests and leave it running, so the next run reuses it. When the browser can't start, those commands stop before any test runs. The last command in each list stops the browser.
 
-The tests need a `chromedriver` that matches the major version of your Chrome. `browser-start` uses the one on your `PATH` when it matches. Otherwise it fetches a matching one into `.chromedriver` with `npx @puppeteer/browsers`, which needs Node.js. Chrome runs headless for the tests that extend the base class, so they work on a machine without a display, such as a CI runner.
+The tests need a `chromedriver` that matches the major version of your Chrome. `browser-start`, the step that starts the browser, uses the one on your `PATH` when it matches. Otherwise it fetches a matching one into `.chromedriver` with `npx @puppeteer/browsers`, which needs Node.js. Chrome runs headless for tests that extend the generated [base class](#webdriver-ports), so they work on a machine without a display, such as a CI runner.
 
 ## Run the browser in Docker
 
@@ -66,27 +66,33 @@ cd ..
 vendor/bin/eddy-browser-stop`}
 />
 
-The browser reaches the webserver at `localhost` with the default backend, and at `host.docker.internal` (macOS) or `172.17.0.1` (other systems) from the Selenium container. Set `WEBDRIVER_HOST` to use a different address. While it isn't set, `vendor/bin/eddy-info webdriver-host` prints an empty line, so the no-wrapper commands export an empty value and the base class picks the address for the backend that the test command names. The base class of your tests (see [WebDriver ports](#webdriver-ports)) builds `SIMPLETEST_BASE_URL` from that address and `WEBSERVER_PORT` before each test, so the value that the commands export applies only to tests that don't extend it.
+The browser reaches the webserver at `localhost` with the default backend, and at `host.docker.internal` (macOS) or `172.17.0.1` (other systems) from the Selenium container. To use a different address, set `WEBDRIVER_HOST`.
 
-That address depends on the backend, so `browser-start` doesn't reuse a browser of the other backend. It replaces the project's own browser instead, which means you can switch `WEBDRIVER_BACKEND` between runs without a `browser-stop` first.
+While `WEBDRIVER_HOST` is unset, `vendor/bin/eddy-info webdriver-host` prints an empty line, so the no-wrapper commands export an empty value. The [base class](#webdriver-ports) of your tests then picks the address for the backend that the test command names. Before each test, the base class builds `SIMPLETEST_BASE_URL` from that address and `WEBSERVER_PORT`. The `SIMPLETEST_BASE_URL` that the no-wrapper commands export reaches only tests that don't extend the base class.
+
+You can switch `WEBDRIVER_BACKEND` between runs without a `browser-stop` first, because `browser-start` replaces the project's own browser of the other backend (see [Projects that share a machine](#projects-that-share-a-machine)).
 
 ## WebDriver ports
 
-Each project records its own WebDriver port, whichever backend it uses: `browser-start` claims the first free port from 4444 and saves it in `.env`, so several projects can run these tests at the same time. 2 projects can still record the same port, such as when one claims it while the other's browser is stopped, and [Projects that share a machine](#projects-that-share-a-machine) explains what happens then.
+Each project records its own WebDriver port, whichever backend it uses. `browser-start` claims the first free port from 4444 and saves it in `.env`, so several projects can run these tests at the same time. 2 projects can still record the same port, such as when one claims it while the other's browser is stopped. See [Projects that share a machine](#projects-that-share-a-machine) for what happens then.
 
-To pin a specific port, set `WEBDRIVER_PORT` in `.env`, such as `WEBDRIVER_PORT=4450`. A value in your shell wins over the one in `.env`, and `browser-start` skips the search for a free port while either one sets it.
+To pin a specific port, set `WEBDRIVER_PORT` in `.env`, such as `WEBDRIVER_PORT=4450`. A value in your shell wins over the one in `.env`. While either one sets the port, `browser-start` skips the search for a free port.
 
-Tests reach the claimed port through the base class that the installer generates, so extend `YourExtensionFunctionalJavascriptTestBase` rather than `WebDriverTestBase`. The installer names the class after your extension's machine name: for `my_extension`, it's `MyExtensionFunctionalJavascriptTestBase` in the `Drupal\Tests\my_extension\FunctionalJavascript` namespace, in `tests/src/FunctionalJavascript`. The base class also points the browser at the right webserver address for the backend, and with the default backend, runs Chrome headless. A test that bypasses it keeps the default endpoint from `phpunit.xml`, unless it exports its own `MINK_DRIVER_ARGS_WEBDRIVER`.
+Tests reach the claimed port through the base class that the installer generates, so extend `YourExtensionFunctionalJavascriptTestBase` in place of `WebDriverTestBase`. The installer names the class after your extension's machine name. For `my_extension`, it's `MyExtensionFunctionalJavascriptTestBase` in `tests/src/FunctionalJavascript`, in the `Drupal\Tests\my_extension\FunctionalJavascript` namespace. The base class also points the browser at the webserver address for the backend, and runs Chrome headless with the default backend. A test that extends `WebDriverTestBase` directly keeps the default endpoint from `phpunit.xml`, unless it exports its own `MINK_DRIVER_ARGS_WEBDRIVER`.
 
-The base class reads the backend, host and port from the environment. `make` and Ahoy load them from `.env`. Without a command wrapper, the commands at the top of this page export the values that `eddy-info` resolves from your shell and `.env`, so a value set in `.env` reaches the tests in every setup. The no-wrapper Selenium commands in the preceding section set `WEBDRIVER_BACKEND` on the 2 commands that need it instead, which selects the backend for that run only.
+The base class reads the backend, host and port from the environment, and `make` and Ahoy load them from `.env`. Without a command wrapper, the commands at the top of this page export the values that `eddy-info` resolves from your shell and `.env`. So a value set in `.env` reaches the tests in every setup. The no-wrapper Selenium commands in the preceding section pass `WEBDRIVER_BACKEND` to the 2 commands that need it, which selects the backend for that run only.
 
 ## Projects that share a machine
 
-`browser-start` reuses a browser of the selected backend that already accepts WebDriver sessions on the port, whichever project started it, since every session is independent. When anything else holds the port, a browser of the other backend included, it replaces only the project's own browser, and otherwise fails and names whatever holds it.
+When something already holds the WebDriver port, `browser-start` acts as follows:
+
+- A browser of the selected backend that already accepts WebDriver sessions on the port gets reused, whichever project started it, since every session is independent.
+- Any other browser that belongs to the project gets replaced, whichever backend it uses.
+- Any other holder, such as another project's browser of the other backend or another process, makes `browser-start` fail and name the holder.
 
 `browser-stop` and `reset` stop only the project's own browser, so another project's browser on the same port keeps running. A browser belongs to a project in these cases:
 
 - A chromedriver belongs to the project whose root is its working directory, which is where `browser-start` starts it. A chromedriver whose working directory can't be read counts as another project's.
 - A Selenium container belongs to the project whose root its `eddy.project` label holds, which `browser-start` sets when it starts the container. A container without the label counts as the project's own.
 
-A stopped Selenium container holds no port, so it never blocks `browser-start`, and the `selenium` backend replaces it whichever project started it.
+A stopped Selenium container holds no port, so it never blocks `browser-start`. The `selenium` backend replaces a stopped container, whichever project started it.
