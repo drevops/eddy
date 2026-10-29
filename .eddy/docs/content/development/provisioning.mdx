@@ -8,7 +8,7 @@ import CommandTabs from '@site/src/components/CommandTabs';
 
 # Provision the site
 
-`provision` installs Drupal on the codebase that [`assemble` built](building.mdx), with your extension enabled, and prints a one-time login link when it finishes. This page covers what it does and where the database lives, and how to run Drush and log in.
+`provision` installs Drupal with your extension enabled on the codebase that [`assemble` built](building.mdx). It prints a one-time login link when it finishes. This page covers what `provision` does, where the database lives and how to run Drush and log in.
 
 To get a clean site without reassembling the codebase, run `provision` on its own:
 
@@ -22,7 +22,7 @@ To get a clean site without reassembling the codebase, run `provision` on its ow
 
 `provision` runs these steps in order:
 
-1. Installs Drupal from the `standard` profile into a fresh SQLite database, with an `admin` account and without the Update Status module. To install from another profile, set `DRUPAL_PROFILE` to its machine name, such as `minimal`, in your shell or `.env` (see [Environment variables](environment-variables.mdx)).
+1. Installs Drupal from the `standard` profile into a fresh SQLite database, with an `admin` account and no Update Status module. To install from another profile, set `DRUPAL_PROFILE` in your shell or `.env` to its machine name, such as `minimal` (see [Environment variables](environment-variables.mdx)).
 2. Enables your extension, as a module or as a theme.
 3. Rebuilds the caches.
 4. Enables each `drupal/*` extension in the `suggest` section of your `composer.json`, as a module or as a theme (see [Optional dependencies](dependencies.mdx#optional-dependencies)).
@@ -34,7 +34,7 @@ To get a clean site without reassembling the codebase, run `provision` on its ow
 
 ## The database
 
-The site keeps its data in an SQLite file at `/tmp/site_<extension>.sqlite`, named after your extension's machine name. Each provision starts it from scratch. [DB Browser for SQLite](https://sqlitebrowser.org/) can open it when you want to look inside.
+The site keeps its data in an SQLite file at `/tmp/site_<extension>.sqlite`, where `<extension>` is your extension's machine name. Each provision starts the database from scratch. To look inside the file, open it with [DB Browser for SQLite](https://sqlitebrowser.org/).
 
 ## Run Drush
 
@@ -50,9 +50,9 @@ ahoy drush config:get system.site --format=json`}
   none={`build/vendor/bin/drush -l "$(vendor/bin/eddy-info site-url)" status`}
 />
 
-Ahoy passes the arguments through as they are. `make` reads its command line first, so a few rules apply there:
+Ahoy passes the arguments through as they are. `make` reads its command line first, so follow these rules with `make drush`:
 
-- Put `--` before the arguments when they include an option, since `make` would read the option as its own.
+- Put `--` before the arguments when they include an option, since `make` reads an option as its own.
 - An argument can't hold a space or name a `make` target, such as `help`, unless it's an option value joined with `=`.
 - An option joined with `=` reaches Drush after the other arguments, whatever its position.
 - A `NAME=value` word that isn't named like an option, such as `DEBUG=1`, stays a `make` variable and doesn't reach Drush.
@@ -67,6 +67,6 @@ Ahoy passes the arguments through as they are. `make` reads its command line fir
   none={`vendor/bin/eddy-login`}
 />
 
-A one-time link stops working after it's been opened, and Drush 12 and 13 open it in your browser unless `uli` gets `--no-browser`. `login` passes that option on those versions, so the link it prints still works. Drush 14 never opens a browser, and rejects the option. When you run `drush uli` yourself on Drush 12 or 13, add `--no-browser` too.
+A one-time link stops working after it's opened. Drush 12 and 13 open the link in your browser unless `uli` gets `--no-browser`. `login` passes that option on those versions, so the link it prints still works. Drush 14 never opens a browser and rejects the option. When you run `drush uli` yourself on Drush 12 or 13, add `--no-browser` too.
 
-To have `login` draw the link as a QR code too, set `LOGIN_QRCODE=1` in `.env` or your shell. It's handy for opening the site on a phone over a [public tunnel](tunnel.mdx). The link that `provision` prints never gets a QR code. Any non-empty value turns the QR code on, `0` included, so to turn it off, remove the variable from `.env` and your shell. The QR code needs [`qrencode`](https://fukuchi.org/works/qrencode/) on `PATH`: without it, `login` prints the link and then fails.
+To have `login` also draw the link as a QR code, set `LOGIN_QRCODE=1` in `.env` or your shell. The QR code helps you open the site on a phone over a [public tunnel](tunnel.mdx). The link that `provision` prints has no QR code. Any non-empty value turns the QR code on, `0` included. To turn it off, remove the variable from `.env` and your shell. The QR code needs [`qrencode`](https://fukuchi.org/works/qrencode/) on `PATH`, and without it `login` prints the link and then fails.

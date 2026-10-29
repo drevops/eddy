@@ -6,15 +6,22 @@ description: Run Drupal.org's GitLab CI on the mirrored extension with the 1 ove
 
 # Drupal.org CI
 
-After your extension is [mirrored to Drupal.org](../deployment/README.mdx), Drupal.org can test it with its own GitLab CI, which runs when the repository has a `.gitlab-ci.yml`. Eddy doesn't ship that file, so you add it. Eddy's configuration works with GitLab CI apart from 1 setting, which this page shows. The PHPStan error suppressions work too, even though GitLab CI runs the analysis from within the module directory.
+After your extension is [mirrored to Drupal.org](../deployment/README.mdx), Drupal.org can test it with its own GitLab CI. GitLab CI runs when the repository has a `.gitlab-ci.yml`, which you add yourself. Eddy's tool configuration works there with 1 override in that file. The PHPStan error suppressions apply too, even though GitLab CI runs PHPStan from the module directory.
 
-PHPUnit needs 1 override there: turn off code coverage. GitLab CI symlinks your project back into the built site's `web/modules/custom/<name>/` directory, so PHPUnit's coverage scan follows that loop into `web/core/node_modules` and runs out of file descriptors. GitHub Actions collects coverage already, so GitLab CI can skip it.
+The override turns off PHPUnit's code coverage. GitLab CI symlinks your project into the built site's `web/modules/custom/<name>/` directory, which creates a loop. PHPUnit's coverage scan follows the loop into `web/core/node_modules` and runs out of file descriptors. Your GitHub Actions runs already collect coverage.
 
-To set it up, create a `.gitlab-ci.yml` in your project root that includes the [standard Drupal.org GitLab CI templates](https://git.drupalcode.org/project/gitlab_templates), as their instructions show. Then add this override to the same file:
+To add GitLab CI with that override:
 
-```yaml title=".gitlab-ci.yml"
-variables:
-  _PHPUNIT_EXTRA: '--no-coverage'
-```
+1. Create a `.gitlab-ci.yml` in your project root that includes the [standard Drupal.org GitLab CI templates](https://git.drupalcode.org/project/gitlab_templates), as their instructions show.
+2. Add the following override to the `variables` section of `.gitlab-ci.yml`:
+
+   ```yaml title=".gitlab-ci.yml"
+   variables:
+     _PHPUNIT_EXTRA: '--no-coverage'
+   ```
+
+3. Commit the file and push it to a branch that [deploys](../deployment/README.mdx#what-deploys). The deployment mirrors it to Drupal.org.
+
+Confirm that the pipeline passes on the **Pipelines** page of your project's repository on [git.drupalcode.org](https://git.drupalcode.org). The templates start a pipeline for a push to the default branch, a tag or a merge request. For any other branch, start one with **Run pipeline** on that page.
 
 GitLab CI applies the patches declared in your extension's `composer.json` with composer-patches 1.x, and ignores the ones in `composer.dev.json`. So a patch that your tests need on GitLab CI too goes in `composer.json`. See [Patch dependencies](../development/dependencies.mdx#patch-dependencies) for what each file's patches reach.

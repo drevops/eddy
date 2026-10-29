@@ -8,11 +8,11 @@ import CommandTabs from '@site/src/components/CommandTabs';
 
 # Public tunnel
 
-In a remote development environment, such as Codespaces, DevPod, a remote Docker host or an SSH dev box, the PHP webserver listens on the `localhost` of the remote machine, which your own browser can't reach. The [tooling](tooling.mdx) can expose it through a [Cloudflare quick tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/), a public `*.trycloudflare.com` HTTPS URL that needs no account, DNS or configuration. This page shows how to turn the tunnel on, what it changes and how to open the site on a phone.
+A remote development environment runs the PHP webserver on the `localhost` of a remote machine, which your own browser can't reach. Codespaces, DevPod, a remote Docker host and an SSH dev box all work this way. The [tooling](tooling.mdx) can expose the webserver through a [Cloudflare quick tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/), a public `*.trycloudflare.com` HTTPS URL that needs no account, DNS or configuration. This page covers turning the tunnel on, what it changes and opening the site on a phone.
 
 :::warning Anyone with the URL can reach the site
 
-While the tunnel is up, the site is on the public internet, and a local Drupal site usually has a known admin account and no firewall. Use disposable test data only, never real or sensitive content, and stop the tunnel with `stop` when you're done.
+While the tunnel is up, the site is on the public internet. A local Drupal site usually has a known admin account and no firewall. Use disposable test data only, and stop the tunnel with `stop` when you're done.
 
 :::
 
@@ -22,7 +22,7 @@ To turn on the tunnel:
 
 1. Install [`cloudflared`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/) so it's on your `PATH`.
 2. Set `CLOUDFLARE_TUNNEL=1` in `.env` or in your shell.
-3. Build the site. On a site you've already built, running `start` and then `provision` is enough.
+3. Build the site. On a site you've already built, run `start` and then `provision` in place of `build`.
 
 The following commands set the variable in your shell, then build:
 
@@ -38,20 +38,20 @@ vendor/bin/eddy-start
 vendor/bin/eddy-provision`}
 />
 
-Confirm that the tunnel is up: the build prints a `*.trycloudflare.com` address as the site URL, and `info` prints it too.
+Confirm that the tunnel is up: `provision` prints a `*.trycloudflare.com` address as the site URL, and `info` prints the same address.
 
-The tunnel stays off while `CLOUDFLARE_TUNNEL` is empty or unset in both your shell and `.env`, or set to `0`, `false`, `no` or `off` in any letter case. Any other value, such as `1`, turns it on. An empty value in your shell counts as unset, so to override a `.env` that turns the tunnel on, set `0`, `false`, `no` or `off` in your shell instead. For a single command, prefix it, such as `CLOUDFLARE_TUNNEL=0 make start`.
+The tunnel stays off for an empty value and for `0`, `false`, `no` and `off`, in any letter case. Any other value, such as `1`, turns it on. A value in your shell wins over `.env`, but an empty shell value counts as unset, so `.env` decides. To override a `.env` that turns the tunnel on, set `0`, `false`, `no` or `off` in your shell. For a single command, prefix it, such as `CLOUDFLARE_TUNNEL=0 make start`.
 
 ## What happens
 
 The tunnel changes what these commands do:
 
-- `start` starts a tunnel, or reuses a running one that forwards to the same port and whose URL still answers, and writes its URL to `.env` as `TUNNEL_URL`. Without `cloudflared`, or when no URL appears within 30 seconds, it carries on without the tunnel and says so.
+- `start` starts a tunnel and writes its URL to `.env` as `TUNNEL_URL`. It reuses a running tunnel that forwards to the same port and whose URL still answers. Without `cloudflared`, or when no URL appears within 30 seconds, `start` carries on without the tunnel and says so.
 - `provision` adds the reverse-proxy and trusted-host settings that Drupal needs behind the tunnel to `settings.php`.
 - `start`, `provision`, `info`, `drush` and `login` use the tunnel URL as the site URL.
-- `stop` closes the tunnel and removes its URL from `.env`, whatever `CLOUDFLARE_TUNNEL` holds. `assemble` and `reset` close it too.
+- `stop` closes the tunnel and removes its URL from `.env`, even while `CLOUDFLARE_TUNNEL` is off. It leaves `CLOUDFLARE_TUNNEL` as it is. `reset` closes it too, and so does `assemble` when it stops a running webserver.
 
-Turning the variable off doesn't close a running tunnel: `start` leaves it running, and the site public, until the next `stop`. To close the tunnel, run the following command:
+After you turn `CLOUDFLARE_TUNNEL` off, a running tunnel stays up, and the site public, until the next `stop`. To close the tunnel, run the following command:
 
 <CommandTabs
   make={`make stop`}
@@ -59,18 +59,18 @@ Turning the variable off doesn't close a running tunnel: `start` leaves it runni
   none={`vendor/bin/eddy-stop`}
 />
 
-`cloudflared` writes its output to `.logs/cloudflared.log` in the project root, which is the place to look when a tunnel doesn't come up.
+When a tunnel doesn't come up, read `.logs/cloudflared.log` in the project root, where `cloudflared` writes its output.
 
 ## Bring your own tunnel
 
-The commands treat any `TUNNEL_URL` in `.env` as the site URL, whichever tool wrote it. So a different tunnel, such as ngrok, can stand in when a [lifecycle script](lifecycle-scripts.mdx), such as `scripts/start-ngrok.sh`, starts it and writes its URL to `.env`. Keep `CLOUDFLARE_TUNNEL` off then, since the trusted-host settings it adds accept only the Cloudflare and local hosts. 2 things don't carry over:
+The commands treat any `TUNNEL_URL` in `.env` as the site URL, whichever tool wrote it. To use a different tunnel, such as ngrok, start it from a [lifecycle script](lifecycle-scripts.mdx) like `scripts/start-ngrok.sh` and write its URL to `.env`. Keep `CLOUDFLARE_TUNNEL` off. With it on, `provision` adds trusted-host settings that accept only the Cloudflare and local hosts. 2 things work only with the Cloudflare tunnel:
 
-- `provision` adds its settings for a Cloudflare tunnel only. Behind another tunnel, add the settings it needs to `settings.php` yourself, such as `reverse_proxy`, so Drupal detects HTTPS.
+- `provision` adds its `settings.php` entries for a Cloudflare tunnel only. Behind another tunnel, add the settings that tunnel needs to `settings.php` yourself, such as `reverse_proxy`, so Drupal detects HTTPS.
 - `stop` removes only a `*.trycloudflare.com` URL from `.env`, so remove your tunnel's URL from a `stop-*.sh` script.
 
 ## Open the site on a phone
 
-`vendor/bin/eddy-qrcode <url>` draws any URL as a QR code in the terminal, which is handy for opening a login link on a phone. It needs [`qrencode`](https://fukuchi.org/works/qrencode/) on `PATH`. To draw the site URL, run the following command:
+`vendor/bin/eddy-qrcode <url>` draws any URL as a QR code in the terminal, so you can open the URL by scanning the code with a phone. It needs [`qrencode`](https://fukuchi.org/works/qrencode/) on `PATH`. To draw the site URL, run the following command:
 
 ```bash
 vendor/bin/eddy-qrcode "$(vendor/bin/eddy-info site-url)"

@@ -16,6 +16,6 @@ Require the jobs of every Drupal major you selected in the installer:
 | 11     | `lint-d11`, `test-php-min-d11-stable`, `test-php-max-d11-stable`, `test-php-min-d11-legacy`, `test-php-max-d11-canary`       |
 | 12     | `lint-d12`, `test-php-min-d12-stable`, `test-php-max-d12-stable`, `test-php-min-d12-legacy`, `test-php-max-d12-canary`       |
 
-GitHub names each status check after its job, so a job you rename or [shard](configuration.mdx#distribute-tools-across-ci-runners) needs the same change in your rules. Adding a Drupal major later adds its jobs, and those need adding here too.
+GitHub names each status check after its job, so a job you rename or [shard](configuration.mdx#distribute-tools-across-ci-runners) needs the same change in your rules. When you add a Drupal major later, add its jobs to your rules too.
 
 A required check that never reports blocks every merge, so remove the checks of a Drupal major you stop testing.

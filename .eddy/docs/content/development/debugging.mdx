@@ -12,16 +12,7 @@ When something goes wrong, you can step through the site's code with XDebug, wat
 
 ## Step-debug with XDebug
 
-To step-debug the site:
-
-1. Install the [XDebug](https://xdebug.org/docs/install) PHP extension on your host, and confirm that `php -v` mentions `with Xdebug`.
-2. Run `debug`. It starts the webserver with XDebug on, and restarts it when it's running without XDebug.
-3. Start listening for debug connections in your IDE.
-4. Open a page of the site. The request starts a debug session in your IDE.
-5. When you're done and you set `XDEBUG` in `.env` or your shell yourself, remove it.
-6. Run `start` to restart the webserver without XDebug.
-
-The following commands turn XDebug on and off:
+`debug` starts or restarts the webserver with XDebug on. `start` restarts it with XDebug off while `XDEBUG` is unset. The following commands turn XDebug on and off:
 
 <CommandTabs
   make={`make debug      # Restart with XDebug enabled
@@ -32,17 +23,26 @@ ahoy start      # Restart without XDebug`}
 vendor/bin/eddy-start             # Restart without XDebug`}
 />
 
-`debug` is also available as `debug-on`, `xdebug` and `xdebug-on`, and `start` as `debug-off` and `xdebug-off`. `debug` checks the command line of the running server and skips the restart when XDebug is already on.
+To step-debug the site:
 
-The server runs with `xdebug.mode=debug` and `xdebug.start_with_request=yes`, so every request starts a debug session. A browser extension that sets the XDebug trigger has no effect here: to skip debugging, stop listening in your IDE.
+1. Install the [XDebug](https://xdebug.org/docs/install) PHP extension on your host, and confirm that `php -v` mentions `with Xdebug`.
+2. Turn XDebug on with the preceding command marked `Restart with XDebug enabled`. Confirm that the `XDebug` line of `info` shows `enabled`.
+3. Start listening for debug connections in your IDE.
+4. Open a page of the site. The request starts a debug session in your IDE.
+5. When you're done, remove `XDEBUG` from `.env` and your shell if you set it there.
+6. Turn XDebug off with the preceding command marked `Restart without XDebug`.
 
-`start` and its aliases `debug-off` and `xdebug-off` turn XDebug off only while `XDEBUG` is empty or unset in both your shell and `.env`. Any other value turns it on, `0` included, so remove `XDEBUG` from `.env` when you're done. `debug` sets `XDEBUG` only for the server it starts, and doesn't save it to `.env`. When the extension isn't installed, `start` with `XDEBUG` set stops with a message rather than starting a server without it.
+`make` and Ahoy also run `debug` as `debug-on`, `xdebug` or `xdebug-on`, and `start` as `debug-off` or `xdebug-off`. `debug` leaves a webserver that already runs with XDebug as it is.
+
+The server runs with `xdebug.mode=debug` and `xdebug.start_with_request=yes`, so every request starts a debug session. A browser extension that sets the XDebug trigger has no effect here. To skip debugging, stop listening in your IDE.
+
+`XDEBUG` counts as unset only while it's empty or missing in your shell and in `.env`. Any other value turns XDebug on, `0` included. `debug` sets `XDEBUG` only for the server it starts and leaves `.env` as it is. When `XDEBUG` is set and the extension is missing, `start` stops with an error before it starts a server.
 
 Code coverage stays on [pcov](https://github.com/krakjoe/pcov), because the XDebug settings apply only to the webserver, not to the test commands.
 
 ## Command output
 
-The commands print only their own progress, such as `[TASK]` and `[ OK ]` lines, and hide the output of the tools they run, such as Composer, `npm ci` and Drush. When a tool fails, its captured output appears, so the failure is still there to read. The output of your project's own commands, `npm run build` and the [lifecycle scripts](lifecycle-scripts.mdx), always shows.
+The commands print their own progress as `[TASK]` and `[ OK ]` lines. They hide the output of the tools they run, such as Composer, `npm ci` and Drush, until a tool fails. Then the captured output of that tool appears. The output of your project's own commands always shows: `npm run build` and the [lifecycle scripts](lifecycle-scripts.mdx).
 
 To stream the output of the tools as they run, set `DEBUG=1`:
 
@@ -55,7 +55,7 @@ vendor/bin/eddy-start
 vendor/bin/eddy-provision`}
 />
 
-`DEBUG` takes only `1`, from your shell or `.env`, and works for every command that runs these tools, not only `build`. Composer and npm then stream their full output, and Drush streams its progress, while the results that Drush prints stay captured. `scripts/eddy-tooling` streams its Composer output too, but without a wrapper it reads `DEBUG` from your shell only.
+`DEBUG` takes only `1`, from your shell or `.env`, and works for every command that runs these tools. Composer and npm then stream their full output. Drush streams its progress, and the results it prints stay captured. `scripts/eddy-tooling` streams its Composer output too, on the runs that install the package. Without a wrapper, `scripts/eddy-tooling` reads `DEBUG` from your shell only.
 
 ## Logs
 
@@ -67,7 +67,7 @@ The processes that keep running after a command returns write their output to th
 | `.logs/chromedriver.log`     | The chromedriver that FunctionalJavascript tests drive.                                        |
 | `.logs/cloudflared.log`      | The [public tunnel](tunnel.mdx). Its process ID is in `.logs/cloudflared.pid`.                 |
 
-With the `selenium` backend, the browser's output stays in its Docker container, named after the WebDriver port, such as `selenium-4444`. Run `docker logs selenium-4444` to read it, with your own port in the name. `info` prints the port, and so does `vendor/bin/eddy-info webdriver-port` (see [`eddy-info` fields](tooling.mdx#eddy-info-fields)). When the download of a chromedriver fails, `.chromedriver/install.log` holds the details.
+With the `selenium` backend, the browser's output stays in its Docker container. The container is named after the WebDriver port, such as `selenium-4444`. To read the output, run `docker logs selenium-4444`, with your own port in place of `4444`. `info` prints the port, and so does `vendor/bin/eddy-info webdriver-port` (see [`eddy-info` fields](tooling.mdx#eddy-info-fields)). When the download of a chromedriver fails, read `.chromedriver/install.log` for the details.
 
 The test runs write their reports to `.logs` too:
 

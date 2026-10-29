@@ -10,9 +10,9 @@ This page lists every environment variable that the Eddy commands, the tests and
 
 ## Where values come from
 
-The [tooling commands](tooling.mdx) read a variable from your shell first and from the project's `.env` file second, and an empty value in your shell counts as unset. Git ignores `.env`, so it's the place for values that belong to your machine, such as the ports that `start` and `browser-start` save there.
+The [tooling commands](tooling.mdx) read a variable from your shell first and from the project's `.env` file second. An empty value in your shell counts as unset. Git ignores `.env`, so it's the place for values that belong to your machine, such as the ports that `start` and `browser-start` save there.
 
-`make` and Ahoy load `.env` into the environment of every command, and keep a variable that your shell sets to a non-empty value. So a prefix such as `WEBSERVER_PORT=9000` changes a value for 1 command without touching `.env`, and a variable you export from your shell profile overrides the `.env` of every project.
+`make` and Ahoy load `.env` into the environment of every command, and keep a variable that your shell sets to a non-empty value. So a prefix such as `WEBSERVER_PORT=9000` changes a value for 1 command and leaves `.env` as it is. A variable you export from your shell profile overrides the `.env` of every project.
 
 A few variables and readers follow other rules:
 
@@ -71,7 +71,7 @@ The following variables configure the tests. `make`, Ahoy and `phpunit.xml` set 
 
 These variables configure the deployment that the `Deploy` workflow runs with `eddy-deploy`, and [Set up deployment](../deployment/setup.mdx) walks through them. The **Set as** column of the deployment and CI tables names where each value is set:
 
-- **Secret** - a repository secret, under **Settings** → **Secrets and variables** → **Actions** → **Secrets**.
+- **Secret** - a repository secret, under **Settings > Secrets and variables > Actions > Secrets**.
 - **Variable** - a repository variable, on the **Variables** tab of the same page.
 - **Workflow** - the workflow itself.
 - **Your workflow** - a workflow of your own, since the `Deploy` workflow doesn't pass it.
@@ -82,12 +82,12 @@ The following table lists the deployment variables:
 |------------------------------|---------------|-----------------------------------------------------------------------------------------------------------------------|
 | `DEPLOY_REMOTE`              | Secret        | The git remote to deploy to, such as `git@git.drupal.org:project/myextension.git`. Deployment is skipped until it's set. |
 | `DEPLOY_SSH_KEY`             | Secret        | The private SSH key that pushes to the remote. Required when `DEPLOY_REMOTE` is set.                                  |
-| `DEPLOY_USER_NAME`           | Secret        | The name that git uses on the runner. Required when `DEPLOY_REMOTE` is set: the deployment fails without it, although the deployed commits keep their own authors. |
+| `DEPLOY_USER_NAME`           | Secret        | The name that git uses on the runner. Required when `DEPLOY_REMOTE` is set, or the deployment fails. The deployed commits keep their own authors. |
 | `DEPLOY_USER_EMAIL`          | Secret        | The email address that git uses on the runner. Required when `DEPLOY_REMOTE` is set, like `DEPLOY_USER_NAME`.         |
 | `DEPLOY_PROCEED`             | Secret        | `1` lets the deployment push. Any other value runs the job without pushing.                                           |
 | `DEPLOY_BRANCH`              | Variable      | The branch to push to in the remote repository. Defaults to the branch that triggered the build.                      |
-| `DEPLOY_TAG`                 | Workflow      | The tag to deploy. The `Deploy` workflow sets it for a tag push, and `eddy-deploy` then pushes only that tag.          |
-| `DEPLOY_SSH_KEY_FINGERPRINT` | Your workflow | Loads `~/.ssh/id_rsa_<fingerprint>` into the SSH agent before the push, starting one when `SSH_AGENT_PID` is empty. It's for a CI that installs keys by fingerprint: the `Deploy` workflow doesn't pass it, so set it in a workflow of your own. |
+| `DEPLOY_TAG`                 | Workflow      | The tag to deploy. The `Deploy` workflow sets it for a tag push, and `eddy-deploy` then pushes only that tag and ignores `DEPLOY_BRANCH`. Without it, `eddy-deploy` pushes the branch and no tags. |
+| `DEPLOY_SSH_KEY_FINGERPRINT` | Your workflow | Loads `~/.ssh/id_rsa_<fingerprint>` into the SSH agent before the push, starting an agent when `SSH_AGENT_PID` is empty. For a CI that installs keys by fingerprint. The `Deploy` workflow doesn't pass it, so set it in a workflow of your own. |
 
 ## Continuous integration
 

@@ -791,6 +791,7 @@ final class AssembleTest extends UnitTestCase {
     $this->assertSame($expected_release, $build_json['require']['drupal/core-recommended']);
     $this->assertSame($expected_release, $build_json['require']['drupal/core-composer-scaffold']);
     $this->assertSame($expected_phpunit, $build_json['require-dev']['phpunit/phpunit'] ?? NULL);
+    $this->assertSame('^2 <2.3.4', $build_json['require-dev']['phpstan/phpstan']);
     $this->assertSame($expected_preferred_install, $build_json['config']['preferred-install'] ?? NULL);
   }
 

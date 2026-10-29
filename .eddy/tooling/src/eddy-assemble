@@ -205,6 +205,9 @@ $build_json['require-dev']['symfony/phpunit-bridge'] = (int) $drupal_version_maj
 // constants removed in 2.6.2. Constrained per-build so the extension's own
 // dependencies carry no upper bound.
 $build_json['require-dev']['rector/rector'] = (int) $drupal_version_major < 11 ? '^2 <2.6.2' : '^2 <2.6.5';
+// Those Rector releases bundle a 'phpstan/phpdoc-parser' older than 2.4,
+// which phpstan/phpstan 2.3.4 builds nodes for, so Rector fails on every file.
+$build_json['require-dev']['phpstan/phpstan'] = '^2 <2.3.4';
 
 if ((int) $drupal_version_major >= 12) {
   // Drupal 12 core requires a 'sebastian/diff' that only PHPUnit 12 accepts.

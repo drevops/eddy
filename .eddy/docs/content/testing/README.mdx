@@ -8,9 +8,9 @@ import CommandTabs from '@site/src/components/CommandTabs';
 
 # Testing
 
-`test` runs every PHPUnit test suite and the Jest tests against the site you [built](../development/building.mdx), starting the browser for FunctionalJavascript tests first. It stops at the first command that fails, so Jest runs only after PHPUnit passes. This page shows how to run all the tests or some of them, and where their coverage and output go.
+Follow this page to run the tests of your extension against the site you [built](../development/building.mdx), all at once or a few at a time, and to find their coverage and output.
 
-To run every test, run the following command:
+With Make or Ahoy, `test` starts the browser for FunctionalJavascript tests, then runs every PHPUnit suite and the Jest tests. It stops at the first command that fails, so Jest runs only after PHPUnit passes. To run every test, run the following command:
 
 <CommandTabs
   make={`make test`}
@@ -28,9 +28,9 @@ npm test`}
 
 ![ahoy test running the PHPUnit suites and the Jest tests in a terminal](../../../assets/test.svg)
 
-The PHPUnit tests live in `tests/src`, in a directory per suite, and the installer gives a module a working example of each. A theme gets the FunctionalJavascript one, which renders pages with the theme as the default theme, and a Unit test of the hook in its `.theme` file, since the others test the example module's service, settings form and hooks. To run the tests of an extension you bundle with yours, see [Bundled extensions](../development/bundled-extensions.mdx#what-the-tooling-covers).
+The PHPUnit tests live in `tests/src`, in a directory per suite. The installer gives a module a working example test in each suite, mostly for its service, settings form and hooks. A theme gets 2 examples: a FunctionalJavascript test that renders pages with the theme as the default theme, and a Unit test of the hook in its `.theme` file. To run the tests of an extension you bundle with yours, see [Bundled extensions](../development/bundled-extensions.mdx#what-the-tooling-covers).
 
-`phpunit.xml` configures PHPUnit, and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both bootstrap Drupal with core's `web/core/tests/bootstrap.php`, and both fail a run on a PHPUnit warning. The installer removes `phpunit.d10.xml` when you don't select Drupal 10, since no other build reads it. `assemble` copies both files and `jest.config.js` into `build`, so run it again after you edit one.
+`phpunit.xml` configures PHPUnit, and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both bootstrap Drupal with core's `web/core/tests/bootstrap.php` and fail a run on a PHPUnit warning. Only a Drupal 10 build reads `phpunit.d10.xml`, so the installer removes it when you don't select Drupal 10. `assemble` copies `phpunit.xml` and `jest.config.js` into `build`, and in a Drupal 10 build it writes `phpunit.d10.xml` over `build/phpunit.xml`. Run `assemble` again after you edit any of these files.
 
 ## Run 1 suite
 
@@ -55,7 +55,7 @@ php -d pcov.directory=.. vendor/bin/phpunit --testsuite kernel
 php -d pcov.directory=.. vendor/bin/phpunit --testsuite functional`}
 />
 
-Without a wrapper, [FunctionalJavascript tests](functional-javascript.mdx) need the browser commands that their page shows, and the [JavaScript tests](#javascript-tests) run with `npm test` in `build`. The no-wrapper commands on this page save no pages from Functional and FunctionalJavascript tests until you export `BROWSERTEST_OUTPUT_DIRECTORY` (see [Test output](#test-output)).
+Without a wrapper, [FunctionalJavascript tests](functional-javascript.mdx) need the browser commands that their page shows. The [JavaScript tests](#javascript-tests) run with `npm test` in `build`. To save the pages that Functional and FunctionalJavascript tests visit, also export `BROWSERTEST_OUTPUT_DIRECTORY` before `cd build` (see [Test output](#test-output)).
 
 The following table lists the suites and what each one needs:
 
@@ -66,11 +66,11 @@ The following table lists the suites and what each one needs:
 | Functional            | `tests/src/Functional`          | The running webserver.                                                                     |
 | FunctionalJavascript  | `tests/src/FunctionalJavascript`| The running webserver and a browser. See [FunctionalJavascript tests](functional-javascript.mdx). |
 
-Functional and FunctionalJavascript tests load their pages from the webserver that `build` leaves running. `stop` and `assemble` stop it, so after either one, run `start` before these tests (see [Build the site](../development/building.mdx)).
+Functional and FunctionalJavascript tests load their pages from the webserver that `build` leaves running. `stop` and `assemble` stop the webserver, so after either one, run `start` before these tests (see [Build the site](../development/building.mdx)).
 
 ## Run specific tests
 
-Pass a test file, or PHPUnit options such as `--filter` or `--group`, to a test command. PHPUnit runs inside `build`, so a test path is relative to it, and starts with your extension's directory in the assembled site, `web/modules/custom/<your_extension>`, or `web/themes/custom/<your_extension>` for a theme:
+Pass a test file, or PHPUnit options such as `--filter` or `--group`, to a test command. PHPUnit runs inside `build`, so a test path is relative to `build`. The path starts with your extension's directory in the assembled site: `web/modules/custom/<your_extension>` for a module, or `web/themes/custom/<your_extension>` for a theme:
 
 <CommandTabs
   make={`make test-unit web/modules/custom/your_extension/tests/src/Unit/MyUnitTest.php
@@ -86,15 +86,15 @@ php -d pcov.directory=.. vendor/bin/phpunit --testsuite unit --group=wip
 php -d pcov.directory=.. vendor/bin/phpunit --testsuite unit --filter=MyUnitTest::testSomething`}
 />
 
-`make` reads its command line first, so a few rules apply there:
+`make` reads the command line before the test command does, so follow 3 rules with `make`:
 
-- Put `--` before the arguments when they include an option, since `make` would read the option as its own.
-- An argument can't hold a space or name another `make` target, such as `test`, which `make` would run as a target of its own, unless it's an option value joined with `=`, as in `--filter='my test'` or `--filter=test`.
-- `make` keeps 1 value per option joined with `=`, so repeat an option with a space instead, as in `--group wip --group slow`.
+- Put `--` before the arguments when they include an option, or `make` reads the option as its own.
+- Keep spaces and `make` target names, such as `test`, out of an argument, because `make` runs a target name as a target of its own. An option value joined with `=` can hold either, as in `--filter='my test'` or `--filter=test`.
+- Repeat an option with a space, as in `--group wip --group slow`. `make` keeps only 1 value per option joined with `=`.
 
 ## JavaScript tests
 
-Jest runs the `*.test.js` files in the `js` directory of your extension, in a simulated browser environment (jsdom), with the configuration in `jest.config.js`:
+Jest runs the `*.test.js` files in the `js` directory of your extension with the configuration in `jest.config.js`. The tests run in jsdom, a simulated browser environment. To run them, run the following command:
 
 <CommandTabs
   make={`make test-javascript`}
@@ -103,15 +103,17 @@ Jest runs the `*.test.js` files in the `js` directory of your extension, in a si
 npm test`}
 />
 
-`test-javascript` is also available as `test-js`. Jest runs from the frontend dependencies that the build installs, so it doesn't run when a `.skip_npm_build` file turns those off (see [Frontend dependencies](../development/dependencies.mdx#frontend-dependencies)).
+`test-javascript` is also available as `test-js`. Jest runs from the frontend dependencies that the build installs. When your project has a `.skip_npm_build` file, the build skips them and Jest doesn't run (see [Frontend dependencies](../development/dependencies.mdx#frontend-dependencies)).
 
 ## Code coverage
 
-PHPUnit collects code coverage with [pcov](https://github.com/krakjoe/pcov) and Jest with V8, and both write their reports to `.logs/coverage` in the root of your project: an HTML report to browse and a Cobertura file for tools, in `phpunit` and `jest` subdirectories. CI uploads the reports as a workflow artifact, and to [Codecov](https://codecov.io) when the `CODECOV_TOKEN` repository secret is set. Both uploads belong to PHPUnit, so a project that keeps Jest but drops PHPUnit uploads no coverage.
+PHPUnit collects code coverage with [pcov](https://github.com/krakjoe/pcov), and Jest with V8. Each tool writes an HTML report to browse and a Cobertura file for other tools. They go to the `phpunit` and `jest` subdirectories of `.logs/coverage`, in the root of your project.
+
+CI uploads the reports as a workflow artifact, and to [Codecov](https://codecov.io) when the `CODECOV_TOKEN` repository secret is set. The installer removes both upload steps with PHPUnit, so a project that keeps Jest but drops PHPUnit uploads no coverage.
 
 The PHPUnit coverage counts your extension's `.php` files, plus a module's `.module` and `.install` files or a theme's `.theme` file. It leaves out the `tests` directory, `rector.php` and `node_modules`.
 
-Code that Functional and FunctionalJavascript tests reach through page requests runs in the webserver's process, which pcov doesn't watch, so it adds no coverage. Code that runs while a test installs the site, such as `hook_install()`, still counts. That's why the example Kernel tests build and submit the settings form and call the hooks themselves, although the Functional test exercises the same code through the browser.
+Functional and FunctionalJavascript tests reach your code through page requests, which run in the webserver's process. The coverage comes only from the PHPUnit process, so those requests add none. Code that runs while a test installs the site, such as `hook_install()`, still counts. So the example Kernel tests build and submit the settings form and call the hooks themselves. The Functional test runs the same code through the browser and adds no coverage.
 
 ## Deprecated code
 
@@ -120,19 +122,30 @@ How a deprecation affects a run depends on the Drupal major:
 - In a Drupal 10 build, Symfony's PHPUnit Bridge handles deprecations, and `SYMFONY_DEPRECATIONS_HELPER` decides whether they fail the run.
 - In Drupal 11 and 12 builds, PHPUnit reports deprecations without failing the run. A PHP deprecation that the webserver raises during a Functional test still fails that test, because Drupal sends it back to the test.
 
-To ignore some deprecations, add a `.deprecation-ignore.txt` file to the root of your project and set `SYMFONY_DEPRECATIONS_HELPER` to `ignoreFile=../.deprecation-ignore.txt` in `phpunit.xml`, and in `phpunit.d10.xml` when your project has it for Drupal 10. Each file holds that setting as a comment to uncomment. PHPUnit runs from the `build` directory, so the path is relative to it. `assemble` copies the PHPUnit files into `build`, so run it again after you edit one.
+To ignore some deprecations, list them in a file of your own:
 
-The file holds 1 regular expression per line, and a line that starts with `#` is a comment. A deprecation whose message matches a line is ignored: a Drupal 10 build doesn't count it toward failing the run, and Drupal 11 and 12 builds leave it out of the report. While `SYMFONY_DEPRECATIONS_HELPER` is unset, core ignores the deprecations that its own `web/core/.deprecation-ignore.txt` lists, and your file replaces that list rather than adding to it. See [the change record](https://www.drupal.org/node/3285162) for details.
+1. Add a `.deprecation-ignore.txt` file to the root of your project.
+2. In `phpunit.xml`, uncomment the line that sets `SYMFONY_DEPRECATIONS_HELPER` to `ignoreFile=../.deprecation-ignore.txt`. PHPUnit runs from the `build` directory, so the path is relative to `build`.
+3. If your project has `phpunit.d10.xml`, uncomment the same line there.
+4. Run `assemble` to copy the changed files into `build`.
+
+The file holds 1 regular expression per line, and a line that starts with `#` is a comment. A deprecation whose message matches a line is ignored. A Drupal 10 build doesn't count it toward failing the run, and Drupal 11 and 12 builds leave it out of the report. While `SYMFONY_DEPRECATIONS_HELPER` is unset, core ignores the deprecations that its own `web/core/.deprecation-ignore.txt` lists. Your file replaces that list. See [the change record](https://www.drupal.org/node/3285162) for details.
 
 CI test jobs on PHP 8.4 or newer set `SYMFONY_DEPRECATIONS_HELPER` to `disabled`. To match your project's deprecation policy, change that step of `.github/workflows/test.yml`.
 
-When `SYMFONY_DEPRECATIONS_HELPER` is `disabled` in the environment that runs `assemble`, as it is in those CI jobs, `assemble` turns off PHP deprecation notices at the start of the site's `index.php` and in `sites/default/default.settings.php`. It also patches a function signature in the PHP 8.3 polyfill that PHP 8.4 reports as deprecated. Drupal turns the notices back on when it boots, and the sites that Functional tests install start from core's own copy of `default.settings.php`. So in those jobs, a PHP deprecation raised after Drupal boots still fails a Functional test.
+When `SYMFONY_DEPRECATIONS_HELPER` is `disabled` in the environment that runs `assemble`, as in those CI jobs, `assemble` turns off PHP deprecation notices in 3 files of the build:
+
+- The start of the site's `index.php`
+- `sites/default/default.settings.php`
+- Core's scaffold copy, `core/assets/scaffold/files/default.settings.php`, which the sites that Functional tests install copy their `settings.php` from
+
+So in those jobs, a PHP deprecation that the webserver raises doesn't fail a Functional test. `assemble` also patches a function signature in the PHP 8.3 polyfill that PHP 8.4 reports as deprecated.
 
 ## Test output
 
-Functional and FunctionalJavascript tests save the HTML of every page they visit to `.logs/browser_output`. A FunctionalJavascript test that calls `createAutoScreenshot()`, as the example smoke test does, saves its screenshots there too. After the test progress, the run prints "HTML output was generated." and a URL for each saved page, and the PHPUnit summary follows. CI uploads the directory as a workflow artifact, so a failure in CI comes with the pages that led to it.
+Functional and FunctionalJavascript tests save the HTML of every page they visit to `.logs/browser_output`. A FunctionalJavascript test that calls `createAutoScreenshot()`, as the example smoke test does, saves its screenshots there too. After the test progress, the run prints "HTML output was generated." and a URL for each saved page. The PHPUnit summary follows. CI uploads the directory as a workflow artifact, so a failure in CI comes with the pages that led to it.
 
-The pages land there only when `BROWSERTEST_OUTPUT_DIRECTORY` is set, as `make`, Ahoy and CI set it, and after `provision` links Drupal's output directory into `.logs`. Without a wrapper, export the variable before `cd build`:
+The pages land there after `provision` links Drupal's output directory into `.logs`, and only while `BROWSERTEST_OUTPUT_DIRECTORY` is set. `make`, Ahoy and CI set it. Without a wrapper, export the variable before `cd build`:
 
 ```bash
 export BROWSERTEST_OUTPUT_DIRECTORY="$PWD/.logs/browser_output"

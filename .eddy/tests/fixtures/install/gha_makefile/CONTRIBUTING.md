@@ -1,19 +1,19 @@
-@@ -6,12 +6,11 @@
- 
- 1. Install PHP with SQLite support and Composer
-    - Install Node.js with npm, which the build and the linters use
--   - Install [Ahoy](https://github.com/ahoy-cli/ahoy)
- 2. Clone this repository
- 3. Build the website:
+@@ -8,12 +8,11 @@
+    - PHP with SQLite support
+    - Composer
+    - Node.js with npm, which the build uses
+-   - [Ahoy](https://github.com/ahoy-cli/ahoy)
+ 2. Clone this repository.
+ 3. Build the site:
  
     ```bash
 -   ahoy build
 +   make build
     ```
  
- ## Building website
-@@ -27,9 +26,9 @@
- The `build` command is a wrapper for more granular commands:
+    The build ends by printing the site URL and a one-time login link.
+@@ -37,9 +36,9 @@
+ The `build` command is a wrapper for 3 commands that each run 1 stage:
  
  ```bash
 -ahoy assemble     # Assemble the codebase
@@ -24,8 +24,8 @@
 +make provision    # Provision the Drupal website
  ```
  
- The `provision` command is useful for re-installing the Drupal website without re-assembling the codebase.
-@@ -44,16 +43,16 @@
+ To reinstall the Drupal site without assembling the codebase again, run the `provision` command on its own.
+@@ -56,16 +55,16 @@
  
  ```bash
  # Newest stable Drupal 11 release.
@@ -45,9 +45,9 @@
 +DRUPAL_VERSION=12 make build
  ```
  
- The build pins Drupal core to the newest release matching `DRUPAL_VERSION` and prints it. A version with no stable release yet resolves to its newest pre-release. When that release requires a newer PHP than the one running the build, the build stops before it changes anything and says which PHP the release needs.
-@@ -107,8 +106,8 @@
- PHP step-debugging is supported via [XDebug](https://xdebug.org/docs/install). Install the XDebug PHP extension on your host (`php -v` should mention `with Xdebug`), then toggle it on the development server:
+ The build pins Drupal core to the newest release that matches `DRUPAL_VERSION` and prints that release. A version without a stable release resolves to its newest pre-release.
+@@ -119,8 +118,8 @@
+ The development server can run with [XDebug](https://xdebug.org/docs/install) step-debugging. Install the XDebug PHP extension on your host first, so that `php -v` prints `with Xdebug`. Then restart the server with XDebug turned on or off:
  
  ```bash
 -ahoy debug      # restart with XDebug enabled
@@ -56,9 +56,9 @@
 +make start      # restart without XDebug
  ```
  
- `debug` is also available as `debug-on`, `xdebug` and `xdebug-on`, and `start` as `debug-off` and `xdebug-off`.
-@@ -134,7 +133,7 @@
- Run all checks with:
+ The `debug` command has the aliases `debug-on`, `xdebug` and `xdebug-on`. The `start` command has the aliases `debug-off` and `xdebug-off`.
+@@ -145,7 +144,7 @@
+ To run every check:
  
  ```bash
 -ahoy lint
@@ -66,8 +66,8 @@
  ```
  
  ### Fixing coding standards issues
-@@ -142,7 +141,7 @@
- To fix coding standards issues automatically, run the same tools with the `--fix` option (for the tools that support it):
+@@ -153,7 +152,7 @@
+ To fix the issues that have an automatic fix, run the fixers:
  
  ```bash
 -ahoy lint-fix
@@ -75,17 +75,17 @@
  ```
  
  ## Testing
-@@ -150,7 +149,7 @@
- Run the tests for this extension with:
+@@ -161,7 +160,7 @@
+ To run every test:
  
  ```bash
 -ahoy test
 +make test
  ```
  
- The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests, and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both use Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
-@@ -158,10 +157,10 @@
- Each test suite can also be run on its own:
+ The PHPUnit tests live in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests, and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both use Drupal core's bootstrap file, `web/core/tests/bootstrap.php`, to boot Drupal before the tests run.
+@@ -169,10 +168,10 @@
+ To run 1 test suite:
  
  ```bash
 -ahoy test-unit                    # Run Unit tests
@@ -99,8 +99,8 @@
  ```
  
  ### Running FunctionalJavascript tests
-@@ -169,10 +168,10 @@
- FunctionalJavascript tests need a real browser driven via WebDriver. By default they use the Google Chrome already installed on your machine - a matching `chromedriver` is downloaded automatically on first run, so no Docker is required:
+@@ -182,10 +181,10 @@
+ To run the FunctionalJavascript tests with Chrome:
  
  ```bash
 -ahoy start
@@ -113,9 +113,9 @@
 +make browser-stop
  ```
  
- The `test` and `test-functional-javascript` commands both start the browser before they run the suite. It keeps running afterwards, so the next run reuses it - stop it with `browser-stop` when you're done.
-@@ -182,10 +181,10 @@
- To run the browser in a Docker Selenium container instead, set `WEBDRIVER_BACKEND=selenium`. The container cannot reach the host's `localhost`, so start the webserver on all interfaces:
+ The `test` and `test-functional-javascript` commands start the browser before they run the tests. The browser keeps running for the next run to reuse, so stop it with `browser-stop` when you're done.
+@@ -195,10 +194,10 @@
+ To run the browser in a Selenium container, start Docker and set `WEBDRIVER_BACKEND=selenium`. The container can't reach the `localhost` of your host, so start the webserver on all interfaces with `WEBSERVER_HOST=__VERSION__.0`:
  
  ```bash
 -WEBSERVER_HOST=__VERSION__.0 ahoy start
@@ -128,9 +128,9 @@
 +make browser-stop
  ```
  
- The browser reaches the webserver at `localhost` with the default backend, and at `host.docker.internal` (macOS) or `__VERSION__.1` (other systems) from the Selenium container. Set `WEBDRIVER_HOST` to use a different address.
-@@ -197,10 +196,12 @@
- You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the test commands. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site:
+ With Chrome, the browser reaches the webserver at `localhost`. From the Selenium container, the browser uses `host.docker.internal` on macOS and `__VERSION__.1` on other systems. To use another address, set `WEBDRIVER_HOST`.
+@@ -212,10 +211,12 @@
+ To run some of the tests, pass a test file path or a PHPUnit option, such as `--filter` or `--group`, to a test command. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site:
  
  ```bash
 -ahoy test-unit web/modules/custom/force_crystal/tests/src/Unit/MyUnitTest.php
@@ -141,7 +141,7 @@
 +make test-unit -- --filter=MyUnitTest::testSomething
  ```
 +
-+Put `--` before the arguments when they include an option, since `make` reads an option on its command line as its own. An argument can't hold a space or name a `make` target, such as `test`, unless it's an option value joined with `=`, as in `--filter='my test'` or `--filter=test`. `make` keeps 1 value per option joined with `=`, so repeat an option with a space instead, as in `--group wip --group slow`.
++With `make`, put `--` before arguments that include an option, because `make` reads an option on its command line as its own. An argument can hold a space or name a `make` target, such as `test`, only as an option value joined with `=`: `--filter='my test'` or `--filter=test`. `make` keeps 1 value per option joined with `=`, so to repeat an option, separate it from each value with a space: `--group wip --group slow`.
  
- You may also run tests using the `phpunit` command directly:
+ To run PHPUnit directly, run it from `build`:
  

@@ -6,11 +6,11 @@ description: Work on these docs locally, follow their conventions and see how th
 
 # Documentation
 
-These docs live in `.eddy/docs`, a [Docusaurus](https://docusaurus.io/) site with its pages in `content/`. Like the rest of `.eddy`, they never reach a generated project. This page is for people who edit them: how to run the site locally, the conventions the pages follow and how the site is checked, previewed and published.
+These docs live in `.eddy/docs`, a [Docusaurus](https://docusaurus.io/) site with its pages in `content/`. `install.php` removes the docs from a generated project, together with the rest of `.eddy`. This page is for people who edit the docs. It covers running the site locally, the conventions the pages follow and how the site is checked, previewed and published.
 
 ## Run the site locally
 
-The site is an npm project of its own. Run these from the `.eddy/docs` directory of your clone, starting with `npm install`:
+The site is an npm project of its own. From the `.eddy/docs` directory of your clone, run `npm install` first, then the command you need:
 
 ```bash
 npm install                  # Install the dependencies
@@ -22,11 +22,15 @@ npm run spellcheck           # Run only the spell check
 npm run test:accessibility   # Check the built site for accessibility issues
 ```
 
-`npm start` serves the site at `http://localhost:3000/`. Both `npm start` and `npm run build` first copy the social preview card from `.eddy/assets` to `static/img/social-card.png`, and the 4 animated demos into `static/img/demos`. Git ignores both copies.
+`npm start` serves the site at `http://localhost:3000/`. `npm start` and `npm run build` first copy 2 sets of files from `.eddy/assets`: the social preview card to `static/img/social-card.png` and the 4 animated demos to `static/img/demos`. Git ignores both copies.
 
-`npm test` runs the Jest tests of `src/`, which cover the components, the theme overrides, the home page and the helper modules, then CSpell. It writes their coverage to `.logs/coverage`, which git ignores too.
+`npm test` runs the Jest tests in `tests/unit`, then CSpell. The Jest tests cover the components, the theme overrides, the home page and the helper modules in `src/`. Their coverage goes to `.logs/coverage`, which git ignores too.
 
-`npm run test:accessibility` checks the site in `build/`, so run `npm run build` first. It drives a browser through [Playwright](https://playwright.dev/), which needs its own copy of Chromium: `npx playwright install chromium`, run from `.eddy/docs` after `npm install`, downloads it once.
+`npm run test:accessibility` checks the site in `build/`, so run `npm run build` first. It drives a browser through [Playwright](https://playwright.dev/), which needs its own copy of Chromium. To download Chromium, run the following command once from `.eddy/docs`, after `npm install`:
+
+```bash
+npx playwright install chromium
+```
 
 ## Page conventions
 
@@ -34,7 +38,7 @@ Every page follows these conventions:
 
 - **1 topic per page.** The sidebar follows the folder tree of `content/`, ordered by the `sidebar_position` in each page's front matter. A folder's `README.mdx` is its index page.
 - **Link by file.** Link to another page by its relative path, such as `[Webserver](../development/webserver.mdx#how-the-port-is-picked)`. The build checks every link and anchor, and fails on a broken one.
-- **Commands for every setup.** A generated project has Make, Ahoy, both or neither, so show commands with the `CommandTabs` component. Its `make`, `ahoy` and `none` props fill the **Make**, **Ahoy** and **No wrapper** tabs, in that order, and a prop can hold several commands, 1 per line:
+- **Commands for every setup.** A generated project has Make, Ahoy, both or neither, so show commands with the `CommandTabs` component. Its `make`, `ahoy` and `none` props fill the **Make**, **Ahoy** and **No wrapper** tabs, in that order. A prop can hold several commands, 1 per line:
 
   ```jsx
   import CommandTabs from '@site/src/components/CommandTabs';
@@ -46,27 +50,35 @@ Every page follows these conventions:
   />
   ```
 
-  Leave out a prop, or leave it empty, when a setup has no equivalent command, and its tab goes with it. A first-time reader sees the first tab. After that, every tab set on the site follows the reader's last choice, which a shared link carries in its `command-wrapper` query parameter. A `language` prop, `bash` by default, sets the highlighting of the commands.
-- **Images.** The animated demos stay in `.eddy/assets`, and pages import them by relative path, such as `![Building the site](../../../assets/build.svg)`, so the build fails when one goes missing. Put any other image in `static/img`: git ignores only the copies that the build makes there.
+  When a setup has no equivalent command, leave out its prop or leave the prop empty, and `CommandTabs` drops that tab. A first-time reader sees the first tab. After that, every tab set on the site opens on the reader's last choice. A shared link carries that choice in its `command-wrapper` query parameter. A `language` prop, `bash` by default, sets the highlighting of the commands.
+- **Images.** The animated demos stay in `.eddy/assets`. Pages import them by relative path, such as `![Building the site](../../../assets/build.svg)`, so the build fails when one goes missing. Put any other image in `static/img`: git ignores only the copies that the build makes there.
 - **Diagrams.** A `mermaid` code block renders as a [Mermaid](https://mermaid.js.org/) diagram.
-- **Spelling.** CSpell checks the pages and the README of the site in US English with the words in `.eddy/docs/cspell.json`, and skips fenced code and `CommandTabs` blocks. Add a word the docs use in several places to that file. Add a word only 1 page uses to that page, as `{/* cspell:ignore word */}` anywhere in it, such as on its last line. 1 comment can list several words separated by spaces. Nothing checks the spelling of the home page's words in `src/pages/index.js`.
+- **Spelling.** CSpell checks the pages and the site's README in US English, with the words in `.eddy/docs/cspell.json`. It skips fenced code and `CommandTabs` blocks. Add a word the docs use in several places to that file. Add a word only 1 page uses to that page, as a `{/* cspell:ignore word */}` comment anywhere in it. 1 comment can list several words separated by spaces. CSpell doesn't check the words of the home page in `src/pages/index.js`.
 
 ## The home page
 
-The home page at `/` isn't a Markdown page: it's a React page, `src/pages/index.js`. The introduction it links to lives at `/introduction`, set by the `slug` in the front matter of `content/README.mdx`.
+The home page at `/` is a React page, `src/pages/index.js`. The introduction it links to lives at `/introduction`, set by the `slug` in the front matter of `content/README.mdx`.
 
-Most of the page's words sit in lists at the top of `src/pages/index.js`, 1 list per section: `STATIONS` for the stops of the stream, `TOOLS`, `PROJECTS`, `LAYERS` for the 3 parts of the deep end and `DOCS` for the links into the docs. So changing what the page says usually means changing a list, not the markup. These parts need care:
+Most of the page's words sit in lists at the top of `src/pages/index.js`, 1 list per section:
 
-- **Versions.** `DRUPAL_MAJORS` and `PHP_VERSIONS` hold the versions the page states. `DocumentationTest` fails until `DRUPAL_MAJORS` matches the majors that `install.php` offers, and `PHP_VERSIONS` the PHP versions those majors support. Keep each list on 1 line with its items in single quotes, because the test reads them that way. To run the test, see [Checks on pull requests](#checks-on-pull-requests).
+- `STATIONS` - the stops of the stream
+- `TOOLS` - the tool names
+- `PROJECTS` - the projects that use Eddy
+- `LAYERS` - the 3 parts of the deep end
+- `DOCS` - the links into the docs
+
+To change what the page says, change a list rather than the markup. Take care with these parts:
+
+- **Versions.** `DRUPAL_MAJORS` and `PHP_VERSIONS` hold the versions the page states. `DocumentationTest` fails while `DRUPAL_MAJORS` differs from the majors that `install.php` offers, or `PHP_VERSIONS` from the PHP versions those majors support. Keep each list on 1 line with its items in single quotes, because the test reads them that way. To run the test, see [Checks on pull requests](#checks-on-pull-requests).
 - **Install command.** `INSTALL_COMMAND` holds the command that the copy button copies, and `tests/accessibility/interactions.spec.js` repeats it, so change both together.
-- **Demos.** The first 4 stops of the stream play the animated demos of `.eddy/assets`, which `npm start` and `npm run build` copy into `static/img/demos`. The page can't import them the way a Markdown page does, because a JavaScript import of an SVG turns it into a React component rather than a URL.
-- **Components.** The install command with its copy button is `CopyCommand`, and each demo is a `PausableImage`, the same component that gives the animated demos of the doc pages their pause button. Both live in `src/components`.
-- **Look.** The colors come from the `--eddy-*` tokens in `src/css/custom.css`. The water tokens shade the page from the light surface down to the dark deep end, and the deep end keeps the dark-mode text colors in both color modes. Headings are set in Fraunces and the text in Figtree, which the `@fontsource-variable/fraunces` and `@fontsource-variable/figtree` packages serve from the site itself, so the page fetches no font from another server. Doc pages keep their system fonts.
-- **Motion.** The rings around the drop spread out once and settle within 5 seconds, the limit past which WCAG asks for a way to pause motion that starts on its own. Each block further down the page plays a short entrance as it scrolls into view. Without JavaScript, every block shows at once, and when the reader's system asks for reduced motion, nothing on the page moves.
+- **Demos.** The first 4 stops of the stream play the animated demos of `.eddy/assets`, which `npm start` and `npm run build` copy into `static/img/demos`. A JavaScript import of an SVG returns a React component in place of a URL, so the page can't import the demos the way a Markdown page does.
+- **Components.** The install command with its copy button is `CopyCommand`. Each demo is a `PausableImage`, the same component that gives the animated demos of the doc pages their pause button. Both live in `src/components`.
+- **Look.** The colors come from the `--eddy-*` tokens in `src/css/custom.css`. The water tokens shade the page from the light surface down to the dark deep end. The deep end keeps the dark-mode text colors in both color modes. Headings use Fraunces and the text uses Figtree. The `@fontsource-variable/fraunces` and `@fontsource-variable/figtree` packages serve both fonts from the site itself, so the page loads no font from another server. Doc pages use the system fonts.
+- **Motion.** The rings around the drop spread out once and settle within 5 seconds, the limit past which WCAG asks for a way to pause motion that starts on its own. Each block further down the page plays a short entrance as it scrolls into view. Without JavaScript, every block shows at once. When the reader's system is set to reduce motion, nothing on the page moves.
 
 ## Accessibility
 
-The site aims for [WCAG 2.2](https://www.w3.org/TR/WCAG22/) level AA in both color modes. `npm run test:accessibility` runs [axe](https://github.com/dequelabs/axe-core) on every page of the build, in light and dark mode, at a desktop width and a phone width, against the WCAG A and AA rules. These scans run with reduced motion, so the home page shows every block at once.
+The accessibility target is [WCAG 2.2](https://www.w3.org/TR/WCAG22/) level AA in both color modes. `npm run test:accessibility` runs [axe](https://github.com/dequelabs/axe-core) against the WCAG A and AA rules. It scans every page of the build in light and dark mode, at a desktop width and a phone width. These scans run with reduced motion, so the home page shows every block at once.
 
 Separate checks cover the parts that move or open:
 
@@ -76,26 +88,33 @@ Separate checks cover the parts that move or open:
 - The home page's demos and copy button
 - The home page again, scanned after a scroll through it with motion on
 
-Automated checks catch many problems but miss others, so the writing still needs the care that the end of this section describes.
-
-Some of it is handled for you, so a page needs no extra markup:
+The theme and components handle these parts, so a page needs no extra markup for them:
 
 - Links in page text are underlined, because color alone doesn't set a link apart from the text around it.
-- Text meets the WCAG AA contrast minimums that axe checks: 4.5:1, or 3:1 for large text. The light-mode blue is `#006c99`, a darker shade of the `#009cde` logo blue, which only reaches about 3:1 on white. The code block colors live in `src/codeThemes.js`, and a unit test checks every token color of both themes against 4.5:1.
-- An animated SVG added with Markdown image syntax gets a **Pause animation** button, and it starts paused when the reader's system asks for reduced motion.
+- Text meets the WCAG AA contrast minimums that axe checks: 4.5:1, or 3:1 for large text. The light-mode blue is `#006c99`, a darker shade of the `#009cde` logo blue. The logo blue reaches only about 3:1 on white. The code block colors live in `src/codeThemes.js`, and a unit test checks every token color of both themes against 4.5:1.
+- An animated SVG added with Markdown image syntax gets a **Pause animation** button. It starts paused when the reader's system is set to reduce motion.
 - The demos on the home page use the same component, so they get the same button and start paused the same way.
 - A table wider than the page takes keyboard focus, so it scrolls with <kbd>←</kbd> and <kbd>→</kbd>.
-- The mobile menu moves keyboard focus inside when it opens, keeps it there while it's open, closes on <kbd>Esc</kbd> and returns focus to its toggle. The search box gets the ARIA attributes that its autocomplete widget leaves out, and its clear button gets a label and a target of 24 by 24 pixels. These fixes live in `src/theme/` and `src/css/custom.css`, so check them when Docusaurus or the search plugin changes its markup.
+- The mobile menu moves keyboard focus inside when it opens and keeps it there while it's open. It closes on <kbd>Esc</kbd> and returns focus to its toggle.
+- The search box gets the ARIA attributes that its autocomplete widget leaves out. Its clear button gets a label and a target of 24 by 24 pixels.
 
-The rest depends on the writing:
+The fixes for the mobile menu and the search box live in `src/theme/` and `src/css/custom.css`, so check them when Docusaurus or the search plugin changes its markup.
+
+Automated checks miss some problems, so every page also needs these from its author:
 
 - Give every image alt text that says what it shows.
 - Keep heading levels in order, without skipping one.
-- Make link text say where it goes, such as [Webserver](../development/webserver.mdx) rather than "here".
+- Make link text name its destination, such as [Webserver](../development/webserver.mdx) in place of "here".
 
 ## Checks on pull requests
 
-The `Test Eddy` workflow, `.github/workflows/eddy-test.yml`, runs on pushes to `main` and on pull requests against `main` or a `feature/**` branch. Its `eddy-test-docs` job installs the dependencies, builds the site, runs `npm test`, uploads the coverage of `src/` to [Codecov](https://codecov.io) and runs `npm run test:accessibility`. The upload runs only when the `CODECOV_TOKEN` repository secret is set.
+The `Test Eddy` workflow, `.github/workflows/eddy-test.yml`, runs on pushes to `main` and on pull requests against `main` or a `feature/**` branch. Its `eddy-test-docs` job runs these steps in order:
+
+1. Installs the dependencies
+2. Builds the site
+3. Runs `npm test`
+4. Uploads the coverage of `src/` to [Codecov](https://codecov.io), when the `CODECOV_TOKEN` repository secret is set
+5. Runs `npm run test:accessibility`
 
 The job fails on any of these:
 
@@ -107,11 +126,28 @@ The job fails on any of these:
 
 A failed check skips the Netlify deployment of the [development site and the previews](#the-development-site-and-previews).
 
-Besides the `eddy-test-docs` job, the `p0` group of the [scaffold tests](scaffold-tests.mdx) checks the pages against the code with `DocumentationTest`. To run it from the root of your clone, install the suite's dependencies once with `composer --working-dir=.eddy/tests install`, then run `composer --working-dir=.eddy/tests test -- --filter=DocumentationTest`.
+The `p0` group of the [scaffold tests](scaffold-tests.mdx) also checks the pages against the code, with `DocumentationTest`. To run that test from the root of your clone:
+
+1. Install the suite's dependencies, once:
+
+   ```bash
+   composer --working-dir=.eddy/tests install
+   ```
+
+2. Run the test:
+
+   ```bash
+   composer --working-dir=.eddy/tests test -- --filter=DocumentationTest
+   ```
 
 ## The development site and previews
 
-The `eddy-test-docs` job deploys the built site to [Netlify](https://www.netlify.com/). Every push to `main` updates the [development site](https://drevops-eddy-docs.netlify.app), and every pull request from the repository itself, against `main` or a `feature/**` branch, gets a preview of its own, linked in a comment on the pull request. The deployment runs only when the `NETLIFY_SITE_ID` and `NETLIFY_AUTH_TOKEN` repository secrets are set. GitHub doesn't pass repository secrets to a pull request from a fork, so such a pull request gets no preview, though it still builds and tests the docs.
+The `eddy-test-docs` job deploys the built site to [Netlify](https://www.netlify.com/):
+
+- Every push to `main` updates the [development site](https://drevops-eddy-docs.netlify.app).
+- Every pull request from the repository itself, against `main` or a `feature/**` branch, gets a preview of its own, linked in a comment on the pull request.
+
+The deployment runs only when the `NETLIFY_SITE_ID` and `NETLIFY_AUTH_TOKEN` repository secrets are set. GitHub doesn't pass repository secrets to a pull request from a fork, so such a pull request gets no preview. It still builds and tests the docs.
 
 These builds show "development" as the version in the footer, and search engines don't index them.
 
@@ -120,16 +156,16 @@ These builds show "development" as the version in the footer, and search engines
 `.github/workflows/eddy-release-docs.yml` publishes the docs to [eddy.drevops.com](https://eddy.drevops.com) on GitHub Pages, in these cases:
 
 - On every tag push, with the tag as the version. The workflow's tag filter, `*`, matches every tag without a `/`, so a pre-release tag such as `5.0.0-rc2` publishes too.
-- On a manual run of the `Release Eddy docs` workflow from **Actions**, with the version you type. Without one, it takes the tag you run it from, or the `git describe` output of the branch, such as `5.0.0-3-g1a2b3c4`.
+- On a manual run of the `Release Eddy docs` workflow from **Actions**, with the version you type. Without a version, the workflow takes the tag you run it from, or the `git describe` output of the branch, such as `5.0.0-3-g1a2b3c4`.
 
-The workflow runs only in `drevops/eddy`, and a newer run cancels 1 that's still in progress. The repository's GitHub Pages source must be **GitHub Actions**, and the `github-pages` environment must let the tag or the branch you run from deploy.
+The workflow runs only in `drevops/eddy`, and a newer run cancels 1 that's still in progress. The repository's GitHub Pages source must be **GitHub Actions**. The `github-pages` environment must let the tag or the branch you run from deploy.
 
-The workflow reads the site URL and base path from the GitHub Pages settings, so a custom domain needs no change to the code. The published site links to the address it was built for, so run the workflow again after you change the domain. Only these release builds report to Google Analytics, show the release in the footer and let search engines index the pages.
+The workflow reads the site URL and base path from the GitHub Pages settings, so a custom domain needs no change to the code. The published site links to the address it was built for, so run the workflow again after you change the domain. Only a release build turns on Google Analytics, the release in the footer and indexing by search engines.
 
 ## The installer
 
-Every build serves the installer at `/install`: the root `install.php`, with the version of the build written over its version placeholder. `src/installer.js` writes the file after the build, and the installer downloads the GitHub archive of that version. A release build takes the version of the [published site](#the-published-site), so a manual run with a version republishes the installer of that release. Any other build, such as the development site or a preview, takes the `git describe` output of its commit, so its installer installs that commit.
+Every build serves the root `install.php` at `/install`, with the version of the build in place of its version placeholder. `src/installer.js` writes the file after the build, and the installer downloads the GitHub archive of that version. A release build takes the version of the [published site](#the-published-site), so a manual run with a version republishes the installer of that release. Any other build, such as the development site or a preview, takes the `git describe` output of its commit, so its installer installs that commit.
 
-Before it deploys, the release workflow checks that the built installer reports the release version, then installs an extension with it in an empty directory. A version that GitHub has no archive for fails that check, so a mistyped version never reaches the site.
+Before it deploys, the release workflow checks that the built installer reports the release version. Then it installs an extension with that installer in an empty directory. A version that GitHub has no archive for fails that check, so a mistyped version never reaches the site.
 
 {/* cspell:ignore fraunces figtree */}

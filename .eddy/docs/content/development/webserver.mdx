@@ -21,7 +21,7 @@ ahoy stop    # Stop it`}
 vendor/bin/eddy-stop    # Stop it`}
 />
 
-The hostname is `localhost` unless you set `WEBSERVER_HOST`, such as to `0.0.0.0` to serve on every interface. The server serves `build/web` through Drupal's own router, and writes its output to `.logs/php.log` in the project root. Each `start` empties that file first, so it holds the output of the running server only.
+The hostname is `localhost` unless you set `WEBSERVER_HOST`. To serve on every interface, set it to `0.0.0.0`. The server serves `build/web` through Drupal's own router. It writes its output to `.logs/php.log` in the project root, and each `start` empties that file first.
 
 ## How the port is picked
 
@@ -31,9 +31,9 @@ The hostname is `localhost` unless you set `WEBSERVER_HOST`, such as to `0.0.0.0
 2. **`WEBSERVER_PORT` in the project's `.env` file** - used as it is.
 3. **Neither** - `start` picks the first free port from 8000 to 8099 and saves it to `.env` as `WEBSERVER_PORT`.
 
-The search for a free port runs only in the third case. A port from your shell or `.env` is used as it is, so when another process holds it, `start` fails instead of looking for another one (see [Projects that share a machine](#projects-that-share-a-machine)).
+When another process holds a port from your shell or `.env`, `start` fails (see [Projects that share a machine](#projects-that-share-a-machine)).
 
-After the port is in `.env`, every command that reaches the site reuses it: `assemble`, `build`, `stop`, `reset`, `provision`, `info`, `debug`, `drush`, `login` and the test commands. `make` and Ahoy load `.env` on their own, and git ignores the file.
+After the port is in `.env`, every command that reaches the site reuses it: `assemble`, `build`, `stop`, `reset`, `provision`, `info`, `debug`, `drush`, `login` and the test commands. `make` and Ahoy load `.env` on their own. The project's `.gitignore` lists the file.
 
 To check where the port came from, run `info`:
 
@@ -43,9 +43,9 @@ To check where the port came from, run `info`:
   none={`vendor/bin/eddy-info`}
 />
 
-`info` is read-only, so it never picks a port or saves one. Its `Webserver port` line ends with the port's source, such as `8002 (.env)`.
+`info` is read-only, so it never picks or saves a port. Its `Webserver port` line ends with the port's source, such as `8002 (.env)`.
 
-`make` and Ahoy load the port from `.env` into the environment, where it looks the same as a port from your shell. So `info` labels the port by comparing it with `.env`, with or without a wrapper:
+Under `make` and Ahoy, a port from `.env` reaches `info` as an environment variable, like a port from your shell. So `info` labels the port by comparing it with `.env`:
 
 - `(env)` - your shell sets the port, and `.env` holds a different one or none.
 - `(.env)` - the port is the one in `.env`, even when your shell sets the same port.
@@ -64,28 +64,28 @@ To move the site to another port:
 2. Set `WEBSERVER_PORT` in `.env` to the new port, such as `WEBSERVER_PORT=8010`.
 3. Run `start`. It serves the site on the new port.
 
-To have `start` pick a port again, delete the `WEBSERVER_PORT` line from `.env` instead of changing it. `start` then takes the first free port from 8000, which can be the port you left, since `stop` freed it.
+To have `start` pick a port again, delete the `WEBSERVER_PORT` line from `.env`. `start` then takes the first free port from 8000, which can be the port that `stop` just freed.
 
 :::note A port from your shell isn't saved
 
-A `WEBSERVER_PORT` in your shell wins over the one in `.env`, through `make` and Ahoy too, and `start` doesn't save it to `.env`. Commands without the prefix use the port in `.env`, so prefix every command the same way while that server runs.
+A `WEBSERVER_PORT` in your shell wins over the one in `.env`. `make` and Ahoy keep the shell value when they load `.env`. `start` doesn't save it to `.env`, so commands without the prefix use the port in `.env`. While that server runs, prefix every command the same way.
 
 :::
 
 ## Projects that share a machine
 
-`start`, `stop`, `assemble` and `reset` stop only the webserver that serves the project's own `build/web`, which they recognize by its command line. Where they can't read command lines, such as on a system without `ps`, they treat every process that listens on the port as the project's own and stop it, another project's server included.
+Another project can record the same port as yours. Each command that stops a webserver stops only the project's own: the server of `build/web`, recognized by its command line. These commands are `stop`, `assemble`, `reset`, and `start` before it restarts the server. Where they can't read command lines, such as on a system without `ps`, they stop every process that listens on the port.
 
-When another process holds the port, such as the server of another project that recorded the same port, `stop`, `assemble` and `reset` leave it running. `start` fails instead, and prints the process ID and command line of each process on the port. Stop that process, or set `WEBSERVER_PORT` in `.env` to a free port.
+When another process holds the port, `stop`, `assemble` and `reset` leave it running. `start` fails and prints the process ID and command line of each process on the port. Stop that process, or set `WEBSERVER_PORT` in `.env` to a free port.
 
 ## Startup timeout
 
-After it launches the server, `start` waits up to `WEBSERVER_WAIT_TIMEOUT` seconds for it to accept connections, then checks that it can serve the site. The timeout is a whole number of 1 or more and defaults to 5, and `start` stops with an error on any other value. To give a slow machine more time, raise it in `.env`:
+After it launches the server, `start` waits up to `WEBSERVER_WAIT_TIMEOUT` seconds for the server to accept connections. The timeout defaults to 5 and takes a whole number of 1 or more. On any other value, `start` stops with an error. To give a slow machine more time, raise the timeout in `.env`:
 
 ```bash title=".env"
 WEBSERVER_WAIT_TIMEOUT=15
 ```
 
-When the server doesn't accept connections in time, `start` fails and prints the server's log. The check that follows has a limit of its own, which the timeout doesn't change: `start` requests the front page, waits up to 5 seconds for the answer and fails unless it has a `200` or `302` status.
+When the server doesn't accept connections in time, `start` fails and prints the server's log. After the server accepts connections, `start` requests the front page to check that it can serve the site. It waits up to 5 seconds for the answer, whatever the timeout, and fails unless the status is `200` or `302`.
 
-`start` then starts the [public tunnel](tunnel.mdx) when you've turned it on, and runs your `scripts/start-*.sh` [lifecycle scripts](lifecycle-scripts.mdx).
+Last, `start` opens the [public tunnel](tunnel.mdx) when `CLOUDFLARE_TUNNEL` turns it on, and runs your `scripts/start-*.sh` [lifecycle scripts](lifecycle-scripts.mdx).

@@ -694,6 +694,31 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   /**
+   * The 'CONTRIBUTING.md' intro to the list of checking tools goes with the
+   * last tool of the list.
+   *
+   * @param array<string> $tools_remove
+   */
+  #[DataProvider('dataProviderProcessRendersLintIntro')]
+  public function testProcessRendersLintIntro(array $tools_remove, bool $expected): void {
+    process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy', 'makefile'], $tools_remove, FALSE, FALSE);
+
+    $contributing = File::read(self::$sut . '/CONTRIBUTING.md');
+
+    $this->assertSame($expected, str_contains($contributing, 'The following tools check the codebase'), 'CONTRIBUTING.md lint intro presence mismatch.');
+  }
+
+  public static function dataProviderProcessRendersLintIntro(): \Iterator {
+    $linters = ['phpcs', 'phpstan', 'rector', 'twigcs', 'eslint', 'stylelint', 'cspell'];
+
+    yield 'all tools' => [[], TRUE];
+    yield 'only a PHP linter' => [array_values(array_diff($linters, ['phpstan'])), TRUE];
+    yield 'only a Node.js linter' => [array_values(array_diff($linters, ['stylelint'])), TRUE];
+    yield 'only CSpell' => [array_values(array_diff($linters, ['cspell'])), TRUE];
+    yield 'no linters' => [$linters, FALSE];
+  }
+
+  /**
    * The 'AGENTS.md' notes on the quality tools and on 'DEBUG' name only the
    * toolchains of the selected tools.
    *
