@@ -78,7 +78,7 @@ ahoy provision    # Provision the Drupal website
 
 To reinstall the Drupal site without assembling the codebase again, run the `provision` command on its own.
 
-The `info` command prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path.
+The `info` command prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path. The `login` command prints a new one-time login link.
 
 The `reset` command stops the development server and the browser that the FunctionalJavascript tests use, and removes the `build`, `.logs` and `vendor` directories.
 <!-- #;> DEV_COMMAND_WRAPPER -->
@@ -86,7 +86,7 @@ The `reset` command stops the development server and the browser that the Functi
 
 To reinstall the Drupal site without assembling the codebase again, run `vendor/bin/eddy-provision` on its own.
 
-`vendor/bin/eddy-info` prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path.
+`vendor/bin/eddy-info` prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path. `vendor/bin/eddy-login` prints a new one-time login link.
 <!-- #;> DEV_NO_COMMAND_WRAPPER -->
 
 ### Drupal versions
@@ -457,7 +457,7 @@ The `test` and `test-functional-javascript` commands start the browser before th
 The `browser-start` command reuses a browser of the selected backend that already answers on the WebDriver port. Otherwise, it replaces this project's own browser of either backend, so you can switch `WEBDRIVER_BACKEND` without running `browser-stop` first. When anything else holds the port, `browser-start` fails and names it. The `browser-stop` command stops only this project's own browser, so the browser of another project on the same port keeps running.
 <!-- #;> DEV_COMMAND_WRAPPER -->
 
-To run the browser in a Selenium Docker container, set `WEBDRIVER_BACKEND=selenium`. The container can't reach the `localhost` of your host, so start the webserver on all interfaces with `WEBSERVER_HOST=0.0.0.0`:
+To run the browser in a Selenium container, start Docker and set `WEBDRIVER_BACKEND=selenium`. The container can't reach the `localhost` of your host, so start the webserver on all interfaces with `WEBSERVER_HOST=0.0.0.0`:
 <!-- #;< DEV_MAKEFILE -->
 
 ```bash
@@ -497,7 +497,7 @@ vendor/bin/eddy-browser-stop
 
 With Chrome, the browser reaches the webserver at `localhost`. From the Selenium container, the browser uses `host.docker.internal` on macOS and `172.17.0.1` on other systems. To use another address, set `WEBDRIVER_HOST`.
 
-Each project uses its own WebDriver port with either backend, so several projects can run FunctionalJavascript tests at the same time. `eddy-browser-start` claims the first free port from 4444 and stores it in `.env`. To use a specific port, set `WEBDRIVER_PORT`.
+Each project uses its own WebDriver port with either backend, so several projects can run FunctionalJavascript tests at the same time. The first browser start claims the first free port from 4444 and stores it in `.env`. To use a specific port, set `WEBDRIVER_PORT`.
 
 The `YourExtensionFunctionalJavascriptTestBase` base class points the WebDriver endpoint at that port, so extend it in every FunctionalJavascript test. A test that extends `WebDriverTestBase` directly uses the default endpoint from `phpunit.xml`, unless it exports its own `MINK_DRIVER_ARGS_WEBDRIVER`.
 <!-- #;< DEV_NO_COMMAND_WRAPPER -->
