@@ -41,9 +41,9 @@ This guide is for developers working on this extension. Follow it to build a loc
 
 ## Building website
 
-The build runs in 3 stages: it assembles the codebase, starts the PHP server and provisions a Drupal site with this extension enabled. The [`drevops/eddy-tooling`](https://github.com/drevops/eddy-tooling) package provides a command for each stage, and `scripts/eddy-tooling` installs that package into `vendor/`. CI runs the same commands to build and test this extension.
+The build runs in 3 stages: it assembles the codebase, starts the PHP server and provisions a Drupal site with this extension enabled. The [`drevops/eddy-tooling`](https://github.com/drevops/eddy-tooling) package provides a command for each stage. `scripts/eddy-tooling` installs that package into `vendor/`. CI runs the same commands to build and test this extension.
 
-Never modify `scripts/eddy-tooling`, by hand or with AI. It comes from Eddy, and a scaffold update replaces it with the copy from the new release. To change what a tooling command does, declare a patch for the package, as [Patching dependencies](#patching-dependencies) shows.
+Never modify `scripts/eddy-tooling`, by hand or with AI. It comes from Eddy. A scaffold update replaces it with the copy from the new release. To change what a tooling command does, declare a patch for the package, as [Patching dependencies](#patching-dependencies) shows.
 
 `scripts/eddy-tooling` installs the newest release that the `drevops/eddy-tooling` constraint in `composer.dev.json` allows. It runs Composer again only in these cases:
 
@@ -151,7 +151,7 @@ The build pins Drupal core to the newest release that matches `DRUPAL_VERSION` a
 
 The build resolves its dependencies for 1 PHP version: the `config.platform.php` of `composer.dev.json` or `composer.json` when either sets one, and the PHP that runs the build otherwise. A `config.platform.php` in your global Composer configuration doesn't apply. Before the build changes anything, it checks that PHP version and the PHP that runs the build against the requirement of the Drupal release. When either doesn't meet the requirement, the build stops and names the PHP version that the release requires.
 
-Every other dependency installs its most stable release that supports that core and that PHP version. It installs a pre-release or a development branch only when no stable release fits, and the build output lists every dependency from a development branch.
+Every other dependency installs its most stable release that supports that core and that PHP version. It installs a pre-release or a development branch only when no stable release fits. The build output lists every dependency from a development branch.
 
 ### Patching dependencies
 
@@ -502,7 +502,7 @@ Each project uses its own WebDriver port with either backend, so several project
 The `YourExtensionFunctionalJavascriptTestBase` base class points the WebDriver endpoint at that port, so extend it in every FunctionalJavascript test. A test that extends `WebDriverTestBase` directly uses the default endpoint from `phpunit.xml`, unless it exports its own `MINK_DRIVER_ARGS_WEBDRIVER`.
 <!-- #;< DEV_NO_COMMAND_WRAPPER -->
 
-The commands in this section export the backend, host and port that `eddy-info` reads from your shell and `.env`, so a value set in `.env` reaches the tests too.
+The commands in this section export the backend, host and port that `eddy-info` reads from your shell and `.env`, so `.env` values reach the tests.
 <!-- #;> DEV_NO_COMMAND_WRAPPER -->
 
 <!-- #;> DEV_FUNCTIONAL_JAVASCRIPT -->
