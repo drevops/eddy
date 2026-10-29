@@ -202,7 +202,7 @@ What to do:
 
 - If your release process relied on a tag push to update a branch, push the branch as well.
 - GitHub starts no test run for a push of more than 3 tags, or for a tag that a workflow creates with `GITHUB_TOKEN`. Those tags don't deploy. Push tags 3 at a time at most, and deploy a tag that missed its deployment as [Tags that don't deploy](../deployment/README.mdx#tags-that-dont-deploy) describes.
-- On a release from 4.15.0 to 4.18.0, the upgrade pull request still deploys the 4.x way described in this section. GitHub runs a `workflow_run` workflow, such as `Deploy`, from the copy on your default branch, so the 4.x `deploy.yml` runs until you merge. To skip that, set the `DEPLOY_PROCEED` secret to `0` before the pull request opens, and back to `1` right before you merge.
+- On a release from 4.15.0 to 4.18.0, the upgrade pull request still deploys the 4.x way described in this section. GitHub runs a `workflow_run` workflow, such as `Deploy`, from the copy on your default branch, so the 4.x `deploy.yml` runs until you merge. To skip that, set the `DEPLOY_PROCEED` secret to `0` before you start, and back to `1` right before you merge.
 - On a release from 4.15.0 to 4.18.0, each pull request that deployed left a branch of the same name in your Drupal.org repository. After you've merged, delete those branches with `git push <remote> --delete <branch>`, where `<remote>` is your Drupal.org repository. Keep the branches you release from, such as `1.x`, and the branch that `DEPLOY_BRANCH` names.
 - On a release from 4.15.0 to 4.17.0, also delete every branch named after a release tag from your Drupal.org repository. Those releases created 1 for each tag they deployed.
 
