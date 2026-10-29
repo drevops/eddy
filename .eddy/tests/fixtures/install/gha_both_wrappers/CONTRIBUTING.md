@@ -117,7 +117,7 @@
  ahoy provision
  ahoy test-functional-javascript
 @@ -195,6 +250,13 @@
- To run the browser in a Selenium Docker container, set `WEBDRIVER_BACKEND=selenium`. The container can't reach the `localhost` of your host, so start the webserver on all interfaces with `WEBSERVER_HOST=__VERSION__.0`:
+ To run the browser in a Selenium container, start Docker and set `WEBDRIVER_BACKEND=selenium`. The container can't reach the `localhost` of your host, so start the webserver on all interfaces with `WEBSERVER_HOST=__VERSION__.0`:
  
  ```bash
 +WEBSERVER_HOST=__VERSION__.0 make start

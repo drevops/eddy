@@ -27,11 +27,11 @@
 -ahoy start        # Start the PHP server
 -ahoy provision    # Provision the Drupal website
 -```
-+`vendor/bin/eddy-info` prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path.
++`vendor/bin/eddy-info` prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path. `vendor/bin/eddy-login` prints a new one-time login link.
  
 -To reinstall the Drupal site without assembling the codebase again, run the `provision` command on its own.
 -
--The `info` command prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path.
+-The `info` command prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path. The `login` command prints a new one-time login link.
 -
 -The `reset` command stops the development server and the browser that the FunctionalJavascript tests use, and removes the `build`, `.logs` and `vendor` directories.
 -
@@ -173,7 +173,7 @@
 -
 -The `browser-start` command reuses a browser of the selected backend that already answers on the WebDriver port. Otherwise, it replaces this project's own browser of either backend, so you can switch `WEBDRIVER_BACKEND` without running `browser-stop` first. When anything else holds the port, `browser-start` fails and names it. The `browser-stop` command stops only this project's own browser, so the browser of another project on the same port keeps running.
 -
- To run the browser in a Selenium Docker container, set `WEBDRIVER_BACKEND=selenium`. The container can't reach the `localhost` of your host, so start the webserver on all interfaces with `WEBSERVER_HOST=__VERSION__.0`:
+ To run the browser in a Selenium container, start Docker and set `WEBDRIVER_BACKEND=selenium`. The container can't reach the `localhost` of your host, so start the webserver on all interfaces with `WEBSERVER_HOST=__VERSION__.0`:
  
  ```bash
 -WEBSERVER_HOST=__VERSION__.0 ahoy start
