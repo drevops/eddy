@@ -1,10 +1,10 @@
-@@ -6,12 +6,14 @@
- 
- 1. Install PHP with SQLite support and Composer
-    - Install Node.js with npm, which the build and the linters use
--   - Install [Ahoy](https://github.com/ahoy-cli/ahoy)
- 2. Clone this repository
- 3. Build the website:
+@@ -8,12 +8,14 @@
+    - PHP with SQLite support
+    - Composer
+    - Node.js with npm, which the build uses
+-   - [Ahoy](https://github.com/ahoy-cli/ahoy)
+ 2. Clone this repository.
+ 3. Build the site:
  
     ```bash
 -   ahoy build
@@ -14,27 +14,31 @@
 +   vendor/bin/eddy-provision     # Provision the Drupal website
     ```
  
- ## Building website
-@@ -24,17 +26,9 @@
+    The build ends by printing the site URL and a one-time login link.
+@@ -34,20 +36,10 @@
  
- The resulting codebase is then placed in the `build` directory. The extension files are symlinked into the Drupal site structure. A PHP server that still serves an earlier build is stopped before the codebase is replaced.
+ The assembled codebase goes in the `build` directory, with the extension's files symlinked into the Drupal site. Before the assemble command replaces an earlier build, it stops the PHP server that serves that build.
  
--The `build` command is a wrapper for more granular commands:
--
+-The `build` command is a wrapper for 3 commands that each run 1 stage:
++To reinstall the Drupal site without assembling the codebase again, run `vendor/bin/eddy-provision` on its own.
+ 
 -```bash
 -ahoy assemble     # Assemble the codebase
 -ahoy start        # Start the PHP server
 -ahoy provision    # Provision the Drupal website
 -```
--
- The `provision` command is useful for re-installing the Drupal website without re-assembling the codebase.
- 
--The `info` command prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path. The `reset` command stops the development server and the browser that the FunctionalJavascript tests use, and removes the `build`, `.logs` and `vendor` directories.
 +`vendor/bin/eddy-info` prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path.
  
+-To reinstall the Drupal site without assembling the codebase again, run the `provision` command on its own.
+-
+-The `info` command prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path.
+-
+-The `reset` command stops the development server and the browser that the FunctionalJavascript tests use, and removes the `build`, `.logs` and `vendor` directories.
+-
  ### Drupal versions
  
-@@ -44,16 +38,20 @@
+ The `DRUPAL_VERSION` variable sets the Drupal version that the build assembles. It defaults to `extra.eddy.drupal-version` in `composer.dev.json`, the newest Drupal major this extension targets that has a stable release.
+@@ -56,16 +48,20 @@
  
  ```bash
  # Newest stable Drupal 11 release.
@@ -58,9 +62,9 @@
 +vendor/bin/eddy-provision
  ```
  
- The build pins Drupal core to the newest release matching `DRUPAL_VERSION` and prints it. A version with no stable release yet resolves to its newest pre-release. When that release requires a newer PHP than the one running the build, the build stops before it changes anything and says which PHP the release needs.
-@@ -107,14 +105,10 @@
- PHP step-debugging is supported via [XDebug](https://xdebug.org/docs/install). Install the XDebug PHP extension on your host (`php -v` should mention `with Xdebug`), then toggle it on the development server:
+ The build pins Drupal core to the newest release that matches `DRUPAL_VERSION` and prints that release. A version without a stable release resolves to its newest pre-release.
+@@ -119,14 +115,10 @@
+ The development server can run with [XDebug](https://xdebug.org/docs/install) step-debugging. Install the XDebug PHP extension on your host first, so that `php -v` prints `with Xdebug`. Then restart the server with XDebug turned on or off:
  
  ```bash
 -ahoy debug      # restart with XDebug enabled
@@ -69,15 +73,15 @@
 +vendor/bin/eddy-start             # restart without XDebug
  ```
  
--`debug` is also available as `debug-on`, `xdebug` and `xdebug-on`, and `start` as `debug-off` and `xdebug-off`.
+-The `debug` command has the aliases `debug-on`, `xdebug` and `xdebug-on`. The `start` command has the aliases `debug-off` and `xdebug-off`.
 -
--The `debug` command probes the running PHP server's command line for `xdebug.mode=debug` and skips the restart if XDebug is already enabled.
+-When the command line of the running server already holds `xdebug.mode=debug`, the `debug` command skips the restart.
 -
- Code coverage stays on [pcov](https://github.com/krakjoe/pcov) because the XDebug settings apply only to the development server, not to the test commands.
+ The XDebug settings apply only to the development server, so the tests still collect code coverage with [pcov](https://github.com/krakjoe/pcov).
  
- To start and stop debug sessions from the browser, install the Xdebug Helper extension: [Chrome](https://chromewebstore.google.com/detail/xdebug-helper-by-jetbrain/aoelhdemabeimdhedkidlnbkfhnhgnhm) / [Firefox](https://addons.mozilla.org/en-US/firefox/addon/xdebug-helper-by-jetbrains/).
-@@ -134,7 +128,15 @@
- Run all checks with:
+ To start and stop debug sessions from your browser, install the Xdebug Helper extension for [Chrome](https://chromewebstore.google.com/detail/xdebug-helper-by-jetbrain/aoelhdemabeimdhedkidlnbkfhnhgnhm) or [Firefox](https://addons.mozilla.org/en-US/firefox/addon/xdebug-helper-by-jetbrains/).
+@@ -145,7 +137,15 @@
+ To run every check:
  
  ```bash
 -ahoy lint
@@ -93,8 +97,8 @@
  ```
  
  ### Fixing coding standards issues
-@@ -142,7 +144,11 @@
- To fix coding standards issues automatically, run the same tools with the `--fix` option (for the tools that support it):
+@@ -153,7 +153,11 @@
+ To fix the issues that have an automatic fix, run the fixers:
  
  ```bash
 -ahoy lint-fix
@@ -106,8 +110,8 @@
  ```
  
  ## Testing
-@@ -150,7 +156,16 @@
- Run the tests for this extension with:
+@@ -161,7 +165,16 @@
+ To run every test:
  
  ```bash
 -ahoy test
@@ -123,9 +127,9 @@
 +npm test
  ```
  
- The tests are located in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests, and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both use Drupal core's bootstrap file `web/core/tests/bootstrap.php` to bootstrap the Drupal environment before running the tests.
-@@ -158,10 +173,13 @@
- Each test suite can also be run on its own:
+ The PHPUnit tests live in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests, and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both use Drupal core's bootstrap file, `web/core/tests/bootstrap.php`, to boot Drupal before the tests run.
+@@ -169,10 +182,13 @@
+ To run 1 test suite:
  
  ```bash
 -ahoy test-unit                    # Run Unit tests
@@ -142,8 +146,8 @@
  ```
  
  ### Running FunctionalJavascript tests
-@@ -169,23 +187,37 @@
- FunctionalJavascript tests need a real browser driven via WebDriver. By default they use the Google Chrome already installed on your machine - a matching `chromedriver` is downloaded automatically on first run, so no Docker is required:
+@@ -182,23 +198,37 @@
+ To run the FunctionalJavascript tests with Chrome:
  
  ```bash
 -ahoy start
@@ -165,11 +169,11 @@
 +vendor/bin/eddy-browser-stop
  ```
  
--The `test` and `test-functional-javascript` commands both start the browser before they run the suite. It keeps running afterwards, so the next run reuses it - stop it with `browser-stop` when you're done.
+-The `test` and `test-functional-javascript` commands start the browser before they run the tests. The browser keeps running for the next run to reuse, so stop it with `browser-stop` when you're done.
 -
--The `browser-start` command reuses a browser of the selected backend that already answers on the WebDriver port. Otherwise it replaces the project's own browser, whichever backend that is, so switching `WEBDRIVER_BACKEND` doesn't need a `browser-stop` first. It fails and names whatever else holds the port. The `browser-stop` command stops only the project's own browser, so the browser of another project that recorded the same port keeps running.
+-The `browser-start` command reuses a browser of the selected backend that already answers on the WebDriver port. Otherwise, it replaces this project's own browser of either backend, so you can switch `WEBDRIVER_BACKEND` without running `browser-stop` first. When anything else holds the port, `browser-start` fails and names it. The `browser-stop` command stops only this project's own browser, so the browser of another project on the same port keeps running.
 -
- To run the browser in a Docker Selenium container instead, set `WEBDRIVER_BACKEND=selenium`. The container cannot reach the host's `localhost`, so start the webserver on all interfaces:
+ To run the browser in a Selenium Docker container, set `WEBDRIVER_BACKEND=selenium`. The container can't reach the `localhost` of your host, so start the webserver on all interfaces with `WEBSERVER_HOST=__VERSION__.0`:
  
  ```bash
 -WEBSERVER_HOST=__VERSION__.0 ahoy start
@@ -191,16 +195,16 @@
 +vendor/bin/eddy-browser-stop
  ```
  
- The browser reaches the webserver at `localhost` with the default backend, and at `host.docker.internal` (macOS) or `__VERSION__.1` (other systems) from the Selenium container. Set `WEBDRIVER_HOST` to use a different address.
-@@ -192,17 +224,11 @@
+ With Chrome, the browser reaches the webserver at `localhost`. From the Selenium container, the browser uses `host.docker.internal` on macOS and `__VERSION__.1` on other systems. To use another address, set `WEBDRIVER_HOST`.
+@@ -207,17 +237,11 @@
  
- Each project gets its own WebDriver port, whichever backend it uses: a free one is claimed starting at 4444 and stored in `.env`, so several projects can run FunctionalJavascript tests at the same time. Set `WEBDRIVER_PORT` to pin a specific one. Tests reach the claimed port because the base class applies it to the WebDriver endpoint, so extend `ForceCrystalFunctionalJavascriptTestBase` rather than `WebDriverTestBase` directly - a test that bypasses it keeps the default endpoint from `phpunit.xml` unless it exports its own `MINK_DRIVER_ARGS_WEBDRIVER`.
+ The `ForceCrystalFunctionalJavascriptTestBase` base class points the WebDriver endpoint at that port, so extend it in every FunctionalJavascript test. A test that extends `WebDriverTestBase` directly uses the default endpoint from `phpunit.xml`, unless it exports its own `MINK_DRIVER_ARGS_WEBDRIVER`.
  
-+The commands above export the backend, host and port that `eddy-info` resolves from your shell and `.env`, so a value set in `.env` reaches the tests too.
++The commands in this section export the backend, host and port that `eddy-info` reads from your shell and `.env`, so a value set in `.env` reaches the tests too.
 +
  ### Running specific tests
  
- You can run specific tests by passing a path to the test file or PHPUnit CLI option (`--filter`, `--group`, etc.) to the test commands. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site:
+ To run some of the tests, pass a test file path or a PHPUnit option, such as `--filter` or `--group`, to a test command. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site:
 -
 -```bash
 -ahoy test-unit web/modules/custom/force_crystal/tests/src/Unit/MyUnitTest.php
@@ -208,7 +212,7 @@
 -ahoy test-unit -- --filter=MyUnitTest::testSomething
 -```
 -
--You may also run tests using the `phpunit` command directly:
+-To run PHPUnit directly, run it from `build`:
  
  ```bash
  cd build

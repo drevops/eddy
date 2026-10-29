@@ -1,13 +1,13 @@
-@@ -34,7 +34,7 @@
+@@ -46,7 +46,7 @@
  
- The `provision` command is useful for re-installing the Drupal website without re-assembling the codebase.
+ The `info` command prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path.
  
--The `info` command prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path. The `reset` command stops the development server and the browser that the FunctionalJavascript tests use, and removes the `build`, `.logs` and `vendor` directories.
-+The `info` command prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path. The `reset` command stops the development server and removes the `build`, `.logs` and `vendor` directories.
+-The `reset` command stops the development server and the browser that the FunctionalJavascript tests use, and removes the `build`, `.logs` and `vendor` directories.
++The `reset` command stops the development server and removes the `build`, `.logs` and `vendor` directories.
  
  ### Drupal versions
  
-@@ -161,36 +161,7 @@
+@@ -172,40 +172,7 @@
  ahoy test-unit                    # Run Unit tests
  ahoy test-kernel                  # Run Kernel tests
  ahoy test-functional              # Run Functional tests
@@ -16,7 +16,9 @@
 -
 -### Running FunctionalJavascript tests
 -
--FunctionalJavascript tests need a real browser driven via WebDriver. By default they use the Google Chrome already installed on your machine - a matching `chromedriver` is downloaded automatically on first run, so no Docker is required:
+-FunctionalJavascript tests drive a real browser through WebDriver. By default, they use the Google Chrome installed on your machine, with a matching `chromedriver` that the first run downloads.
+-
+-To run the FunctionalJavascript tests with Chrome:
 -
 -```bash
 -ahoy start
@@ -25,11 +27,11 @@
 -ahoy browser-stop
 -```
 -
--The `test` and `test-functional-javascript` commands both start the browser before they run the suite. It keeps running afterwards, so the next run reuses it - stop it with `browser-stop` when you're done.
+-The `test` and `test-functional-javascript` commands start the browser before they run the tests. The browser keeps running for the next run to reuse, so stop it with `browser-stop` when you're done.
 -
--The `browser-start` command reuses a browser of the selected backend that already answers on the WebDriver port. Otherwise it replaces the project's own browser, whichever backend that is, so switching `WEBDRIVER_BACKEND` doesn't need a `browser-stop` first. It fails and names whatever else holds the port. The `browser-stop` command stops only the project's own browser, so the browser of another project that recorded the same port keeps running.
+-The `browser-start` command reuses a browser of the selected backend that already answers on the WebDriver port. Otherwise, it replaces this project's own browser of either backend, so you can switch `WEBDRIVER_BACKEND` without running `browser-stop` first. When anything else holds the port, `browser-start` fails and names it. The `browser-stop` command stops only this project's own browser, so the browser of another project on the same port keeps running.
 -
--To run the browser in a Docker Selenium container instead, set `WEBDRIVER_BACKEND=selenium`. The container cannot reach the host's `localhost`, so start the webserver on all interfaces:
+-To run the browser in a Selenium Docker container, set `WEBDRIVER_BACKEND=selenium`. The container can't reach the `localhost` of your host, so start the webserver on all interfaces with `WEBSERVER_HOST=__VERSION__.0`:
 -
 -```bash
 -WEBSERVER_HOST=__VERSION__.0 ahoy start
@@ -38,9 +40,11 @@
 -ahoy browser-stop
 -```
 -
--The browser reaches the webserver at `localhost` with the default backend, and at `host.docker.internal` (macOS) or `__VERSION__.1` (other systems) from the Selenium container. Set `WEBDRIVER_HOST` to use a different address.
+-With Chrome, the browser reaches the webserver at `localhost`. From the Selenium container, the browser uses `host.docker.internal` on macOS and `__VERSION__.1` on other systems. To use another address, set `WEBDRIVER_HOST`.
 -
--Each project gets its own WebDriver port, whichever backend it uses: a free one is claimed starting at 4444 and stored in `.env`, so several projects can run FunctionalJavascript tests at the same time. Set `WEBDRIVER_PORT` to pin a specific one. Tests reach the claimed port because the base class applies it to the WebDriver endpoint, so extend `ForceCrystalFunctionalJavascriptTestBase` rather than `WebDriverTestBase` directly - a test that bypasses it keeps the default endpoint from `phpunit.xml` unless it exports its own `MINK_DRIVER_ARGS_WEBDRIVER`.
+-Each project uses its own WebDriver port with either backend, so several projects can run FunctionalJavascript tests at the same time. `eddy-browser-start` claims the first free port from 4444 and stores it in `.env`. To use a specific port, set `WEBDRIVER_PORT`.
+-
+-The `ForceCrystalFunctionalJavascriptTestBase` base class points the WebDriver endpoint at that port, so extend it in every FunctionalJavascript test. A test that extends `WebDriverTestBase` directly uses the default endpoint from `phpunit.xml`, unless it exports its own `MINK_DRIVER_ARGS_WEBDRIVER`.
  
  ### Running specific tests
  

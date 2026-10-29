@@ -1,11 +1,11 @@
-@@ -122,10 +122,6 @@
+@@ -134,10 +134,6 @@
  ## Coding standards
  
- The codebase is checked using multiple tools:
--- PHP code standards checking against `Drupal`, `DrupalPractice`, `DrevOps` and `PHPCompatibility` standards.
--- PHP code static analysis with PHPStan.
--- PHP deprecated code analysis and auto-fixing with Drupal Rector.
--- Twig code analysis with Twig CS Fixer.
- - JavaScript code analysis with ESLint.
- - CSS code analysis with Stylelint.
- 
+ The following tools check the codebase, each with its configuration file in the root of the project:
+-- PHPCS checks PHP code against the `Drupal`, `DrupalPractice`, `DrevOps` and `PHPCompatibility` standards.
+-- PHPStan analyzes PHP code statically.
+-- Drupal Rector finds deprecated PHP code and fixes it.
+-- Twig CS Fixer checks Twig templates.
+ - ESLint checks JavaScript code.
+ - Stylelint checks CSS code.
+ - CSpell checks the spelling.

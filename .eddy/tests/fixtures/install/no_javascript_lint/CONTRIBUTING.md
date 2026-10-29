@@ -1,9 +1,9 @@
-@@ -126,8 +126,6 @@
- - PHP code static analysis with PHPStan.
- - PHP deprecated code analysis and auto-fixing with Drupal Rector.
- - Twig code analysis with Twig CS Fixer.
--- JavaScript code analysis with ESLint.
--- CSS code analysis with Stylelint.
+@@ -138,8 +138,6 @@
+ - PHPStan analyzes PHP code statically.
+ - Drupal Rector finds deprecated PHP code and fixes it.
+ - Twig CS Fixer checks Twig templates.
+-- ESLint checks JavaScript code.
+-- Stylelint checks CSS code.
+ - CSpell checks the spelling.
  
- The configuration files for these tools are located in the root of the codebase.
- 
+ To run every check:
