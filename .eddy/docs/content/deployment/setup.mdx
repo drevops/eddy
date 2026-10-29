@@ -44,7 +44,7 @@ Confirm that the **Actions** secrets of your repository list `DEPLOY_SSH_KEY`, `
 
 Until the `DEPLOY_PROCEED` secret is `1`, the `Deploy` job runs but stops before the push, so you can test it first:
 
-1. Push a commit to a branch that deploys, such as `1.x`, and watch the `Deploy` workflow that starts after `Test` passes. The job ends with "Skip deployment because DEPLOY_PROCEED is not set to 1." That message means `DEPLOY_REMOTE`, `DEPLOY_USER_NAME` and `DEPLOY_USER_EMAIL` are set. The job connects to `DEPLOY_REMOTE` only after the next step.
+1. Push a commit to a branch that deploys, such as `1.x`. Watch the `Deploy` workflow that starts after `Test` passes. The job ends with "Skip deployment because DEPLOY_PROCEED is not set to 1." That message means `DEPLOY_REMOTE`, `DEPLOY_USER_NAME` and `DEPLOY_USER_EMAIL` are set. The job connects to `DEPLOY_REMOTE` only after the next step.
 2. Add the `DEPLOY_PROCEED` secret, set to `1`, in the same place as the other secrets.
 3. Push another commit to the branch. After `Test` passes, the `Deploy` job pushes it, and the commit appears in your Drupal.org repository.
 

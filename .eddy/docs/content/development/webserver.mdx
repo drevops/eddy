@@ -64,7 +64,7 @@ To move the site to another port:
 2. Set `WEBSERVER_PORT` in `.env` to the new port, such as `WEBSERVER_PORT=8010`.
 3. Run `start`. It serves the site on the new port.
 
-To have `start` pick a port again, delete the `WEBSERVER_PORT` line from `.env`. `start` then takes the first free port from 8000, which can be the port that `stop` just freed.
+To have `start` pick a port again, delete the `WEBSERVER_PORT` line from `.env`. `start` then takes the first free port from 8000, which can be the port that `stop` freed.
 
 :::note A port from your shell isn't saved
 
@@ -74,7 +74,7 @@ A `WEBSERVER_PORT` in your shell wins over the one in `.env`. `make` and Ahoy ke
 
 ## Projects that share a machine
 
-Another project can record the same port as yours. Each command that stops a webserver stops only the project's own: the server of `build/web`, recognized by its command line. These commands are `stop`, `assemble`, `reset`, and `start` before it restarts the server. Where they can't read command lines, such as on a system without `ps`, they stop every process that listens on the port.
+Another project can record the same port as yours. Each command that stops a webserver stops only the project's own: the server of `build/web`, recognized by its command line. These commands are `stop`, `assemble` and `reset`, plus `start` before it restarts the server. Where they can't read command lines, such as on a system without `ps`, they stop every process that listens on the port.
 
 When another process holds the port, `stop`, `assemble` and `reset` leave it running. `start` fails and prints the process ID and command line of each process on the port. Stop that process, or set `WEBSERVER_PORT` in `.env` to a free port.
 
@@ -86,6 +86,6 @@ After it launches the server, `start` waits up to `WEBSERVER_WAIT_TIMEOUT` secon
 WEBSERVER_WAIT_TIMEOUT=15
 ```
 
-When the server doesn't accept connections in time, `start` fails and prints the server's log. After the server accepts connections, `start` requests the front page to check that it can serve the site. It waits up to 5 seconds for the answer, whatever the timeout, and fails unless the status is `200` or `302`.
+When the server doesn't accept connections in time, `start` fails and prints the server's log. After the server accepts connections, `start` requests the front page to check that it can serve the site. It waits up to 5 seconds for the answer, whatever `WEBSERVER_WAIT_TIMEOUT` holds. It fails unless the status is `200` or `302`.
 
 Last, `start` opens the [public tunnel](tunnel.mdx) when `CLOUDFLARE_TUNNEL` turns it on, and runs your `scripts/start-*.sh` [lifecycle scripts](lifecycle-scripts.mdx).

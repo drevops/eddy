@@ -9,7 +9,7 @@ import CommandTabs from '@site/src/components/CommandTabs';
 
 # Eddy
 
-Eddy is a template for maintaining a contributed Drupal module or theme on GitHub. An extension you start from it gets CI on GitHub Actions, a local Drupal site to develop and test against, coding standards checks and mirroring of the code to [Drupal.org](https://www.drupal.org).
+Eddy is a template for maintaining a contributed Drupal module or theme on GitHub. An extension started from it gets CI on GitHub Actions, a local Drupal site, coding standards checks and mirroring to [Drupal.org](https://www.drupal.org).
 
 You write the extension, and Eddy provides the rest. Your machine builds the site with the same commands that CI runs, so a run that passes locally is likely to pass in CI too.
 
@@ -21,11 +21,11 @@ To build a Drupal website, use [Vortex](https://www.vortextemplate.com). The 2 t
 
 ## What you get
 
-- ⚙️ **[CI on GitHub Actions](continuous-integration/README.mdx)** - PHP `8.3`, `8.4` and `8.5`, and Drupal `stable` on 10, 11 and 12, plus `legacy` and `canary` tiers on 11 and 12. [The version matrix](continuous-integration/README.mdx#the-version-matrix) explains the tiers. Code coverage comes from [pcov](https://github.com/krakjoe/pcov), and goes to [codecov.io](https://codecov.io) when you add a `CODECOV_TOKEN` repository secret. With 1 override, the setup works with [Drupal.org GitLab CI](continuous-integration/drupal-ci.mdx) too.
+- ⚙️ **[CI on GitHub Actions](continuous-integration/README.mdx)** - PHP `8.3` to `8.5` and Drupal `stable` on 10, 11 and 12, plus `legacy` and `canary` tiers on 11 and 12. [The version matrix](continuous-integration/README.mdx#the-version-matrix) explains the tiers. Code coverage comes from [pcov](https://github.com/krakjoe/pcov), and goes to [codecov.io](https://codecov.io) when you add a `CODECOV_TOKEN` repository secret. With 1 override, the setup works with [Drupal.org GitLab CI](continuous-integration/drupal-ci.mdx) too.
 - 💻 **[Local development](development/README.mdx)** - a site built from [drupal/recommended-project](https://www.drupal.org/docs/develop/using-composer/starting-a-site-using-drupal-composer-project-templates) on your host's PHP. The same [tooling](development/tooling.mdx) commands build it locally and in CI, and you run them through `make`, [Ahoy](https://github.com/ahoy-cli/ahoy) or directly. The build sets up a module or a theme and applies your [patches](development/dependencies.mdx#patch-dependencies). It also adds the development dependencies from `composer.dev.json` and the extensions you `suggest`.
 - 🧹 **[Coding standards](development/coding-standards.mdx)** - PHPCS with the `Drupal`, `DrupalPractice`, `DrevOps` and `PHPCompatibility` standards, PHPStan with [PHPStan Drupal](https://github.com/mglaman/phpstan-drupal), [Drupal Rector](https://github.com/palantirnet/drupal-rector), [Twig CS Fixer](https://github.com/VincentLanglet/Twig-CS-Fixer), [ESLint](https://eslint.org/), [Stylelint](https://stylelint.io/), [CSpell](https://cspell.org/) and [Prettier](https://prettier.io/).
 - 🧪 **[Tests](testing/README.mdx)** - PHPUnit Unit, Kernel, Functional and FunctionalJavascript tests, in a local Chrome or a Selenium container, and JavaScript tests with [Jest](https://jestjs.io/).
-- 🚚 **[Deployment](deployment/README.mdx)** - mirroring of the code and its tags to Drupal.org, or any other git remote, after CI passes, optionally to a different destination branch.
+- 🚚 **[Deployment](deployment/README.mdx)** - mirroring of the code and its tags to Drupal.org or another git remote after CI passes. The destination branch can differ from the source branch.
 - 🤖 **[Renovate](updating/renovate.mdx)** - grouped pull requests that keep npm packages, GitHub Actions and Docker images up to date. You update the Composer constraints in `composer.json` by hand.
 - 📝 **Docs for your extension** - `README.md` and `CONTRIBUTING.md` templates.
 

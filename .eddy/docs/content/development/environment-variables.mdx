@@ -6,7 +6,7 @@ description: Every environment variable that the Eddy commands, tests and workfl
 
 # Environment variables
 
-This page lists every environment variable that the Eddy commands, the tests and the CI workflows read, with its default and what it does. The variables under [Build](#build), [Webserver and site](#webserver-and-site) and [Tests](#tests) configure your machine, and the ones under [Deployment](#deployment) and [Continuous integration](#continuous-integration) configure the workflows of your GitHub repository.
+This page lists every environment variable that the Eddy commands, the tests and the CI workflows read, with its default and what it does. The variables under [Build](#build), [Webserver and site](#webserver-and-site) and [Tests](#tests) configure your machine. The ones under [Deployment](#deployment) and [Continuous integration](#continuous-integration) configure the workflows of your GitHub repository.
 
 ## Where values come from
 
@@ -69,7 +69,7 @@ The following variables configure the tests. `make`, Ahoy and `phpunit.xml` set 
 
 ## Deployment
 
-These variables configure the deployment that the `Deploy` workflow runs with `eddy-deploy`, and [Set up deployment](../deployment/setup.mdx) walks through them. The **Set as** column of the deployment and CI tables names where each value is set:
+These variables configure the deployment that the `Deploy` workflow runs with `eddy-deploy`. [Set up deployment](../deployment/setup.mdx) covers setting them. The **Set as** column of the deployment and CI tables names where each value is set:
 
 - **Secret** - a repository secret, under **Settings > Secrets and variables > Actions > Secrets**.
 - **Variable** - a repository variable, on the **Variables** tab of the same page.

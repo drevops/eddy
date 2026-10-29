@@ -37,7 +37,7 @@ vendor/bin/eddy-browser-stop`}
 
 With Make or Ahoy, `test` and `test-functional-javascript` start the browser before the tests and leave it running, so the next run reuses it. When the browser can't start, those commands stop before any test runs. The last command in each list stops the browser.
 
-The tests need a `chromedriver` that matches the major version of your Chrome. `browser-start`, the step that starts the browser, uses the one on your `PATH` when it matches. Otherwise it fetches a matching one into `.chromedriver` with `npx @puppeteer/browsers`, which needs Node.js. Chrome runs headless for tests that extend the generated [base class](#webdriver-ports), so they work on a machine without a display, such as a CI runner.
+The tests need a `chromedriver` that matches the major version of your Chrome. `browser-start`, the step that starts the browser, uses the one on your `PATH` when it matches. Otherwise it fetches a matching one into `.chromedriver` with `npx @puppeteer/browsers`, which needs Node.js. Tests that extend the generated [base class](#webdriver-ports) run Chrome headless, so they work without a display, such as on a CI runner.
 
 ## Run the browser in Docker
 

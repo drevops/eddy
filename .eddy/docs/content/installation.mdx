@@ -54,7 +54,7 @@ The installer downloads the Eddy release shown in this site's footer and expands
 
 The directory counts as empty while it holds only `install.php` and hidden entries such as `.git`, so an empty repository you've cloned works too. Create your GitHub repository without a README or a license file, because either one makes the directory non-empty. In a directory with other files, the installer works on the copy of Eddy already there when the directory holds `your_extension.info.yml` (see [Install from a download](#install-from-a-download)). Otherwise, it stops and changes nothing.
 
-To install from another archive, such as the archive of a fork, set the `INSTALL_TEMPLATE_ARCHIVE` environment variable to its URL or path when you run the installer in the empty directory. The variable takes a `.tar.gz` archive with the files in 1 top-level directory, the layout that GitHub builds.
+To install from another archive, such as a fork's, set the `INSTALL_TEMPLATE_ARCHIVE` environment variable to its URL or path. The installer reads it only in an empty directory. The archive is a `.tar.gz` file with the files in 1 top-level directory, the layout that GitHub builds.
 
 ![php install.php asking about the extension in a terminal, then installing it](../../assets/install.svg)
 
@@ -63,7 +63,7 @@ The installer asks the following questions:
 | Question                       | What it decides                                                                                                                                                       | Default                        |
 |--------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------|
 | Extension name                 | The human-readable name, such as `My Extension`.                                                                                                                      | `My Extension`                 |
-| Machine name                   | The machine name that files, classes and services are renamed after, such as `my_extension`. It starts with a lowercase letter and holds only lowercase letters, digits and underscores, or the installer stops with an error. | The extension name in lowercase, with underscores for spaces |
+| Machine name                   | The machine name that files, classes and services are renamed after, such as `my_extension`. It starts with a lowercase letter and holds only lowercase letters, digits and underscores. Any other name stops the installer with an error. | The extension name in lowercase, with underscores for spaces |
 | Extension type                 | Module or theme.                                                                                                                                                      | Module                         |
 | Target Drupal versions         | The Drupal majors your extension supports: 10, 11 and 12. They decide the CI jobs, `core_version_requirement`, the README badges and the version a local build uses. See [Drupal versions](development/drupal-versions.mdx). | 11                             |
 | Command wrapper                | Ahoy, Makefile, both or neither. Without a wrapper, you run the [tooling commands](development/tooling.mdx) yourself.                                                  | Neither                        |
@@ -80,7 +80,7 @@ Every answer can come from an environment variable instead, which helps in scrip
 
 ### Install from a download
 
-The installer also works on a copy of Eddy that you download yourself: any release, such as the [latest release](https://github.com/drevops/eddy/releases/latest), or the current code from **Code > Download ZIP** on GitHub. Expand the download into a new directory, then run the installer there to rewrite the files in place:
+The installer also works on a copy of Eddy that you download yourself. That copy can be any release, such as the [latest release](https://github.com/drevops/eddy/releases/latest), or the current code from **Code > Download ZIP** on GitHub. Expand the download into a new directory, then run the installer there to rewrite the files in place:
 
 ```bash
 php install.php
@@ -121,7 +121,7 @@ The installer works on the directory in place:
   - A command wrapper: its file and its command permission in `.claude/settings.json`.
   - The example lifecycle scripts, unless you keep them.
 
-  The README keeps a PHP badge for each PHP version your selected majors support, so a Drupal 10-only extension doesn't claim PHP 8.5.
+  The README keeps a badge for each PHP version your selected majors support, so a Drupal 10-only extension has no PHP 8.5 badge.
 - It turns `README.dist.md` and `CONTRIBUTING.dist.md` into your `README.md` and `CONTRIBUTING.md`, and downloads a placeholder `logo.png` with your extension name on it.
 - It deletes Eddy's own files: `.eddy/`, `MIGRATION.md`, `SECURITY.md`, `LICENSE.txt`, `logo.svg`, the `.github/workflows/eddy-*.yml` workflows and the Claude Code skills that maintain Eddy. `scripts/eddy-tooling` stays, because it installs the commands that your project runs. Drupal.org adds `LICENSE.txt` to every release it packages and [asks projects not to commit one](https://www.drupal.org/node/1663716). GitHub reads a license only from a license file, so the README's license badge states GPL-2.0-or-later itself.
 - It uncomments the `export-ignore` lines of `.gitattributes`, so the release archives that Drupal.org packages leave out the development files, such as `composer.dev.json`, `scripts` and `tests`.
@@ -133,7 +133,7 @@ The installer works on the directory in place:
 
   A repository created with **Use this template** commits the template's own `test.yml`, which doesn't count. Such a repository gets `1.x` unless you set `INSTALL_BRANCHES`. [Deployment](deployment/README.mdx) explains how to build and deploy other branches.
 - It sets `extra.eddy.drupal-version` in `composer.dev.json` to the Drupal major that a local build uses by default.
-- It records the Eddy release you installed as `extra.eddy.version` in `composer.dev.json`, so a later [update](updating/README.mdx) knows where your project started. A branch download or the development version records its commit instead, such as `5.0.0-3-g1a2b3c4`, and a clone records nothing.
+- It records the Eddy release you installed as `extra.eddy.version` in `composer.dev.json`, so a later [update](updating/README.mdx) can tell your changes from the template's. A branch download or the development version records its commit instead, such as `5.0.0-3-g1a2b3c4`. A clone records nothing.
 
 The installer names your GitHub repository in the README badges. It takes the repository from the first of these that applies:
 

@@ -49,7 +49,7 @@ The coverage run needs pcov. It writes a Clover file to `.eddy/tests/.logs/cover
 
 The suite writes Clover, where the `phpunit.xml` of a generated project writes Cobertura. Cobertura leaves out code outside functions, and most of every tooling command sits outside functions.
 
-`phpunit.xml` stops the run at the first error, failure, warning or risky test. A skipped test fails the run without stopping it. A run that stops at a warning or a risky test can still print an "OK, but there were issues!" footer, so check the exit code: a failed run exits with 1. To see how many tests the run should have reached, run it again with the same options and `--list-tests`, which prints 1 line per test.
+`phpunit.xml` stops the run at the first error, failure, warning or risky test. A skipped test fails the run without stopping it. A run that stops at a warning or a risky test can still print an "OK, but there were issues!" footer. So check the exit code: a failed run exits with 1. To see how many tests the run should have reached, run it again with the same options and `--list-tests`, which prints 1 line per test.
 
 ## Test groups
 
@@ -94,7 +94,7 @@ To regenerate the fixtures:
 The `Test Eddy` workflow, `.github/workflows/eddy-test.yml`, runs on pushes to `main` and on pull requests against `main` or a `feature/**` branch. It has 3 jobs:
 
 - `eddy-test-tooling` runs the suite in the `p0` to `p5` groups on Ubuntu and macOS. It runs `p3` and `p4` once per WebDriver backend: Selenium on Ubuntu only and chromedriver on both. Its `p0` jobs also lint the suite, validate the `composer.json` files of the suite and the tooling and check that they're normalized.
-- `eddy-test-docs` builds and tests these docs, and deploys them to Netlify (see [Documentation](documentation.mdx)).
+- `eddy-test-docs` builds and tests these docs and deploys them to Netlify (see [Documentation](documentation.mdx)).
 - `eddy-test-actions` lints the workflows with yamllint and actionlint, and checks them for security issues with Zizmor.
 
 `install.php` deletes every `.github/workflows/eddy-*.yml` from generated projects (see [What lives where](README.mdx#what-lives-where)).
