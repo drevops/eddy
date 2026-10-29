@@ -226,7 +226,7 @@ When the command line of the running server already holds `xdebug.mode=debug`, t
 
 The XDebug settings apply only to the development server, so the tests still collect code coverage with [pcov](https://github.com/krakjoe/pcov).
 
-To start and stop debug sessions from your browser, install the Xdebug Helper extension for [Chrome](https://chromewebstore.google.com/detail/xdebug-helper-by-jetbrain/aoelhdemabeimdhedkidlnbkfhnhgnhm) or [Firefox](https://addons.mozilla.org/en-US/firefox/addon/xdebug-helper-by-jetbrains/).
+With XDebug on, every request starts a debug session, so a browser extension that sets the XDebug trigger has no effect. To skip debugging, stop listening in your IDE.
 
 ## Coding standards
 
