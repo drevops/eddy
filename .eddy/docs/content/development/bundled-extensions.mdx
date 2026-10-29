@@ -6,7 +6,7 @@ description: Ship a module with your theme or a theme with your module, for the 
 
 # Bundled extensions
 
-Your project is 1 extension, and it can bundle others. A theme can bring a module that provides its blocks, and a module can bring a theme for its tests. Either can carry extensions that only its tests use. Eddy doesn't set this up for you: the configurations the installer generates name only your extension's type, so bundling another extension takes a few manual steps, which this page walks through.
+Your project is 1 extension, and it can bundle others. A theme can bring a module that provides its blocks, and a module can bring a theme for its tests. Either can carry extensions that only its tests use. The tool configurations that the installer generates name only the custom directory of your extension's type, so a bundled extension takes a few manual steps. This page covers where bundled extensions go, how to enable them on your site and in tests, and what the tooling checks.
 
 ## Where they go
 
@@ -19,46 +19,60 @@ Put each bundled extension in a directory of its own. The following table lists 
 | `tests/modules/<name>/` | A module that only your tests use       | No           |
 | `tests/themes/<name>/`  | A theme that only your tests use        | No           |
 
-While you keep PHPUnit, `.gitattributes` keeps `tests/` out of the release archives that Drupal.org packages, so a site that installs a release of yours doesn't get the test-only extensions. Without PHPUnit, the installer removes `tests/` and its `.gitattributes` entry, so a `tests/` directory you add later ships in your releases until you add `tests export-ignore` to `.gitattributes`.
+While you keep PHPUnit, `.gitattributes` keeps `tests/` out of the release archives that Drupal.org packages. A site that installs a release of yours then gets no test-only extensions. Without PHPUnit, the installer removes `tests/` and its `.gitattributes` entry. A `tests/` directory you add later ships in your releases until you add `tests export-ignore` to `.gitattributes`.
 
 ## How Drupal finds them
 
-`assemble` assembles the site in the `build` directory, and the paths on this page that start with `web/` are relative to it. It creates your extension's directory at `web/modules/custom/<your_extension>`, or `web/themes/custom/<your_extension>` for a theme. The directory holds a symlink to every top-level item of your project apart from `build`, `vendor` and hidden items, so a bundled extension arrives inside yours.
+`assemble` assembles the site in the `build` directory. The paths on this page that start with `web/` are relative to `build`. `assemble` creates your extension's directory at `web/modules/custom/<your_extension>`, or `web/themes/custom/<your_extension>` for a theme. The directory holds a symlink to every top-level item of your project apart from `build`, `vendor` and hidden items, so a bundled extension arrives inside yours.
 
-Drupal finds extensions at any depth below the site's `web/modules` and `web/themes` directories, and it reads each one's type from its own `.info.yml`. A module inside a theme's directory is found as a module, and a theme inside a module's directory as a theme. Drupal core relies on this too: the System module holds dozens of test themes.
+Drupal finds extensions at any depth below the site's `web/modules` and `web/themes` directories, and it reads each one's type from its own `.info.yml`. A module inside a theme's directory is found as a module, and a theme inside a module's directory as a theme.
 
-So there's no mapping step. Adding one anyway, such as a second symlink to the same module in `web/modules/custom`, makes Drupal find the module twice and keep 1 copy, with no warning.
+Add no mapping of your own. A second symlink to the same module in `web/modules/custom` makes Drupal find the module twice and keep 1 copy, with no warning.
 
 A few limits apply:
 
-- Drupal doesn't look inside hidden directories or directories named `src`, `lib`, `vendor`, `assets`, `css`, `files`, `images`, `js`, `misc`, `templates`, `includes`, `fixtures`, `Drupal` or `config`. The site's settings add `node_modules` and `bower_components` to that list. A bundled extension can't live in any of them.
-- Outside test runs, Drupal skips `tests/` directories, unless `$settings['extension_discovery_scan_tests']` is `TRUE`. A test-only extension exists for PHPUnit but not for your development site, so put one you also need on the site in your project's `modules/` or `themes/` directory instead.
+- Drupal skips hidden directories and directories named `src`, `lib`, `vendor`, `assets`, `css`, `files`, `images`, `js`, `misc`, `templates`, `includes`, `fixtures`, `Drupal` or `config`. The site's settings add `node_modules` and `bower_components` to that list. A bundled extension can't live in any of them.
+- Outside test runs, Drupal skips `tests/` directories, unless `$settings['extension_discovery_scan_tests']` is `TRUE`. A test-only extension exists for PHPUnit only. Put one that your development site needs too in your project's `modules/` or `themes/` directory.
 - Machine names are shared by the whole site, so give a bundled extension a name no other extension uses. Of 2 extensions of the same type that share 1 name, Drupal keeps 1 and drops the other with no warning. When a module and a theme share 1 name, the one that installs second fails.
 
 ## Enable a bundled extension on your site
 
-`provision` enables your extension, the `drupal/*` extensions in `suggest` and the extensions of the install profile, and nothing else. To enable a bundled extension, add a [`provision-*.sh` lifecycle script](lifecycle-scripts.mdx) to `scripts/`, which runs after your extension is enabled:
+`provision` enables your extension, the `drupal/*` extensions in the `suggest` section of `composer.json` and the extensions of the install profile. A [`provision-*.sh` lifecycle script](lifecycle-scripts.mdx) in `scripts/` runs after that, so it can enable a bundled extension.
 
-```bash title="scripts/provision-bundled.sh"
-#!/usr/bin/env bash
-##
-# Enable the module that the theme bundles.
+To enable a bundled module from a lifecycle script:
 
-set -eu
+1. Create `scripts/provision-bundled.sh` with the following content:
 
-build/vendor/bin/drush -l "$(vendor/bin/eddy-info site-url)" pm:enable my_theme_blocks -y
-```
+   ```bash title="scripts/provision-bundled.sh"
+   #!/usr/bin/env bash
+   ##
+   # Enable the module that the theme bundles.
 
-Make the script executable with `chmod +x`. For a bundled theme, use `theme:enable` instead of `pm:enable`.
+   set -eu
 
-A theme can't list a bundled module in its `dependencies`. `provision` enables the theme before your script runs, and Drupal stops with an error when a theme's modules aren't installed yet. Leave the module out of `dependencies` and enable it from the script. Without the dependency, a site that installs a release of your theme doesn't get the module enabled either, so tell the maintainers of those sites to enable the module, such as in your README.
+   build/vendor/bin/drush -l "$(vendor/bin/eddy-info site-url)" pm:enable my_theme_blocks -y
+   ```
+
+   For a bundled theme, use `theme:enable` in place of `pm:enable`.
+
+2. Make the script executable with `chmod +x scripts/provision-bundled.sh`.
+3. Run `provision` again with `make provision`, `ahoy provision` or `vendor/bin/eddy-provision`. The script runs at the end of every `provision`, including the one that `build` runs.
+4. Confirm that the module is enabled. The following commands list the enabled modules, 1 per setup, and the list includes `my_theme_blocks`:
+
+   ```bash
+   make drush -- pm:list --status=enabled --type=module
+   ahoy drush pm:list --status=enabled --type=module
+   build/vendor/bin/drush -l "$(vendor/bin/eddy-info site-url)" pm:list --status=enabled --type=module
+   ```
+
+Leave a bundled module out of your theme's `dependencies`. `provision` enables the theme before your script runs, and Drupal stops with an error when a theme's modules aren't installed yet. Without the dependency, a site that installs a release of your theme gets the module but doesn't enable it. Tell the maintainers of those sites to enable the module, such as in your README.
 
 ## Use a bundled extension in tests
 
 Test runs find extensions under `tests/` too, so a test uses a bundled extension the way it uses any other. A Kernel test lists a bundled module in `$modules`:
 
 ```php
-protected static $modules = ['my_theme_test'];
+protected static $modules = ['my_theme_blocks'];
 ```
 
 To install a bundled theme in a Kernel test:
@@ -75,13 +89,13 @@ A Functional test can also set `$defaultTheme` to a bundled theme.
 
 ## What the tooling covers
 
-The tool configurations name only the custom directory of your extension's type, `web/modules/custom` or `web/themes/custom`, and everything you bundle sits under your extension inside it. That decides what runs without changes:
+The tool configurations name only the custom directory of your extension's type, `web/modules/custom` or `web/themes/custom`. Everything you bundle sits under your extension inside that directory. The tools cover bundled extensions as follows:
 
-- PHPCS, PHPStan, Rector, Twig CS Fixer, ESLint and Stylelint check your bundled extensions along with your own code, and CSpell checks the whole project apart from hidden paths.
-- PHPUnit runs the tests in your extension's `tests/src` only. A bundled extension's own tests run after you add their directories to the testsuites of `phpunit.xml`, such as `web/themes/custom/*/modules/*/tests/src/Unit`, and to `phpunit.d10.xml` when you target Drupal 10. Add the matching `tests` directory to the `<exclude>` of the coverage source as well, so the test classes don't count as uncovered code.
-- PHPUnit counts the `.php` files of a bundled extension toward coverage, and the hook files of a bundled extension of your own type: `.module` and `.install` in a module, `.theme` in a theme. Other files, such as `.inc` files, don't count. A bundled theme's `.theme` file in a module, or a bundled module's `.module` and `.install` files in a theme, count only after you add a `<directory suffix=".theme">`, `<directory suffix=".module">` or `<directory suffix=".install">` line for them.
-- Jest runs the `*.test.js` files in the `js/` directory of each extension directly inside the `dirs` of `jest.config.js`. To run a bundled extension's tests, add the directory that holds it, such as `web/themes/custom/my_theme/modules`, to `dirs`.
+- PHPCS, PHPStan, Rector, Twig CS Fixer, ESLint and Stylelint check your bundled extensions along with your own code. CSpell checks the whole project apart from hidden paths.
+- PHPUnit runs the tests in your extension's `tests/src` only. To run a bundled extension's own tests, add their directories to the testsuites of `phpunit.xml`, such as `web/themes/custom/*/modules/*/tests/src/Unit`. When you target Drupal 10, add them to `phpunit.d10.xml` too. Add the matching `tests` directory to the `<exclude>` of the coverage source as well, so the test classes don't count as uncovered code.
+- PHPUnit counts the `.php` files of a bundled extension toward coverage. It also counts the hook files of a bundled extension of your own type: `.module` and `.install` in a module, `.theme` in a theme. Other files, such as `.inc` files, don't count. For the hook files of the other type, add a `<directory suffix=".theme">`, `<directory suffix=".module">` or `<directory suffix=".install">` line to the coverage source.
+- Jest runs the `*.test.js` files in the `js/` directory of each extension directly inside the `dirs` of `jest.config.js`. To run a bundled extension's tests, add the directory that holds the extension, such as `web/themes/custom/my_theme/modules`, to `dirs`.
 
-`assemble` copies these configuration files into `build`, so run it again after you edit one.
+`assemble` copies these configuration files into `build`, so run `assemble` again after you edit one (see [Build the site](building.mdx)).
 
-The PHP and JavaScript tools check nothing outside your extension's type directory in the site, and CSpell checks only your project, so an extension of the other type that comes in through `suggest` can't fail your checks.
+The PHP and JavaScript tools check only the custom directory of your extension's type, and CSpell checks only your project. So an extension of the other type that `suggest` installs can't fail your checks.

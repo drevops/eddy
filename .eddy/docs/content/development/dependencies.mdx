@@ -6,13 +6,13 @@ description: Patch dependencies, test against other extensions, add frontend pac
 
 # Dependencies
 
-Your extension's `composer.json` lists what it needs to run, and its `require-dev` lists what its tests need, which Drupal.org's own CI installs too. What only the Eddy build needs, such as the linters, the test tooling and Drush, goes in `composer.dev.json` instead. This page covers patches, extensions you test against, frontend packages and the GitHub token that avoids rate limits.
+Your extension's `composer.json` lists what the extension needs to run. Its `require-dev` lists the packages your tests use, such as a module that a test enables, and Drupal.org's own CI installs them too. The tools that only the Eddy build runs, such as the linters, PHPUnit and Drush, go in `composer.dev.json`. This page covers patches, extensions you test against, frontend packages and the GitHub token that avoids rate limits.
 
-The build merges both files into the site, and `composer.dev.json` wins where both set the same key. A few keys belong to the build itself and win over both files: the core version pins, `minimum-stability`, `prefer-stable` and the versions of the test tools that fit the Drupal major. Neither `require-dev` nor `composer.dev.json` reaches a site that installs your extension.
+The build merges `composer.json` and `composer.dev.json` into the site, and `composer.dev.json` wins where both set the same key. A few keys belong to the build itself and win over both files: the core version pins, `minimum-stability`, `prefer-stable` and the versions of the test tools that fit the Drupal major. Neither `require-dev` nor `composer.dev.json` reaches a site that installs your extension.
 
 ## Patch dependencies
 
-The build installs [`cweagans/composer-patches`](https://github.com/cweagans/composer-patches) 2.x and applies the patches declared in the `patches` section of `composer.dev.json` or `composer.json`. Each entry maps a description to a local path or a URL:
+The build installs [`cweagans/composer-patches`](https://github.com/cweagans/composer-patches) 2.x and applies the patches declared under `extra.patches` in `composer.dev.json` or `composer.json`. Each entry maps a description to a local path or a URL:
 
 ```json
 "extra": {
@@ -24,10 +24,10 @@ The build installs [`cweagans/composer-patches`](https://github.com/cweagans/com
 }
 ```
 
-A patch that no longer applies fails the build, so you find out as soon as a dependency update conflicts with it. Where you declare a patch decides where it applies:
+A patch that no longer applies fails the build, so you find out as soon as a dependency update conflicts with it. The file you declare a patch in sets where the patch applies:
 
-- `composer.dev.json` - the Eddy build only, locally and on GitHub Actions. Drupal.org GitLab CI doesn't read it. Use it for patches that only your tests need, and keep their files in the `patches` directory of your project, which the build copies into `build/`.
-- `composer.json` - the build, [Drupal.org GitLab CI](../continuous-integration/drupal-ci.mdx), which reads this format with composer-patches 1.x, and any site that installs your extension with composer-patches 2.x. Refer to these patches by a public URL, since a local `patches/` path doesn't exist on that site.
+- `composer.dev.json` - the Eddy build only, locally and on GitHub Actions. Drupal.org GitLab CI ignores it. Use it for patches that only your tests need. Keep their files in the `patches` directory of your project, which the build copies into `build/`.
+- `composer.json` - the build, [Drupal.org GitLab CI](../continuous-integration/drupal-ci.mdx) and any site that installs your extension and uses composer-patches 2.x. GitLab CI applies them with composer-patches 1.x, which reads the same format. Refer to these patches by a public URL, because a site that installs your extension has no `patches/` directory.
 
 Patches for `drevops/eddy-tooling` itself go in `composer.dev.json` only. The build leaves them out, and `scripts/eddy-tooling` applies them when it installs [the tooling package](tooling.mdx#patch-the-package).
 
@@ -41,19 +41,19 @@ To test your extension together with other extensions, add them to the `suggest`
 }
 ```
 
-The build adds each suggested dependency to the codebase, unless `require` or `require-dev` already has it, and [provisioning](provisioning.mdx) enables each `drupal/*` one, whether the build added it or `require` or `require-dev` already had it. A site that installs your extension doesn't get them, since Composer only suggests them. To pin the version that the build installs, add a constraint to the key, such as `drupal/linkit:^7.0`, which the build passes to `composer require`.
+The build adds each suggested dependency that `require` and `require-dev` don't already list. [Provisioning](provisioning.mdx) then enables every suggested `drupal/*` package, including one that `require` or `require-dev` lists. A site that installs your extension doesn't install suggested packages. To pin the version that the build installs, add a constraint to the key, such as `drupal/linkit:^7.0`. The build passes the key to `composer require` as it is.
 
-Provisioning enables a suggested `drupal/*` package as a theme when its Composer `type` is `drupal-theme` or `drupal-custom-theme`, and as a module otherwise. Enabling a theme doesn't make it the default or the admin theme. To set either, add a [`provision-*.sh` lifecycle script](lifecycle-scripts.mdx#an-example) that sets `default` or `admin` in the `system.theme` configuration, the way the example there sets the site name.
+Provisioning enables a suggested `drupal/*` package as a theme when its Composer `type` is `drupal-theme` or `drupal-custom-theme`, and as a module otherwise. Enabling a theme leaves the default and the admin theme as they are. To set either, add a [`provision-*.sh` lifecycle script](lifecycle-scripts.mdx#an-example) that sets `default` or `admin` in the `system.theme` configuration, the way the example there sets the site name.
 
 ## Frontend dependencies
 
 Add the frontend dependencies your tests need to `package.json`, and commit `package-lock.json` with it. When your project has a `package-lock.json`, `assemble` runs `npm ci` and `npm run build` in the `build` directory. So `package.json` needs a `build` script, even one that does nothing: the template's `build` script prints `Would run build`.
 
-When your project has an `.nvmrc`, `assemble` runs both commands on the Node.js version it names, using [nvm](https://github.com/nvm-sh/nvm). It loads nvm from `NVM_DIR`, or from the directory nvm installs to by default: `$XDG_CONFIG_HOME/nvm`, or `~/.nvm`. When nvm doesn't have that version yet, `nvm install` fetches it. Without nvm, `assemble` says so in its output and runs npm with the Node.js on your `PATH`.
+When your project has an `.nvmrc`, `assemble` runs both commands on the Node.js version it names, using [nvm](https://github.com/nvm-sh/nvm). It loads nvm from `NVM_DIR`, or from the directory nvm installs to by default: `$XDG_CONFIG_HOME/nvm`, or `~/.nvm`. When nvm doesn't have that version yet, `nvm install` fetches it. Without nvm, `assemble` prints a note and runs npm with the Node.js on your `PATH`.
 
-To skip both commands, commit an empty `.skip_npm_build` file to the root of your project. It also turns off the JavaScript and CSS linting (ESLint, Stylelint and Prettier, which runs through ESLint) and the Jest tests, since those run from the `node_modules` the build would have installed. CSpell still runs, because it runs from the project root, and `lint` installs the dependencies of the root `package.json` for it when they're missing.
+To skip both commands, commit an empty `.skip_npm_build` file to the root of your project. The file also turns off the JavaScript and CSS linting and the Jest tests, because those tools run from the build's `node_modules`. The linting covers ESLint, Stylelint and Prettier, which runs through ESLint. CSpell still runs from the project root, and `lint` installs the dependencies of the root `package.json` for it when they're missing.
 
-When you keep none of ESLint, Stylelint, CSpell and Jest, the installer removes `package.json`, `package-lock.json` and the Node.js steps of the CI lint job. If your extension needs frontend dependencies later, add a `package.json` of your own, with a `build` script, and its `package-lock.json`.
+When you keep none of ESLint, Stylelint, CSpell and Jest, the installer removes `package.json`, `package-lock.json`, the Node.js steps of the CI lint job and the npm configuration of `renovate.json`. To add frontend dependencies later, add a `package.json` of your own, with a `build` script, and its `package-lock.json`. With Renovate, also copy the npm parts of Eddy's [`renovate.json`](https://github.com/drevops/eddy/blob/main/renovate.json) into yours: `"npm"` in `enabledManagers`, the 2 `packageRules` that match `npm` and the `lockFileMaintenance` block.
 
 ## Set `GITHUB_TOKEN`
 
@@ -63,6 +63,6 @@ Composer downloads many packages through the GitHub API, which limits how many r
 export GITHUB_TOKEN=<your-token>
 ```
 
-The build passes the token to its own Composer commands through `COMPOSER_AUTH`. When `COMPOSER_AUTH` is already set, in your shell or `.env`, the build uses it as it is and leaves `GITHUB_TOKEN` out. It leaves your global Composer configuration alone. CI passes the workflow's own token the same way.
+The build passes the token to its own Composer commands through `COMPOSER_AUTH`, and your global Composer configuration stays as it is. When `COMPOSER_AUTH` is already set, in your shell or `.env`, the build uses it as it is and leaves `GITHUB_TOKEN` out. CI passes the workflow's own token the same way.
 
-`make` and Ahoy also read the token from `.env`. Without a wrapper, `eddy-assemble` reads it from `.env` too, but `scripts/eddy-tooling` reads it from the environment only, so export it in your shell.
+`make`, Ahoy and `eddy-assemble` also read the token from `.env`. `scripts/eddy-tooling` reads it from the environment only, so export it in your shell.

@@ -6,13 +6,13 @@ description: The drevops/eddy-tooling package holds the commands that build, run
 
 # Tooling package
 
-The commands that assemble, start, provision and deploy your extension come from the [`drevops/eddy-tooling`](https://github.com/drevops/eddy-tooling) Composer package, so fixes reach you through a version constraint rather than a manual merge. The `make` and Ahoy commands call them and CI calls them. You can also run them yourself as `vendor/bin/eddy-<command>` from the project root. This page explains how the package gets installed, what each command does and how to change one.
+The commands that assemble, start, provision and deploy your extension come from the [`drevops/eddy-tooling`](https://github.com/drevops/eddy-tooling) Composer package, so fixes reach your project through a version constraint. The `make` and Ahoy commands and CI call them, and you can run them yourself as `vendor/bin/eddy-<command>` from the project root. This page covers how the package gets installed, what each command does and how to change one.
 
-The package is published from the `.eddy/tooling` directory of Eddy, so report bugs and propose changes in [drevops/eddy](https://github.com/drevops/eddy/issues), not in the package's read-only mirror.
+The package is published from the `.eddy/tooling` directory of Eddy, and its own repository is a read-only mirror. Report bugs and propose changes in [drevops/eddy](https://github.com/drevops/eddy/issues).
 
 ## How it's installed
 
-A project created from Eddy doesn't install the package with a plain `composer install`: its `composer.json` belongs to the extension, and the tooling assembles the Drupal site into `build` itself. `scripts/eddy-tooling` installs the package into `vendor/` instead, with each command in `vendor/bin/eddy-*`. `make` and Ahoy run the installer before the commands that need it, and CI runs it as a step of its own. Without `make` or Ahoy, run it yourself first:
+Your project's `composer.json` belongs to the extension, and the tooling assembles the Drupal site into `build` itself. So `scripts/eddy-tooling` installs the package into `vendor/`, with each command in `vendor/bin/eddy-*`. `make` and Ahoy run the installer before the commands that need it, and CI runs it as a step of its own. Without `make` or Ahoy, run it yourself first:
 
 ```bash
 scripts/eddy-tooling
@@ -26,7 +26,7 @@ The version constraint lives in `composer.dev.json`:
 }
 ```
 
-Keep the `~` constraint. It accepts patch releases and holds the minor version, so CI picks up fixes on its own, and a new minor version arrives with the next [scaffold update](../updating/README.mdx) rather than in the middle of a CI run. A scaffold update also raises the constraint whenever the new scaffold needs a newer release, so the next run of the installer replaces a release that lacks what the scaffold calls.
+Keep the `~` constraint. It accepts patch releases and holds the minor version, so CI picks up fixes on its own. A new minor version arrives only with the next [scaffold update](../updating/README.mdx), so CI never switches to it on its own. A scaffold update also raises the constraint whenever the new scaffold needs a newer release. The next run of the installer then replaces a release that lacks what the scaffold calls.
 
 The installer records what it installed in `vendor/eddy-tooling.json`, and runs Composer only in these cases:
 
@@ -35,7 +35,7 @@ The installer records what it installed in `vendor/eddy-tooling.json`, and runs 
 - `vendor/eddy-tooling.json` is missing, such as after [`reset`](building.mdx#other-commands-along-the-way) removes `vendor/`.
 - A command of the installed package is missing from `vendor/bin`.
 
-Otherwise it returns straight away, so running it before each command costs next to nothing. That's also why a local checkout keeps its patch release until `vendor/` is removed, while CI, which installs from scratch, takes the newest one on every run. To take the newest patch release locally without removing `vendor/`, delete `vendor/eddy-tooling.json`, and the installer reinstalls the package the next time it runs.
+Otherwise it returns straight away, so running it before each command costs next to nothing. A local checkout keeps its patch release until `vendor/` is removed. CI installs from scratch, so it takes the newest patch release on every run. To take the newest patch release locally and keep `vendor/`, delete `vendor/eddy-tooling.json`. The installer reinstalls the package the next time it runs.
 
 The package requires PHP 8.3 or newer, so every CI job and local build that installs it needs PHP 8.3 or newer too.
 
@@ -89,7 +89,7 @@ These pages describe each command in detail:
 | `xdebug`            | `enabled` or `disabled` for the running webserver, or `-` when it isn't running.              |
 | `webdriver-port`    | The WebDriver port, from `WEBDRIVER_PORT`.                                                     |
 | `webdriver-backend` | The WebDriver backend, from `WEBDRIVER_BACKEND`: `chromedriver` or `selenium`.                 |
-| `webdriver-host`    | The value of `WEBDRIVER_HOST`. It prints an empty line rather than `-` when the variable isn't set, since the default depends on the backend. |
+| `webdriver-host`    | The value of `WEBDRIVER_HOST`. An empty line when the variable isn't set, since the default depends on the backend. |
 | `build-dir`         | The absolute path of the `build` directory.                                                   |
 | `database`          | The path of the SQLite database.                                                              |
 | `drupal-profile`    | The install profile, from `DRUPAL_PROFILE`.                                                    |
@@ -114,9 +114,9 @@ The package is installed into `vendor/`, so an edit made there is lost on the ne
 }
 ```
 
-The installer reads patches for the package from `composer.dev.json` only, and applies them with [`cweagans/composer-patches`](https://github.com/cweagans/composer-patches). A patch for the package in your extension's `composer.json` never reaches the tooling. Local patch paths are relative to the project root. The site build leaves out the package and its patch declarations, so it never applies them, although the patch files reach `build/patches` with the rest of the `patches` directory.
+The installer reads patches for the package from `composer.dev.json` only, and applies them with [`cweagans/composer-patches`](https://github.com/cweagans/composer-patches). A patch for the package in your extension's `composer.json` never reaches the tooling. Local patch paths are relative to the project root. The site build leaves out the package and its patch declarations, so it never applies them. The patch files still reach `build/patches` with the rest of the `patches` directory.
 
-Reach for a patch only when a [lifecycle script](lifecycle-scripts.mdx) can't do the job. A script adds a step to a phase, while a patch changes the command itself. A patch can also stop applying when a tooling release changes the lines it touches.
+Use a patch only when a [lifecycle script](lifecycle-scripts.mdx) can't do the job. A script adds a step to a phase, while a patch changes the command itself. A patch can also stop applying when a tooling release changes the lines it touches.
 
 ## How the package is tested
 
