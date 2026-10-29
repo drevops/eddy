@@ -40,6 +40,7 @@ Neither leaves a run of blank lines behind. When the lines they delete sit betwe
 | `EXTENSION_MODULE`, `EXTENSION_THEME`               | The extension is of the other type           |
 | `DEV_<TOOL>`, the `token` of a `tool_specs()` entry | The tool isn't selected                      |
 | `DEV_NODEJS_LINT`                                   | Neither ESLint nor Stylelint is selected     |
+| `DEV_LINT`                                          | No linter and no CSpell is selected          |
 | `DEV_NPM`                                           | No tool from `npm_specs()` is selected       |
 | `DEV_AHOY`, `DEV_MAKEFILE`                          | That command wrapper isn't selected          |
 | `DEV_COMMAND_WRAPPER`                               | No command wrapper is selected               |

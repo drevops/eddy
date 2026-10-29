@@ -230,7 +230,9 @@ To start and stop debug sessions from your browser, install the Xdebug Helper ex
 
 ## Coding standards
 
+<!-- #;< DEV_LINT -->
 The following tools check the codebase, each with its configuration file in the root of the project:
+<!-- #;> DEV_LINT -->
 <!-- #;< DEV_PHPCS -->
 - PHPCS checks PHP code against the `Drupal`, `DrupalPractice`, `DrevOps` and `PHPCompatibility` standards.
 <!-- #;> DEV_PHPCS -->

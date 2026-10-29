@@ -1407,6 +1407,11 @@ function remove_tools(array $tools_remove): void {
   }
 
   $php_lint = array_diff(['phpcs', 'phpstan', 'rector', 'twigcs'], $tools_remove) !== [];
+
+  if (!$php_lint && !$nodejs_lint && in_array('cspell', $tools_remove, TRUE)) {
+    remove_tokens_with_content('DEV_LINT');
+  }
+
   $languages = ['PHP' => $php_lint, 'JavaScript' => $nodejs_lint];
   replace_string_content(quality_tools_note(array_keys($languages)), quality_tools_note(array_keys(array_filter($languages))));
 
