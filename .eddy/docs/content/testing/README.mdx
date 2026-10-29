@@ -30,7 +30,7 @@ npm test`}
 
 The PHPUnit tests live in `tests/src`, in a directory per suite. The installer gives a module a working example test in each suite, mostly for its service, settings form and hooks. A theme gets 2 examples: a FunctionalJavascript test that renders pages with the theme as the default theme, and a Unit test of the hook in its `.theme` file. To run the tests of an extension you bundle with yours, see [Bundled extensions](../development/bundled-extensions.mdx#what-the-tooling-covers).
 
-`phpunit.xml` configures PHPUnit, and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both bootstrap Drupal with core's `web/core/tests/bootstrap.php` and fail a run on a PHPUnit warning. Only a Drupal 10 build reads `phpunit.d10.xml`, so the installer removes it when you don't select Drupal 10. `assemble` copies both files and `jest.config.js` into `build`, so run `assemble` again after you edit any of the 3.
+`phpunit.xml` configures PHPUnit, and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both bootstrap Drupal with core's `web/core/tests/bootstrap.php` and fail a run on a PHPUnit warning. Only a Drupal 10 build reads `phpunit.d10.xml`, so the installer removes it when you don't select Drupal 10. `assemble` copies `phpunit.xml` and `jest.config.js` into `build`, and in a Drupal 10 build it writes `phpunit.d10.xml` over `build/phpunit.xml`. Run `assemble` again after you edit any of these files.
 
 ## Run 1 suite
 

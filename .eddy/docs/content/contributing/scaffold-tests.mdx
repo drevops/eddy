@@ -97,6 +97,6 @@ The `Test Eddy` workflow, `.github/workflows/eddy-test.yml`, runs on pushes to `
 - `eddy-test-docs` builds and tests these docs, and deploys them to Netlify (see [Documentation](documentation.mdx)).
 - `eddy-test-actions` lints the workflows with yamllint and actionlint, and checks them for security issues with Zizmor.
 
-`install.php` deletes the workflows with the `eddy-` prefix from generated projects (see [What lives where](README.mdx#what-lives-where)).
+`install.php` deletes every `.github/workflows/eddy-*.yml` from generated projects (see [What lives where](README.mdx#what-lives-where)).
 
 {/* cspell:ignore ignorecontent */}

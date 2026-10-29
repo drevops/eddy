@@ -26,7 +26,7 @@ To build a Drupal website, use [Vortex](https://www.vortextemplate.com). The 2 t
 - 🧹 **[Coding standards](development/coding-standards.mdx)** - PHPCS with the `Drupal`, `DrupalPractice`, `DrevOps` and `PHPCompatibility` standards, PHPStan with [PHPStan Drupal](https://github.com/mglaman/phpstan-drupal), [Drupal Rector](https://github.com/palantirnet/drupal-rector), [Twig CS Fixer](https://github.com/VincentLanglet/Twig-CS-Fixer), [ESLint](https://eslint.org/), [Stylelint](https://stylelint.io/), [CSpell](https://cspell.org/) and [Prettier](https://prettier.io/).
 - 🧪 **[Tests](testing/README.mdx)** - PHPUnit Unit, Kernel, Functional and FunctionalJavascript tests, in a local Chrome or a Selenium container, and JavaScript tests with [Jest](https://jestjs.io/).
 - 🚚 **[Deployment](deployment/README.mdx)** - mirroring of the code and its tags to Drupal.org, or any other git remote, after CI passes, optionally to a different destination branch.
-- 🤖 **[Renovate](updating/renovate.mdx)** - grouped pull requests that keep npm packages, GitHub Actions and Docker images up to date. You update Composer packages by hand.
+- 🤖 **[Renovate](updating/renovate.mdx)** - grouped pull requests that keep npm packages, GitHub Actions and Docker images up to date. You update the Composer constraints in `composer.json` by hand.
 - 📝 **Docs for your extension** - `README.md` and `CONTRIBUTING.md` templates.
 
 Eddy tests itself the way it tests a project created from it, and deploys to [drevops/eddy_destination](https://github.com/drevops/eddy_destination) as a working example.

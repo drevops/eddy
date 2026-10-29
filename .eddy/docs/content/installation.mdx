@@ -20,7 +20,7 @@ Make sure your machine has the following:
 - curl and tar
 - Node.js with npm, when you keep ESLint, Stylelint, CSpell or Jest
 - [Ahoy](https://github.com/ahoy-cli/ahoy) or Make, when you choose a command wrapper
-- Google Chrome or Docker, when you keep FunctionalJavascript tests
+- Google Chrome with a matching chromedriver, or with Node.js to download one, when you keep FunctionalJavascript tests. Docker replaces both after you set `WEBDRIVER_BACKEND=selenium` (see [FunctionalJavascript tests](testing/functional-javascript.mdx)).
 
 The installer itself needs only PHP, curl and tar: you download it with curl, and it expands the template with tar. The other tools build, check and test the site. To publish your extension, you also need a GitHub account and push access to your project's repository on Drupal.org.
 

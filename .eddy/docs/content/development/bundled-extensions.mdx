@@ -56,7 +56,7 @@ To enable a bundled module from a lifecycle script:
    For a bundled theme, use `theme:enable` in place of `pm:enable`.
 
 2. Make the script executable with `chmod +x scripts/provision-bundled.sh`.
-3. Run `provision` again with `make provision`, `ahoy provision` or `vendor/bin/eddy-provision`. The script runs at the end of every `provision`, including the one that `build` runs.
+3. Run `provision` again with `make provision`, `ahoy provision` or `vendor/bin/eddy-provision`. The script runs at the end of every `provision`, including the one that `build` runs. `provision` reinstalls the site, so to keep the content you added, run `scripts/provision-bundled.sh` on its own from the project root.
 4. Confirm that the module is enabled. The following commands list the enabled modules, 1 per setup, and the list includes `my_theme_blocks`:
 
    ```bash

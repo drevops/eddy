@@ -20,8 +20,8 @@ To add GitLab CI with that override:
      _PHPUNIT_EXTRA: '--no-coverage'
    ```
 
-3. Commit the file and push it to GitHub. The deployment mirrors it to Drupal.org.
+3. Commit the file and push it to a branch that [deploys](../deployment/README.mdx#what-deploys). The deployment mirrors it to Drupal.org.
 
-Confirm that the pipeline passes on the **Pipelines** page of your project's repository on [git.drupalcode.org](https://git.drupalcode.org).
+Confirm that the pipeline passes on the **Pipelines** page of your project's repository on [git.drupalcode.org](https://git.drupalcode.org). The templates start a pipeline for a push to the default branch, a tag or a merge request. For any other branch, start one with **Run pipeline** on that page.
 
 GitLab CI applies the patches declared in your extension's `composer.json` with composer-patches 1.x, and ignores the ones in `composer.dev.json`. So a patch that your tests need on GitLab CI too goes in `composer.json`. See [Patch dependencies](../development/dependencies.mdx#patch-dependencies) for what each file's patches reach.

@@ -18,7 +18,7 @@ The project root holds a working Drupal module, the demo extension. The rest of 
 - `scripts/eddy-tooling` - installs the `drevops/eddy-tooling` package into `vendor/`. The package's commands build, provision and deploy the extension. Generated projects get the package from Packagist. This repository installs `.eddy/tooling` as a symlink, so an edit there applies to the next command without a release.
 - `.eddy/` - everything used to develop and test the scaffold itself, including the source of the tooling package. `install.php` removes it from generated projects.
 - `.claude/skills/` - the Claude Code skills for maintaining the scaffold, such as `create-eddy-tooling-release-notes`. `install.php` removes each skill that its `eddy_skills()` function lists from generated projects, so add a new skill to that list. `InstallHelpersTest` fails until the list matches the skills that git tracks in `.claude/skills/`.
-- `.github/workflows/eddy-*.yml` - the workflows that test Eddy and publish the tooling and these docs. `install.php` deletes every workflow with the `eddy-` prefix from generated projects, so give the prefix only to a workflow that stays in Eddy.
+- `.github/workflows/eddy-*.yml` - the workflows that test Eddy and publish the tooling and these docs. `install.php` deletes every `.github/workflows/eddy-*.yml` from generated projects, so give the prefix and the `.yml` extension only to a workflow that stays in Eddy.
 
 The `.eddy/` directory holds these parts:
 
