@@ -19,7 +19,7 @@ Your extension gets the following workflows. In the table, your branches are the
 | `Draft release notes` (`draft-release-notes.yml`) | Pushes to your branches and tags                    | Keeps a draft GitHub release up to date with the pull requests merged since the last published release.        |
 | `Auto Author Assign` (`assign-author.yml`) | Opened and reopened pull requests                          | Assigns each pull request to its author.                                                                       |
 
-The installer sets the branch filters of `test.yml` and `draft-release-notes.yml` from its `INSTALL_BRANCHES` environment variable, such as `1.x,2.x`. Without the variable, it sets them to `1.x`. See [What the installer changes](../installation.mdx#what-the-installer-changes) for the full rule. To build another branch later, such as `2.x`, add it to the `push` branches of both files and to the `pull_request` branches of `test.yml`.
+The installer sets the branch filters of `test.yml` and `draft-release-notes.yml` from its `INSTALL_BRANCHES` environment variable, such as `1.x,2.x`. Without the variable, it keeps the `push` branches of your committed `test.yml`, or sets them to `1.x`. See [What the installer changes](../installation.mdx#what-the-installer-changes) for the full rule. To build another branch later, such as `2.x`, add it to the `push` branches of both files and to the `pull_request` branches of `test.yml`.
 
 ## What each job runs
 
