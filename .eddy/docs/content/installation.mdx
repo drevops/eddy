@@ -8,21 +8,21 @@ import CommandTabs from '@site/src/components/CommandTabs';
 
 # Installation
 
-These steps take you from an empty directory to an extension that builds, passes its checks and deploys to Drupal.org. Each step links to the page with the details, so you can follow the list once and come back to the parts you need.
+Follow this page to create a Drupal module or theme from Eddy, starting in an empty directory. The [overview](#overview) then takes your extension through its first build, its checks and its first deployment to Drupal.org.
 
 ## Before you start
 
 Make sure your machine has the following:
 
 - PHP 8.3 or newer, with SQLite support. A Drupal 12 build needs PHP 8.5.
-- [Composer](https://getcomposer.org/).
-- Git.
-- curl, to download the installer, and tar, which the installer uses to expand the template.
-- Node.js with npm, when you keep ESLint, Stylelint, CSpell or Jest.
-- [Ahoy](https://github.com/ahoy-cli/ahoy) or Make, when you choose a command wrapper.
-- Google Chrome or Docker, when you keep FunctionalJavascript tests.
+- [Composer](https://getcomposer.org/)
+- Git
+- curl and tar
+- Node.js with npm, when you keep ESLint, Stylelint, CSpell or Jest
+- [Ahoy](https://github.com/ahoy-cli/ahoy) or Make, when you choose a command wrapper
+- Google Chrome or Docker, when you keep FunctionalJavascript tests
 
-The download and the installer need only PHP, curl and tar. The other tools are for building, checking and testing the site. To publish your extension, you also need a GitHub account and push access to your project's repository on Drupal.org.
+The installer itself needs only PHP, curl and tar: you download it with curl, and it expands the template with tar. The other tools build, check and test the site. To publish your extension, you also need a GitHub account and push access to your project's repository on Drupal.org.
 
 ## Overview
 
@@ -38,7 +38,7 @@ The download and the installer need only PHP, curl and tar. The other tools are 
 
 :::tip Starting from GitHub instead
 
-Eddy is a GitHub template, so you can also create your repository with **Use this template**, clone it and run the installer in the clone. The README badges then name your repository on their own. A clone doesn't record the Eddy release it came from, though, so the first [update](updating/README.mdx) can't tell your changes from the template's, and every difference comes up for a decision.
+Eddy is a GitHub template, so you can also create your repository with **Use this template**, clone it and run the installer in the clone. The installer then takes the repository for the README badges from the clone's `origin` remote. A clone doesn't record the Eddy release it came from. Without that record, the first [update](updating/README.mdx) can't tell your changes from the template's, so every difference comes up for a decision.
 
 :::
 
@@ -50,11 +50,11 @@ Download the installer into a new, empty directory and run it there:
 curl -fsSL https://eddy.drevops.com/install > install.php && php install.php
 ```
 
-The installer downloads the Eddy release that this site documents, the one in the footer, and expands it into the directory. Then it asks about your extension, renames and rewrites the template's files to match and removes what you didn't select. It finishes by deleting itself, unless you answer no to **Remove this script**. `php install.php --version` prints the release it installs.
+The installer downloads the Eddy release shown in this site's footer and expands it into the directory. Then it asks about your extension, renames and rewrites the template's files to match and removes what you didn't select. At the end, it deletes itself unless you answer no to **Remove this script**. `php install.php --version` prints the release it installs.
 
-The directory counts as empty while it holds nothing but `install.php` itself and hidden entries such as `.git`, so an empty repository you've cloned works too. A repository that GitHub created with a README or a license file isn't empty, so create yours without them. In a directory with other files, the installer works on the copy of Eddy that's already there, which it recognizes by `your_extension.info.yml` (see [Install from a download](#install-from-a-download)). Without one, it stops without changing anything.
+The directory counts as empty while it holds only `install.php` and hidden entries such as `.git`, so an empty repository you've cloned works too. Create your GitHub repository without a README or a license file, because either one makes the directory non-empty. In a directory with other files, the installer works on the copy of Eddy already there when the directory holds `your_extension.info.yml` (see [Install from a download](#install-from-a-download)). Otherwise, it stops and changes nothing.
 
-To install from another archive, such as one of a fork, set the `INSTALL_TEMPLATE_ARCHIVE` environment variable to its URL or path when you run the installer in the empty directory. It takes a `.tar.gz` archive with the files in 1 top-level directory, the layout that GitHub builds.
+To install from another archive, such as the archive of a fork, set the `INSTALL_TEMPLATE_ARCHIVE` environment variable to its URL or path when you run the installer in the empty directory. The variable takes a `.tar.gz` archive with the files in 1 top-level directory, the layout that GitHub builds.
 
 ![php install.php asking about the extension in a terminal, then installing it](../../assets/install.svg)
 
@@ -74,13 +74,13 @@ The installer asks the following questions:
 
 :::tip Skip the prompts
 
-Every answer can come from an environment variable instead, which is handy in scripts and for AI agents. `php install.php --help` lists them, along with `INSTALL_TEMPLATE_ARCHIVE`, `INSTALL_BRANCHES` and `INSTALL_GITHUB_REPOSITORY`, which no question asks for. Set a variable in front of `php install.php`, such as `INSTALL_BRANCHES=1.x,2.x php install.php`.
+Every answer can come from an environment variable instead, which helps in scripts and for AI agents. `php install.php --help` lists the variables. The list includes `INSTALL_TEMPLATE_ARCHIVE`, `INSTALL_BRANCHES` and `INSTALL_GITHUB_REPOSITORY`, which no question asks for. Set a variable in front of `php install.php`, such as `INSTALL_BRANCHES=1.x,2.x php install.php`.
 
 :::
 
 ### Install from a download
 
-The installer also works on a copy of Eddy you've downloaded yourself: the [latest release](https://github.com/drevops/eddy/releases/latest), another release or the current code with **Code** → **Download ZIP** in the GitHub UI. Expand it into a new directory and run the installer there, where it works on the files in place:
+The installer also works on a copy of Eddy that you download yourself: any release, such as the [latest release](https://github.com/drevops/eddy/releases/latest), or the current code from **Code > Download ZIP** on GitHub. Expand the download into a new directory, then run the installer there to rewrite the files in place:
 
 ```bash
 php install.php
@@ -88,7 +88,7 @@ php install.php
 
 ### Install the development version
 
-The [development site](https://drevops-eddy-docs.netlify.app) serves the installer of the `main` branch, for trying out changes that aren't released:
+To try changes that aren't released, run the installer of the `main` branch from the [development site](https://drevops-eddy-docs.netlify.app):
 
 ```bash
 curl -fsSL https://drevops-eddy-docs.netlify.app/install > install.php && php install.php
@@ -123,7 +123,7 @@ The installer works on the directory in place:
 
   The README keeps a PHP badge for each PHP version your selected majors support, so a Drupal 10-only extension doesn't claim PHP 8.5.
 - It turns `README.dist.md` and `CONTRIBUTING.dist.md` into your `README.md` and `CONTRIBUTING.md`, and downloads a placeholder `logo.png` with your extension name on it.
-- It deletes Eddy's own files: `.eddy/`, `MIGRATION.md`, `SECURITY.md`, `LICENSE.txt`, `logo.svg`, the `.github/workflows/eddy-*.yml` workflows and the Claude Code skills that maintain Eddy. `scripts/eddy-tooling` stays, since it installs the commands that your project runs. Drupal.org adds `LICENSE.txt` to every release it packages and [asks projects not to commit one](https://www.drupal.org/node/1663716), so the README's license badge states GPL-2.0-or-later instead of reading it from a license file.
+- It deletes Eddy's own files: `.eddy/`, `MIGRATION.md`, `SECURITY.md`, `LICENSE.txt`, `logo.svg`, the `.github/workflows/eddy-*.yml` workflows and the Claude Code skills that maintain Eddy. `scripts/eddy-tooling` stays, because it installs the commands that your project runs. Drupal.org adds `LICENSE.txt` to every release it packages and [asks projects not to commit one](https://www.drupal.org/node/1663716). GitHub reads a license only from a license file, so the README's license badge states GPL-2.0-or-later itself.
 - It uncomments the `export-ignore` lines of `.gitattributes`, so the release archives that Drupal.org packages leave out the development files, such as `composer.dev.json`, `scripts` and `tests`.
 - It sets the branch filters of the workflows from the first of these that applies:
 
@@ -131,11 +131,17 @@ The installer works on the directory in place:
   2. The `push` branches of the `.github/workflows/test.yml` that your project commits, when you run the installer on a copy of Eddy in the root of an existing project
   3. `1.x`
 
-  The template's own `test.yml`, which a repository created with **Use this template** commits, doesn't count, so such a repository gets `1.x` unless you set `INSTALL_BRANCHES`. [Deployment](deployment/README.mdx) explains how to build and deploy other branches.
+  A repository created with **Use this template** commits the template's own `test.yml`, which doesn't count. Such a repository gets `1.x` unless you set `INSTALL_BRANCHES`. [Deployment](deployment/README.mdx) explains how to build and deploy other branches.
 - It sets `extra.eddy.drupal-version` in `composer.dev.json` to the Drupal major that a local build uses by default.
 - It records the Eddy release you installed as `extra.eddy.version` in `composer.dev.json`, so a later [update](updating/README.mdx) knows where your project started. A branch download or the development version records its commit instead, such as `5.0.0-3-g1a2b3c4`, and a clone records nothing.
 
-The README badges name your GitHub repository. They take it from `INSTALL_GITHUB_REPOSITORY`, such as `owner/my_extension`, or from the GitHub `origin` when you run the installer in the root of a clone, such as an empty repository you've cloned. Otherwise they use your machine name for both the owner and the name. When you create the repository after the install, as the [overview](#overview) does, set `INSTALL_GITHUB_REPOSITORY` when you run the installer, or correct the badges in `README.md` before your first commit.
+The installer names your GitHub repository in the README badges. It takes the repository from the first of these that applies:
+
+1. `INSTALL_GITHUB_REPOSITORY`, such as `owner/my_extension`
+2. The GitHub `origin` remote, when you run the installer in the root of a clone
+3. Your machine name, as both the owner and the name
+
+The [overview](#overview) creates the repository after the install, so set `INSTALL_GITHUB_REPOSITORY` to its planned name when you run the installer. Otherwise, correct the badges in `README.md` before your first commit.
 
 ## Next steps
 
@@ -150,6 +156,6 @@ vendor/bin/eddy-start         # Start the PHP server
 vendor/bin/eddy-provision     # Provision the Drupal website`}
 />
 
-Confirm that the site works: the build ends with `provision`, which prints the site URL and a one-time login link that logs you in as `admin`.
+Confirm that the site works: `provision`, the last of these commands, prints the site URL and a one-time login link. The link logs you in as `admin`.
 
 Then work through the rest of the [overview](#overview): coding standards, tests, the GitHub repository, branch protection and deployment.

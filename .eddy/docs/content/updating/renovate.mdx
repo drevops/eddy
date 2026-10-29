@@ -6,27 +6,39 @@ description: How the bundled Renovate configuration keeps npm packages, GitHub A
 
 # Dependency updates
 
-Eddy includes a [Renovate](https://docs.renovatebot.com/) configuration, `renovate.json`, that keeps the GitHub Actions and Docker images in `.github/workflows/*.yml` up to date, and the npm packages in `package.json` within their major versions. Your extension gets it when you keep Renovate in the installer. To turn it on, install the [Renovate GitHub app](https://github.com/apps/renovate) on your repository. Without ESLint, Stylelint, CSpell and Jest, your extension has no `package.json`, so its `renovate.json` turns on only the GitHub Actions manager, with no npm package rules and no lock file maintenance. This page explains what Renovate does with this configuration, and what it leaves to you.
+Eddy includes `renovate.json`, a configuration for [Renovate](https://docs.renovatebot.com/). With it, Renovate updates the GitHub Actions and Docker images in `.github/workflows/*.yml`, and the npm packages in `package.json` within their major versions. This page covers what Renovate does with this configuration and what it leaves to you.
+
+Your extension gets `renovate.json` when you keep Renovate in the installer. To turn Renovate on, install the [Renovate GitHub app](https://github.com/apps/renovate) on your repository. An extension with none of ESLint, Stylelint, CSpell and Jest has no `package.json`. In that extension, `renovate.json` enables only the GitHub Actions manager, with no npm package rules or lock file maintenance.
 
 To add Renovate to an extension that left it out in the installer:
 
-1. Copy [`renovate.json`](https://github.com/drevops/eddy/blob/main/renovate.json) from Eddy into the root of your project. If your project has no `package.json`, remove `"npm"` from `enabledManagers`, the 2 `packageRules` that match `npm` and the `lockFileMaintenance` block.
-2. Add a `renovate.json export-ignore` line to `.gitattributes`, so the file stays out of the release archives that Drupal.org packages.
-3. Install the Renovate GitHub app on your repository.
+1. Copy [`renovate.json`](https://github.com/drevops/eddy/blob/main/renovate.json) from Eddy into the root of your project.
+2. If your project has no `package.json`, remove these parts of `renovate.json`:
+   - `"npm"` in `enabledManagers`
+   - The 2 `packageRules` that match `npm`
+   - The `lockFileMaintenance` block
+3. Add a `renovate.json export-ignore` line to `.gitattributes`. With that line, the release archives that Drupal.org packages leave the file out.
+4. Install the Renovate GitHub app on your repository.
 
 ## What it does
 
 With this configuration, Renovate works like this:
 
 - Minor, patch and digest updates share 1 pull request on the `deps/all` branch. Major updates of GitHub Actions and Docker images share another on `deps/major-all`.
-- Pull requests merge on their own after their checks pass. Renovate hands the merge to GitHub's auto-merge, which needs **Allow auto-merge** turned on in the repository's **Settings** → **General**. It waits only for the checks that [branch protection](../continuous-integration/branch-protection.mdx) requires, so set that up before you rely on it.
+- Renovate turns on GitHub's auto-merge for each pull request, so GitHub merges it after its checks pass. Auto-merge needs **Allow auto-merge** turned on in the repository's **Settings > General**. It waits only for the checks that [branch protection](../continuous-integration/branch-protection.mdx) requires, so set up branch protection before you rely on it.
 - GitHub Actions and Docker images are pinned to SHA digests.
 - Version ranges in `package.json` are bumped to the newest minor or patch release, such as `^1.2` to `^1.3`.
-- Once a week, Renovate rebuilds `package-lock.json` from scratch. When the result differs, it opens a pull request from the `deps/lock-file-maintenance` branch to your default branch, so the packages that your npm packages depend on move to the newest releases their ranges allow. Bumping a version in `package.json` doesn't do that: it leaves them at the versions the lock file already holds, as long as those still fit.
+- Once a week, Renovate rebuilds `package-lock.json` from scratch. When the result differs, it opens a pull request from the `deps/lock-file-maintenance` branch to your default branch. That pull request moves the dependencies of your npm packages to the newest releases their ranges allow. Between those pull requests, the lock file keeps each of those dependencies at its version while that version still fits.
 - A Dependency Dashboard issue tracks pending updates and detected problems.
 
 ## What it leaves to you
 
-The configuration turns on only Renovate's npm and GitHub Actions managers, and the GitHub Actions manager covers the Docker images that the workflows use too. So Renovate leaves the Composer packages in `composer.json` and `composer.dev.json` alone. It also leaves the major versions of npm packages and the `node` and `yarn` versions of `package.json`, such as `engines.node`, alone. Update the dependencies in `composer.json` by hand, to keep them compatible with Drupal.org packaging, and apply major npm updates by hand too. Every build resolves the `composer.dev.json` ranges to their newest releases anyway (see [How versions are resolved](../development/drupal-versions.mdx#how-versions-are-resolved)).
+The configuration enables only Renovate's npm and GitHub Actions managers. The GitHub Actions manager also covers the Docker images that the workflows use. Update these dependencies by hand:
+
+- The Composer packages in `composer.json`, keeping them compatible with Drupal.org packaging
+- Major versions of npm packages
+- The `node` and `yarn` versions of `package.json`, such as `engines.node`
+
+Every `assemble` resolves the ranges in `composer.dev.json` to their newest releases, so the packages listed there stay current without Renovate (see [How versions are resolved](../development/drupal-versions.mdx#how-versions-are-resolved)).
 
 See the [Renovate documentation](https://docs.renovatebot.com/configuration-options/) for every option.
