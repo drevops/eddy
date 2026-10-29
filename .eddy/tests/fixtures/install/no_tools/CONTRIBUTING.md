@@ -70,10 +70,11 @@
  ahoy debug      # restart with XDebug enabled
  ahoy start      # restart without XDebug
  ```
-@@ -134,17 +162,14 @@
+@@ -133,16 +161,11 @@
+ 
  ## Coding standards
  
- The following tools check the codebase, each with its configuration file in the root of the project:
+-The following tools check the codebase, each with its configuration file in the root of the project:
 -- PHPCS checks PHP code against the `Drupal`, `DrupalPractice`, `DrevOps` and `PHPCompatibility` standards.
 -- PHPStan analyzes PHP code statically.
 -- Drupal Rector finds deprecated PHP code and fixes it.
@@ -81,18 +82,16 @@
 -- ESLint checks JavaScript code.
 -- Stylelint checks CSS code.
 -- CSpell checks the spelling.
++To run every check:
  
- To run every check:
- 
- ```bash
+-To run every check:
++```bash
 +make lint
 +```
-+
-+```bash
- ahoy lint
- ```
  
-@@ -153,6 +178,10 @@
+ ```bash
+ ahoy lint
+@@ -153,6 +176,10 @@
  To fix the issues that have an automatic fix, run the fixers:
  
  ```bash
@@ -103,7 +102,7 @@
  ahoy lint-fix
  ```
  
-@@ -161,68 +190,9 @@
+@@ -161,68 +188,9 @@
  To run every test:
  
  ```bash
