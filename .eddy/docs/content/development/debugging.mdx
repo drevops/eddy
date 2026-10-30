@@ -8,7 +8,7 @@ import CommandTabs from '@site/src/components/CommandTabs';
 
 # Debug your extension
 
-When something goes wrong, you can step through the site's code with XDebug, watch the full output of a command or read the logs that the background processes write. This page covers all 3.
+This page covers 3 ways to find what went wrong. Step through the site's code with XDebug, watch the full output of a command or read the logs of the background processes.
 
 ## Step-debug with XDebug
 
@@ -32,13 +32,13 @@ To step-debug the site:
 5. When you're done, remove `XDEBUG` from `.env` and your shell if you set it there.
 6. Turn XDebug off with the preceding command marked `Restart without XDebug`.
 
-`make` and Ahoy also run `debug` as `debug-on`, `xdebug` or `xdebug-on`, and `start` as `debug-off` or `xdebug-off`. `debug` leaves a webserver that already runs with XDebug as it is.
+In `make` and Ahoy, `debug` has the aliases `debug-on`, `xdebug` and `xdebug-on`. `start` has the aliases `debug-off` and `xdebug-off`. `debug` leaves a webserver that already runs with XDebug as it is.
 
 The server runs with `xdebug.mode=debug` and `xdebug.start_with_request=yes`, so every request starts a debug session. A browser extension that sets the XDebug trigger has no effect here. To skip debugging, stop listening in your IDE.
 
 `XDEBUG` counts as unset only while it's empty or missing in your shell and in `.env`. Any other value turns XDebug on, `0` included. `debug` sets `XDEBUG` only for the server it starts and leaves `.env` as it is. When `XDEBUG` is set and the extension is missing, `start` stops with an error before it starts a server.
 
-Code coverage stays on [pcov](https://github.com/krakjoe/pcov), because the XDebug settings apply only to the webserver, not to the test commands.
+Code coverage stays on [pcov](https://github.com/krakjoe/pcov), because the XDebug settings apply only to the webserver.
 
 ## Command output
 

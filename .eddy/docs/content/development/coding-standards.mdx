@@ -50,7 +50,7 @@ The PHP and JavaScript tools run from the `build` directory, where the assembled
 
 `assemble` copies the configuration files of the PHP and JavaScript tools into `build`, so an edit to one applies after the next `assemble`. Edit the files in your project root, since the next `assemble` replaces the copies in `build`.
 
-CSpell runs from the project root and reads `.cspell.json` in place. It installs the root `package.json` dependencies first when `node_modules` is missing. It checks every text file that git doesn't ignore. It skips hidden files and directories, such as `.github`, and the paths in the `ignorePaths` of `.cspell.json`.
+CSpell runs from the project root and reads `.cspell.json` in place. It installs the root `package.json` dependencies first when `node_modules` is missing. It checks every text file that git doesn't ignore. It skips hidden files and directories, such as `.github`. It also skips the paths in the `ignorePaths` of `.cspell.json`.
 
 ## Fix what the linters report
 

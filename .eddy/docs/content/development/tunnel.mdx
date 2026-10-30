@@ -12,7 +12,7 @@ A remote development environment runs the PHP webserver on the `localhost` of a 
 
 :::warning Anyone with the URL can reach the site
 
-While the tunnel is up, the site is on the public internet. A local Drupal site usually has a known admin account and no firewall. Use disposable test data only, and stop the tunnel with `stop` when you're done.
+While the tunnel is up, the site is on the public internet. A local Drupal site usually has a known `admin` account and no firewall. Use disposable test data only, and stop the tunnel with `stop` when you're done.
 
 :::
 
@@ -40,7 +40,7 @@ vendor/bin/eddy-provision`}
 
 Confirm that the tunnel is up: `provision` prints a `*.trycloudflare.com` address as the site URL, and `info` prints the same address.
 
-The tunnel stays off for an empty value and for `0`, `false`, `no` and `off`, in any letter case. Any other value, such as `1`, turns it on. A value in your shell wins over `.env`, but an empty shell value counts as unset, so `.env` decides. To override a `.env` that turns the tunnel on, set `0`, `false`, `no` or `off` in your shell. For a single command, prefix it, such as `CLOUDFLARE_TUNNEL=0 make start`.
+The tunnel stays off for an empty value and for `0`, `false`, `no` and `off`, in any letter case. Any other value, such as `1`, turns it on. A value in your shell wins over `.env`. An empty shell value counts as unset, so `.env` decides. To override a `.env` that turns the tunnel on, set `0`, `false`, `no` or `off` in your shell. For a single command, prefix it, such as `CLOUDFLARE_TUNNEL=0 make start`.
 
 ## What happens
 

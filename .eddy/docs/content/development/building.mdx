@@ -92,7 +92,7 @@ To reinstall the website on the codebase you already have, run `provision` on it
 
 These commands help you look at the build and clear it away:
 
-- `info` (alias `describe`) prints a read-only summary of the environment. It shows the versions of Drupal, PHP and the tools, and the webserver host and port with the source of each. It also shows the site URL, the XDebug state, the build directory, the database path and the install profile. With FunctionalJavascript tests, it adds the WebDriver port.
+- `info` (alias `describe`) prints a read-only summary of the environment. It shows the versions of Drupal, PHP and the tools, plus the webserver host and port with the source of each. It also shows the site URL, the XDebug state, the build directory, the database path and the install profile. With FunctionalJavascript tests, it adds the WebDriver port.
 - `reset` (aliases `delete` and `destroy`) stops the project's webserver and browser. Then it removes the `build`, `.logs` and `vendor` directories from the project root. Removing `vendor` is also how a local checkout picks up a newer patch release of the [tooling](tooling.mdx). `reset` keeps the [database](provisioning.mdx#the-database) file, and the next `provision` reinstalls the site in it.
 - `make help` lists the `make` commands, since a bare `make` runs `build`. A bare `ahoy` lists the Ahoy ones.
 

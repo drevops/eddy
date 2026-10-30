@@ -26,7 +26,7 @@ The version constraint lives in `composer.dev.json`:
 }
 ```
 
-Keep the `~` constraint. It accepts patch releases and holds the minor version, so CI picks up fixes on its own. A new minor version arrives only with the next [scaffold update](../updating/README.mdx), so CI never switches to it on its own. A scaffold update also raises the constraint whenever the new scaffold needs a newer release. The next run of the installer then replaces a release that lacks what the scaffold calls.
+Keep the `~` constraint. It accepts patch releases and holds the minor version, so CI picks up fixes on its own. A new minor version arrives only with the next [scaffold update](../updating/README.mdx). A scaffold update also raises the constraint whenever the new scaffold needs a newer release. The next run of the installer then replaces a release that lacks what the scaffold calls.
 
 The installer records what it installed in `vendor/eddy-tooling.json`, and runs Composer only in these cases:
 
@@ -35,13 +35,13 @@ The installer records what it installed in `vendor/eddy-tooling.json`, and runs 
 - `vendor/eddy-tooling.json` is missing, such as after [`reset`](building.mdx#other-commands-along-the-way) removes `vendor/`.
 - A command of the installed package is missing from `vendor/bin`.
 
-Otherwise it returns straight away, so running it before each command costs next to nothing. A local checkout keeps its patch release until `vendor/` is removed. CI installs from scratch, so it takes the newest patch release on every run. To take the newest patch release locally and keep `vendor/`, delete `vendor/eddy-tooling.json`. The installer reinstalls the package the next time it runs.
+Otherwise it exits without running Composer, so running it before each command adds almost no time. A local checkout keeps its patch release until `vendor/` is removed. CI installs from scratch, so it takes the newest patch release on every run. To take the newest patch release locally and keep `vendor/`, delete `vendor/eddy-tooling.json`. The installer reinstalls the package the next time it runs.
 
 The package requires PHP 8.3 or newer, so every CI job and local build that installs it needs PHP 8.3 or newer too.
 
 :::warning Leave `scripts/eddy-tooling` as it is
 
-Never modify `scripts/eddy-tooling`, by hand or with AI: your project uses it as-is from Eddy, and a scaffold update replaces it with the release's copy. To add a step of your own, use a [lifecycle script](lifecycle-scripts.mdx). To change what a command does, [patch the package](#patch-the-package).
+Never modify `scripts/eddy-tooling`, by hand or with AI. It comes from Eddy as-is, and a scaffold update replaces it with the release's copy. To add a step of your own, use a [lifecycle script](lifecycle-scripts.mdx). To change what a command does, [patch the package](#patch-the-package).
 
 :::
 

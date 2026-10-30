@@ -45,7 +45,7 @@ To release the package:
 4. If the release is still a draft, publish it.
 5. If the release is a new minor or major version, or Eddy relies on what it ships, [raise the constraint](#raise-the-constraint) to it.
 
-The skill takes the version from the newest release on the mirror while that release has no notes. The previous release is the highest published release below it. The skill lists the commits that changed `.eddy/tooling/` between the 2. It describes each commit from its subject, or from its pull request, its issue or its diff when the subject isn't enough.
+The skill takes the version from the newest release on the mirror while that release has no notes. The previous release is the highest published release lower than it. The skill lists the commits that changed `.eddy/tooling/` between the 2. It describes each commit from its subject, or from its pull request, its issue or its diff when the subject isn't enough.
 
 When the newest release on the mirror already has notes, the skill prepares the notes of a release you haven't created yet. It suggests a version from the changes and asks you to confirm it.
 

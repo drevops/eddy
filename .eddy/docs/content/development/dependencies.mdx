@@ -8,7 +8,7 @@ description: Patch dependencies, test against other extensions, add frontend pac
 
 Your extension's `composer.json` lists what the extension needs to run. Its `require-dev` lists the packages your tests use, such as a module that a test enables, and Drupal.org's own CI installs them too. The tools that only the Eddy build runs, such as the linters, PHPUnit and Drush, go in `composer.dev.json`. This page covers patches, extensions you test against, frontend packages and the GitHub token that avoids rate limits.
 
-The build merges `composer.json` and `composer.dev.json` into the site, and `composer.dev.json` wins where both set the same key. A few keys belong to the build itself and win over both files: the core version pins, `minimum-stability`, `prefer-stable` and the versions of the test tools that fit the Drupal major. Neither `require-dev` nor `composer.dev.json` reaches a site that installs your extension.
+The build merges `composer.json` and `composer.dev.json` into the site, and `composer.dev.json` wins where both set the same key. A few keys belong to the build itself and win over both files. They're the core version pins, `minimum-stability`, `prefer-stable` and the versions of the test tools that fit the Drupal major. Neither `require-dev` nor `composer.dev.json` reaches a site that installs your extension.
 
 ## Patch dependencies
 
@@ -24,10 +24,10 @@ The build installs [`cweagans/composer-patches`](https://github.com/cweagans/com
 }
 ```
 
-A patch that no longer applies fails the build, so you find out as soon as a dependency update conflicts with it. The file you declare a patch in sets where the patch applies:
+A patch that no longer applies fails the build, which flags a dependency update that conflicts with the patch. The file you declare a patch in sets where the patch applies:
 
 - `composer.dev.json` - the Eddy build only, locally and on GitHub Actions. Drupal.org GitLab CI ignores it. Use it for patches that only your tests need. Keep their files in the `patches` directory of your project, which the build copies into `build/`.
-- `composer.json` - the build, [Drupal.org GitLab CI](../continuous-integration/drupal-ci.mdx) and any site that installs your extension and uses composer-patches 2.x. GitLab CI applies them with composer-patches 1.x, which reads the same format. Refer to these patches by a public URL, because a site that installs your extension has no `patches/` directory.
+- `composer.json` - the build, [Drupal.org GitLab CI](../continuous-integration/drupal-ci.mdx) and any site with composer-patches 2.x that installs your extension. GitLab CI applies them with composer-patches 1.x, which reads the same format. Refer to these patches by a public URL, because a site that installs your extension has no `patches/` directory.
 
 Patches for `drevops/eddy-tooling` itself go in `composer.dev.json` only. The build leaves them out, and `scripts/eddy-tooling` applies them when it installs [the tooling package](tooling.mdx#patch-the-package).
 
@@ -43,7 +43,7 @@ To test your extension together with other extensions, add them to the `suggest`
 
 The build adds each suggested dependency that `require` and `require-dev` don't already list. [Provisioning](provisioning.mdx) then enables every suggested `drupal/*` package, including one that `require` or `require-dev` lists. A site that installs your extension doesn't install suggested packages. To pin the version that the build installs, add a constraint to the key, such as `drupal/linkit:^7.0`. The build passes the key to `composer require` as it is.
 
-Provisioning enables a suggested `drupal/*` package as a theme when its Composer `type` is `drupal-theme` or `drupal-custom-theme`, and as a module otherwise. Enabling a theme leaves the default and the admin theme as they are. To set either, add a [`provision-*.sh` lifecycle script](lifecycle-scripts.mdx#an-example) that sets `default` or `admin` in the `system.theme` configuration, the way the example there sets the site name.
+Provisioning enables a suggested `drupal/*` package as a theme when its Composer `type` is `drupal-theme` or `drupal-custom-theme`, and as a module otherwise. Enabling a theme leaves the default and the administration theme as they are. To set either, add a [`provision-*.sh` lifecycle script](lifecycle-scripts.mdx#an-example) that sets `default` or `admin` in the `system.theme` configuration, the way the example there sets the site name.
 
 ## Frontend dependencies
 
@@ -53,7 +53,7 @@ When your project has an `.nvmrc`, `assemble` runs both commands on the Node.js 
 
 To skip both commands, commit an empty `.skip_npm_build` file to the root of your project. The file also turns off the JavaScript and CSS linting and the Jest tests, because those tools run from the build's `node_modules`. The linting covers ESLint, Stylelint and Prettier, which runs through ESLint. CSpell still runs from the project root, and `lint` installs the dependencies of the root `package.json` for it when they're missing.
 
-When you keep none of ESLint, Stylelint, CSpell and Jest, the installer removes `package.json`, `package-lock.json`, the Node.js steps of the CI lint job and the npm configuration of `renovate.json`. To add frontend dependencies later, add a `package.json` of your own, with a `build` script, and its `package-lock.json`. With Renovate, also copy the npm parts of Eddy's [`renovate.json`](https://github.com/drevops/eddy/blob/main/renovate.json) into yours: `"npm"` in `enabledManagers`, the 2 `packageRules` that match `npm` and the `lockFileMaintenance` block.
+When you keep none of ESLint, Stylelint, CSpell and Jest, the installer removes `package.json` and `package-lock.json`. It also removes the Node.js steps of the CI lint job and the npm configuration of `renovate.json`. To add frontend dependencies later, add your own `package.json` with a `build` script, plus its `package-lock.json`. With Renovate, also copy the npm parts of Eddy's [`renovate.json`](https://github.com/drevops/eddy/blob/main/renovate.json) into yours: `"npm"` in `enabledManagers`, the 2 `packageRules` that match `npm` and the `lockFileMaintenance` block.
 
 ## Set `GITHUB_TOKEN`
 

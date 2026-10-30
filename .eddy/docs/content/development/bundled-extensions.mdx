@@ -6,7 +6,7 @@ description: Ship a module with your theme or a theme with your module, for the 
 
 # Bundled extensions
 
-Your project is 1 extension, and it can bundle others. A theme can bring a module that provides its blocks, and a module can bring a theme for its tests. Either can carry extensions that only its tests use. The tool configurations that the installer generates name only the custom directory of your extension's type, so a bundled extension takes a few manual steps. This page covers where bundled extensions go, how to enable them on your site and in tests, and what the tooling checks.
+Your project is 1 extension, and it can bundle others. A theme can bring a module that provides its blocks, and a module can bring a theme for its tests. Either can carry extensions that only its tests use. The generated tool configurations name only the custom directory of your extension's type, so a bundled extension takes a few manual steps. This page covers where bundled extensions go, how to enable them on your site and in tests, and what the tooling checks.
 
 ## Where they go
 
@@ -25,7 +25,7 @@ While you keep PHPUnit, `.gitattributes` keeps `tests/` out of the release archi
 
 `assemble` assembles the site in the `build` directory. The paths on this page that start with `web/` are relative to `build`. `assemble` creates your extension's directory at `web/modules/custom/<your_extension>`, or `web/themes/custom/<your_extension>` for a theme. The directory holds a symlink to every top-level item of your project apart from `build`, `vendor` and hidden items, so a bundled extension arrives inside yours.
 
-Drupal finds extensions at any depth below the site's `web/modules` and `web/themes` directories, and it reads each one's type from its own `.info.yml`. A module inside a theme's directory is found as a module, and a theme inside a module's directory as a theme.
+Drupal finds extensions at any depth under the site's `web/modules` and `web/themes` directories, and it reads each one's type from its own `.info.yml`. A module inside a theme's directory is found as a module, and a theme inside a module's directory as a theme.
 
 Add no mapping of your own. A second symlink to the same module in `web/modules/custom` makes Drupal find the module twice and keep 1 copy, with no warning.
 
@@ -57,7 +57,7 @@ To enable a bundled module from a lifecycle script:
 
 2. Make the script executable with `chmod +x scripts/provision-bundled.sh`.
 3. Run `provision` again with `make provision`, `ahoy provision` or `vendor/bin/eddy-provision`. The script runs at the end of every `provision`, including the one that `build` runs. `provision` reinstalls the site, so to keep the content you added, run `scripts/provision-bundled.sh` on its own from the project root.
-4. Confirm that the module is enabled. The following commands list the enabled modules, 1 per setup, and the list includes `my_theme_blocks`:
+4. Confirm that the module is enabled. The following commands list the enabled modules, 1 per setup. The list includes `my_theme_blocks`:
 
    ```bash
    make drush -- pm:list --status=enabled --type=module
@@ -92,7 +92,7 @@ A Functional test can also set `$defaultTheme` to a bundled theme.
 The tool configurations name only the custom directory of your extension's type, `web/modules/custom` or `web/themes/custom`. Everything you bundle sits under your extension inside that directory. The tools cover bundled extensions as follows:
 
 - PHPCS, PHPStan, Rector, Twig CS Fixer, ESLint and Stylelint check your bundled extensions along with your own code. CSpell checks the whole project apart from hidden paths.
-- PHPUnit runs the tests in your extension's `tests/src` only. To run a bundled extension's own tests, add their directories to the testsuites of `phpunit.xml`, such as `web/themes/custom/*/modules/*/tests/src/Unit`. When you target Drupal 10, add them to `phpunit.d10.xml` too. Add the matching `tests` directory to the `<exclude>` of the coverage source as well, so the test classes don't count as uncovered code.
+- PHPUnit runs the tests in your extension's `tests/src` only. To run a bundled extension's own tests, add their directories to the testsuites of `phpunit.xml`, such as `web/themes/custom/*/modules/*/tests/src/Unit`. When you target Drupal 10, add them to `phpunit.d10.xml` too. Also add the matching `tests` directory to the `<exclude>` of the coverage source, so the test classes don't count as uncovered code.
 - PHPUnit counts the `.php` files of a bundled extension toward coverage. It also counts the hook files of a bundled extension of your own type: `.module` and `.install` in a module, `.theme` in a theme. Other files, such as `.inc` files, don't count. For the hook files of the other type, add a `<directory suffix=".theme">`, `<directory suffix=".module">` or `<directory suffix=".install">` line to the coverage source.
 - Jest runs the `*.test.js` files in the `js/` directory of each extension directly inside the `dirs` of `jest.config.js`. To run a bundled extension's tests, add the directory that holds the extension, such as `web/themes/custom/my_theme/modules`, to `dirs`.
 

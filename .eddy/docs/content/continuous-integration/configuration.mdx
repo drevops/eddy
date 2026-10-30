@@ -28,11 +28,11 @@ To run a tool on 1 runner only, replace its `true` with an expression that's tru
 CI_IS_JEST_RUNNER: ${{ matrix.name == 'test-php-max-d11-stable' }}
 ```
 
-`CI_RUNNER_INDEX` holds the runner's position in the matrix, counting from 0, and `CI_RUNNER_TOTAL` the number of runners. The shipped steps leave both unused. They're for a step of your own that splits 1 tool's tests across several runners, called sharding.
+`CI_RUNNER_INDEX` holds the runner's position in the matrix, counting from 0. `CI_RUNNER_TOTAL` holds the number of runners. The shipped steps leave both unused. They're for a step of your own that splits 1 tool's tests across several runners, called sharding.
 
 A sharded tool often gives runner 0 the tests that no other runner picks up. To give another tool a runner of its own, take the last runner, so runner 0 keeps running those tests.
 
-Before you add or rename runners, check your [branch protection](branch-protection.mdx): GitHub names each status check after the leg's `name`, so the legs you add or rename need the same change in your rules.
+GitHub names each status check after the leg's `name`. So when you add or rename runners, change the required checks in your [branch protection](branch-protection.mdx) rules too.
 
 ## Allow a CI step to fail
 
@@ -66,4 +66,4 @@ A failed upload fails the job, so a broken upload shows up in CI.
 
 ## Deprecations on newer PHP
 
-Test jobs on PHP 8.4 or newer set `SYMFONY_DEPRECATIONS_HELPER` to `disabled`, which turns off the deprecation checks of Symfony's PHPUnit Bridge. [Deprecated code](../testing/README.mdx#deprecated-code) explains what that changes for each Drupal major, and how to tune it to your project's deprecation policy.
+Test jobs on PHP 8.4 or newer set `SYMFONY_DEPRECATIONS_HELPER` to `disabled`, which turns off the deprecation checks of Symfony's PHPUnit Bridge. [Deprecated code](../testing/README.mdx#deprecated-code) explains what that changes for each Drupal major and how to tune it to your project's deprecation policy.

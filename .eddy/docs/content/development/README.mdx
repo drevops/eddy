@@ -38,13 +38,13 @@ Run each command through the wrapper you kept, such as `make build` or `ahoy bui
 | `reset`                      | Stops the webserver and the browser, and removes `build`, `.logs` and `vendor`.                    | `delete`, `destroy`               |
 | `tooling`                    | Installs the [tooling package](tooling.mdx) into `vendor`. Make has this command and runs it before the commands that need it. Ahoy installs the package before every command apart from `reset`. | None                              |
 
-The installer removes the commands of each tool you dropped, so a project without PHPUnit has no suite commands. `lint`, `lint-fix` and `test` stay, and run the tools you kept. A bare `make` runs `build`, so run `make help` to list the `make` commands. A bare `ahoy` lists the Ahoy ones.
+The installer removes the commands of each tool you dropped, so a project without PHPUnit has no suite commands. `lint`, `lint-fix` and `test` stay and run the tools you kept. A bare `make` runs `build`, so run `make help` to list the `make` commands. A bare `ahoy` lists the Ahoy ones.
 
 Without a wrapper, the [tooling commands](tooling.mdx) cover `assemble`, `start`, `stop`, `provision`, `info`, `login`, `browser-start` and `browser-stop`. The `CONTRIBUTING.md` of your extension lists the commands for the rest.
 
 ## In this section
 
-- [Build the site](building.mdx) - what `build` does, step by step, and how to see the full output.
+- [Build the site](building.mdx) - the steps of `build` and how to see the full output.
 - [Tooling package](tooling.mdx) - where the commands come from and how to change one.
 - [Drupal versions](drupal-versions.mdx) - building another Drupal release, and how the build picks versions.
 - [Dependencies](dependencies.mdx) - patches, suggested extensions, frontend packages and GitHub rate limits.

@@ -78,9 +78,9 @@ The installer sets it to the highest major you selected, up to 11, the newest ma
 
 ## How versions are resolved
 
-The build pins Drupal core to the newest release that matches `DRUPAL_VERSION`, and prints the release it picked. When no release on that line is stable enough, as on a major with no stable release, the build takes the newest pre-release on the line.
+The build pins Drupal core to the newest release that matches `DRUPAL_VERSION`, and prints the release it picked. When no release on that line is stable enough, the build takes the newest pre-release on the line. So a major with no stable release still builds.
 
-Every other dependency gets its most stable release that fits, because the build uses `minimum-stability: dev` with `prefer-stable: true`. A dependency falls back to a pre-release or a development branch only when no stable release fits the rest of the build: core, the other dependencies and the platform PHP. The build output lists every dependency it installed from a development branch. Each build picks up the newest releases that fit, so a new build follows new releases of Drupal and its tools with no edits to your project.
+Every other dependency gets its most stable release that fits, because the build uses `minimum-stability: dev` with `prefer-stable: true`. A pre-release or a development branch goes in only when no stable release fits core, the other dependencies and the platform PHP. The build output lists every dependency it installed from a development branch. Each build picks up the newest releases that fit, so it follows new Drupal and tool releases with no edits to your project.
 
 ### The PHP requirement
 
@@ -132,4 +132,4 @@ In the installer, only Drupal 11 starts checked. Selecting Drupal 12 as well add
 - The Drupal 12 CI jobs
 - The Drupal 12 README badge
 
-The local build stays on Drupal 11 (see [The default version](#the-default-version)). [Continuous integration](../continuous-integration/README.mdx#drupal-12) explains how the Drupal 12 jobs follow its releases, and [Upgrade a 4.x project to 5.x](../updating/upgrading-from-4x.mdx#drupal-12) lists the changes your own code needs.
+The local build stays on Drupal 11 (see [The default version](#the-default-version)). [Continuous integration](../continuous-integration/README.mdx#drupal-12) explains how the Drupal 12 jobs follow its releases. [Upgrade a 4.x project to 5.x](../updating/upgrading-from-4x.mdx#drupal-12) lists the changes your own code needs.

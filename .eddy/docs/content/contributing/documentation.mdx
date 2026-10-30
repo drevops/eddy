@@ -67,14 +67,14 @@ Most of the page's words sit in lists at the top of `src/pages/index.js`, 1 list
 - `LAYERS` - the 3 parts of the deep end
 - `DOCS` - the links into the docs
 
-To change what the page says, change a list rather than the markup. Take care with these parts:
+To change what the page says, change the list that holds the words. Take care with these parts:
 
 - **Versions.** `DRUPAL_MAJORS` and `PHP_VERSIONS` hold the versions the page states. `DocumentationTest` fails while `DRUPAL_MAJORS` differs from the majors that `install.php` offers, or `PHP_VERSIONS` from the PHP versions those majors support. Keep each list on 1 line with its items in single quotes, because the test reads them that way. To run the test, see [Checks on pull requests](#checks-on-pull-requests).
 - **Install command.** `INSTALL_COMMAND` holds the command that the copy button copies, and `tests/accessibility/interactions.spec.js` repeats it, so change both together.
-- **Demos.** The first 4 stops of the stream play the animated demos of `.eddy/assets`, which `npm start` and `npm run build` copy into `static/img/demos`. A JavaScript import of an SVG returns a React component in place of a URL, so the page can't import the demos the way a Markdown page does.
+- **Demos.** The first 4 stops of the stream play the animated demos of `.eddy/assets`, which `npm start` and `npm run build` copy into `static/img/demos`. The page can't import the demos the way a Markdown page does, because a JavaScript import of an SVG returns a React component.
 - **Components.** The install command with its copy button is `CopyCommand`. Each demo is a `PausableImage`, the same component that gives the animated demos of the doc pages their pause button. Both live in `src/components`.
 - **Look.** The colors come from the `--eddy-*` tokens in `src/css/custom.css`. The water tokens shade the page from the light surface down to the dark deep end. The deep end keeps the dark-mode text colors in both color modes. Headings use Fraunces and the text uses Figtree. The `@fontsource-variable/fraunces` and `@fontsource-variable/figtree` packages serve both fonts from the site itself, so the page loads no font from another server. Doc pages use the system fonts.
-- **Motion.** The rings around the drop spread out once and settle within 5 seconds, the limit past which WCAG asks for a way to pause motion that starts on its own. Each block further down the page plays a short entrance as it scrolls into view. Without JavaScript, every block shows at once. When the reader's system is set to reduce motion, nothing on the page moves.
+- **Motion.** The rings around the drop spread out once and settle within 5 seconds. WCAG asks for a way to pause motion that starts on its own and lasts longer than that. Each block further down the page plays a short entrance as it scrolls into view. Without JavaScript, every block shows at once. When the reader's system is set to reduce motion, nothing on the page moves.
 
 ## Accessibility
 
@@ -82,7 +82,7 @@ The accessibility target is [WCAG 2.2](https://www.w3.org/TR/WCAG22/) level AA i
 
 Separate checks cover the parts that move or open:
 
-- The search dropdown, with and without results, and a page with highlighted search terms
+- The search dropdown with results and without, plus a page with highlighted search terms
 - The mobile menu: its keyboard focus and how it closes, plus its scans on the home page and a doc page
 - An animated demo: its pause button, and that it starts paused under reduced motion
 - The home page's demos and copy button

@@ -200,7 +200,7 @@
  
  The `ForceCrystalFunctionalJavascriptTestBase` base class points the WebDriver endpoint at that port, so extend it in every FunctionalJavascript test. A test that extends `WebDriverTestBase` directly uses the default endpoint from `phpunit.xml`, unless it exports its own `MINK_DRIVER_ARGS_WEBDRIVER`.
  
-+The commands in this section export the backend, host and port that `eddy-info` reads from your shell and `.env`, so a value set in `.env` reaches the tests too.
++The commands in this section export the backend, host and port that `eddy-info` reads from your shell and `.env`, so `.env` values reach the tests.
 +
  ### Running specific tests
  

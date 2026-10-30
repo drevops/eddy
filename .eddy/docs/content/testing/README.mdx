@@ -8,7 +8,7 @@ import CommandTabs from '@site/src/components/CommandTabs';
 
 # Testing
 
-Follow this page to run the tests of your extension against the site you [built](../development/building.mdx), all at once or a few at a time, and to find their coverage and output.
+Follow this page to run your extension's tests against the site you [built](../development/building.mdx), all at once or a few at a time. It also shows where their coverage and output go.
 
 With Make or Ahoy, `test` starts the browser for FunctionalJavascript tests, then runs every PHPUnit suite and the Jest tests. It stops at the first command that fails, so Jest runs only after PHPUnit passes. To run every test, run the following command:
 
@@ -28,7 +28,7 @@ npm test`}
 
 ![ahoy test running the PHPUnit suites and the Jest tests in a terminal](../../../assets/test.svg)
 
-The PHPUnit tests live in `tests/src`, in a directory per suite. The installer gives a module a working example test in each suite, mostly for its service, settings form and hooks. A theme gets 2 examples: a FunctionalJavascript test that renders pages with the theme as the default theme, and a Unit test of the hook in its `.theme` file. To run the tests of an extension you bundle with yours, see [Bundled extensions](../development/bundled-extensions.mdx#what-the-tooling-covers).
+The PHPUnit tests live in `tests/src`, in a directory per suite. The installer gives a module a working example test in each suite, mostly for its service, settings form and hooks. A theme gets 2 examples: a Unit test of its `.theme` hook and a FunctionalJavascript test with the theme as default. To run the tests of an extension you bundle with yours, see [Bundled extensions](../development/bundled-extensions.mdx#what-the-tooling-covers).
 
 `phpunit.xml` configures PHPUnit, and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both bootstrap Drupal with core's `web/core/tests/bootstrap.php` and fail a run on a PHPUnit warning. Only a Drupal 10 build reads `phpunit.d10.xml`, so the installer removes it when you don't select Drupal 10. `assemble` copies `phpunit.xml` and `jest.config.js` into `build`, and in a Drupal 10 build it writes `phpunit.d10.xml` over `build/phpunit.xml`. Run `assemble` again after you edit any of these files.
 
@@ -113,7 +113,7 @@ CI uploads the reports as a workflow artifact, and to [Codecov](https://codecov.
 
 The PHPUnit coverage counts your extension's `.php` files, plus a module's `.module` and `.install` files or a theme's `.theme` file. It leaves out the `tests` directory, `rector.php` and `node_modules`.
 
-Functional and FunctionalJavascript tests reach your code through page requests, which run in the webserver's process. The coverage comes only from the PHPUnit process, so those requests add none. Code that runs while a test installs the site, such as `hook_install()`, still counts. So the example Kernel tests build and submit the settings form and call the hooks themselves. The Functional test runs the same code through the browser and adds no coverage.
+Functional and FunctionalJavascript tests reach your code through page requests, which run in the webserver's process. The coverage comes only from the PHPUnit process, so those requests add none. Code that runs while a test installs the site, such as `hook_install()`, still counts. To count the rest, the example Kernel tests build and submit the settings form and call the hooks themselves. The Functional test runs the same code through the browser and adds no coverage.
 
 ## Deprecated code
 

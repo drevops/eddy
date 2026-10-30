@@ -33,7 +33,7 @@ flowchart TB
 The 2 kinds of push deploy differently:
 
 - **A branch push** force-pushes the commit that CI tested to the branch of the same name in the destination repository. The first deployment of a branch creates it there. It pushes no tags, so a tag whose own `Test` run fails stays off the destination (see [Tags that don't deploy](#tags-that-dont-deploy)).
-- **A tag** deploys as that tag alone and leaves the destination branches as they are, so a tag behind a branch's tip can't rewind the branch.
+- **A tag** pushes only that tag and leaves the destination branches unchanged, so a tag behind a branch's tip can't rewind the branch.
 
 To send a branch to a destination branch of another name, set the `DEPLOY_BRANCH` repository variable to that name. For example, set it to `1.x` when you develop on `main` and have added `main` to the `push` filter. `DEPLOY_BRANCH` applies to every branch that deploys, and tags still deploy as tags. Set it only when 1 branch deploys. With several, they all force-push to that 1 destination branch, and the latest deployment replaces the others.
 
@@ -53,7 +53,7 @@ A tag without a `Test` run, or with a `Test` run more than 30 days old, has no r
 
 To push a tag yourself, run `git push <remote> refs/tags/<tag>` from a clone that holds the tag, with your own access to the destination. `<remote>` is the address you set as the `DEPLOY_REMOTE` secret, such as `git@git.drupal.org:project/myextension.git`. Git refuses a short name that matches both a branch and a tag, so the command names the tag in full. The push skips `Test`, so use it only for a commit that already passed.
 
-To confirm that a tag reached the destination, run `git ls-remote --tags <remote>`, or look for "Tag pushed to" in the `Deploy to Remote` step of its `Deploy` run.
+To confirm that a tag reached the destination, run `git ls-remote --tags <remote>` or look for "Tag pushed to" in the `Deploy to Remote` step of its `Deploy` run.
 
 ## Deployment order
 
@@ -65,7 +65,7 @@ CI pushes with an SSH key. It reads its settings from repository secrets and the
 
 1. Without `DEPLOY_REMOTE`, it reports a notice and skips its other steps, so the run passes.
 2. Without `DEPLOY_SSH_KEY`, `DEPLOY_USER_NAME` or `DEPLOY_USER_EMAIL`, it fails.
-3. Without the `DEPLOY_PROCEED` secret set to `1`, it stops before the push with "Skip deployment because DEPLOY_PROCEED is not set to 1." and passes, which lets you test it first.
+3. Without the `DEPLOY_PROCEED` secret set to `1`, it stops before the push and passes, so you can test the earlier steps first. It prints "Skip deployment because DEPLOY_PROCEED is not set to 1."
 
 With all 5 secrets set, the workflow pushes.
 

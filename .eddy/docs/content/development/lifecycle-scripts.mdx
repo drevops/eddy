@@ -17,9 +17,9 @@ The following table lists the scripts of each phase and when they run:
 | `scripts/assemble-*.sh`     | At the end of `assemble`, after the dependencies are installed and the extension is linked into `build/`.                 |
 | `scripts/start-*.sh`        | At the end of `start`, after the webserver is serving.                                                                    |
 | `scripts/provision-*.sh`    | At the end of `provision`, after the site is installed, the extension is enabled and the caches are warmed.               |
-| `scripts/stop-*.sh`         | During `stop` and `reset`, before the webserver stops, and during `assemble` when the webserver of an earlier build still runs. `reset` hides the output of these scripts and ignores their failures. |
+| `scripts/stop-*.sh`         | During `stop` and `reset`, before the webserver stops. `assemble` runs them too when the webserver of an earlier build still runs. `reset` hides the output of these scripts and ignores their failures. |
 
-The scripts of a phase run from the project root and inherit the environment variables of the command that runs them. They run in lexicographic order of their filenames, so `provision-10-users.sh` runs before `provision-2-content.sh`. To order scripts by number, pad the numbers with leading zeros, such as `provision-02-content.sh`. Apart from `reset`, a script that exits with a non-zero code fails the command that runs it, and the later scripts of that phase don't run.
+The scripts of a phase run from the project root and inherit the environment variables of the command that runs them. They run in lexicographic order of their filenames, so `provision-10-users.sh` runs before `provision-2-content.sh`. To order scripts by number, pad the numbers with leading zeros, such as `provision-02-content.sh`. Apart from `reset`, a script that exits with a non-zero code fails the command that runs it. The later scripts of that phase don't run.
 
 The command runs each script as an executable file. Give each script a shebang line, and make it executable:
 
