@@ -66,7 +66,7 @@ jobs:
         run: |
           if [ -n "${INPUTS_VERSION}" ]; then
             version="${INPUTS_VERSION}"
-            git rev-parse --verify --quiet "refs/tags/${version}" >/dev/null || { echo "::error::Version ${version} is not a tag of this repository."; exit 1; }
+            git show-ref --verify --quiet "refs/tags/${version}" || { echo "::error::Version ${version} is not a tag of this repository."; exit 1; }
           elif [ "${REF_TYPE}" = "tag" ]; then
             version="${REF_NAME}"
           else
