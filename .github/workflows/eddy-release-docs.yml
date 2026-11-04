@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version. Leave empty for the tag, or the git describe output of the branch.'
+        description: 'Release version, which must be an existing tag. Leave empty for the tag, or the git describe output of the branch.'
         required: false
         type: string
 
@@ -66,6 +66,7 @@ jobs:
         run: |
           if [ -n "${INPUTS_VERSION}" ]; then
             version="${INPUTS_VERSION}"
+            git show-ref --verify --quiet "refs/tags/${version}" || { echo "::error::Version ${version} is not a tag of this repository."; exit 1; }
           elif [ "${REF_TYPE}" = "tag" ]; then
             version="${REF_NAME}"
           else
