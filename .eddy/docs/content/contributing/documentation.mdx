@@ -156,7 +156,7 @@ These builds show "development" as the version in the footer, and search engines
 `.github/workflows/eddy-release-docs.yml` publishes the docs to [eddy.drevops.com](https://eddy.drevops.com) on GitHub Pages, in these cases:
 
 - On every tag push, with the tag as the version. The workflow's tag filter, `*`, matches every tag without a `/`, so a pre-release tag such as `5.0.0-rc2` publishes too.
-- On a manual run of the `Release Eddy docs` workflow from **Actions**, with the version you type. Without a version, the workflow takes the tag you run it from, or the `git describe` output of the branch, such as `5.0.0-3-g1a2b3c4`.
+- On a manual run of the `Release Eddy docs` workflow from **Actions**, with the version you type. The version must be an existing tag, such as `5.0.0`. Any other version fails the run before the build. Without a version, the workflow takes the tag you run it from, or the `git describe` output of the branch, such as `5.0.0-3-g1a2b3c4`.
 
 The workflow runs only in `drevops/eddy`, and a newer run cancels 1 that's still in progress. The repository's GitHub Pages source must be **GitHub Actions**. The `github-pages` environment must let the tag or the branch you run from deploy.
 
