@@ -74,6 +74,8 @@ use function set_composer_dev_eddy_value;
 use function set_workflow_branches;
 use function sort_drupal_majors;
 use function sort_php_versions;
+use function template_archive;
+use function template_archive_sha256;
 use function template_archive_url;
 use function template_version;
 use function tool_cspell_words;
@@ -180,6 +182,7 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'INSTALL_BRANCHES' => ['INSTALL_BRANCHES'];
     yield 'INSTALL_GITHUB_REPOSITORY' => ['INSTALL_GITHUB_REPOSITORY'];
     yield 'INSTALL_TEMPLATE_ARCHIVE' => ['INSTALL_TEMPLATE_ARCHIVE'];
+    yield 'INSTALL_TEMPLATE_ARCHIVE_SHA256' => ['INSTALL_TEMPLATE_ARCHIVE_SHA256'];
   }
 
   public function testMainVersion(): void {
@@ -197,7 +200,7 @@ final class InstallHelpersTest extends UnitTestCase {
 
     $output = $this->capture(fn() => main(['install.php', '--first']));
 
-    $this->assertSame('Downloading Eddy development from ' . $archive . PHP_EOL, $output);
+    $this->assertSame('Downloading Eddy development from ' . $archive . PHP_EOL . self::unverifiedWarning($archive), $output);
     $this->assertSame(['--first'], self::stubInstallerRun(self::$sut)['args']);
   }
 
@@ -936,6 +939,62 @@ final class InstallHelpersTest extends UnitTestCase {
   }
 
   /**
+   * @param array<string, string> $env
+   * @param array{string, string|null}|null $expected
+   */
+  #[DataProvider('dataProviderTemplateArchive')]
+  public function testTemplateArchive(array $env, ?string $version, string $url, string $sha256, ?array $expected, ?string $expected_exception = NULL): void {
+    foreach ($env as $name => $value) {
+      self::envSet($name, $value);
+    }
+
+    if ($expected_exception !== NULL) {
+      $this->expectException(\Exception::class);
+      $this->expectExceptionMessage($expected_exception);
+    }
+
+    $this->assertSame($expected, template_archive($version, $url, $sha256));
+  }
+
+  public static function dataProviderTemplateArchive(): \Iterator {
+    $url = 'https://github.com/drevops/eddy/releases/download/5.0.0/eddy-5.0.0.tar.gz';
+    $sha256 = str_repeat('a', 64);
+    $no_url = '__EDDY_TEMPLATE_ARCHIVE_URL__';
+    $no_sha256 = '__EDDY_TEMPLATE_ARCHIVE_SHA256__';
+
+    yield 'stamped archive' => [[], '5.0.0', $url, $sha256, [$url, $sha256]];
+    yield 'stamped archive with an uppercase checksum' => [[], '5.0.0', $url, strtoupper($sha256), [$url, $sha256]];
+    yield 'stamped archive with a malformed checksum' => [[], '5.0.0', $url, 'abc', NULL, 'The checksum of ' . $url . ' is not a SHA-256 checksum: "abc".'];
+    yield 'stamped archive without a checksum' => [[], '5.0.0', $url, $no_sha256, NULL, 'The checksum of ' . $url . ' is not a SHA-256 checksum: "__EDDY_TEMPLATE_ARCHIVE_SHA256__".'];
+    yield 'release version without a stamped archive' => [[], '5.0.0', $no_url, $no_sha256, ['https://github.com/drevops/eddy/archive/5.0.0.tar.gz', NULL]];
+    yield 'development version' => [[], NULL, $no_url, $no_sha256, ['https://github.com/drevops/eddy/archive/main.tar.gz', NULL]];
+    yield 'override' => [['INSTALL_TEMPLATE_ARCHIVE' => '/archive.tar.gz'], '5.0.0', $url, $sha256, ['/archive.tar.gz', NULL]];
+    yield 'override with a checksum' => [['INSTALL_TEMPLATE_ARCHIVE' => '/archive.tar.gz', 'INSTALL_TEMPLATE_ARCHIVE_SHA256' => strtoupper($sha256)], NULL, $no_url, $no_sha256, ['/archive.tar.gz', $sha256]];
+    yield 'override with a malformed checksum' => [['INSTALL_TEMPLATE_ARCHIVE' => '/archive.tar.gz', 'INSTALL_TEMPLATE_ARCHIVE_SHA256' => 'abc'], NULL, $no_url, $no_sha256, NULL, 'INSTALL_TEMPLATE_ARCHIVE_SHA256 is not a SHA-256 checksum: "abc".'];
+    yield 'checksum without an override' => [['INSTALL_TEMPLATE_ARCHIVE_SHA256' => $sha256], NULL, $no_url, $no_sha256, ['https://github.com/drevops/eddy/archive/main.tar.gz', NULL]];
+  }
+
+  #[DataProvider('dataProviderTemplateArchiveSha256')]
+  public function testTemplateArchiveSha256(string $sha256, ?string $expected): void {
+    if ($expected === NULL) {
+      $this->expectException(\Exception::class);
+      $this->expectExceptionMessage(sprintf('The value is not a SHA-256 checksum: "%s".', $sha256));
+    }
+
+    $this->assertSame($expected, template_archive_sha256($sha256, 'The value'));
+  }
+
+  public static function dataProviderTemplateArchiveSha256(): \Iterator {
+    yield 'lowercase' => [str_repeat('0f', 32), str_repeat('0f', 32)];
+    yield 'uppercase' => [str_repeat('0F', 32), str_repeat('0f', 32)];
+    yield '63 digits' => [str_repeat('a', 63), NULL];
+    yield '65 digits' => [str_repeat('a', 65), NULL];
+    yield 'non-hexadecimal digit' => [str_repeat('a', 63) . 'g', NULL];
+    yield 'trailing newline' => [str_repeat('a', 64) . "\n", NULL];
+    yield 'empty' => ['', NULL];
+  }
+
+  /**
    * @param array<int, string> $entries
    */
   #[DataProvider('dataProviderIsEmptyDirectory')]
@@ -977,6 +1036,31 @@ final class InstallHelpersTest extends UnitTestCase {
     $this->assertDirectoryDoesNotExist(self::$sut . '/eddy-1.2.3');
     $this->assertDirectoryDoesNotExist(self::$sut . '/.eddy-template');
     $this->assertFileDoesNotExist(self::$sut . '/.eddy-template.tar.gz');
+  }
+
+  public function testDownloadTemplateChecksum(): void {
+    $archive = self::templateArchive(['install.php' => '<?php // Template installer.']);
+
+    download_template($archive, self::$sut, hash_file('sha256', $archive) ?: '');
+
+    $this->assertSame('<?php // Template installer.', File::read(self::$sut . '/install.php'));
+  }
+
+  public function testDownloadTemplateChecksumMismatch(): void {
+    $archive = self::templateArchive(['install.php' => '<?php // Template installer.']);
+    $sha256 = str_repeat('a', 64);
+    File::dump(self::$sut . '/install.php', '<?php // Downloaded installer.');
+
+    try {
+      download_template($archive, self::$sut, $sha256);
+      $this->fail('An archive that does not match its checksum was extracted.');
+    }
+    catch (\Exception $exception) {
+      $this->assertSame(sprintf('The template from %s does not match its SHA-256 checksum: expected %s, got %s.', $archive, $sha256, hash_file('sha256', $archive)), $exception->getMessage());
+    }
+
+    $this->assertSame(['.', '..', 'install.php'], scandir(self::$sut));
+    $this->assertSame('<?php // Downloaded installer.', File::read(self::$sut . '/install.php'));
   }
 
   public function testDownloadTemplateMissing(): void {
@@ -1092,7 +1176,7 @@ final class InstallHelpersTest extends UnitTestCase {
 
     $output = $this->capture(fn() => install_from_archive(self::$sut, $installer_path, ['--first']));
 
-    $this->assertSame('Downloading Eddy development from ' . $archive . PHP_EOL, $output);
+    $this->assertSame('Downloading Eddy development from ' . $archive . PHP_EOL . self::unverifiedWarning($archive), $output);
     $this->assertSame(['--first'], self::stubInstallerRun(self::$sut)['args']);
     $this->assertSame(self::stubInstaller(), File::read(self::$sut . '/install.php'));
     $this->assertSame(!$expected_removed, File::exists($installer_path));
@@ -1102,6 +1186,35 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'saved as install.php' => ['install.php', FALSE];
     yield 'saved under another name' => ['installer.php', TRUE];
     yield 'outside the directory' => ['../elsewhere/install.php', FALSE];
+  }
+
+  public function testInstallFromArchiveChecksum(): void {
+    $archive = self::templateArchive(['install.php' => self::stubInstaller()]);
+    self::envSet('INSTALL_TEMPLATE_ARCHIVE', $archive);
+    self::envSet('INSTALL_TEMPLATE_ARCHIVE_SHA256', hash_file('sha256', $archive) ?: '');
+    File::dump(self::$sut . '/installer.php', '<?php // Downloaded installer.');
+
+    $output = $this->capture(fn() => install_from_archive(self::$sut, self::$sut . '/installer.php', ['--first']));
+
+    $this->assertSame('Downloading Eddy development from ' . $archive . PHP_EOL, $output);
+    $this->assertSame(['--first'], self::stubInstallerRun(self::$sut)['args']);
+  }
+
+  public function testInstallFromArchiveChecksumMismatch(): void {
+    $archive = self::templateArchive(['install.php' => self::stubInstaller()]);
+    self::envSet('INSTALL_TEMPLATE_ARCHIVE', $archive);
+    self::envSet('INSTALL_TEMPLATE_ARCHIVE_SHA256', str_repeat('a', 64));
+    File::dump(self::$sut . '/installer.php', '<?php // Downloaded installer.');
+
+    try {
+      $this->capture(fn() => install_from_archive(self::$sut, self::$sut . '/installer.php', []));
+      $this->fail('An archive that does not match its checksum was installed.');
+    }
+    catch (\Exception $exception) {
+      $this->assertStringStartsWith('The template from ' . $archive . ' does not match its SHA-256 checksum', $exception->getMessage());
+    }
+
+    $this->assertSame(['.', '..', 'installer.php'], scandir(self::$sut));
   }
 
   public function testInstallFromArchiveFailure(): void {
@@ -1118,6 +1231,19 @@ final class InstallHelpersTest extends UnitTestCase {
     }
 
     $this->assertFileExists(self::$sut . '/installer.php');
+  }
+
+  /**
+   * Build the warning that the installer prints for an unverified archive.
+   *
+   * @param string $archive
+   *   The URL or the path of the archive.
+   *
+   * @return string
+   *   The warning line.
+   */
+  protected static function unverifiedWarning(string $archive): string {
+    return sprintf('Warning: No SHA-256 checksum is known for %s, so the template is not verified.', $archive) . PHP_EOL;
   }
 
   /**

@@ -150,7 +150,11 @@ The value comes from the `TEMPLATE_VERSION` constant. `.gitattributes` marks `in
 
 The documentation site serves `install.php` at `/install`, so `curl -fsSL https://eddy.drevops.com/install > install.php && php install.php` installs Eddy. `.eddy/docs/src/installer.js` writes the copy after each docs build and replaces the placeholder with the version of the build: the release version that `eddy-release-docs.yml` passes as `RELEASE_VERSION`, or the `git describe` output of the checkout in any other build, such as the Netlify development site.
 
-In a directory that holds nothing but itself and hidden entries such as `.git`, `install.php` downloads the GitHub archive of its own version, or of `main` when it has none, and extracts it in place. Then it runs the extracted `install.php` with its own terminal, environment and arguments, so the release's own installer rewrites the release's files. `INSTALL_TEMPLATE_ARCHIVE` replaces the archive, which `InstallTest` points at an archive of the SUT. In a directory that holds other files and no `your_extension.info.yml`, `install.php` stops with an error, because its prompts would find no template files to rewrite there.
+In a directory that holds nothing but itself and hidden entries such as `.git`, `install.php` downloads the template archive of its own version and extracts it in place. Then it runs the extracted `install.php` with its own terminal, environment and arguments, so the release's own installer rewrites the release's files. `INSTALL_TEMPLATE_ARCHIVE` replaces the archive, which `InstallTest` points at an archive of the SUT. In a directory that holds other files and no `your_extension.info.yml`, `install.php` stops with an error, because its prompts would find no template files to rewrite there.
+
+The installer at `/install` of a release build downloads the `eddy-<version>.tar.gz` asset of the release and refuses it unless its SHA-256 checksum matches. `eddy-release-docs.yml` builds that asset with `git archive`, and `stampInstaller()` writes its URL and checksum into the `TEMPLATE_ARCHIVE_URL` and `TEMPLATE_ARCHIVE_SHA256` constants. An installer without them, such as the development site's, downloads the GitHub archive of its version, or of `main` when it has none, and warns that the template isn't verified. With `INSTALL_TEMPLATE_ARCHIVE`, `INSTALL_TEMPLATE_ARCHIVE_SHA256` sets the checksum, and the same warning shows without it.
+
+The minified Prompty in `install.php` comes from a Prompty release. Re-embed it with the `embed.php` and `Prompty.php` of that release, after verifying both as the Prompty README describes, and keep `--compact` and `--no-killswitch`: `php embed.php --compact --no-killswitch --source Prompty.php install.php`. The `eddy-test-embed` job checks the embedded code against the release that the `@embed-start` marker names.
 
 The `export-subst` line sits under "Remove the lines below in your project." in `.gitattributes`, and `install.php` removes it from generated projects.
 
@@ -324,7 +328,7 @@ GitHub has no API for the social preview, so upload the new PNG by hand in the r
 
 ## CI
 
-`.github/workflows/eddy-test.yml` runs the suite across the `p0`-`p5` groups on Ubuntu and macOS, runs `p3` and `p4` once per WebDriver backend (Selenium on Ubuntu only, chromedriver on both), and validates `.eddy/tests/composer.json` and the tooling package's `composer.json` (validate + normalize) plus the PHP lint step in `p0`. A second job (`eddy-test-docs`) builds and tests the documentation site, uploads the coverage of its components to Codecov and deploys the site to Netlify, and a third (`eddy-test-actions`) lints the workflow YAML with `yamllint` and `actionlint` and checks it for security issues with Zizmor.
+`.github/workflows/eddy-test.yml` runs the suite across the `p0`-`p5` groups on Ubuntu and macOS, runs `p3` and `p4` once per WebDriver backend (Selenium on Ubuntu only, chromedriver on both), and validates `.eddy/tests/composer.json` and the tooling package's `composer.json` (validate + normalize) plus the PHP lint step in `p0`. The `eddy-test-embed` job verifies the Prompty release named in the `@embed-start` marker of `install.php`, by attestation and by the GPG signature of its `SHA256SUMS`, then runs that release's `embed.php --check` on `install.php` and on a changed copy, which must fail. A second job (`eddy-test-docs`) builds and tests the documentation site, uploads the coverage of its components to Codecov and deploys the site to Netlify, and a third (`eddy-test-actions`) lints the workflow YAML with `yamllint` and `actionlint` and checks it for security issues with Zizmor.
 
 `.github/workflows/eddy-publish-tooling.yml` publishes `.eddy/tooling/` to the same-named branch of `drevops/eddy-tooling` on every push to `main` and to a branch whose name contains `eddy-tooling`.
 
@@ -332,6 +336,6 @@ GitHub has no API for the social preview, so upload the new PNG by hand in the r
 
 `.github/workflows/deploy.yml` deploys `main` and release tags to [`drevops/eddy_destination`](https://github.com/drevops/eddy_destination) the way it deploys a generated project to Drupal.org. The `DEPLOY_BRANCH` repository variable sends `main` to `5.x` there, and the `DEPLOY_PROCEED` secret set to `1` lets the push through.
 
-`install.php` deletes every `.github/workflows/eddy-*.yml` from a generated project, so a maintenance-only workflow takes the `eddy-` prefix and a workflow that ships to projects never does.
+`install.php` deletes every `.github/workflows/eddy-*.yml` from a generated project, so a maintenance-only workflow takes the `eddy-` prefix and a workflow that ships to projects never does. It also deletes `.github/CODEOWNERS`, which requires a code owner's review for the workflows, `install.php` and `.gitattributes`.
 
 <!-- cspell:ignore ignorecontent -->

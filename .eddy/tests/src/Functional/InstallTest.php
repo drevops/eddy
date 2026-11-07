@@ -199,6 +199,7 @@ final class InstallTest extends FunctionalTestCase {
     $this->assertProcessSuccessful();
     $this->assertProcessOutputContains([
       'Downloading Eddy development from ' . $archive,
+      'Warning: No SHA-256 checksum is known for ' . $archive . ', so the template is not verified.',
       'Eddy - Drupal extension scaffold',
     ]);
 

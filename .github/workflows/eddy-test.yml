@@ -191,6 +191,64 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
+  # Checks the minified Prompty in 'install.php' against the signed Prompty
+  # release that its '@embed-start' marker names.
+  eddy-test-embed:
+    runs-on: ubuntu-26.04
+
+    permissions:
+      contents: read # Read 'install.php'.
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          php-version: 8.3
+
+      - name: Download the Prompty release named in the marker
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(sed -n 's/.*@embed-start.* version=\([^ ]*\).*/\1/p' install.php)"
+          [[ "${version}" =~ ^[0-9A-Za-z.+-]+$ ]] || { echo "::error::The @embed-start marker of install.php names no Prompty version."; exit 1; }
+          echo "PROMPTY_VERSION=${version}" >> "$GITHUB_ENV"
+          gh release download "${version}" --repo AlexSkrypnyk/prompty --dir .prompty --pattern embed.php --pattern SHA256SUMS --pattern SHA256SUMS.asc
+          curl -fsSL "https://raw.githubusercontent.com/AlexSkrypnyk/prompty/${version}/PUBLIC_KEY.asc" -o .prompty/PUBLIC_KEY.asc
+
+      # 'gpg' accepts any key in its keyring, so the signature must come from
+      # the pinned fingerprint of the Prompty signing key.
+      - name: Verify the Prompty release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh attestation verify .prompty/embed.php --repo AlexSkrypnyk/prompty
+          gpg --batch --import .prompty/PUBLIC_KEY.asc
+          gpg --batch --status-fd 1 --verify .prompty/SHA256SUMS.asc .prompty/SHA256SUMS > .prompty/gpg-status.txt
+          grep -q '^\[GNUPG:\] VALIDSIG 755E824E80F849135F5F4043E71EDB25C4F6D89D ' .prompty/gpg-status.txt || { echo "::error::SHA256SUMS of Prompty ${PROMPTY_VERSION} is not signed by the Prompty signing key."; exit 1; }
+          cd .prompty
+          sha256sum --ignore-missing -c SHA256SUMS
+
+      - name: Check the embedded code
+        run: php .prompty/embed.php --check install.php --sums .prompty/SHA256SUMS
+
+      # Proves that the check above fails on a changed copy, so it can't pass
+      # without checking anything.
+      - name: Check that a changed copy fails
+        run: |
+          cp install.php .prompty/changed.php
+          sed -i '/@embed-start/{n;s/^/ /;}' .prompty/changed.php
+          if php .prompty/embed.php --check .prompty/changed.php --sums .prompty/SHA256SUMS > .prompty/changed.txt; then
+            echo '::error::The check passed on a changed copy of install.php.'
+            exit 1
+          fi
+          cat .prompty/changed.txt
+          grep -q 'FAIL  The embedded code does not match the marker hash' .prompty/changed.txt
+
   eddy-test-docs:
     runs-on: ubuntu-26.04
 

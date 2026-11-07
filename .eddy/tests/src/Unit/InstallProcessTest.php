@@ -128,6 +128,7 @@ final class InstallProcessTest extends UnitTestCase {
       'MIGRATION.md',
       'SECURITY.md',
       'logo.svg',
+      '.github/CODEOWNERS',
       '.eddy',
       '.claude/skills/create-eddy-tooling-release-notes',
     ];
