@@ -1919,8 +1919,9 @@ function template_archive(?string $version, string $url, string $sha256): array 
 
   if ($override !== '') {
     $override_sha256 = (string) getenv('INSTALL_TEMPLATE_ARCHIVE_SHA256');
+    $override_sha256 = $override_sha256 === '' ? NULL : template_archive_sha256($override_sha256, 'INSTALL_TEMPLATE_ARCHIVE_SHA256');
 
-    return [$override, $override_sha256 === '' ? NULL : template_archive_sha256($override_sha256, 'INSTALL_TEMPLATE_ARCHIVE_SHA256')];
+    return [$override, $override_sha256];
   }
 
   // An unstamped value keeps its '__' placeholder.
