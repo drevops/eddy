@@ -60,7 +60,7 @@ const config = {
   ],
 
   // Serves 'install.php' at '/install'.
-  plugins: [[installer, {version: process.env.RELEASE_VERSION}]],
+  plugins: [[installer, {version: process.env.RELEASE_VERSION, archiveUrl: process.env.RELEASE_ARCHIVE_URL, archiveSha256: process.env.RELEASE_ARCHIVE_SHA256}]],
 
   markdown: {
     mermaid: true,

@@ -23,8 +23,11 @@
  *   repository that the current directory is the root of, or to the machine
  *   name for both parts.
  * - INSTALL_TEMPLATE_ARCHIVE: The '.tar.gz' archive that an installer in an
- *   empty directory downloads, as a URL or a path. Defaults to the GitHub
- *   archive of the version in 'TEMPLATE_VERSION'.
+ *   empty directory downloads, as a URL or a path. Defaults to the archive in
+ *   'TEMPLATE_ARCHIVE_URL', or to the GitHub archive of the version in
+ *   'TEMPLATE_VERSION'.
+ * - INSTALL_TEMPLATE_ARCHIVE_SHA256: The SHA-256 checksum that the archive in
+ *   'INSTALL_TEMPLATE_ARCHIVE' must match.
  *
  * Usage:
  * @code
@@ -46,6 +49,21 @@ declare(strict_types=1);
  * no other text in this file may start one.
  */
 const TEMPLATE_VERSION = '$Format:%(describe:tags=true)$';
+
+/**
+ * The URL of the template archive of a release.
+ *
+ * The documentation build replaces the placeholder with the archive that the
+ * release workflow publishes. A copy that no build stamped keeps it.
+ */
+const TEMPLATE_ARCHIVE_URL = '__EDDY_TEMPLATE_ARCHIVE_URL__';
+
+/**
+ * The SHA-256 checksum of the archive in 'TEMPLATE_ARCHIVE_URL'.
+ *
+ * The documentation build stamps it with the URL.
+ */
+const TEMPLATE_ARCHIVE_SHA256 = '__EDDY_TEMPLATE_ARCHIVE_SHA256__';
 
 // phpcs:disable
 // @embed-start class=Prompty version=1.1.0 mode=compact sha256=e7ae61f14005612e95bff2bf1811d5a318199931fa9b4862b1158f42cf3396fc embedder=4e9bfde873edf1737c9770783473f72886ed969a0c7e407fbc857da8a3004b7a
@@ -416,7 +434,12 @@ Other environment variables:
                           The .tar.gz archive to download in an empty
                           directory, as a URL or a path, with the template in
                           1 top-level directory, as GitHub builds it. Defaults
-                          to the GitHub archive of the installer's version.
+                          to the release archive of the installer's version,
+                          or to the GitHub archive of a version without one.
+  INSTALL_TEMPLATE_ARCHIVE_SHA256
+                          The SHA-256 checksum that the archive in
+                          INSTALL_TEMPLATE_ARCHIVE must match. Without it, the
+                          installer warns that the archive is not verified.
 
 EOF;
   print $out;
@@ -1869,6 +1892,67 @@ function template_archive_url(?string $version): string {
 }
 
 /**
+ * Resolve the template archive to download and its checksum.
+ *
+ * 'INSTALL_TEMPLATE_ARCHIVE' takes precedence, with the checksum from
+ * 'INSTALL_TEMPLATE_ARCHIVE_SHA256'. Otherwise a stamped URL comes with its
+ * stamped checksum, and the GitHub archive of the version comes with none.
+ *
+ * @param string|null $version
+ *   The template version, or NULL for the default branch.
+ * @param string $url
+ *   The stamped archive URL, or its placeholder.
+ * @param string $sha256
+ *   The stamped checksum, or its placeholder.
+ *
+ * @return array{string, string|null}
+ *   The URL or the path of the archive, and its SHA-256 checksum, or NULL
+ *   when no checksum is known.
+ *
+ * @throws \Exception
+ *   When a checksum is not a SHA-256 checksum, or a stamped URL comes without
+ *   one.
+ */
+function template_archive(?string $version, string $url, string $sha256): array {
+  $override = (string) getenv('INSTALL_TEMPLATE_ARCHIVE');
+
+  if ($override !== '') {
+    $override_sha256 = (string) getenv('INSTALL_TEMPLATE_ARCHIVE_SHA256');
+
+    return [$override, $override_sha256 === '' ? NULL : template_archive_sha256($override_sha256, 'INSTALL_TEMPLATE_ARCHIVE_SHA256')];
+  }
+
+  // An unstamped value keeps its '__' placeholder.
+  if (str_starts_with($url, '__')) {
+    return [template_archive_url($version), NULL];
+  }
+
+  return [$url, template_archive_sha256($sha256, 'The checksum of ' . $url)];
+}
+
+/**
+ * Validate a SHA-256 checksum.
+ *
+ * @param string $sha256
+ *   The checksum, in either case.
+ * @param string $source
+ *   What the checksum came from, for the error message.
+ *
+ * @return string
+ *   The checksum in lowercase.
+ *
+ * @throws \Exception
+ *   When the value is not 64 hexadecimal digits.
+ */
+function template_archive_sha256(string $sha256, string $source): string {
+  if (preg_match('/^[0-9a-fA-F]{64}$/D', $sha256) !== 1) {
+    throw new \Exception(sprintf('%s is not a SHA-256 checksum: "%s".', $source, $sha256));
+  }
+
+  return strtolower($sha256);
+}
+
+/**
  * Check whether a directory is empty, apart from the installer.
  *
  * Hidden entries, such as '.git', do not count: git, the operating system and
@@ -1907,16 +1991,20 @@ function is_empty_directory(string $dir, string $installer): bool {
  *   The arguments for the installer of the template.
  *
  * @throws \Exception
- *   When the download fails, or the installer of the template exits with an
- *   error.
+ *   When the download fails or does not match its checksum, or the installer
+ *   of the template exits with an error.
  */
 function install_from_archive(string $dir, string $installer, array $args): void {
   $version = template_version(TEMPLATE_VERSION);
-  $archive = (string) getenv('INSTALL_TEMPLATE_ARCHIVE') ?: template_archive_url($version);
+  [$archive, $sha256] = template_archive($version, TEMPLATE_ARCHIVE_URL, TEMPLATE_ARCHIVE_SHA256);
 
   print sprintf('Downloading Eddy %s from %s', $version ?? 'development', $archive) . PHP_EOL;
 
-  download_template($archive, $dir);
+  if ($sha256 === NULL) {
+    print sprintf('Warning: No SHA-256 checksum is known for %s, so the template is not verified.', $archive) . PHP_EOL;
+  }
+
+  download_template($archive, $dir, $sha256);
 
   $exit_code = run_installer($dir, $args);
 
@@ -1943,11 +2031,15 @@ function install_from_archive(string $dir, string $installer, array $args): void
  *   The URL or the path of the '.tar.gz' archive.
  * @param string $dir
  *   The directory.
+ * @param string|null $sha256
+ *   The SHA-256 checksum the archive must match, in lowercase, or NULL to
+ *   skip the check.
  *
  * @throws \Exception
- *   When the archive cannot be downloaded or extracted.
+ *   When the archive cannot be downloaded, does not match the checksum or
+ *   cannot be extracted.
  */
-function download_template(string $archive, string $dir): void {
+function download_template(string $archive, string $dir, ?string $sha256 = NULL): void {
   error_clear_last();
   $content = @file_get_contents($archive);
 
@@ -1955,6 +2047,12 @@ function download_template(string $archive, string $dir): void {
     $reason = (string) preg_replace('/^file_get_contents\(.*?\): /', '', error_get_last()['message'] ?? '');
 
     throw new \Exception(rtrim(sprintf('Unable to download the template from %s. %s', $archive, $reason)));
+  }
+
+  $actual = hash('sha256', $content);
+
+  if ($sha256 !== NULL && $actual !== $sha256) {
+    throw new \Exception(sprintf('The template from %s does not match its SHA-256 checksum: expected %s, got %s.', $archive, $sha256, $actual));
   }
 
   // Hidden paths keep the directory empty for the next run when this run
