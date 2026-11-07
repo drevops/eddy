@@ -1,0 +1,7 @@
+# A pull request that changes the workflows, the installer or its line
+# endings needs a review from a code owner, because the workflows check the
+# installer and a pull request runs its own copy of them.
+/.github/workflows/ @AlexSkrypnyk
+/.github/CODEOWNERS @AlexSkrypnyk
+/install.php @AlexSkrypnyk
+/.gitattributes @AlexSkrypnyk

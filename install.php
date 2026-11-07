@@ -1089,6 +1089,7 @@ function process_internal(string $extension_name, string $extension_machine_name
   @unlink('MIGRATION.md');
   @unlink('SECURITY.md');
   @unlink('logo.svg');
+  @unlink('.github/CODEOWNERS');
 
   foreach (glob('.github/workflows/eddy-*.yml') ?: [] as $file) {
     @unlink($file);
