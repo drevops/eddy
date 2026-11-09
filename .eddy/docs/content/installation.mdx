@@ -54,7 +54,9 @@ The installer downloads the Eddy release shown in this site's footer and expands
 
 The directory counts as empty while it holds only `install.php` and hidden entries such as `.git`, so an empty repository you've cloned works too. Create your GitHub repository without a README or a license file, because either one makes the directory non-empty. In a directory with other files, the installer works on the copy of Eddy already there when the directory holds `your_extension.info.yml` (see [Install from a download](#install-from-a-download)). Otherwise, it stops and changes nothing.
 
-To install from another archive, such as a fork's, set the `INSTALL_TEMPLATE_ARCHIVE` environment variable to its URL or path. The installer reads it only in an empty directory. The archive is a `.tar.gz` file with the files in 1 top-level directory, the layout that GitHub builds.
+The installer verifies the template before it expands it. Each release includes the template as `eddy-<version>.tar.gz`, and the installer that this site serves holds the SHA-256 checksum of that file. The installer stops on an archive with another checksum and leaves the directory as it was.
+
+To install from another archive, such as a fork's, set the `INSTALL_TEMPLATE_ARCHIVE` environment variable to its URL or path. Set `INSTALL_TEMPLATE_ARCHIVE_SHA256` to its SHA-256 checksum, or the installer warns that the archive isn't verified. The installer reads both only in an empty directory. The archive is a `.tar.gz` file with the files in 1 top-level directory, the layout that GitHub builds.
 
 ![php install.php asking about the extension in a terminal, then installing it](../../assets/install.svg)
 
@@ -74,9 +76,37 @@ The installer asks the following questions:
 
 :::tip Skip the prompts
 
-Every answer can come from an environment variable instead, which helps in scripts and for AI agents. `php install.php --help` lists the variables. The list includes `INSTALL_TEMPLATE_ARCHIVE`, `INSTALL_BRANCHES` and `INSTALL_GITHUB_REPOSITORY`, which no question asks for. Set a variable in front of `php install.php`, such as `INSTALL_BRANCHES=1.x,2.x php install.php`.
+Every answer can come from an environment variable instead, which helps in scripts and for AI agents. `php install.php --help` lists the variables. The list includes `INSTALL_TEMPLATE_ARCHIVE`, `INSTALL_TEMPLATE_ARCHIVE_SHA256`, `INSTALL_BRANCHES` and `INSTALL_GITHUB_REPOSITORY`, which no question asks for. Set a variable in front of `php install.php`, such as `INSTALL_BRANCHES=1.x,2.x php install.php`.
 
 :::
+
+### Verify the installer
+
+`install.php` runs on your machine with your permissions, so check that it's the file the Eddy release workflow built. The workflow records a build attestation for the installer it deploys to this site. GitHub Actions signs the attestation and ties it to the commit and the workflow run that built the file.
+
+To verify the installer with the [GitHub CLI](https://cli.github.com) before you run it:
+
+```bash
+curl -fsSL https://eddy.drevops.com/install > install.php
+gh attestation verify install.php --repo drevops/eddy
+php install.php
+```
+
+`gh attestation verify` fails when the file changed after the build or came from another repository's workflows.
+
+To verify the installer without the GitHub CLI, compare it with the checksum attached to the latest release:
+
+```bash
+curl -fsSL https://eddy.drevops.com/install > install.php
+curl -fsSL https://github.com/drevops/eddy/releases/latest/download/install.php.sha256 > install.php.sha256
+sha256sum -c install.php.sha256    # macOS: shasum -a 256 -c install.php.sha256
+```
+
+When this site's footer shows a pre-release, such as `5.1.0-rc1`, replace `latest/download` with `download/5.1.0-rc1` in the second URL.
+
+The checksum comes from GitHub, so a change to `eddy.drevops.com` alone fails the check. Both checks trust the `drevops/eddy` repository: anyone who controls it can rebuild the attestation and the checksum along with the file.
+
+`install.php` embeds the [Prompty](https://github.com/AlexSkrypnyk/prompty) prompt library as minified code that's too long to review in a diff. On every pull request, CI compares that code with the signed Prompty release that its `// @embed-start` marker names. The check fails when 1 byte differs.
 
 ### Install from a download
 
@@ -93,6 +123,8 @@ To try changes that aren't released, run the installer of the `main` branch from
 ```bash
 curl -fsSL https://drevops-eddy-docs.netlify.app/install > install.php && php install.php
 ```
+
+The development installer has no attestation. It also has no checksum for the template, so it warns that the template isn't verified.
 
 ## What the installer changes
 

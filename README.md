@@ -59,6 +59,14 @@ The installer downloads the latest Eddy release into the directory, then asks ab
 
 ![Installation process](.eddy/assets/install.svg)
 
+To check the installer before you run it, verify its build attestation with the [GitHub CLI](https://cli.github.com):
+
+```bash
+gh attestation verify install.php --repo drevops/eddy
+```
+
+[Verify the installer](https://eddy.drevops.com/installation#verify-the-installer) also covers a check without the GitHub CLI.
+
 To start from a download instead, expand the [latest release](https://github.com/drevops/eddy/releases/latest) into a new directory and run `php install.php` there.
 
 ➡️ [Installation](https://eddy.drevops.com/installation) walks through every step, from the download to the first deployment to Drupal.org.

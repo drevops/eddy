@@ -164,8 +164,14 @@ The workflow reads the site URL and base path from the GitHub Pages settings, so
 
 ## The installer
 
-Every build serves the root `install.php` at `/install`, with the version of the build in place of its version placeholder. `src/installer.js` writes the file after the build, and the installer downloads the GitHub archive of that version. A release build takes the version of the [published site](#the-published-site), so a manual run with a version republishes the installer of that release. Any other build, such as the development site or a preview, takes the `git describe` output of its commit, so its installer installs that commit.
+Every build serves the root `install.php` at `/install`, with the version of the build in place of its version placeholder. `src/installer.js` writes the file after the build. A release build also stamps the URL and the SHA-256 checksum of the release's template archive, which the workflow passes as `RELEASE_ARCHIVE_URL` and `RELEASE_ARCHIVE_SHA256`. Its installer verifies that archive. Any other installer downloads the GitHub archive of its version without a check. A release build takes the version of the [published site](#the-published-site), so a manual run with a version republishes the installer of that release. Any other build, such as the development site or a preview, takes the `git describe` output of its commit, so its installer installs that commit.
 
-Before it deploys, the release workflow checks that the built installer reports the release version. Then it installs an extension with that installer in an empty directory. A version that GitHub has no archive for fails that check, so a mistyped version never reaches the site.
+For a tag, the release workflow builds the template archive with `git archive` and uploads it to the release as `eddy-<version>.tar.gz`, with its `.sha256` file. A rerun reuses the uploaded archive, so an installer already on the site keeps matching it. GitHub builds its own archives on demand, with no promise that their bytes stay the same, so the release publishes an archive of its own.
+
+Before it deploys, the release workflow checks that the built installer reports the release version. Then it installs an extension with that installer in an empty directory. A version that GitHub has no archive for fails that check, so a mistyped version never reaches the site. For a tag, the check also fails when the installer didn't verify the archive.
+
+The workflow then attests the installer and the archive, and uploads the installer to the release as `install.php`, with `install.php.sha256`. After the deployment, it downloads `/install` from the site until the site serves the attested file, then runs `gh attestation verify` on it. GitHub Pages caches a page for up to 10 minutes, so this step can wait that long.
+
+The release needs to exist when the tag is pushed, which it does when you publish a release from the **Releases** page.
 
 {/* cspell:ignore fraunces figtree */}
