@@ -1,15 +1,11 @@
 name: Release Eddy docs
 
 # Publishes '.eddy/docs' to GitHub Pages on a release tag, or on a manual run.
-# The site serves the installer at '/install', and the installer installs the
-# release version.
+# The site holds no installer: 'eddy-release-installer.yml' attaches it to the
+# release.
 #
 # The site URL and base path come from the GitHub Pages settings at build
 # time, so a custom domain set there takes effect on the next run.
-#
-# For a release, it also publishes the template archive that the installer
-# downloads, the served installer and their checksums as release assets, with
-# a build attestation for each.
 
 on:
   push:
@@ -36,10 +32,9 @@ jobs:
     runs-on: ubuntu-26.04
 
     permissions:
-      contents: write # Upload the installer and the template archive to the release.
+      contents: read # Read the documentation source.
       pages: write # Deploy the built site with 'actions/deploy-pages'.
-      id-token: write # Authenticate 'actions/deploy-pages' to GitHub Pages and sign the attestations.
-      attestations: write # Record the build attestations of the release assets.
+      id-token: write # Authenticate 'actions/deploy-pages' to GitHub Pages.
 
     environment:
       name: github-pages
@@ -69,7 +64,6 @@ jobs:
           REF_TYPE: ${{ github.ref_type }}
           REF_NAME: ${{ github.ref_name }}
         run: |
-          is_tag=1
           if [ -n "${INPUTS_VERSION}" ]; then
             version="${INPUTS_VERSION}"
             git show-ref --verify --quiet "refs/tags/${version}" || { echo "::error::Version ${version} is not a tag of this repository."; exit 1; }
@@ -77,32 +71,9 @@ jobs:
             version="${REF_NAME}"
           else
             version="$(git describe --tags --always)"
-            is_tag=0
           fi
           echo "RELEASE_VERSION=${version}" >> "$GITHUB_ENV"
-          echo "RELEASE_IS_TAG=${is_tag}" >> "$GITHUB_ENV"
           echo "Release version: ${version}"
-
-      # A rerun reuses the published archive, so an installer deployed by an
-      # earlier run keeps matching it.
-      - name: Publish template archive
-        if: env.RELEASE_IS_TAG == '1'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          archive="eddy-${RELEASE_VERSION}.tar.gz"
-          mkdir -p .release
-          if gh release download "${RELEASE_VERSION}" --pattern "${archive}" --dir .release; then
-            echo "Reusing ${archive} from release ${RELEASE_VERSION}."
-          else
-            git archive --format=tar.gz --prefix="eddy-${RELEASE_VERSION}/" --output=".release/${archive}" "refs/tags/${RELEASE_VERSION}"
-            (cd .release && sha256sum "${archive}" > "${archive}.sha256")
-            gh release upload "${RELEASE_VERSION}" ".release/${archive}" ".release/${archive}.sha256"
-          fi
-          sha256="$(sha256sum ".release/${archive}" | cut -d ' ' -f 1)"
-          echo "RELEASE_ARCHIVE_URL=https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_VERSION}/${archive}" >> "$GITHUB_ENV"
-          echo "RELEASE_ARCHIVE_SHA256=${sha256}" >> "$GITHUB_ENV"
-          echo "Template archive: ${archive} (${sha256})"
 
       - name: Install dependencies
         run: npm ci
@@ -115,58 +86,11 @@ jobs:
           DOCS_URL: ${{ steps.pages.outputs.origin }}
           DOCS_BASE_URL: ${{ steps.pages.outputs.base_path }}/
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
-        with:
-          php-version: 8.3
-
-      # The installer downloads the archive of the release version from GitHub,
-      # so a version that GitHub doesn't hold fails here, before the deployment.
-      # A release installer also verifies the checksum of the archive.
-      - name: Check installer
-        env:
-          INSTALL_NAME: Installer Check
-          INSTALL_MACHINE_NAME: installer_check
-          INSTALL_TYPE: module
-          INSTALL_DRUPAL_VERSION: '11'
-          INSTALL_COMMAND_WRAPPER: makefile
-          INSTALL_TOOLS: phpcs,phpunit
-          INSTALL_EXAMPLES: 'false'
-          INSTALL_REMOVE_SELF: 'true'
-          INSTALL_PROCEED: 'true'
+      # A copy at '/install' would be the installer of this build, not of the
+      # latest release.
+      - name: Check that the site holds no installer
         run: |
-          installer_version="$(php .eddy/docs/build/install --version)"
-          [ "${installer_version}" = "${RELEASE_VERSION}" ] || { echo "The installer reports ${installer_version} instead of ${RELEASE_VERSION}."; exit 1; }
-          mkdir installer-check
-          cp .eddy/docs/build/install installer-check/install.php
-          cd installer-check
-          php install.php | tee ../installer-check.log
-          [ "${PIPESTATUS[0]}" -eq 0 ] || exit 1
-          [ -f installer_check.info.yml ] || { echo 'The installer did not install the extension.'; exit 1; }
-          if [ -n "${RELEASE_ARCHIVE_SHA256}" ] && grep -q 'so the template is not verified' ../installer-check.log; then
-            echo '::error::The release installer did not verify the template archive.'
-            exit 1
-          fi
-
-      # The attested installer is the file that the next steps deploy, with no
-      # rebuild in between.
-      - name: Checksum installer
-        run: |
-          mkdir -p .release
-          cp .eddy/docs/build/install .release/install.php
-          cd .release
-          sha256sum install.php > install.php.sha256
-
-      - name: Attest release assets
-        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
-        with:
-          subject-path: .release/*
-
-      - name: Upload installer to the release
-        if: env.RELEASE_IS_TAG == '1'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${RELEASE_VERSION}" .release/install.php .release/install.php.sha256 --clobber
+          [ ! -e .eddy/docs/build/install ] || { echo '::error::The release build holds an installer at /install.'; exit 1; }
 
       - name: Upload documentation site
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
@@ -176,24 +100,3 @@ jobs:
       - name: Deploy documentation site
         id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5
-
-      # GitHub Pages caches a page for up to 10 minutes, so the site can serve
-      # the previous installer for a while after the deployment.
-      - name: Verify deployed installer
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
-        timeout-minutes: 20
-        run: |
-          url="${PAGE_URL%/}/install"
-          expected="$(sha256sum .release/install.php | cut -d ' ' -f 1)"
-          for attempt in $(seq 1 15); do
-            if curl -fsSL "${url}" -o deployed-install.php && [ "$(sha256sum deployed-install.php | cut -d ' ' -f 1)" = "${expected}" ]; then
-              gh attestation verify deployed-install.php --repo "${GITHUB_REPOSITORY}"
-              exit 0
-            fi
-            echo "Attempt ${attempt}: ${url} does not serve the attested installer yet."
-            sleep 60
-          done
-          echo "::error::${url} does not serve the attested installer."
-          exit 1
