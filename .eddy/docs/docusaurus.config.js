@@ -59,8 +59,9 @@ const config = {
     ],
   ],
 
-  // Serves 'install.php' at '/install'.
-  plugins: [[installer, {version: process.env.RELEASE_VERSION, archiveUrl: process.env.RELEASE_ARCHIVE_URL, archiveSha256: process.env.RELEASE_ARCHIVE_SHA256}]],
+  // Serves 'install.php' at '/install' in a development build only. A release
+  // attaches its own installer as a release asset.
+  plugins: [[installer, {release: isRelease}]],
 
   markdown: {
     mermaid: true,
