@@ -55,17 +55,56 @@ In a new, empty directory:
 curl -fsSL https://eddy.drevops.com/install > install.php && php install.php
 ```
 
-The installer downloads the latest Eddy release into the directory, then asks about your extension. Build the site with `make build` or `ahoy build`, then check it with `lint` and `test` through the same wrapper. Without a wrapper, the generated `CONTRIBUTING.md` lists the `scripts/eddy-tooling` and `vendor/bin/eddy-*` commands that do the same jobs.
+The command runs the installer of the latest Eddy release, which downloads that release into the directory and then asks about your extension. Build the site with `make build` or `ahoy build`, then check it with `lint` and `test` through the same wrapper. Without a wrapper, the generated `CONTRIBUTING.md` lists the `scripts/eddy-tooling` and `vendor/bin/eddy-*` commands that do the same jobs.
 
 ![Installation process](.eddy/assets/install.svg)
 
-To check the installer before you run it, verify its build attestation with the [GitHub CLI](https://cli.github.com):
+<details>
+<summary>Verify the installer before you run it</summary>
 
-```bash
-gh attestation verify install.php --repo drevops/eddy
-```
+`https://eddy.drevops.com/install` serves the `install.php` attached to the latest Eddy release. Each release signs the checksums of that file with GPG and records a GitHub build attestation for it.
 
-[Verify the installer](https://eddy.drevops.com/installation#verify-the-installer) also covers a check without the GitHub CLI.
+1. In a new, empty directory, download the installer of the latest release:
+
+   ```bash
+   curl -fsSL https://eddy.drevops.com/install > install.php
+   ```
+
+2. Verify the installer with the [GitHub CLI](https://cli.github.com):
+
+   ```bash
+   gh attestation verify install.php --repo drevops/eddy
+   ```
+
+   Or verify it with GPG:
+
+   ```bash
+   BASE=https://github.com/drevops/eddy/releases/latest/download
+   curl -fsSLO $BASE/SHA256SUMS
+   curl -fsSLO $BASE/SHA256SUMS.asc
+   curl -fsSLO https://raw.githubusercontent.com/drevops/eddy/main/install-key.asc
+
+   gpg --show-keys --with-fingerprint install-key.asc
+   gpg --import install-key.asc
+   gpg --verify SHA256SUMS.asc SHA256SUMS
+   sha256sum --ignore-missing -c SHA256SUMS    # macOS: shasum -a 256 --ignore-missing -c SHA256SUMS
+   ```
+
+   Confirm that `gpg --verify` reports a good signature from the key with this fingerprint:
+
+   ```text
+   7B8D 3C97 93E0 FF52 EAAB  FEC8 E532 2FD0 EC15 511E
+   ```
+
+3. Run the verified installer:
+
+   ```bash
+   php install.php
+   ```
+
+[Verify the installer](https://eddy.drevops.com/installation#verify-the-installer) explains what each check proves.
+
+</details>
 
 To start from a download instead, expand the [latest release](https://github.com/drevops/eddy/releases/latest) into a new directory and run `php install.php` there.
 

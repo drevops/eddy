@@ -127,6 +127,7 @@ final class InstallProcessTest extends UnitTestCase {
       'LICENSE.txt',
       'MIGRATION.md',
       'SECURITY.md',
+      'install-key.asc',
       'logo.svg',
       '.github/CODEOWNERS',
       '.eddy',

@@ -5,6 +5,7 @@ parameters:
   paths:
     - src
     - ../assets/update-assets.php
+    - ../installer/verify-release.php
     - ../tooling/src/eddy-assemble
     - ../tooling/src/eddy-browser-start
     - ../tooling/src/eddy-browser-stop

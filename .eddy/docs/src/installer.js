@@ -6,8 +6,9 @@ import path from 'node:path';
 // download, and the build replaces it in the copy it serves.
 export const VERSION_PLACEHOLDER = '$Format:%(describe:tags=true)$';
 
-// The build replaces these with the template archive of the release and its
-// checksum, which the installer verifies before it extracts the archive.
+// The release workflow replaces these with the template archive of the
+// release and its checksum, which the installer verifies before it extracts
+// the archive.
 export const ARCHIVE_URL_PLACEHOLDER = '__EDDY_TEMPLATE_ARCHIVE_URL__';
 
 export const ARCHIVE_SHA256_PLACEHOLDER = '__EDDY_TEMPLATE_ARCHIVE_SHA256__';
@@ -65,19 +66,32 @@ export const stampInstaller = (source, version, archiveUrl = '', archiveSha256 =
   return replacePlaceholder(stamped, ARCHIVE_SHA256_PLACEHOLDER, archiveSha256, 'archive checksum');
 };
 
-// Serves the root 'install.php' at '/install' with the version of the build:
-// the 'version' option, or the 'git describe' output of the checkout. The
-// 'archiveUrl' and 'archiveSha256' options name the template archive.
+// Writes a stamped copy of the installer at 'source' to 'destination'. A
+// release version is required, so the copy never keeps the placeholder.
+export const stampInstallerFile = (source, destination, version, archiveUrl, archiveSha256) => {
+  if (!version) {
+    throw new Error('Pass the release version to stamp into the installer.');
+  }
+
+  fs.writeFileSync(destination, stampInstaller(fs.readFileSync(source, 'utf8'), version, archiveUrl, archiveSha256));
+};
+
+// Serves the root 'install.php' at '/install' with the 'git describe' output
+// of the checkout as its version. With the 'release' option, the build serves
+// no installer.
 export default function installerPlugin(context, options = {}) {
   const root = path.resolve(context.siteDir, '..', '..');
 
   return {
     name: 'eddy-installer',
     async postBuild({ outDir }) {
-      const source = fs.readFileSync(path.join(root, 'install.php'), 'utf8');
-      const version = options.version || describeCheckout(root);
+      if (options.release) {
+        return;
+      }
 
-      fs.writeFileSync(path.join(outDir, 'install'), stampInstaller(source, version, options.archiveUrl || '', options.archiveSha256 || ''));
+      const source = fs.readFileSync(path.join(root, 'install.php'), 'utf8');
+
+      fs.writeFileSync(path.join(outDir, 'install'), stampInstaller(source, describeCheckout(root)));
     },
   };
 }

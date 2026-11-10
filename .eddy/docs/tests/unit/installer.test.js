@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import installer, { ARCHIVE_SHA256_PLACEHOLDER, ARCHIVE_URL_PLACEHOLDER, VERSION_PLACEHOLDER, describeCheckout, stampInstaller } from '../../src/installer';
+import installer, { ARCHIVE_SHA256_PLACEHOLDER, ARCHIVE_URL_PLACEHOLDER, VERSION_PLACEHOLDER, describeCheckout, stampInstaller, stampInstallerFile } from '../../src/installer';
 
 const SITE_DIR = path.join(__dirname, '..', '..');
 
@@ -83,6 +83,37 @@ describe('describeCheckout', () => {
   });
 });
 
+describe('stampInstallerFile', () => {
+  let write;
+
+  beforeEach(() => {
+    write = jest.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    write.mockRestore();
+  });
+
+  test('writes the stamped installer to the destination', () => {
+    stampInstallerFile(path.join(ROOT_DIR, 'install.php'), '/release/install.php', '5.0.0', URL, SHA256);
+
+    expect(write).toHaveBeenCalledWith('/release/install.php', install().replace(VERSION_PLACEHOLDER, '5.0.0').replace(ARCHIVE_URL_PLACEHOLDER, URL).replace(ARCHIVE_SHA256_PLACEHOLDER, SHA256));
+  });
+
+  test.each([
+    ['an empty version', ''],
+    ['no version', undefined],
+  ])('rejects %s', (name, version) => {
+    expect(() => stampInstallerFile(path.join(ROOT_DIR, 'install.php'), '/release/install.php', version, URL, SHA256)).toThrow('Pass the release version to stamp into the installer.');
+    expect(write).not.toHaveBeenCalled();
+  });
+
+  test('rejects an invalid archive', () => {
+    expect(() => stampInstallerFile(path.join(ROOT_DIR, 'install.php'), '/release/install.php', '5.0.0', URL, '')).toThrow('Invalid template archive checksum ""');
+    expect(write).not.toHaveBeenCalled();
+  });
+});
+
 describe('installer plugin', () => {
   let write;
 
@@ -95,18 +126,18 @@ describe('installer plugin', () => {
   });
 
   test.each([
-    ['the release version', { version: '5.0.0' }, () => install().replace(VERSION_PLACEHOLDER, '5.0.0')],
-    ['the version of the checkout', {}, () => install().replace(VERSION_PLACEHOLDER, describeCheckout(ROOT_DIR))],
-    ['the version of the checkout without options', undefined, () => install().replace(VERSION_PLACEHOLDER, describeCheckout(ROOT_DIR))],
-    [
-      'the release version and archive',
-      { version: '5.0.0', archiveUrl: URL, archiveSha256: SHA256 },
-      () => install().replace(VERSION_PLACEHOLDER, '5.0.0').replace(ARCHIVE_URL_PLACEHOLDER, URL).replace(ARCHIVE_SHA256_PLACEHOLDER, SHA256),
-    ],
-  ])('serves install.php at /install with %s', async (name, options, expected) => {
+    ['options', { release: false }],
+    ['no options', undefined],
+  ])('serves install.php at /install with the version of the checkout and %s', async (name, options) => {
     await installer({ siteDir: SITE_DIR }, options).postBuild({ outDir: '/site/build' });
 
-    expect(write).toHaveBeenCalledWith(path.join('/site/build', 'install'), expected());
+    expect(write).toHaveBeenCalledWith(path.join('/site/build', 'install'), install().replace(VERSION_PLACEHOLDER, describeCheckout(ROOT_DIR)));
+  });
+
+  test('serves no installer in a release build', async () => {
+    await installer({ siteDir: SITE_DIR }, { release: true }).postBuild({ outDir: '/site/build' });
+
+    expect(write).not.toHaveBeenCalled();
   });
 });
 

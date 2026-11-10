@@ -14,6 +14,7 @@
 
     <file>src</file>
     <file>../assets/update-assets.php</file>
+    <file>../installer/verify-release.php</file>
     <file>../tooling/src/eddy-assemble</file>
     <file>../tooling/src/eddy-browser-start</file>
     <file>../tooling/src/eddy-browser-stop</file>

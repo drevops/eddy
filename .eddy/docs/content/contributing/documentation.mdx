@@ -164,14 +164,18 @@ The workflow reads the site URL and base path from the GitHub Pages settings, so
 
 ## The installer
 
-Every build serves the root `install.php` at `/install`, with the version of the build in place of its version placeholder. `src/installer.js` writes the file after the build. A release build also stamps the URL and the SHA-256 checksum of the release's template archive, which the workflow passes as `RELEASE_ARCHIVE_URL` and `RELEASE_ARCHIVE_SHA256`. Its installer verifies that archive. Any other installer downloads the GitHub archive of its version without a check. A release build takes the version of the [published site](#the-published-site), so a manual run with a version republishes the installer of that release. Any other build, such as the development site or a preview, takes the `git describe` output of its commit, so its installer installs that commit.
+A development build, such as a local build, the development site or a preview, serves the root `install.php` at `/install`. `src/installer.js` writes the file after the build, with the `git describe` output of its commit in place of the version placeholder, so its installer installs that commit. A release build serves no installer, and the docs release workflow fails when the build holds `/install`. On `eddy.drevops.com`, a Cloudflare redirect rule sends `/install` to the `install.php` of the latest GitHub release.
 
-For a tag, the release workflow builds the template archive with `git archive` and uploads it to the release as `eddy-<version>.tar.gz`, with its `.sha256` file. A rerun reuses the uploaded archive, so an installer already on the site keeps matching it. GitHub builds its own archives on demand, with no promise that their bytes stay the same, so the release publishes an archive of its own.
+`.github/workflows/eddy-release-installer.yml` attaches that installer when you publish a release:
 
-Before it deploys, the release workflow checks that the built installer reports the release version. Then it installs an extension with that installer in an empty directory. A version that GitHub has no archive for fails that check, so a mistyped version never reaches the site. For a tag, the check also fails when the installer didn't verify the archive.
+1. It builds the template archive with `git archive` and uploads it to the release as `eddy-<version>.tar.gz`. GitHub builds its own archives on demand, with no promise that their bytes stay the same, so the release publishes an archive of its own. A rerun reuses the uploaded archive, so a published installer keeps matching it.
+2. It reads `install.php` from the tag and stamps it with the version and with the URL and SHA-256 checksum of the archive. `scripts/stamp-installer.mjs` stamps the file with `stampInstaller()` from `src/installer.js`.
+3. It checks that the installer reports the release version, then installs an extension with it in an empty directory. The check fails when the installer didn't verify the archive.
+4. It writes `SHA256SUMS` for the installer and the archive, and signs it as `SHA256SUMS.asc` with the `GPG_PRIVATE_KEY` secret of the `release` environment.
+5. It checks the signature against `install-key.asc` and its pinned fingerprint with `.eddy/installer/verify-release.php`.
+6. It attests the installer, the archive and `SHA256SUMS`, uploads them with the signature and verifies the uploaded copies.
+7. For the latest release, it checks that `releases/latest/download/install.php` and `https://eddy.drevops.com/install` serve the uploaded installer.
 
-The workflow then attests the installer and the archive, and uploads the installer to the release as `install.php`, with `install.php.sha256`. After the deployment, it downloads `/install` from the site until the site serves the attested file, then runs `gh attestation verify` on it. GitHub Pages caches a page for up to 10 minutes, so this step can wait that long.
-
-The release needs to exist when the tag is pushed, which it does when you publish a release from the **Releases** page.
+To attach the installer to an existing release again, run the `Release Eddy installer` workflow from **Actions** with the version. The version must be a tag whose `install.php` holds the archive placeholders, as every release from `5.1.0` does.
 
 {/* cspell:ignore fraunces figtree */}

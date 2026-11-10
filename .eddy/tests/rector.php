@@ -29,6 +29,7 @@ return RectorConfig::configure()
   ->withPaths([
     __DIR__ . '/src/**',
     __DIR__ . '/../assets/update-assets.php',
+    __DIR__ . '/../installer/verify-release.php',
     __DIR__ . '/../tooling/src/eddy-assemble',
     __DIR__ . '/../tooling/src/eddy-browser-start',
     __DIR__ . '/../tooling/src/eddy-browser-stop',
