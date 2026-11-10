@@ -128,6 +128,11 @@ function verify_release(string $dir, string $public_key, string $fingerprint): v
  * A 'VALIDSIG' line names the key that made the signature, then the primary
  * key of that key last, so a signature by a subkey passes too.
  *
+ * gpg prints 'VALIDSIG' for a signature by a revoked key too, after a
+ * 'REVKEYSIG' line, so any 'REVKEYSIG' line fails the check. A signature by
+ * an expired key passes, so the releases signed before the expiry still
+ * verify.
+ *
  * @param string $status
  *   The output of 'gpg --status-fd 1 --verify'.
  * @param string $fingerprint
@@ -137,19 +142,25 @@ function verify_release(string $dir, string $public_key, string $fingerprint): v
  *   TRUE when a valid signature names the fingerprint.
  */
 function is_signed_by(string $status, string $fingerprint): bool {
+  $signed = FALSE;
+
   foreach (explode("\n", $status) as $line) {
     $fields = explode(' ', trim($line));
 
-    if (count($fields) < 3 || $fields[0] !== '[GNUPG:]' || $fields[1] !== 'VALIDSIG') {
+    if (count($fields) < 2 || $fields[0] !== '[GNUPG:]') {
       continue;
     }
 
-    if ($fields[2] === $fingerprint || end($fields) === $fingerprint) {
-      return TRUE;
+    if ($fields[1] === 'REVKEYSIG') {
+      return FALSE;
+    }
+
+    if ($fields[1] === 'VALIDSIG' && count($fields) >= 3 && ($fields[2] === $fingerprint || end($fields) === $fingerprint)) {
+      $signed = TRUE;
     }
   }
 
-  return FALSE;
+  return $signed;
 }
 
 /**

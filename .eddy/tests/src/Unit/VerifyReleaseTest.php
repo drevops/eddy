@@ -119,6 +119,9 @@ final class VerifyReleaseTest extends UnitTestCase {
     yield 'the fingerprint in text that is not a status line' => ['gpg: VALIDSIG ' . self::TEST_FINGERPRINT . ' ' . self::TEST_FINGERPRINT, FALSE];
     yield 'a truncated VALIDSIG line' => ['[GNUPG:] VALIDSIG', FALSE];
     yield 'no output' => ['', FALSE];
+    yield 'a signature by a revoked key' => [implode("\n", ['[GNUPG:] NEWSIG', '[GNUPG:] REVKEYSIG 193A7081645B6D4B Eddy Test Signing', $valid(self::TEST_FINGERPRINT, self::TEST_FINGERPRINT)]), FALSE];
+    yield 'a revoked key after the valid signature' => [implode("\n", [$valid(self::TEST_FINGERPRINT, self::TEST_FINGERPRINT), '[GNUPG:] REVKEYSIG 193A7081645B6D4B Eddy Test Signing']), FALSE];
+    yield 'a signature by an expired key' => [implode("\n", ['[GNUPG:] NEWSIG', '[GNUPG:] EXPKEYSIG 193A7081645B6D4B Eddy Test Signing', $valid(self::TEST_FINGERPRINT, self::TEST_FINGERPRINT)]), TRUE];
   }
 
   #[DataProvider('dataProviderVerifyChecksumsFails')]
