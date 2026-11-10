@@ -174,7 +174,7 @@ The `export-subst` line sits under "Remove the lines below in your project." in 
 
 Run it from the **Actions** tab with a version to attach the installer to an existing release. The tag's `install.php` must hold the archive placeholders, which every release from `5.1.0` does.
 
-`install-key.asc` in the repository root is the public half of the `Eddy Release Signing` key, fingerprint `7B8D 3C97 93E0 FF52 EAAB  FEC8 E532 2FD0 EC15 511E`. It expires on 2028-11-09. `process_internal()` removes it from generated projects. `VerifyReleaseTest` fails until the key, `SIGNING_KEY_FINGERPRINT` and the fingerprint on this page and in `.eddy/docs/content/installation.mdx` agree.
+`install-key.asc` in the repository root is the public half of the `Eddy Release Signing` key, fingerprint `7B8D 3C97 93E0 FF52 EAAB  FEC8 E532 2FD0 EC15 511E`. It expires on 2028-11-09. `process_internal()` removes it from generated projects. `VerifyReleaseTest` fails until the key, `SIGNING_KEY_FINGERPRINT` and the fingerprint on this page, in `README.md` and in `.eddy/docs/content/installation.mdx` agree.
 
 To extend the key before it expires, run `gpg --quick-set-expire <fingerprint> 2y`, then export the public half again. The fingerprint stays the same:
 
@@ -182,7 +182,7 @@ To extend the key before it expires, run `gpg --quick-set-expire <fingerprint> 2
 gpg --armor --output install-key.asc --export <fingerprint>
 ```
 
-A new key needs a new `install-key.asc`, the new fingerprint in `verify-release.php`, on this page and in `installation.mdx`, and a note in the release notes.
+A new key needs a new `install-key.asc`, the new fingerprint in `verify-release.php`, on this page, in `README.md` and in `installation.mdx`, and a note in the release notes.
 
 To give the workflow the signing key, create the `release` environment, then store the private key and its passphrase there:
 

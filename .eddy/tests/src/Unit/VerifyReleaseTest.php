@@ -177,7 +177,7 @@ final class VerifyReleaseTest extends UnitTestCase {
     $groups = str_split(self::installerConstant('SIGNING_KEY_FINGERPRINT'), 4);
     $grouped = implode(' ', array_slice($groups, 0, 5)) . '  ' . implode(' ', array_slice($groups, 5));
 
-    foreach (['.eddy/docs/content/installation.mdx', '.eddy/CLAUDE.md'] as $file) {
+    foreach (['README.md', '.eddy/docs/content/installation.mdx', '.eddy/CLAUDE.md'] as $file) {
       $this->assertStringContainsString($grouped, File::read(self::rootDir() . '/' . $file), sprintf('%s shows the fingerprint of the signing key.', $file));
     }
   }
