@@ -61,7 +61,7 @@ The skill decides these from what it finds:
 To update without Claude Code:
 
 1. Read the notes of every release after the one your project is on, which `extra.eddy.version` in `composer.dev.json` names, on the [releases page](https://github.com/drevops/eddy/releases). Look for breaking changes.
-2. In a new, empty directory, [run the installer](../installation.mdx#run-the-installer) with the answers your project uses. That directory isn't a clone of your repository, so pass your workflow branches and your GitHub repository, such as `INSTALL_BRANCHES=1.x,2.x INSTALL_GITHUB_REPOSITORY=owner/myextension php install.php`. The installer installs the release shown in this site's footer. To update to another release or to the current code, [install from a download](../installation.mdx#install-from-a-download) instead. Your project shows its answers in these places:
+2. In a new, empty directory, [run the installer](../installation.mdx#run-the-installer) with the answers your project uses. That directory isn't a clone of your repository, so pass your workflow branches and your GitHub repository, such as `INSTALL_BRANCHES=1.x,2.x INSTALL_GITHUB_REPOSITORY=owner/myextension php install.php`. The installer installs the latest release. To update to another release or to the current code, [install from a download](../installation.mdx#install-from-a-download) instead. Your project shows its answers in these places:
    - The name and the type in the `name` and `type` of its `.info.yml`, and the machine name in that file's name
    - The command wrappers in which of `.ahoy.yml` and `Makefile` it has
    - The Drupal majors in the `drupal-version` values of `.github/workflows/test.yml`

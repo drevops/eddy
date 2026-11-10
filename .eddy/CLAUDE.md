@@ -8,6 +8,7 @@ This file documents how `install.php` prunes the template, how to regenerate the
 
 - `.eddy/assets/` - Source files for animated SVG demos used in the root `README.md` and the documentation site (`install.svg`, `build.svg`, `lint.svg`, `test.svg`) plus the `update-assets.php` generator and a small `svg-term` Node wrapper. It also holds the repository's social preview card, `social-preview.png`, and the `social-preview.html` page it's rendered from.
 - `.eddy/docs/` - The Docusaurus documentation site, with its pages in `.eddy/docs/content/`. It's the home of the user-facing docs: `README.md`, `MIGRATION.md` and `CONTRIBUTING.md` only point into it. See [Documentation site](#documentation-site).
+- `.eddy/installer/` - `verify-release.php`, which the installer release workflow runs to check the signed checksums of a release. See [Installer releases](#installer-releases).
 - `.eddy/tests/` - PHPUnit suite that validates the scaffold itself: the `install.php` interactive flow, the tooling commands in `.eddy/tooling/src/` with their installer `scripts/eddy-tooling`, and the resulting project structure. Snapshots live under `.eddy/tests/fixtures/install/`.
 - `.eddy/tooling/` - Source of the `drevops/eddy-tooling` Composer package (the `eddy-*` commands). `scripts/eddy-tooling` installs it into `vendor/` as a symlink in this repository, and `eddy-publish-tooling.yml` mirrors it to the read-only `drevops/eddy-tooling` repository on every push to `main` and to a branch whose name contains `eddy-tooling`. Releases are created on the mirror by hand, with notes from the `create-eddy-tooling-release-notes` skill - see `.eddy/docs/content/contributing/tooling-releases.mdx`.
 - `.eddy/skills/update-consumer-eddy/` - the update skill that consumer projects fetch through the "Updating the scaffold" section of their `AGENTS.md`.
@@ -148,15 +149,48 @@ The value comes from the `TEMPLATE_VERSION` constant. `.gitattributes` marks `in
 
 `git archive` expands every `$Format:` in the file up to the next `$`, which in PHP is usually the next variable. Keep the constant the only place `install.php` holds that text, in comments too. `InstallHelpersTest` archives the real `install.php` and fails when anything other than the constant changes, and the docs test in `.eddy/docs/tests/unit/installer.test.js` fails when the placeholder isn't there exactly once.
 
-The documentation site serves `install.php` at `/install`, so `curl -fsSL https://eddy.drevops.com/install > install.php && php install.php` installs Eddy. `.eddy/docs/src/installer.js` writes the copy after each docs build and replaces the placeholder with the version of the build: the release version that `eddy-release-docs.yml` passes as `RELEASE_VERSION`, or the `git describe` output of the checkout in any other build, such as the Netlify development site.
+`curl -fsSL https://eddy.drevops.com/install > install.php && php install.php` installs Eddy. On eddy.drevops.com, `/install` redirects to the `install.php` attached to the latest release (see [Installer releases](#installer-releases)), so a release build of the docs site holds no installer. Every other build, such as the Netlify development site, serves the root `install.php` at `/install`: `.eddy/docs/src/installer.js` writes the copy after the build and replaces the placeholder with the `git describe` output of the checkout.
 
 In a directory that holds nothing but itself and hidden entries such as `.git`, `install.php` downloads the template archive of its own version and extracts it in place. Then it runs the extracted `install.php` with its own terminal, environment and arguments, so the release's own installer rewrites the release's files. `INSTALL_TEMPLATE_ARCHIVE` replaces the archive, which `InstallTest` points at an archive of the SUT. In a directory that holds other files and no `your_extension.info.yml`, `install.php` stops with an error, because its prompts would find no template files to rewrite there.
 
-The installer at `/install` of a release build downloads the `eddy-<version>.tar.gz` asset of the release and refuses it unless its SHA-256 checksum matches. `eddy-release-docs.yml` builds that asset with `git archive`, and `stampInstaller()` writes its URL and checksum into the `TEMPLATE_ARCHIVE_URL` and `TEMPLATE_ARCHIVE_SHA256` constants. An installer without them, such as the development site's, downloads the GitHub archive of its version, or of `main` when it has none, and warns that the template isn't verified. With `INSTALL_TEMPLATE_ARCHIVE`, `INSTALL_TEMPLATE_ARCHIVE_SHA256` sets the checksum, and the same warning shows without it.
+The installer of a release downloads the `eddy-<version>.tar.gz` asset of the release and refuses it unless its SHA-256 checksum matches. `eddy-release-installer.yml` builds that asset with `git archive`, and `stampInstaller()` writes its URL and checksum into the `TEMPLATE_ARCHIVE_URL` and `TEMPLATE_ARCHIVE_SHA256` constants. An installer without them, such as the development site's, downloads the GitHub archive of its version, or of `main` when it has none, and warns that the template isn't verified. With `INSTALL_TEMPLATE_ARCHIVE`, `INSTALL_TEMPLATE_ARCHIVE_SHA256` sets the checksum, and the same warning shows without it.
 
 The minified Prompty in `install.php` comes from a Prompty release. Re-embed it with the `embed.php` and `Prompty.php` of that release, after verifying both as the Prompty README describes, and keep `--compact` and `--no-killswitch`: `php embed.php --compact --no-killswitch --source Prompty.php install.php`. The `eddy-test-embed` job checks the embedded code against the release that the `@embed-start` marker names.
 
 The `export-subst` line sits under "Remove the lines below in your project." in `.gitattributes`, and `install.php` removes it from generated projects.
+
+## Installer releases
+
+`https://eddy.drevops.com/install` serves the `install.php` attached to the latest GitHub release. A Single Redirect rule named `Eddy installer` in the `drevops.com` Cloudflare zone sends it there with a 302, so the `eddy.drevops.com` CNAME to `drevops.github.io` is proxied. Pre-releases are never the latest release, so their installers stay at `releases/download/<version>/install.php`.
+
+`.github/workflows/eddy-release-installer.yml` runs when a release is published, in the `release` environment:
+
+1. Builds `eddy-<version>.tar.gz` with `git archive` and uploads it, or reuses the archive the release already holds, so an installer stamped with its checksum keeps working.
+2. Reads `install.php` from the tag and stamps the version, the archive URL and its checksum through `.eddy/docs/scripts/stamp-installer.mjs`, which calls `stampInstaller()`. Then it checks `--version` and installs an extension with the stamped installer in an empty directory.
+3. Writes `SHA256SUMS` for `install.php` and the archive, and signs it as `SHA256SUMS.asc` with `GPG_PRIVATE_KEY`, and `GPG_PASSPHRASE` when the key has one. Both are secrets of the `release` environment.
+4. Checks the signature with `.eddy/installer/verify-release.php`, which accepts only a `VALIDSIG` from `SIGNING_KEY_FINGERPRINT` and then checks every file that `SHA256SUMS` lists.
+5. Attests `install.php`, the archive and `SHA256SUMS`, uploads the files with `--clobber` and verifies the uploaded copies.
+6. For the latest release, checks that `releases/latest/download/install.php` and `https://eddy.drevops.com/install` serve the uploaded installer.
+
+Run it from the **Actions** tab with a version to attach the installer to an existing release. The tag's `install.php` must hold the archive placeholders, which every release from `5.1.0` does.
+
+`install-key.asc` in the repository root is the public half of the `Eddy Release Signing` key, fingerprint `0000 0000 0000 0000 0000  0000 0000 0000 0000 0000`. `process_internal()` removes it from generated projects. `VerifyReleaseTest` fails until the key, `SIGNING_KEY_FINGERPRINT` and the fingerprint on this page and in `.eddy/docs/content/installation.mdx` agree.
+
+To extend the key before it expires, run `gpg --quick-set-expire <fingerprint> 2y`, then export the public half again. The fingerprint stays the same:
+
+```bash
+gpg --armor --output install-key.asc --export <fingerprint>
+```
+
+A new key needs a new `install-key.asc`, the new fingerprint in `verify-release.php`, on this page and in `installation.mdx`, and a note in the release notes.
+
+To give the workflow the signing key, create the `release` environment, then store the private key and its passphrase there:
+
+```bash
+gh api -X PUT repos/drevops/eddy/environments/release
+gpg --armor --export-secret-keys <fingerprint> | gh secret set GPG_PRIVATE_KEY --env release --repo drevops/eddy
+gh secret set GPG_PASSPHRASE --env release --repo drevops/eddy
+```
 
 ## Tooling constraint
 
@@ -324,7 +358,7 @@ GitHub has no API for the social preview, so upload the new PNG by hand in the r
 - `.eddy/docs/cspell.json` checks the pages in US English and skips fenced code and `CommandTabs` blocks. The root `.cspell.json` ignores `.eddy/docs/`, and `remove_cspell_eddy_paths()` drops every `.eddy/` ignore path from a generated project.
 - `DocumentationTest` checks the pages against the code: the tooling commands in `development/tooling.mdx`, the CI jobs in `continuous-integration/README.mdx` and `continuous-integration/branch-protection.mdx`, the ignore-failure toggles in `continuous-integration/configuration.mdx`, the variables the tooling reads in `development/environment-variables.mdx`, the update skill commands and the tooling PHP floor in `updating/upgrading-from-4x.mdx`, and the Drupal majors and PHP versions of the home page.
 - The `eddy-test-docs` job deploys every build to Netlify when the `NETLIFY_SITE_ID` and `NETLIFY_AUTH_TOKEN` secrets are set: a push to `main` updates the development site at https://drevops-eddy-docs.netlify.app, and a pull request gets a preview linked in a comment.
-- `eddy-release-docs.yml` publishes to GitHub Pages at https://eddy.drevops.com on a release tag, or on a manual run with an optional version, which must be an existing tag or the run fails before the build. Without one, the version is the tag of the run, or the `git describe` output of its branch. It passes `DOCS_URL` and `DOCS_BASE_URL` from the Pages settings, so a custom domain needs no code change, but the published site links to the old address until the workflow runs again. It also sets `RELEASE_VERSION`, which turns on Google Analytics, search engine indexing and the version in the footer, and becomes the version of the installer at `/install`. Before the deployment, it installs an extension with that installer, which downloads the release archive from GitHub. The `github-pages` environment must allow the tag or branch that deploys.
+- `eddy-release-docs.yml` publishes to GitHub Pages at https://eddy.drevops.com on a release tag, or on a manual run with an optional version, which must be an existing tag or the run fails before the build. Without one, the version is the tag of the run, or the `git describe` output of its branch. It passes `DOCS_URL` and `DOCS_BASE_URL` from the Pages settings, so a custom domain needs no code change, but the published site links to the old address until the workflow runs again. It also sets `RELEASE_VERSION`, which turns on Google Analytics, search engine indexing and the version in the footer, and leaves `/install` out of the build. The run fails when the build holds `/install`. The `github-pages` environment must allow the tag or branch that deploys.
 
 ## CI
 
@@ -333,6 +367,8 @@ GitHub has no API for the social preview, so upload the new PNG by hand in the r
 `.github/workflows/eddy-publish-tooling.yml` publishes `.eddy/tooling/` to the same-named branch of `drevops/eddy-tooling` on every push to `main` and to a branch whose name contains `eddy-tooling`.
 
 `.github/workflows/eddy-release-docs.yml` publishes the documentation site to GitHub Pages on a release tag or a manual run (see [Documentation site](#documentation-site)).
+
+`.github/workflows/eddy-release-installer.yml` attaches the signed and attested installer to a published release (see [Installer releases](#installer-releases)).
 
 `.github/workflows/deploy.yml` deploys `main` and release tags to [`drevops/eddy_destination`](https://github.com/drevops/eddy_destination) the way it deploys a generated project to Drupal.org. The `DEPLOY_BRANCH` repository variable sends `main` to `5.x` there, and the `DEPLOY_PROCEED` secret set to `1` lets the push through.
 

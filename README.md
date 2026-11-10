@@ -55,7 +55,7 @@ In a new, empty directory:
 curl -fsSL https://eddy.drevops.com/install > install.php && php install.php
 ```
 
-The installer downloads the latest Eddy release into the directory, then asks about your extension. Build the site with `make build` or `ahoy build`, then check it with `lint` and `test` through the same wrapper. Without a wrapper, the generated `CONTRIBUTING.md` lists the `scripts/eddy-tooling` and `vendor/bin/eddy-*` commands that do the same jobs.
+The command runs the installer of the latest Eddy release, which downloads that release into the directory and then asks about your extension. Build the site with `make build` or `ahoy build`, then check it with `lint` and `test` through the same wrapper. Without a wrapper, the generated `CONTRIBUTING.md` lists the `scripts/eddy-tooling` and `vendor/bin/eddy-*` commands that do the same jobs.
 
 ![Installation process](.eddy/assets/install.svg)
 
@@ -65,7 +65,7 @@ To check the installer before you run it, verify its build attestation with the 
 gh attestation verify install.php --repo drevops/eddy
 ```
 
-[Verify the installer](https://eddy.drevops.com/installation#verify-the-installer) also covers a check without the GitHub CLI.
+[Verify the installer](https://eddy.drevops.com/installation#verify-the-installer) also covers the GPG signature of the release checksums.
 
 To start from a download instead, expand the [latest release](https://github.com/drevops/eddy/releases/latest) into a new directory and run `php install.php` there.
 
