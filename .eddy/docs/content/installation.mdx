@@ -130,7 +130,7 @@ sha256sum --ignore-missing -c SHA256SUMS    # macOS: shasum -a 256 --ignore-miss
 The signing key is `Eddy Release Signing`, published as [`install-key.asc`](https://github.com/drevops/eddy/blob/main/install-key.asc) in the repository root. Its fingerprint is:
 
 ```text
-0000 0000 0000 0000 0000  0000 0000 0000 0000 0000
+7B8D 3C97 93E0 FF52 EAAB  FEC8 E532 2FD0 EC15 511E
 ```
 
 Confirm that `gpg --show-keys` prints this fingerprint and that `gpg --verify` reports a good signature from the same key. A good signature from any other key in your keyring proves nothing about Eddy. The last command prints `install.php: OK`.

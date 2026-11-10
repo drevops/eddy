@@ -28,7 +28,7 @@ namespace DrevOps\Eddy\Installer;
  * 'gpg --verify' accepts a signature by any key in the keyring, so the
  * signature must come from this key.
  */
-const SIGNING_KEY_FINGERPRINT = '0000000000000000000000000000000000000000';
+const SIGNING_KEY_FINGERPRINT = '7B8D3C9793E0FF52EAABFEC8E5322FD0EC15511E';
 
 /**
  * The public half of the Eddy signing key.
