@@ -17,10 +17,12 @@ use Rector\CodingStyle\Rector\Stmt\NewlineAfterStatementRector;
 use Rector\Config\RectorConfig;
 use Rector\DeadCode\Rector\If_\RemoveAlwaysTrueIfConditionRector;
 use Rector\Naming\Rector\Assign\RenameVariableToMatchMethodCallReturnTypeRector;
+use Rector\Naming\Rector\ClassMethod\RenameParamToMatchTypeRector;
 use Rector\Naming\Rector\ClassMethod\RenameVariableToMatchNewTypeRector;
 use Rector\Naming\Rector\Foreach_\RenameForeachValueVariableToMatchExprVariableRector;
 use Rector\Naming\Rector\Foreach_\RenameForeachValueVariableToMatchMethodCallReturnTypeRector;
 use Rector\Php55\Rector\String_\StringClassNameToClassConstantRector;
+use Rector\Php80\Rector\Class_\ClassPropertyAssignToConstructorPromotionRector;
 use Rector\Php80\Rector\Switch_\ChangeSwitchToMatchRector;
 use Rector\PHPUnit\PHPUnit60\Rector\ClassMethod\AddDoesNotPerformAssertionToNonAssertingTestRector;
 use Rector\TypeDeclaration\Rector\StmtsAwareInterface\DeclareStrictTypesRector;
@@ -76,6 +78,10 @@ return RectorConfig::configure()
     // The rule cannot see the teardown assertion in 'MockTrait', so it marks
     // tests that assert only through function stubs as performing none.
     AddDoesNotPerformAssertionToNonAssertingTestRector::class,
+    // The embedded Prompty class must match its release byte for byte, so
+    // the rules that rewrite it stay off for 'install.php'.
+    ClassPropertyAssignToConstructorPromotionRector::class => [__DIR__ . '/../../install.php'],
+    RenameParamToMatchTypeRector::class => [__DIR__ . '/../../install.php'],
     '*/vendor/*',
     '*/node_modules/*',
   ])
