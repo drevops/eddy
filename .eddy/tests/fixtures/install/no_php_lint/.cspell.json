@@ -6,10 +6,10 @@
          "devpod",
          "docblocks",
          "drevops",
-@@ -49,13 +48,11 @@
-         "initialisation",
+@@ -52,13 +51,11 @@
          "initialised",
          "isig",
+         "ixon",
 -        "jangregor",
          "lando",
          "langcode",
@@ -20,7 +20,7 @@
          "mikey",
          "multisite",
          "myextension",
-@@ -62,12 +59,7 @@
+@@ -65,12 +62,7 @@
          "nohup",
          "normalise",
          "noscript",
@@ -33,7 +33,7 @@
          "phpspec",
          "phpstan",
          "phpstorm",
-@@ -86,15 +78,12 @@
+@@ -89,15 +81,12 @@
          "shivammathur",
          "simpletest",
          "skrypnyk",
@@ -46,6 +46,6 @@
          "updatedb",
          "vfsstream",
 -        "vincentlanglet",
+         "waxc",
          "webdriver",
          "webroot",
-         "yoyodyne",

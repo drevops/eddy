@@ -6,15 +6,15 @@
          "chromium",
          "cloudflare",
          "cloudflared",
-@@ -43,7 +42,6 @@
-         "ergebnis",
+@@ -44,7 +43,6 @@
+         "fffd",
          "force_crystal",
          "gnomovision",
 -        "headful",
          "hookspec",
          "icanon",
-         "initialisation",
-@@ -54,7 +52,6 @@
+         "iexten",
+@@ -57,7 +55,6 @@
          "langcode",
          "langid",
          "linkit",
@@ -22,10 +22,10 @@
          "mglaman",
          "mikey",
          "multisite",
-@@ -95,7 +92,6 @@
-         "updatedb",
+@@ -99,7 +96,6 @@
          "vfsstream",
          "vincentlanglet",
+         "waxc",
 -        "webdriver",
          "webroot",
          "yoyodyne",
