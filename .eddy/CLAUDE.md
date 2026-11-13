@@ -198,6 +198,21 @@ Generated projects install the tooling from the releases that the `drevops/eddy-
 
 `ToolingConstraintTest` lists the first release that ships each command and `eddy-info` field that `.ahoy.yml`, the `Makefile`, the shipped workflows, `AGENTS.md` and `CONTRIBUTING.dist.md` call, and fails while the constraint allows an older release. A new call needs its entry there, and an entry that nothing calls fails too. The test can't see a step that moves into a command, so raise the constraint for that yourself. `DocumentationTest` fails until the examples in `.eddy/tooling/README.md` and `.eddy/docs/content/development/tooling.mdx` show the constraint.
 
+## Dependency patches
+
+`eddy-assemble` patches a dependency of the site build when a release breaks the build, such as Robo 5.2.1-5.2.3 breaking Drush 13 on Drupal 10. Each patch lives at `.eddy/tooling/patches/<vendor>/<package>/<name>.patch`, with paths relative to the package root. `package_patches()` finds every patch by that layout, so `eddy-assemble` names none of them. `HelpersPackagePatchesTest` fails for a file elsewhere in `patches/`.
+
+After the last Composer step, `patch_package()` dry-runs each patch against the installed package and applies it only when the dry run succeeds. A release that already holds the fix, or lacks the patched code, stays as installed. So a patch can stay in the tooling after upstream releases the fix. Delete it in any later release.
+
+To add a patch:
+
+1. Download the fix from a pinned commit, never from a pull request branch, which can change.
+2. Keep only the files that the package ships. A hunk for a test file fails the dry run on every release.
+3. Start the file with what it fixes and links to the upstream issue and commit. `patch` ignores the lines before the first `diff`.
+4. Dry-run it against every affected release, and against a release it must skip.
+
+Generated projects get a new patch with the next tooling release that the template's `drevops/eddy-tooling` constraint allows, since CI installs the tooling on every run.
+
 ## Test groups
 
 PHPUnit tests are tagged with `#[Group('p0'..'p5')]` so CI can shard them across parallel jobs:

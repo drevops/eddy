@@ -77,16 +77,17 @@ To reinstall the website on the codebase you already have, run `provision` on it
 7. Sets the stability that resolves the other dependencies (see [How versions are resolved](drupal-versions.mdx#how-versions-are-resolved)), and the versions of the test tools that fit the Drupal major. A Drupal 12 build also gets PHPUnit 12 and installs `drupal/core` from source.
 8. Merges the development dependencies and settings of `composer.dev.json` into the project, then those of your extension's `composer.json`. Then it pins the PHP platform.
 9. Copies your `patches` directory into `build` and installs the dependencies, which applies your [patches](dependencies.mdx#patch-dependencies). Then it adds the extensions you [`suggest`](dependencies.mdx#optional-dependencies).
-10. Lists every dependency it installed from a development branch, so you can see when a build relies on unreleased code.
-11. Turns off deprecation notices when `SYMFONY_DEPRECATIONS_HELPER` is `disabled` (see [Deprecated code](../testing/README.mdx#deprecated-code)). It writes the setting into the site's `index.php` and `default.settings.php`, and into the core copy of `default.settings.php` that Functional test sites start from.
-12. Copies the configuration files of the tools into `build`, because some tools misread a symlinked configuration file. Edit these files in your project, and run `assemble` again to apply a change. It copies each of the following files that your project has:
+10. Applies the patches that the tooling package carries for defects in dependency releases, such as Robo 5.2.1 to 5.2.3 breaking Drush 13 on Drupal 10. It dry-runs each patch first and applies it only when the dry run succeeds. A release that already has the fix stays as installed, and the output names each patch it applied or skipped.
+11. Lists every dependency it installed from a development branch, so you can see when a build relies on unreleased code.
+12. Turns off deprecation notices when `SYMFONY_DEPRECATIONS_HELPER` is `disabled` (see [Deprecated code](../testing/README.mdx#deprecated-code)). It writes the setting into the site's `index.php` and `default.settings.php`, and into the core copy of `default.settings.php` that Functional test sites start from.
+13. Copies the configuration files of the tools into `build`, because some tools misread a symlinked configuration file. Edit these files in your project, and run `assemble` again to apply a change. It copies each of the following files that your project has:
     - `phpcs.xml`, `phpstan.neon`, `rector.php` and `.twig-cs-fixer.php`, for the PHP linters
     - `.eslintrc.json`, `.eslintignore`, `.prettierrc.json`, `.prettierignore` and `.stylelintrc.js`, for the JavaScript and CSS linters
     - `phpunit.xml`, or `phpunit.d10.xml` in its place in a Drupal 10 build
     - `jest.config.js`, `package.json` and `package-lock.json`, for Jest and npm
-13. Creates your extension's directory in the site: `build/web/modules/custom/<your_extension>` for a module or `build/web/themes/custom/<your_extension>` for a theme. The directory holds a symlink to every top-level file and directory of your project, apart from `build`, `vendor` and the names that start with a dot.
-14. Runs `npm ci` and `npm run build` in `build` when your project has a `package-lock.json` and no `.skip_npm_build` file (see [Frontend dependencies](dependencies.mdx#frontend-dependencies)).
-15. Runs your `scripts/assemble-*.sh` [lifecycle scripts](lifecycle-scripts.mdx).
+14. Creates your extension's directory in the site: `build/web/modules/custom/<your_extension>` for a module or `build/web/themes/custom/<your_extension>` for a theme. The directory holds a symlink to every top-level file and directory of your project, apart from `build`, `vendor` and the names that start with a dot.
+15. Runs `npm ci` and `npm run build` in `build` when your project has a `package-lock.json` and no `.skip_npm_build` file (see [Frontend dependencies](dependencies.mdx#frontend-dependencies)).
+16. Runs your `scripts/assemble-*.sh` [lifecycle scripts](lifecycle-scripts.mdx).
 
 ## Other commands along the way
 
