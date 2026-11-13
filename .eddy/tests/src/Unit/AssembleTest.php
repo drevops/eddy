@@ -784,7 +784,7 @@ final class AssembleTest extends UnitTestCase {
 
     $build_json = json_decode($last_write, TRUE);
     $this->assertIsArray($build_json);
-    /** @var array{'minimum-stability': string, 'prefer-stable': bool, require: array<string, string>, 'require-dev': array<string, string>, config: array<string, mixed>} $build_json */
+    /** @var array{'minimum-stability': string, 'prefer-stable': bool, require: array<string, string>, 'require-dev': array<string, string>, conflict: array<string, string>, config: array<string, mixed>} $build_json */
 
     $this->assertSame('dev', $build_json['minimum-stability']);
     $this->assertTrue($build_json['prefer-stable']);
@@ -792,6 +792,7 @@ final class AssembleTest extends UnitTestCase {
     $this->assertSame($expected_release, $build_json['require']['drupal/core-composer-scaffold']);
     $this->assertSame($expected_phpunit, $build_json['require-dev']['phpunit/phpunit'] ?? NULL);
     $this->assertSame('^2 <2.3.4', $build_json['require-dev']['phpstan/phpstan']);
+    $this->assertSame('^5.2.1', $build_json['conflict']['consolidation/robo']);
     $this->assertSame($expected_preferred_install, $build_json['config']['preferred-install'] ?? NULL);
   }
 

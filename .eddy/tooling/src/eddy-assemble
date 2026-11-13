@@ -208,6 +208,10 @@ $build_json['require-dev']['rector/rector'] = (int) $drupal_version_major < 11 ?
 // Those Rector releases bundle a 'phpstan/phpdoc-parser' older than 2.4,
 // which phpstan/phpstan 2.3.4 builds nodes for, so Rector fails on every file.
 $build_json['require-dev']['phpstan/phpstan'] = '^2 <2.3.4';
+// consolidation/robo 5.2.1 started calling addCommand(), which Symfony Console
+// adds in 7.4, so Drush 13 fails on Drupal 10 and older Drupal 11 minors.
+// Robo 5.1 satisfies Drush 13, and Drush 14 doesn't depend on Robo.
+$build_json['conflict']['consolidation/robo'] = '^5.2.1';
 
 if ((int) $drupal_version_major >= 12) {
   // Drupal 12 core requires a 'sebastian/diff' that only PHPUnit 12 accepts.
