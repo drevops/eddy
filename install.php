@@ -1086,33 +1086,11 @@ function process_internal(string $extension_name, string $extension_machine_name
 
   remove_dir('.eddy');
 
-  // A project keeps its own skills in '.claude/skills', so Eddy's skills are
-  // removed by name.
-  foreach (eddy_skills() as $skill) {
-    remove_dir('.claude/skills/' . $skill);
-  }
-
-  if (is_dir('.claude/skills') && scandir('.claude/skills') === ['.', '..']) {
-    rmdir('.claude/skills');
-  }
-
   remove_tokens_with_content('META');
   remove_special_comments();
 
   remove_cspell_eddy_paths();
   normalize_cspell_words();
-}
-
-/**
- * List the Claude Code skills that maintain Eddy itself.
- *
- * '.eddy/CLAUDE.md' lists the steps for adding a skill.
- *
- * @return list<string>
- *   The names of the skill directories in '.claude/skills'.
- */
-function eddy_skills(): array {
-  return ['create-eddy-tooling-release-notes'];
 }
 
 /**

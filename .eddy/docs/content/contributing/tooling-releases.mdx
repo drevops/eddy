@@ -35,12 +35,12 @@ Each run of the workflow adds 1 commit to the mirror branch, with the subject of
 
 ## Release the package
 
-You create each release on the mirror by hand, and the `create-eddy-tooling-release-notes` skill writes its notes. The skill needs `git` and an authenticated GitHub CLI (`gh`).
+You create each release on the mirror by hand, and the `create-eddy-tooling-release-notes` skill in `.eddy/skills/` writes its notes. The skill needs `git` and an authenticated GitHub CLI (`gh`).
 
 To release the package:
 
 1. [Create a release](https://github.com/drevops/eddy-tooling/releases/new) on `drevops/eddy-tooling` in the GitHub UI, with a new tag on the mirror's `main`, such as `1.0.1`. Leave out the `v` prefix: the tags have none. Save the release as a draft, or publish it straight away.
-2. From a clone of Eddy, run `/create-eddy-tooling-release-notes` in Claude Code, or ask Claude Code for the tooling release notes. The skill writes the notes to `.artifacts/release-notes-tooling-<version>.md`.
+2. From a clone of Eddy, ask Claude Code to follow `.eddy/skills/create-eddy-tooling-release-notes/SKILL.md`. Claude Code lists only the skills in `.claude/skills/` as slash commands, so give it the path. The skill writes the notes to `.artifacts/release-notes-tooling-<version>.md`.
 3. Paste the notes into the release description.
 4. If the release is still a draft, publish it.
 5. If the release is a new minor or major version, or Eddy relies on what it ships, [raise the constraint](#raise-the-constraint) to it.

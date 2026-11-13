@@ -17,7 +17,6 @@ The project root holds a working Drupal module, the demo extension. The rest of 
 - `install.php` - the one-off interactive installer that renames, rewrites and prunes the template files for a new project. In an empty directory, it downloads the template first. It deletes itself at the end, unless you answer no to **Remove this script**.
 - `scripts/eddy-tooling` - installs the `drevops/eddy-tooling` package into `vendor/`. The package's commands build, provision and deploy the extension. Generated projects get the package from Packagist. This repository installs `.eddy/tooling` as a symlink, so an edit there applies to the next command without a release.
 - `.eddy/` - everything used to develop and test the scaffold itself, including the source of the tooling package. `install.php` removes it from generated projects.
-- `.claude/skills/` - the Claude Code skills for maintaining the scaffold, such as `create-eddy-tooling-release-notes`. `install.php` removes each skill that its `eddy_skills()` function lists from generated projects, so add a new skill to that list. `InstallHelpersTest` fails until the list matches the skills that git tracks in `.claude/skills/`.
 - `.github/workflows/eddy-*.yml` - the workflows that test Eddy and publish the tooling and these docs. `install.php` deletes every `.github/workflows/eddy-*.yml` from generated projects, so give the prefix and the `.yml` extension only to a workflow that stays in Eddy.
 
 The `.eddy/` directory holds these parts:
@@ -26,7 +25,7 @@ The `.eddy/` directory holds these parts:
 - `.eddy/docs/` - the source of these docs (see [Documentation](documentation.mdx)).
 - `.eddy/tests/` - the PHPUnit suite that validates the scaffold (see [Scaffold tests](scaffold-tests.mdx)).
 - `.eddy/tooling/` - the source of the [`drevops/eddy-tooling`](https://github.com/drevops/eddy-tooling) package. `eddy-publish-tooling.yml` mirrors it to that read-only repository, which Packagist serves (see [Tooling releases](tooling-releases.mdx)).
-- `.eddy/skills/` - the `update-consumer-eddy` skill that generated projects fetch to update themselves.
+- `.eddy/skills/` - the Claude Code skills. Generated projects fetch `update-consumer-eddy` to update themselves, and `create-eddy-tooling-release-notes` writes the notes of a [tooling release](tooling-releases.mdx#release-the-package). Put a new skill for maintaining Eddy here too. `install.php` leaves `.claude/skills/` to a project's own skills, so a skill tracked there ships to every generated project. `InstallHelpersTest` fails while git tracks a file in `.claude/skills/`.
 - `.eddy/CLAUDE.md` - the [maintenance reference](#the-maintenance-reference).
 
 `README.md`, `CONTRIBUTING.md`, `MIGRATION.md`, `SECURITY.md`, `LICENSE.txt` and `logo.svg` belong to Eddy itself. A generated project gets its own `README.md` and `CONTRIBUTING.md`, rendered from `README.dist.md` and `CONTRIBUTING.dist.md`, so keep consumer-facing notes in those templates.

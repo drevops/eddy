@@ -11,8 +11,10 @@ This file documents how `install.php` prunes the template, how to regenerate the
 - `.eddy/installer/` - `verify-release.php`, which the installer release workflow runs to check the signed checksums of a release. See [Installer releases](#installer-releases).
 - `.eddy/tests/` - PHPUnit suite that validates the scaffold itself: the `install.php` interactive flow, the tooling commands in `.eddy/tooling/src/` with their installer `scripts/eddy-tooling`, and the resulting project structure. Snapshots live under `.eddy/tests/fixtures/install/`.
 - `.eddy/tooling/` - Source of the `drevops/eddy-tooling` Composer package (the `eddy-*` commands). `scripts/eddy-tooling` installs it into `vendor/` as a symlink in this repository, and `eddy-publish-tooling.yml` mirrors it to the read-only `drevops/eddy-tooling` repository on every push to `main` and to a branch whose name contains `eddy-tooling`. Releases are created on the mirror by hand, with notes from the `create-eddy-tooling-release-notes` skill - see `.eddy/docs/content/contributing/tooling-releases.mdx`.
-- `.eddy/skills/update-consumer-eddy/` - the update skill that consumer projects fetch through the "Updating the scaffold" section of their `AGENTS.md`.
-- `.claude/skills/` - Claude Code skills for maintaining the scaffold, such as `create-eddy-tooling-release-notes`. `install.php` removes each one by name, as listed in `eddy_skills()`, so generated projects never get them, and keeps any other skill, such as a project's own when `install.php` runs again in the root of an existing project. A new skill goes into `eddy_skills()` as well: `InstallHelpersTest` fails until every tracked skill is listed.
+- `.eddy/skills/` - Claude Code skills that `install.php` removes with the rest of `.eddy/`:
+  - `update-consumer-eddy/` - the update skill that consumer projects fetch through the "Updating the scaffold" section of their `AGENTS.md`.
+  - `create-eddy-tooling-release-notes/` - writes the notes of a `drevops/eddy-tooling` release. Claude Code discovers skills in `.claude/skills/` only, so when asked for tooling release notes, read `.eddy/skills/create-eddy-tooling-release-notes/SKILL.md` and follow it.
+- `.claude/skills/` - tracks no file. `install.php` leaves it in place for a project's own skills, so a skill added there would ship to every generated project. A new skill for maintaining the scaffold goes into `.eddy/skills/`: `InstallHelpersTest` fails while git tracks anything in `.claude/skills/`.
 
 ## Template markers
 

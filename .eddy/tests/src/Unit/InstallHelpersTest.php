@@ -23,7 +23,6 @@ use function drupal_version_default;
 use function drupal_version_options;
 use function drupal_version_php_versions;
 use function drupal_version_specs;
-use function eddy_skills;
 use function extension_type_cspell_words;
 use function extension_type_specs;
 use function get_files;
@@ -2019,16 +2018,14 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'nested build directory' => ['tests/build', TRUE, FALSE];
   }
 
-  public function testEddySkillsListTrackedSkills(): void {
-    $tracked = self::gitRun(self::rootDir(), ['ls-files', '--', '.claude/skills']);
-    $paths = $tracked === '' ? [] : explode("\n", $tracked);
-    $skills = array_values(array_unique(array_map(static fn(string $path): string => explode('/', $path)[2], $paths)));
-
-    $expected = eddy_skills();
-    sort($expected);
-    sort($skills);
-
-    $this->assertSame($expected, $skills);
+  /**
+   * Eddy's skills live in '.eddy/skills'.
+   *
+   * 'install.php' leaves '.claude/skills' in place, so a skill tracked there
+   * ships to every generated project.
+   */
+  public function testClaudeSkillsTrackNoSkill(): void {
+    $this->assertSame('', self::gitRun(self::rootDir(), ['ls-files', '--', '.claude/skills']));
   }
 
   #[DataProvider('dataProviderReplaceStringContent')]
