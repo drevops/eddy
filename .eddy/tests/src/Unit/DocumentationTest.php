@@ -521,7 +521,7 @@ final class DocumentationTest extends UnitTestCase {
 
     self::assertNotSame('', $prefix, 'install.php sets no prefix for its prompt variables.');
 
-    preg_match_all("/^ +'(\w+)' => Prompty::/m", $install, $keys);
+    preg_match_all("/^ +->(?:text|select|multiselect|confirm)\(\s*'(\w+)'/m", $install, $keys);
 
     self::assertNotSame([], $keys[1], 'install.php declares no prompts.');
 

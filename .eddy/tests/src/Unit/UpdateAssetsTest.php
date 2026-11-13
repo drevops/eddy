@@ -613,7 +613,7 @@ final class UpdateAssetsTest extends UnitTestCase {
 
   public function testInstallStepsAnswerEveryInstallPrompt(): void {
     $install = File::read(self::rootDir() . '/install.php');
-    preg_match_all("/Prompty::(?:text|select|multiselect|confirm)\(\s*'([^']+)'/", $install, $labels);
+    preg_match_all("/^ +->(?:text|select|multiselect|confirm)\(\s*'\w+',\s*'([^']+)'/m", $install, $labels);
     preg_match_all('/^expect "([^"]+)"$/m', install_steps(), $patterns);
 
     $this->assertNotSame([], $labels[1]);
