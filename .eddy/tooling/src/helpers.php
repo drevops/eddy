@@ -1951,6 +1951,64 @@ function dev_branch_packages(string $lock_file): array {
   return array_filter(locked_packages($lock_file, 'version'), static fn(string $version): bool => str_starts_with($version, 'dev-') || str_ends_with($version, '-dev'));
 }
 
+/**
+ * List the patches in a directory, keyed by the package they apply to.
+ *
+ * @param string $patches_dir
+ *   The directory that holds 1 '<vendor>/<package>/<name>.patch' file per
+ *   patch.
+ *
+ * @return array<string, list<string>>
+ *   The patch file paths keyed by package name, both sorted by name.
+ */
+function package_patches(string $patches_dir): array {
+  $patches = [];
+
+  foreach (glob($patches_dir . '/*/*/*.patch') ?: [] as $patch_file) {
+    $patches[basename(dirname($patch_file, 2)) . '/' . basename(dirname($patch_file))][] = $patch_file;
+  }
+
+  return $patches;
+}
+
+/**
+ * Apply a patch to an installed package when the patch applies cleanly.
+ *
+ * A dry run decides first, so a release that already contains the change, or
+ * lacks the code the patch targets, is left as installed.
+ *
+ * @param string $package_dir
+ *   The directory the package is installed in.
+ * @param string $patch_file
+ *   The patch, with paths relative to the package root.
+ *
+ * @return string
+ *   'applied', 'not-installed' when the package directory is missing, or
+ *   'not-applicable' when the dry run fails.
+ */
+function patch_package(string $package_dir, string $patch_file): string {
+  if (!is_dir($package_dir)) {
+    return 'not-installed';
+  }
+
+  command_exists_or_fail('patch');
+
+  // '--forward' fails on a patch that is already applied instead of offering
+  // to reverse it.
+  $command = sprintf('patch --forward --batch --silent -p1 -d %s -i %s', escapeshellarg($package_dir), escapeshellarg($patch_file));
+
+  $exit_code = 0;
+  passthru_capture($command . ' --dry-run', $exit_code);
+
+  if ($exit_code !== 0) {
+    return 'not-applicable';
+  }
+
+  passthru_or_fail($command, 'Unable to apply %s to %s.', $patch_file, $package_dir);
+
+  return 'applied';
+}
+
 // -----------------------------------------------------------------------------
 // Node.js.
 // -----------------------------------------------------------------------------
