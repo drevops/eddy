@@ -1984,7 +1984,8 @@ function package_patches(string $patches_dir): array {
  *
  * @return string
  *   'applied', 'not-installed' when the package directory is missing, or
- *   'not-applicable' when the dry run fails.
+ *   'not-applicable' when a hunk of the dry run fails. A patch that 'patch'
+ *   cannot read fails the command.
  */
 function patch_package(string $package_dir, string $patch_file): string {
   if (!is_dir($package_dir)) {
@@ -1998,10 +1999,17 @@ function patch_package(string $package_dir, string $patch_file): string {
   $command = sprintf('patch --forward --batch --silent -p1 -d %s -i %s', escapeshellarg($package_dir), escapeshellarg($patch_file));
 
   $exit_code = 0;
-  passthru_capture($command . ' --dry-run', $exit_code);
+  $output = passthru_capture($command . ' --dry-run', $exit_code);
+
+  // 'patch' exits with 1 for a hunk that fails and with 2 for a patch it
+  // cannot read, such as a missing or malformed file.
+  if ($exit_code === 1) {
+    return 'not-applicable';
+  }
 
   if ($exit_code !== 0) {
-    return 'not-applicable';
+    echo $output;
+    FAIL('Unable to check %s against %s.', $patch_file, $package_dir);
   }
 
   passthru_or_fail($command, 'Unable to apply %s to %s.', $patch_file, $package_dir);

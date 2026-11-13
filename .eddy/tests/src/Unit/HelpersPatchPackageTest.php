@@ -56,6 +56,29 @@ final class HelpersPatchPackageTest extends UnitTestCase {
     yield 'package not installed' => [NULL, 'not-installed', NULL];
   }
 
+  #[DataProvider('dataProviderFailsWhenPatchIsUnreadable')]
+  public function testFailsWhenPatchIsUnreadable(?string $patch_content): void {
+    $package_dir = self::$tmp . '/vendor/acme/package';
+    $patch_file = self::$tmp . '/example.patch';
+    File::dump($package_dir . '/src/Example.php', self::UNPATCHED);
+
+    if ($patch_content !== NULL) {
+      File::dump($patch_file, $patch_content);
+    }
+
+    $this->mockQuit(1);
+
+    $output = $this->capture(fn(): string => patch_package($package_dir, $patch_file), 1);
+
+    $this->assertStringContainsString(sprintf('Unable to check %s against %s.', $patch_file, $package_dir), $output);
+    $this->assertSame(self::UNPATCHED, File::read($package_dir . '/src/Example.php'));
+  }
+
+  public static function dataProviderFailsWhenPatchIsUnreadable(): \Iterator {
+    yield 'file without a diff' => ["This file holds no diff at all.\n"];
+    yield 'missing file' => [NULL];
+  }
+
   public function testFailsWithoutPatchCommand(): void {
     $package_dir = self::$tmp . '/vendor/acme/package';
     File::mkdir($package_dir);
