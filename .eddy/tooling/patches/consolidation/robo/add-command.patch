@@ -1,0 +1,66 @@
+Register commands with add() on Symfony Console below 7.4, which has no
+Application::addCommand(). Robo 5.2.1-5.2.3 call addCommand() on any
+application, so Drush 13 fails on Drupal 10 and older Drupal 11 minors.
+
+Issue: https://github.com/consolidation/robo/issues/1197
+Source: https://github.com/consolidation/robo/commit/098a840bed465315ea98ad14693d118ff897ff5d
+without the test that the package doesn't ship.
+
+diff --git a/src/Robo.php b/src/Robo.php
+index 63ef3975..fc8c2d13 100644
+--- a/src/Robo.php
++++ b/src/Robo.php
+@@ -547,7 +547,7 @@ protected static function registerSingle($app, $handler)
+         // If the instance is a Symfony Command, register it with
+         // the application
+         if ($instance instanceof Command) {
+-            $app->addCommand($instance);
++            static::addCommandToApplication($app, $instance);
+             return $instance;
+         }
+
+@@ -555,11 +555,30 @@ protected static function registerSingle($app, $handler)
+         $commandFactory = $container->get('commandFactory');
+         $commandList = $commandFactory->createCommandsFromClass($instance);
+         foreach ($commandList as $command) {
+-            $app->addCommand($command);
++            static::addCommandToApplication($app, $command);
+         }
+         return $instance;
+     }
+
++    /**
++     * Add a command to any Symfony Console application.
++     *
++     * Symfony Console < 7.4 has no Application::addCommand(), and $app is not
++     * always a \Robo\Application, which provides it on every version.
++     *
++     * @param \Symfony\Component\Console\Application $app
++     * @param \Symfony\Component\Console\Command\Command $command
++     *
++     * @return null|\Symfony\Component\Console\Command\Command
++     */
++    public static function addCommandToApplication($app, Command $command)
++    {
++        if (method_exists($app, 'addCommand')) {
++            return $app->addCommand($command);
++        }
++        return $app->add($command);
++    }
++
+     /**
+      * @param string|object $handler
+      *
+diff --git a/src/Runtime/Runner.php b/src/Runtime/Runner.php
+index 2eea95af..84512a82 100644
+--- a/src/Runtime/Runner.php
++++ b/src/Runtime/Runner.php
+@@ -353,7 +353,7 @@ public function registerCommandClass($app, $commandClass)
+         $commandFactory = $container->get('commandFactory');
+         $commandList = $commandFactory->createCommandsFromClass($roboCommandFileInstance);
+         foreach ($commandList as $command) {
+-            $app->addCommand($command);
++            Robo::addCommandToApplication($app, $command);
+         }
+         return $roboCommandFileInstance;
+     }

@@ -283,6 +283,32 @@ if (isset($extension_json['suggest']) && is_array($extension_json['suggest'])) {
 
 PASS('Suggested dependencies installed.');
 
+TASK('Patching dependencies.');
+// Each patch applies only while the installed release lacks the change, so a
+// patch for a fixed release is skipped until it is removed from the tooling.
+$locked_versions = locked_packages($build_dir . '/composer.lock', 'version');
+
+foreach (package_patches(__DIR__ . '/../patches') as $package => $patch_files) {
+  $version = $locked_versions[$package] ?? '';
+
+  foreach ($patch_files as $patch_file) {
+    $patch = basename($patch_file);
+    $result = patch_package($build_dir . '/vendor/' . $package, $patch_file);
+
+    if ($result === 'applied') {
+      NOTE('Applied %s to %s %s.', $patch, $package, $version);
+    }
+    elseif ($result === 'not-applicable') {
+      NOTE('Skipped %s: it does not apply to %s %s.', $patch, $package, $version);
+    }
+    else {
+      NOTE('Skipped %s: %s is not installed.', $patch, $package);
+    }
+  }
+}
+
+PASS('Dependencies patched.');
+
 // A dependency with no release that fits installs from a development branch,
 // so the build output names each one.
 $dev_branch_packages = dev_branch_packages($build_dir . '/composer.lock');

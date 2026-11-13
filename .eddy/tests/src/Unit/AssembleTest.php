@@ -57,14 +57,16 @@ final class AssembleTest extends UnitTestCase {
    *   has_version_specific_phpunit, has_polyfill_bootstrap,
    *   create_project_result_code, installed_packages, php_requirement,
    *   expect_php_failure, dotenv, failing_call, build_dir_remains,
-   *   webserver_port, listeners, killed. A NULL drupal_release means the
-   *   release resolution fails, and a NULL php_requirement makes the core
-   *   lookup fail. A NULL dotenv means there is no '.env'. failing_call names
-   *   the call that fails: 'unlink' for the lock file, 'file_put_contents' for
-   *   'build/composer.json', 'mkdir' for the module custom directory, 'copy' or
-   *   'symlink'. listeners holds the command line of each process listening on
-   *   webserver_port, keyed by process ID, and killed the process IDs that the
-   *   stop of the environment kills.
+   *   webserver_port, listeners, killed, robo_dry_run. A NULL drupal_release
+   *   means the release resolution fails, and a NULL php_requirement makes the
+   *   core lookup fail. A NULL dotenv means there is no '.env'. failing_call
+   *   names the call that fails: 'unlink' for the lock file,
+   *   'file_put_contents' for 'build/composer.json', 'mkdir' for the module
+   *   custom directory, 'copy' or 'symlink'. listeners holds the command line
+   *   of each process listening on webserver_port, keyed by process ID, and
+   *   killed the process IDs that the stop of the environment kills.
+   *   robo_dry_run is the exit code of the dry run of the Robo patch, or NULL
+   *   when Robo is not installed.
    *
    * @return array
    *   The configuration with defaults applied, plus nvm_dir when has_nvmrc is
@@ -106,6 +108,7 @@ final class AssembleTest extends UnitTestCase {
       'webserver_port' => '8000',
       'listeners' => [],
       'killed' => [],
+      'robo_dry_run' => NULL,
     ];
 
     $drupal_version_major = explode('.', explode('@', (string) $config['drupal_version'])[0])[0];
@@ -156,6 +159,9 @@ final class AssembleTest extends UnitTestCase {
       if (str_contains($command, 'command -v composer')) {
         $output[] = '/usr/bin/composer';
       }
+      if (str_contains($command, 'command -v patch')) {
+        $output[] = '/usr/bin/patch';
+      }
       if ($command === self::composerShowCommand('drupal/recommended-project')) {
         $output = explode("\n", json_encode(['name' => 'drupal/recommended-project', 'versions' => $config['releases']], JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
         $result_code = $config['releases_result_code'];
@@ -173,6 +179,10 @@ final class AssembleTest extends UnitTestCase {
       }
       if ($pattern === self::PROJECT_ROOT . '/*') {
         return [self::PROJECT_ROOT . '/src', self::PROJECT_ROOT . '/composer.json', self::PROJECT_ROOT . '/vendor', self::PROJECT_ROOT . '/build'];
+      }
+      // The patches that the tooling ships.
+      if (str_starts_with($pattern, self::toolingDir() . '/')) {
+        return \glob($pattern) ?: [];
       }
       return [];
     });
@@ -242,6 +252,9 @@ final class AssembleTest extends UnitTestCase {
       }
       if ($path === 'build/node_modules') {
         return $config['has_node_modules'];
+      }
+      if ($path === 'build/vendor/consolidation/robo') {
+        return $config['robo_dry_run'] !== NULL;
       }
       return FALSE;
     });
@@ -377,6 +390,15 @@ final class AssembleTest extends UnitTestCase {
       }
 
       $passthru_responses[] = ['cmd' => sprintf('composer --working-dir=build require %s', escapeshellarg((string) $suggest))];
+    }
+
+    if ($config['robo_dry_run'] !== NULL) {
+      $patch_command = sprintf('patch --forward --batch --silent -p1 -d %s -i %s', escapeshellarg('build/vendor/consolidation/robo'), escapeshellarg(self::toolingDir() . '/src/../patches/consolidation/robo/add-command.patch'));
+      $passthru_responses[] = ['cmd' => $patch_command . ' --dry-run', 'result_code' => $config['robo_dry_run']];
+
+      if ($config['robo_dry_run'] === 0) {
+        $passthru_responses[] = ['cmd' => $patch_command];
+      }
     }
 
     if (in_array($config['failing_call'], ['copy', 'symlink'], TRUE)) {
@@ -811,6 +833,29 @@ final class AssembleTest extends UnitTestCase {
     yield 'Drupal 12 with a stable release' => ['12', $d12_later, '12.0.2', '^12', $d12_source];
     yield 'Drupal 12 legacy minor with a stable release' => ['12.0.0', $d12_later, '12.0.2', '^12', $d12_source];
     yield 'Drupal 12 canary with a stable release' => ['12@beta', $d12_later, '12.1.0-beta1', '^12', $d12_source];
+  }
+
+  /**
+   * @param array<string, string> $installed_packages
+   */
+  #[DataProvider('dataProviderAssemblePatchesDependencies')]
+  public function testAssemblePatchesDependencies(?int $robo_dry_run, array $installed_packages, string $expected_note): void {
+    self::envSet('DRUPAL_VERSION', '10');
+    self::envSet('GITHUB_TOKEN', '');
+    self::envSet('SYMFONY_DEPRECATIONS_HELPER', '');
+
+    $this->setupAssembleMocks(['drupal_version' => '10', 'drupal_release' => '10.6.18', 'robo_dry_run' => $robo_dry_run, 'installed_packages' => $installed_packages]);
+
+    $output = $this->runCommand('eddy-assemble');
+
+    $this->assertStringContainsString($expected_note, $output);
+    $this->assertStringContainsString('Dependencies patched.', $output);
+  }
+
+  public static function dataProviderAssemblePatchesDependencies(): \Iterator {
+    yield 'release with the defect' => [0, ['consolidation/robo' => '5.2.3'], 'Applied add-command.patch to consolidation/robo 5.2.3.'];
+    yield 'release the patch does not apply to' => [1, ['consolidation/robo' => '5.1.1'], 'Skipped add-command.patch: it does not apply to consolidation/robo 5.1.1.'];
+    yield 'package not installed' => [NULL, [], 'Skipped add-command.patch: consolidation/robo is not installed.'];
   }
 
   public function testAssembleConfiguresDependencyPatches(): void {
