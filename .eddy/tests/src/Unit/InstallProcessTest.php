@@ -11,7 +11,6 @@ use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Yaml\Yaml;
 
-use function eddy_skills;
 use function get_files;
 use function main;
 use function process;
@@ -131,7 +130,6 @@ final class InstallProcessTest extends UnitTestCase {
       'logo.svg',
       '.github/CODEOWNERS',
       '.eddy',
-      '.claude/skills/create-eddy-tooling-release-notes',
     ];
 
     yield 'module, gha, ahoy' => [
@@ -867,43 +865,6 @@ final class InstallProcessTest extends UnitTestCase {
     // Without FunctionalJavascript, '.gitignore' does not list
     // '.chromedriver'.
     yield 'no FunctionalJavascript' => [['functional_javascript']];
-  }
-
-  /**
-   * Eddy's skills go, and '.claude/skills' stays while it holds any other.
-   *
-   * @param array<int, string> $project_skills
-   */
-  #[DataProvider('dataProviderProcessRemovesEddySkills')]
-  public function testProcessRemovesEddySkills(array $project_skills, bool $expect_skills_dir): void {
-    $skills_dir = self::$sut . '/.claude/skills';
-    // The copy holds whatever skills the local checkout has.
-    File::remove($skills_dir);
-
-    foreach (eddy_skills() as $skill) {
-      File::dump($skills_dir . '/' . $skill . '/SKILL.md', 'Eddy skill');
-    }
-
-    foreach ($project_skills as $skill) {
-      File::dump($skills_dir . '/' . $skill . '/SKILL.md', 'Project skill');
-    }
-
-    process('My Extension', 'my_extension', 'module', ['10', '11'], ['ahoy'], [], FALSE, FALSE);
-
-    foreach (eddy_skills() as $skill) {
-      $this->assertDirectoryDoesNotExist($skills_dir . '/' . $skill);
-    }
-
-    foreach ($project_skills as $skill) {
-      $this->assertSame('Project skill', File::read($skills_dir . '/' . $skill . '/SKILL.md'));
-    }
-
-    $this->assertSame($expect_skills_dir, File::exists($skills_dir));
-  }
-
-  public static function dataProviderProcessRemovesEddySkills(): \Iterator {
-    yield 'only Eddy skills' => [[], FALSE];
-    yield 'project skills' => [['update-consumer-eddy', 'project-skill'], TRUE];
   }
 
   /**
