@@ -20,6 +20,9 @@ abstract class FunctionalTestCase extends UnitTestCase {
   protected function setUp(): void {
     parent::setUp();
 
+    // Functional tests run the tooling as it runs on the host.
+    $this->mockRestore('php_uname');
+
     self::locationsCopy('../../', self::$sut, [], [
       '*.png',
       '.idea',

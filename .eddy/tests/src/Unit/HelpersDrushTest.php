@@ -109,4 +109,13 @@ final class HelpersDrushTest extends UnitTestCase {
     $this->assertSame(0, $exit_code);
   }
 
+  public function testDrushOnWindows(): void {
+    $this->mockWindows();
+    self::envSet('DEBUG', '1');
+    $expected_command = 'build\\vendor\\bin\\drush -r ' . escapeshellarg(File::cwd() . '/build/web') . ' -y status';
+    $this->mockPassthru(['cmd' => $expected_command, 'output' => 'Drupal version : 11', 'result_code' => 0]);
+
+    $this->assertSame('Drupal version : 11', drush('status'));
+  }
+
 }

@@ -37,7 +37,7 @@ final class InstallTest extends FunctionalTestCase {
     $fixtures = $this->locationsFixtureDir();
     self::$fixtures = $fixtures;
 
-    $this->processRun(self::$sut . '/install.php', [], [], self::installEnv(array_replace(self::defaultAnswers(), $answers)));
+    $this->processRun('php', [self::$sut . '/install.php'], [], self::installEnv(array_replace(self::defaultAnswers(), $answers)));
 
     $this->assertProcessSuccessful();
 
@@ -47,7 +47,7 @@ final class InstallTest extends FunctionalTestCase {
 
     // A kept installer must still run.
     if (File::exists(self::$sut . '/install.php')) {
-      $this->processRun(self::$sut . '/install.php', ['--help']);
+      $this->processRun('php', [self::$sut . '/install.php', '--help']);
       $this->assertProcessSuccessful();
       $this->assertProcessOutputContains('Eddy - project installation.');
     }

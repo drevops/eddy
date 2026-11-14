@@ -71,7 +71,21 @@ kill_processes(array_keys($listeners['own']));
 
 TASK('Starting the PHP webserver.');
 mkdir_or_fail(dirname($webserver_log));
-passthru(sprintf('nohup php%s -S %s:%s -t %s %s >%s 2>&1 &', $xdebug_flags, escapeshellarg($webserver_host), escapeshellarg($webserver_port), escapeshellarg($docroot), escapeshellarg($docroot . '/.ht.router.php'), escapeshellarg($webserver_log)));
+$server = sprintf('php%s -S %s:%s -t %s %s >%s 2>&1', $xdebug_flags, escapeshellarg($webserver_host), escapeshellarg($webserver_port), escapeshellarg($docroot), escapeshellarg($docroot . '/.ht.router.php'), escapeshellarg($webserver_log));
+
+if (is_windows()) {
+  // 'start /B' returns without waiting for the server, which keeps running
+  // after this command exits.
+  // A launch that fails leaves the port closed, which the wait below reports.
+  $launcher = popen('start "" /B ' . $server, 'r');
+
+  if ($launcher !== FALSE) {
+    pclose($launcher);
+  }
+}
+else {
+  passthru('nohup ' . $server . ' &');
+}
 
 NOTE('Waiting up to %s seconds for the server to be ready.', (string) $webserver_wait_timeout);
 

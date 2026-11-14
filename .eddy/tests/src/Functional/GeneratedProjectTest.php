@@ -22,7 +22,7 @@ final class GeneratedProjectTest extends ToolingTestCase {
 
   #[DataProvider('dataProviderGeneratedProject')]
   public function testGeneratedProject(string $type, string $bundled_dir, string $bundled_type, string $bundled, int $tests): void {
-    $this->processRun(self::$sut . '/install.php', [], [], [
+    $this->processRun('php', [self::$sut . '/install.php'], [], [
       'INSTALL_NAME' => 'Force Crystal',
       'INSTALL_MACHINE_NAME' => 'force_crystal',
       'INSTALL_TYPE' => $type,

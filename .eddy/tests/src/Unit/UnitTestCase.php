@@ -43,6 +43,10 @@ abstract class UnitTestCase extends UpstreamUnitTestCase {
     parent::setUp();
     $this->originalCwd = File::cwd();
     require_once self::toolingDir() . '/src/helpers.php';
+
+    // The tooling builds its commands for the host, so unit tests assert the
+    // POSIX commands on every host unless a test mocks Windows.
+    $this->mockWindows(FALSE);
   }
 
   protected function tearDown(): void {

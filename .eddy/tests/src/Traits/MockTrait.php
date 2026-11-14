@@ -81,6 +81,9 @@ trait MockTrait {
    *   The namespace where the function should be mocked.
    */
   protected function mockFunction(string $function_name, callable $callback, string $namespace = self::TOOLING_NAMESPACE): void {
+    // php-mock enables 1 mock per function, so a new mock replaces the old.
+    $this->mockRestore($function_name);
+
     // A PHPUnit function mock takes a callback only through expects(), so
     // the function is stubbed through php-mock directly.
     $mock = (new MockBuilder())->setNamespace($namespace)->setName($function_name)->setFunction($callback)->build();
@@ -154,7 +157,8 @@ trait MockTrait {
    *   When not all responses were consumed.
    */
   protected function assertMockConsumed(string $function_name): void {
-    if (!isset($this->mocks[$function_name])) {
+    // A mock with no queued responses has nothing to consume.
+    if (!isset($this->mocks[$function_name], $this->mockResponses[$function_name])) {
       return;
     }
 
@@ -173,6 +177,21 @@ trait MockTrait {
       $total_responses,
       $consumed_responses
     ));
+  }
+
+  /**
+   * Disable the mock of a function, so the real function runs again.
+   *
+   * @param string $function_name
+   *   The function name.
+   */
+  protected function mockRestore(string $function_name): void {
+    if (!isset($this->mocks[$function_name])) {
+      return;
+    }
+
+    $this->mocks[$function_name]->disable();
+    $this->mockReset($function_name);
   }
 
   /**
@@ -298,6 +317,18 @@ trait MockTrait {
 
       throw new QuitSuccessException($code);
     }, $namespace);
+  }
+
+  /**
+   * Mock the operating system that is_windows() detects.
+   *
+   * @param bool $windows
+   *   TRUE to report Windows, FALSE to report Linux.
+   * @param string $namespace
+   *   Namespace to mock the function in.
+   */
+  protected function mockWindows(bool $windows = TRUE, string $namespace = self::TOOLING_NAMESPACE): void {
+    $this->mockFunction('php_uname', static fn(string $mode = 'a'): string => $windows ? 'Windows NT' : 'Linux', $namespace);
   }
 
   /**

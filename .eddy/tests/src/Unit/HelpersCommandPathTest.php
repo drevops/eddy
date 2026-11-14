@@ -40,6 +40,28 @@ final class HelpersCommandPathTest extends UnitTestCase {
     yield 'command with subshell' => ['command' => '$(whoami)', 'expect_found' => FALSE];
   }
 
+  #[DataProvider('dataProviderCommandPathProbe')]
+  public function testCommandPathProbe(bool $windows, array $output, string $expected_probe, string|false $expected): void {
+    $this->mockWindows($windows);
+    $probes = [];
+    $this->mockFunction('exec', function (string $command, ?array &$lines = NULL, ?int &$result_code = NULL) use (&$probes, $output): string {
+      $probes[] = $command;
+      $lines = $output;
+      $result_code = $output === [] ? 1 : 0;
+
+      return $output === [] ? '' : $output[array_key_last($output)];
+    });
+
+    $this->assertSame($expected, command_path('composer'));
+    $this->assertSame([$expected_probe], $probes);
+  }
+
+  public static function dataProviderCommandPathProbe(): \Iterator {
+    yield 'windows, first of several matches' => [TRUE, ['C:\\tools\\composer.bat', 'C:\\tools\\composer'], 'where composer 2>NUL', 'C:\\tools\\composer.bat'];
+    yield 'windows, missing' => [TRUE, [], 'where composer 2>NUL', FALSE];
+    yield 'posix' => [FALSE, ['/usr/bin/composer'], 'command -v composer 2>/dev/null', '/usr/bin/composer'];
+  }
+
   public function testCommandExistsOrFailAvailable(): void {
     command_exists_or_fail('php');
     $this->expectNotToPerformAssertions();

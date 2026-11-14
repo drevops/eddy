@@ -692,16 +692,58 @@ const LOGS_DIR = '.logs';
 // -----------------------------------------------------------------------------
 
 /**
+ * Check whether the tooling runs on Windows.
+ *
+ * PHP runs shell commands through 'cmd.exe' on Windows, so a command that
+ * relies on POSIX shell syntax needs a Windows form there.
+ *
+ * @return bool
+ *   TRUE on Windows.
+ */
+function is_windows(): bool {
+  return str_starts_with(php_uname('s'), 'Windows');
+}
+
+/**
+ * Get the path of the null device.
+ *
+ * @return string
+ *   'NUL' on Windows, '/dev/null' elsewhere.
+ */
+function null_device(): string {
+  return is_windows() ? 'NUL' : '/dev/null';
+}
+
+/**
  * Get the path to a command, or FALSE if the command does not exist.
+ *
+ * 'where' prints every match on Windows, so the first one is returned.
  */
 function command_path(string $command): string|false {
   if (!preg_match('/^[A-Za-z0-9_\-]+(?: [A-Za-z0-9_\-]+)*$/', $command)) {
     return FALSE;
   }
 
-  exec(sprintf('command -v %s 2>/dev/null', $command), $output, $exit_code);
+  exec(sprintf(is_windows() ? 'where %s 2>NUL' : 'command -v %s 2>/dev/null', $command), $output, $exit_code);
 
   return $exit_code === 0 && !empty($output[0]) ? trim($output[0]) : FALSE;
+}
+
+/**
+ * Get the form of a relative executable path that the shell runs.
+ *
+ * 'cmd.exe' reads a '/' in a command name as the start of a switch, so the
+ * path takes backslashes on Windows. It then finds the '.bat' proxy that
+ * Composer writes next to each binary.
+ *
+ * @param string $path
+ *   The path, with '/' separators.
+ *
+ * @return string
+ *   The path to put in a command.
+ */
+function shell_path(string $path): string {
+  return is_windows() ? str_replace('/', '\\', $path) : $path;
 }
 
 /**
@@ -716,8 +758,8 @@ function command_exists_or_fail(string $command): void {
 /**
  * Run a command and capture its output, killing it after a time limit.
  *
- * The command runs without a shell. Its standard input reads from '/dev/null'
- * and its standard error is discarded.
+ * The command runs without a shell. Its standard input reads from the null
+ * device and its standard error is discarded.
  *
  * @param list<string> $command
  *   The executable followed by its arguments.
@@ -730,7 +772,8 @@ function command_exists_or_fail(string $command): void {
  */
 function command_output(array $command, int $timeout): ?string {
   $pipes = [];
-  $process = @proc_open($command, [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['file', '/dev/null', 'w']], $pipes);
+  $null = null_device();
+  $process = @proc_open($command, [0 => ['file', $null, 'r'], 1 => ['pipe', 'w'], 2 => ['file', $null, 'w']], $pipes);
 
   if (!is_resource($process)) {
     return '';
@@ -767,6 +810,8 @@ function command_output(array $command, int $timeout): ?string {
  *
  * The command is wrapped in a brace group so both streams are captured
  * together and the exit status is preserved, even for compound commands.
+ * 'cmd.exe' has no brace group, so on Windows the command is wrapped in
+ * parentheses instead.
  *
  * @param string $command
  *   The command to run.
@@ -780,7 +825,7 @@ function command_output(array $command, int $timeout): ?string {
  */
 function passthru_capture(string $command, ?int &$exit_code = NULL): string {
   ob_start();
-  passthru('{ ' . $command . '; } 2>&1', $exit_code);
+  passthru(is_windows() ? '(' . $command . ') 2>&1' : '{ ' . $command . '; } 2>&1', $exit_code);
 
   return ob_get_clean() ?: '';
 }
@@ -854,6 +899,9 @@ function passthru_verbose_or_fail(string $command, string $format = '', string|i
  * directory or an empty match set returns silently. This is the extension
  * point behind the assemble, provision, start and stop hooks.
  *
+ * 'cmd.exe' cannot run a '.sh' file, so on Windows each script runs through
+ * the 'bash' on PATH, such as the one Git for Windows installs.
+ *
  * @param string $dir
  *   Directory to scan, relative to the current working directory.
  * @param string $prefix
@@ -880,7 +928,7 @@ function run_custom_scripts(string $dir, string $prefix): void {
     TASK("Running custom script '%s'.", $file);
     // Show the hook's output - these scripts are the project's own and their
     // output is intentional, unlike the suppressed dependency-tool commands.
-    passthru_verbose_or_fail(escapeshellarg($file), "Custom script '%s' failed.", $file);
+    passthru_verbose_or_fail((is_windows() ? 'bash ' : '') . escapeshellarg($file), "Custom script '%s' failed.", $file);
     PASS("Completed custom script '%s'.", $file);
   }
 }
@@ -1084,6 +1132,8 @@ function port_listener_pids_command(int|string $port): string {
 /**
  * List the processes listening on a port, split by owner.
  *
+ * Windows has no 'lsof', so no process is listed there.
+ *
  * @param string $port
  *   The TCP port.
  * @param callable(int, string): bool $owns
@@ -1095,6 +1145,11 @@ function port_listener_pids_command(int|string $port): string {
  */
 function port_listeners(string $port, callable $owns): array {
   $listeners = ['own' => [], 'other' => []];
+
+  if (is_windows()) {
+    return $listeners;
+  }
+
   $values = preg_split('/\s+/', trim((string) shell_exec(port_listener_pids_command($port))), -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
   foreach ($values as $value) {
@@ -1561,6 +1616,9 @@ function extension_info(): array {
 /**
  * Build the path to the extension's SQLite database file.
  *
+ * The file is in '/tmp', or in the build directory on Windows, which has no
+ * '/tmp'.
+ *
  * @param string $extension_name
  *   Machine name of the extension, as returned by extension_info().
  *
@@ -1569,7 +1627,24 @@ function extension_info(): array {
  *   and status commands.
  */
 function site_db_file(string $extension_name): string {
-  return '/tmp/site_' . $extension_name . '.sqlite';
+  return (is_windows() ? getcwd() . '/build' : '/tmp') . '/site_' . $extension_name . '.sqlite';
+}
+
+/**
+ * Build the URL of the extension's SQLite database.
+ *
+ * Drupal resolves a path after 'sqlite://localhost/' against the docroot
+ * unless it starts with another '/', so a Windows path, which starts with a
+ * drive letter, is given relative to 'build/web'.
+ *
+ * @param string $extension_name
+ *   Machine name of the extension, as returned by extension_info().
+ *
+ * @return string
+ *   The URL that the site-install command takes as '--db-url'.
+ */
+function site_db_url(string $extension_name): string {
+  return 'sqlite://localhost/' . (is_windows() ? '../' . basename(site_db_file($extension_name)) : site_db_file($extension_name));
 }
 
 /**
@@ -1628,7 +1703,7 @@ function drush(string $command, mixed $args = NULL, ?int &$exit_code = NULL): st
   $exit_code_provided = $exit_code !== NULL;
   $exit_code = 0;
 
-  $command = 'build/vendor/bin/drush -r ' . escapeshellarg(getcwd() . '/build/web') . ' -y ' . $command;
+  $command = shell_path('build/vendor/bin/drush') . ' -r ' . escapeshellarg(getcwd() . '/build/web') . ' -y ' . $command;
 
   if (is_debug()) {
     // Stream drush's progress - which it writes to stderr - live, while still
