@@ -42,17 +42,20 @@ final class InstallMainTest extends UnitTestCase {
    *   The paths expected to exist.
    * @param array<string> $expected_absent
    *   The paths expected not to exist.
-   * @param array<string> $expected_summary
-   *   Consecutive lines expected in the summary.
+   * @param array<string> $expected_output
+   *   The text expected in the output, such as the result line of a step.
    */
   #[DataProvider('dataProviderMain')]
-  public function testMain(array $answers, array $expected_present, array $expected_absent, array $expected_summary): void {
+  public function testMain(array $answers, array $expected_present, array $expected_absent, array $expected_output): void {
     self::envSetMultiple(self::answers($answers));
 
-    $output = $this->capture(fn() => main(['install.php']));
+    $output = $this->capture(fn() => $this->assertSame(0, main(['install.php'])));
 
     $this->assertStringContainsString('Eddy - Drupal extension scaffold', $output);
-    $this->assertStringContainsString(implode(PHP_EOL, $expected_summary) . PHP_EOL, $output);
+
+    foreach ($expected_output as $text) {
+      $this->assertStringContainsString($text, $output);
+    }
 
     foreach ($expected_present as $path) {
       $this->assertFileExists(self::$sut . '/' . $path);
@@ -68,44 +71,40 @@ final class InstallMainTest extends UnitTestCase {
       [],
       ['acme_widgets.info.yml', 'acme_widgets.module', '.ahoy.yml', 'phpstan.neon', 'install.php'],
       ['your_extension.info.yml', 'Makefile', 'phpunit.d10.xml', 'scripts/assemble-example.sh'],
-      ['Name: Acme Widgets', 'Machine name: acme_widgets', 'Type: module', 'Drupal: 11', 'Wrapper: ahoy', 'Removed tools: None'],
-    ];
-    yield 'machine name derived from the kept placeholder' => [
-      ['machine_name' => 'my_extension'],
-      ['acme_widgets.info.yml'],
-      ['my_extension.info.yml'],
-      ['Name: Acme Widgets', 'Machine name: acme_widgets'],
+      ['Drupal 11', 'Kept Ahoy', 'Kept every tool', 'Named the module acme_widgets', 'Removed the example scripts', '2. Build: ahoy build', 'Acme Widgets (acme_widgets) is ready.'],
     ];
     yield 'machine name derived from an empty answer' => [
       ['machine_name' => ''],
       ['acme_widgets.info.yml'],
       ['my_extension.info.yml'],
-      ['Name: Acme Widgets', 'Machine name: acme_widgets'],
+      ['Named the module acme_widgets', 'Acme Widgets (acme_widgets) is ready.'],
     ];
     yield 'theme with tools removed' => [
       ['machine_name' => 'acme_theme', 'type' => 'theme', 'drupal_version' => '10,11', 'command_wrapper' => 'makefile', 'tools' => 'phpcs,phpunit'],
       ['acme_theme.info.yml', 'acme_theme.theme', 'Makefile', 'phpcs.xml', 'phpunit.xml', 'phpunit.d10.xml'],
       ['acme_theme.module', '.ahoy.yml', 'phpstan.neon', 'rector.php'],
-      ['Type: theme', 'Drupal: 10, 11', 'Wrapper: makefile', 'Removed tools: phpstan, rector, twigcs, eslint, stylelint, cspell, jest, functional_javascript, renovate'],
+      ['Drupal 10 and Drupal 11', 'Kept Makefile', 'Removed PHPStan, Rector, Twig CS Fixer', 'Named the theme acme_theme', '2. Build: make build'],
     ];
     yield 'no command wrapper' => [
       ['command_wrapper' => ''],
       ['acme_widgets.info.yml'],
       ['.ahoy.yml', 'Makefile'],
-      ['Wrapper: None', 'Removed tools: None'],
+      ['No command wrapper, so the commands run directly', '2. Build and check: follow the commands in CONTRIBUTING.md'],
     ];
     yield 'kept examples' => [
       ['examples' => 'true'],
       ['scripts/assemble-example.sh', 'scripts/provision-example.sh', 'scripts/start-example.sh', 'scripts/stop-example.sh'],
       [],
-      ['Name: Acme Widgets'],
+      ['Acme Widgets (acme_widgets) is ready.'],
     ];
   }
 
   public function testMainReadsBranchesAndRepository(): void {
     self::envSetMultiple(self::answers() + ['INSTALL_BRANCHES' => '2.x,3.x', 'INSTALL_GITHUB_REPOSITORY' => 'acme/widgets']);
 
-    $this->capture(fn() => main(['install.php']));
+    $output = $this->capture(fn() => $this->assertSame(0, main(['install.php'])));
+
+    $this->assertStringContainsString('Set to 2.x and 3.x', $output);
 
     $workflow = File::read(self::$sut . '/.github/workflows/test.yml');
     $this->assertStringContainsString("    branches:\n      - 2.x\n      - 3.x\n", $workflow);
@@ -123,31 +122,18 @@ final class InstallMainTest extends UnitTestCase {
   public function testMainAborts(array $answers, array $unanswered, string $expected_output): void {
     self::envSetMultiple(self::answers($answers));
     self::envUnsetMultiple(array_map(static fn(string $prompt): string => 'INSTALL_' . strtoupper($prompt), $unanswered));
-    $exception = NULL;
-    $output = '';
 
-    ob_start();
+    $output = $this->capture(fn() => $this->assertSame(1, main(['install.php'])));
 
-    try {
-      main(['install.php']);
-    }
-    catch (\Exception $caught) {
-      $exception = $caught;
-    }
-    finally {
-      $output = (string) ob_get_clean();
-    }
-
-    $this->assertInstanceOf(\Exception::class, $exception);
-    $this->assertSame('Aborting.', $exception->getMessage());
     $this->assertStringContainsString($expected_output, $output);
     $this->assertFileExists(self::$sut . '/your_extension.info.yml', 'The project is left as it was.');
     $this->assertFileDoesNotExist(self::$sut . '/acme_widgets.info.yml');
   }
 
   public static function dataProviderMainAborts(): \Iterator {
-    yield 'installation declined' => [['proceed' => 'false'], [], 'Proceed with installation'];
+    yield 'installation declined' => [['proceed' => 'false'], [], 'Cancelled.'];
     yield 'prompt cancelled' => [[], ['proceed'], 'Cancelled.'];
+    yield 'invalid machine name' => [['machine_name' => 'Acme-Widgets'], [], 'Failed.'];
   }
 
   /**

@@ -413,7 +413,7 @@ final class DocumentationTest extends UnitTestCase {
   public static function dataProviderUpdateSkillDetectsTool(): \Iterator {
     $install = File::read(self::rootDir() . '/install.php');
 
-    preg_match('/\$tool_options = \[(.*?)\];/s', $install, $options);
+    preg_match('/function tool_options\(\): array \{\s*return \[(.*?)\];/s', $install, $options);
     preg_match_all("/'(\w+)' =>/", $options[1] ?? '', $tools);
 
     self::assertNotSame([], $tools[1], 'install.php declares no tool options.');

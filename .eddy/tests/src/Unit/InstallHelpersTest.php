@@ -30,14 +30,17 @@ use function get_marker_files;
 use function github_repository_from_url;
 use function gitignore_rules;
 use function inline_json_lists;
+use function install_drupal_versions;
 use function install_from_archive;
 use function is_binary_file;
 use function is_empty_directory;
 use function is_gitignored;
 use function is_template_path;
 use function join_list;
+use function machine_name_error;
 use function main;
 use function move_entries;
+use function next_steps;
 use function normalize_cspell_words;
 use function origin_github_repository;
 use function parse_branch_list;
@@ -185,21 +188,20 @@ final class InstallHelpersTest extends UnitTestCase {
   }
 
   public function testMainVersion(): void {
-    $output = $this->capture(fn() => main(['install.php', '--version']));
+    $output = $this->capture(fn(): int => main(['install.php', '--version']));
 
     // The checkout's copy has no version until an archive expands it.
     $this->assertSame('development' . PHP_EOL, $output);
   }
 
   public function testMainDownloadsIntoEmptyDirectory(): void {
-    $archive = self::templateArchive(['install.php' => self::stubInstaller()]);
-    self::envSet('INSTALL_TEMPLATE_ARCHIVE', $archive);
+    self::envSet('INSTALL_TEMPLATE_ARCHIVE', self::templateArchive(['install.php' => self::stubInstaller()]));
     File::mkdir(self::$sut . '/.git');
     chdir(self::$sut);
 
-    $output = $this->capture(fn() => main(['install.php', '--first']));
+    $output = $this->capture(fn() => $this->assertSame(0, main(['install.php', '--first'])));
 
-    $this->assertSame('Downloading Eddy development from ' . $archive . PHP_EOL . self::unverifiedWarning($archive), $output);
+    self::assertDownloadOutput($output, TRUE);
     $this->assertSame(['--first'], self::stubInstallerRun(self::$sut)['args']);
   }
 
@@ -695,6 +697,44 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'other conjunction' => [['A', 'B', 'C'], 'or', 'A, B or C'];
   }
 
+  /**
+   * @param array<string> $command_wrapper
+   * @param array<string> $expected
+   */
+  #[DataProvider('dataProviderNextSteps')]
+  public function testNextSteps(array $command_wrapper, array $expected): void {
+    $this->assertSame(implode("\n", $expected), next_steps($command_wrapper));
+  }
+
+  public static function dataProviderNextSteps(): \Iterator {
+    $commit = '  1. Commit: git init && git add -A && git commit -m "Initial commit."';
+
+    yield 'ahoy' => [['ahoy'], ['Next steps:', $commit, '  2. Build: ahoy build', '  3. Check: ahoy lint && ahoy test', '  4. Docs: https://eddy.drevops.com']];
+    yield 'makefile' => [['makefile'], ['Next steps:', $commit, '  2. Build: make build', '  3. Check: make lint && make test', '  4. Docs: https://eddy.drevops.com']];
+    yield 'both wrappers' => [['ahoy', 'makefile'], ['Next steps:', $commit, '  2. Build: make build', '  3. Check: make lint && make test', '  4. Docs: https://eddy.drevops.com']];
+    yield 'no wrapper' => [[], ['Next steps:', $commit, '  2. Build and check: follow the commands in CONTRIBUTING.md', '  3. Docs: https://eddy.drevops.com']];
+  }
+
+  public function testInstallDrupalVersionsWithoutMajor(): void {
+    $this->expectException(\Exception::class);
+    $this->expectExceptionMessage('At least one Drupal version is required.');
+
+    install_drupal_versions(['drupal_versions' => [], 'version' => NULL]);
+  }
+
+  #[DataProvider('dataProviderMachineNameError')]
+  public function testMachineNameError(string $machine_name, ?string $expected): void {
+    $this->assertSame($expected, machine_name_error($machine_name));
+  }
+
+  public static function dataProviderMachineNameError(): \Iterator {
+    yield 'valid' => ['force_crystal', NULL];
+    yield 'digits after the first letter' => ['crystal2', NULL];
+    yield 'empty' => ['', 'Machine name is required.'];
+    yield 'uppercase' => ['Force_Crystal', 'Machine name must start with a lowercase letter and contain only lowercase letters, digits, and underscores.'];
+    yield 'leading digit' => ['2crystal', 'Machine name must start with a lowercase letter and contain only lowercase letters, digits, and underscores.'];
+  }
+
   #[DataProvider('dataProviderReadComposerDevJson')]
   public function testReadComposerDevJson(?string $content, ?array $expected): void {
     chdir(self::$sut);
@@ -1151,7 +1191,8 @@ final class InstallHelpersTest extends UnitTestCase {
     self::envSet('INSTALL_NAME', 'Force Crystal');
 
     $this->assertSame($exit_code, run_installer(self::$sut, ['--first', 'second']));
-    $this->assertSame(['args' => ['--first', 'second'], 'cwd' => self::locationsRealpath(self::$sut), 'name' => 'Force Crystal'], self::stubInstallerRun(self::$sut));
+    $this->assertSame(['args' => ['--first', 'second'], 'cwd' => self::locationsRealpath(self::$sut), 'name' => 'Force Crystal', 'downloaded' => '1'], self::stubInstallerRun(self::$sut));
+    $this->assertFalse(getenv('INSTALL_DOWNLOADED'), 'The variable for the installer of the template is left set.');
   }
 
   public static function dataProviderRunInstaller(): \Iterator {
@@ -1173,9 +1214,9 @@ final class InstallHelpersTest extends UnitTestCase {
     $installer_path = self::$sut . '/' . $installer;
     File::dump($installer_path, '<?php // Downloaded installer.');
 
-    $output = $this->capture(fn() => install_from_archive(self::$sut, $installer_path, ['--first']));
+    $output = $this->capture(fn() => $this->assertSame(0, install_from_archive(self::$sut, $installer_path, ['--first'])));
 
-    $this->assertSame('Downloading Eddy development from ' . $archive . PHP_EOL . self::unverifiedWarning($archive), $output);
+    self::assertDownloadOutput($output, TRUE);
     $this->assertSame(['--first'], self::stubInstallerRun(self::$sut)['args']);
     $this->assertSame(self::stubInstaller(), File::read(self::$sut . '/install.php'));
     $this->assertSame(!$expected_removed, File::exists($installer_path));
@@ -1193,9 +1234,9 @@ final class InstallHelpersTest extends UnitTestCase {
     self::envSet('INSTALL_TEMPLATE_ARCHIVE_SHA256', hash_file('sha256', $archive) ?: '');
     File::dump(self::$sut . '/installer.php', '<?php // Downloaded installer.');
 
-    $output = $this->capture(fn() => install_from_archive(self::$sut, self::$sut . '/installer.php', ['--first']));
+    $output = $this->capture(fn() => $this->assertSame(0, install_from_archive(self::$sut, self::$sut . '/installer.php', ['--first'])));
 
-    $this->assertSame('Downloading Eddy development from ' . $archive . PHP_EOL, $output);
+    self::assertDownloadOutput($output, FALSE);
     $this->assertSame(['--first'], self::stubInstallerRun(self::$sut)['args']);
   }
 
@@ -1205,14 +1246,10 @@ final class InstallHelpersTest extends UnitTestCase {
     self::envSet('INSTALL_TEMPLATE_ARCHIVE_SHA256', str_repeat('a', 64));
     File::dump(self::$sut . '/installer.php', '<?php // Downloaded installer.');
 
-    try {
-      $this->capture(fn() => install_from_archive(self::$sut, self::$sut . '/installer.php', []));
-      $this->fail('An archive that does not match its checksum was installed.');
-    }
-    catch (\Exception $exception) {
-      $this->assertStringStartsWith('The template from ' . $archive . ' does not match its SHA-256 checksum', $exception->getMessage());
-    }
+    $output = $this->capture(fn() => $this->assertSame(1, install_from_archive(self::$sut, self::$sut . '/installer.php', [])));
 
+    $this->assertStringContainsString('does not match its SHA-256 checksum', $output);
+    $this->assertStringContainsString('Failed.', $output);
     $this->assertSame(['.', '..', 'installer.php'], scandir(self::$sut));
   }
 
@@ -1220,29 +1257,31 @@ final class InstallHelpersTest extends UnitTestCase {
     self::envSet('INSTALL_TEMPLATE_ARCHIVE', self::templateArchive(['install.php' => self::stubInstaller(3)]));
     File::dump(self::$sut . '/installer.php', '<?php // Downloaded installer.');
 
-    try {
-      $this->capture(fn() => install_from_archive(self::$sut, self::$sut . '/installer.php', []));
-      $this->fail('A failed template installer went unreported.');
-    }
-    catch (\Exception $exception) {
-      $this->assertSame('The installer of the downloaded template exited with code 3.', $exception->getMessage());
-      $this->assertSame(3, $exception->getCode());
-    }
+    $this->capture(fn() => $this->assertSame(3, install_from_archive(self::$sut, self::$sut . '/installer.php', [])));
 
     $this->assertFileExists(self::$sut . '/installer.php');
   }
 
   /**
-   * Build the warning that the installer prints for an unverified archive.
+   * Assert the output of an installer that downloaded the template.
    *
-   * @param string $archive
-   *   The URL or the path of the archive.
-   *
-   * @return string
-   *   The warning line.
+   * @param string $output
+   *   The output.
+   * @param bool $is_unverified
+   *   Whether the archive has no known checksum.
    */
-  protected static function unverifiedWarning(string $archive): string {
-    return sprintf('Warning: No SHA-256 checksum is known for %s, so the template is not verified.', $archive) . PHP_EOL;
+  protected static function assertDownloadOutput(string $output, bool $is_unverified): void {
+    self::assertSame(1, substr_count($output, 'Eddy - Drupal extension scaffold'));
+    self::assertStringContainsString('Downloading Eddy development', $output);
+    self::assertStringContainsString('Downloaded from', $output);
+
+    if ($is_unverified) {
+      self::assertStringContainsString('No SHA-256 checksum is known for', $output);
+
+      return;
+    }
+
+    self::assertStringNotContainsString('No SHA-256 checksum is known for', $output);
   }
 
   /**
@@ -1275,7 +1314,7 @@ final class InstallHelpersTest extends UnitTestCase {
    *   The PHP code of the installer.
    */
   protected static function stubInstaller(int $exit_code = 0): string {
-    return sprintf('<?php file_put_contents("run.json", json_encode(["args" => array_slice($argv, 1), "cwd" => getcwd(), "name" => getenv("INSTALL_NAME")])); exit(%d);', $exit_code);
+    return sprintf('<?php file_put_contents("run.json", json_encode(["args" => array_slice($argv, 1), "cwd" => getcwd(), "name" => getenv("INSTALL_NAME"), "downloaded" => getenv("INSTALL_DOWNLOADED")])); exit(%d);', $exit_code);
   }
 
   /**
@@ -1285,8 +1324,9 @@ final class InstallHelpersTest extends UnitTestCase {
    *   The directory the installer ran in.
    *
    * @return array<mixed>
-   *   The arguments, the working directory and the 'INSTALL_NAME' value,
-   *   keyed 'args', 'cwd' and 'name'.
+   *   The arguments, the working directory and the 'INSTALL_NAME' and
+   *   'INSTALL_DOWNLOADED' values, keyed 'args', 'cwd', 'name' and
+   *   'downloaded'.
    */
   protected static function stubInstallerRun(string $dir): array {
     $run = json_decode(File::read($dir . '/run.json'), TRUE);
