@@ -272,13 +272,6 @@ final class HelpersPortListenersTest extends UnitTestCase {
     yield 'text that is not a process ID' => ["lsof: WARNING\n12ab\n1234\n"];
   }
 
-  public function testWebserverListenersOnWindows(): void {
-    $this->mockWindows();
-    $this->mockFunction('shell_exec', static fn(string $command): never => throw new \RuntimeException('No command runs on Windows: ' . $command));
-
-    $this->assertSame(['own' => [], 'other' => []], webserver_listeners('8000', self::DOCROOT));
-  }
-
   /**
    * @param array<int, int> $pids
    *   The process IDs to kill.

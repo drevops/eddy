@@ -249,11 +249,7 @@ function composer(string $arguments): int {
     putenv('COMPOSER_AUTH=' . json_encode(['github-oauth' => ['github.com' => $token]], JSON_THROW_ON_ERROR));
   }
 
-  // The variable is set in the environment rather than as a command prefix,
-  // which 'cmd.exe' on Windows does not support.
-  putenv('COMPOSER=' . MANIFEST);
-
-  $command = 'composer ' . $arguments;
+  $command = sprintf('COMPOSER=%s composer %s', escapeshellarg(MANIFEST), $arguments);
   $exit_code = 0;
 
   if (getenv('DEBUG') === '1') {

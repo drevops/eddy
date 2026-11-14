@@ -40,7 +40,7 @@
  
  ## CI/CD Support
  
-@@ -125,8 +118,7 @@
+@@ -124,8 +117,7 @@
  - The `build/` directory contains the assembled Drupal site
  - Extension files are symlinked from root into `build/web/modules/custom/`
  - SQLite database created in `/tmp/site_force_crystal.sqlite`

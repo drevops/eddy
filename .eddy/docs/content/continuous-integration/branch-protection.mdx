@@ -10,13 +10,11 @@ CI only protects your extension when a failing job can stop a merge. Set up [bra
 
 Require the jobs of every Drupal major you selected in the installer:
 
-| Drupal | Required jobs                                                                                                                                                 |
-|--------|-----------------------------------------------------------------------------------------------------------------------------------------------|
-| 10     | `lint-d10`, `test-php-min-d10-stable`, `test-php-max-d10-stable`, `test-php-max-d10-stable-windows`                                                             |
-| 11     | `lint-d11`, `test-php-min-d11-stable`, `test-php-max-d11-stable`, `test-php-min-d11-legacy`, `test-php-max-d11-canary`, `test-php-max-d11-stable-windows`       |
-| 12     | `lint-d12`, `test-php-min-d12-stable`, `test-php-max-d12-stable`, `test-php-min-d12-legacy`, `test-php-max-d12-canary`, `test-php-max-d12-stable-windows`       |
-
-The jobs that end in `-windows` run the tests on [Windows](README.mdx#windows).
+| Drupal | Required jobs                                                                                                                |
+|--------|------------------------------------------------------------------------------------------------------------------------------|
+| 10     | `lint-d10`, `test-php-min-d10-stable`, `test-php-max-d10-stable`                                                             |
+| 11     | `lint-d11`, `test-php-min-d11-stable`, `test-php-max-d11-stable`, `test-php-min-d11-legacy`, `test-php-max-d11-canary`       |
+| 12     | `lint-d12`, `test-php-min-d12-stable`, `test-php-max-d12-stable`, `test-php-min-d12-legacy`, `test-php-max-d12-canary`       |
 
 GitHub names each status check after its job, so a job you rename or [shard](configuration.mdx#distribute-tools-across-ci-runners) needs the same change in your rules. When you add a Drupal major later, add its jobs to your rules too.
 

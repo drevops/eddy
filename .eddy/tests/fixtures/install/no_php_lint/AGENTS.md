@@ -20,7 +20,7 @@
  - **ESLint**: JavaScript linting with Prettier formatting (config at `.eslintrc.json`)
  - **Stylelint**: CSS linting (config at `.stylelintrc.js`)
  
-@@ -125,7 +117,7 @@
+@@ -124,7 +116,7 @@
  - The `build/` directory contains the assembled Drupal site
  - Extension files are symlinked from root into `build/web/modules/custom/`
  - SQLite database created in `/tmp/site_force_crystal.sqlite`

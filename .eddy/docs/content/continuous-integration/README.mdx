@@ -14,7 +14,7 @@ Your extension gets the following workflows. In the table, your branches are the
 
 | Workflow                                   | Runs on                                                    | What it does                                                                                                   |
 |--------------------------------------------|------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
-| `Test` (`test.yml`)                        | Pushes to your branches and tags, and pull requests that target your branches | Tests the extension on the PHP and Drupal versions of the [version matrix](#the-version-matrix) and on [Windows](#windows), and lints it once per Drupal major. |
+| `Test` (`test.yml`)                        | Pushes to your branches and tags, and pull requests that target your branches | Tests the extension on the PHP and Drupal versions of the [version matrix](#the-version-matrix), and lints it once per Drupal major. |
 | `Deploy` (`deploy.yml`)                    | A successful `Test` run of a push                          | Mirrors the code to Drupal.org or another git remote. See [Deployment](../deployment/README.mdx).              |
 | `Draft release notes` (`draft-release-notes.yml`) | Pushes to your branches and tags                    | Keeps a draft GitHub release up to date with the pull requests merged since the last published release.        |
 | `Auto Author Assign` (`assign-author.yml`) | Opened and reopened pull requests                          | Assigns each pull request to its author.                                                                       |
@@ -62,25 +62,6 @@ Your extension gets only the jobs of the Drupal majors you selected in the insta
 Drupal 12 requires PHP 8.5, so Eddy tests Drupal 12 on PHP 8.5 alone. Its lowest and highest supported PHP are the same, so `test-php-min-d12-stable` and `test-php-max-d12-stable` run the same versions. The jobs use the same kinds of values as the Drupal 11 jobs (`12`, `12.0.0` and `12@beta`) and follow Drupal 12's releases on their own.
 
 Until Drupal 12 has a stable release, every Drupal 12 job builds its newest pre-release. After 12.0.0 ships, all of them build that release. Then `canary` moves on to the 12.1 pre-releases, and `legacy` stays on the 12.0.x patches. To build Drupal 12 locally, see [Drupal versions](../development/drupal-versions.mdx#drupal-12).
-
-## Windows
-
-CI also runs the tests on Windows. The `test-windows` job has 1 leg per Drupal major you selected, on the highest PHP that major supports:
-
-| Job                               | PHP   | Drupal |
-|-----------------------------------|-------|--------|
-| `test-php-max-d10-stable-windows` | `8.4` | `10`   |
-| `test-php-max-d11-stable-windows` | `8.5` | `11`   |
-| `test-php-max-d12-stable-windows` | `8.5` | `12`   |
-
-A Windows leg runs the same tooling commands as a `test` job, with these differences:
-
-- **A job of its own.** GitHub runs service containers on Linux runners only, so the Windows legs leave out the Selenium container. FunctionalJavascript tests use the ChromeDriver and Chrome of the Windows runner.
-- **Git Bash.** Every step runs in Git Bash, and the tooling runs your `scripts/*.sh` hooks with `bash`. The checkout keeps LF line endings, so the hooks run as they do on Linux.
-- **Tests only.** The linters, the coverage reports and Codecov stay on Linux.
-- **The database in the build.** Windows has no `/tmp`, so the site's SQLite database is `build/site_<machine_name>.sqlite`.
-
-Windows support covers these CI jobs. The local commands, such as `ahoy` and `make`, expect a POSIX shell. On Windows, the tooling also can't find or stop a webserver that's already running.
 
 ## Next steps
 

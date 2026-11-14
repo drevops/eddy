@@ -52,7 +52,6 @@ final class ToolingInstallerTest extends UnitTestCase {
     self::envUnset('DEBUG');
     self::envUnset('GITHUB_TOKEN');
     self::envUnset('COMPOSER_AUTH');
-    self::envUnset('COMPOSER');
     self::envUnset('TERM');
   }
 
@@ -501,9 +500,7 @@ final class ToolingInstallerTest extends UnitTestCase {
    */
   protected function mockComposer(int $exit_code = 0, string $output = '', array $bins = self::BINS, array $watched_paths = []): void {
     $this->mockFunction('passthru', function (string $command, mixed &...$args) use ($exit_code, $output, $bins, $watched_paths): null {
-      // The installer passes the manifest to Composer in the COMPOSER
-      // variable, so the command is recorded with it as a prefix.
-      $this->commands[] = sprintf('COMPOSER=%s %s', escapeshellarg((string) getenv('COMPOSER')), $command);
+      $this->commands[] = $command;
 
       foreach ($watched_paths as $path) {
         $this->pathsAtComposerRun[$path] = File::exists($path) || is_link($path);

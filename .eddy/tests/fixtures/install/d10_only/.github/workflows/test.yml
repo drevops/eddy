@@ -9,10 +9,11 @@
      name: ${{ matrix.name }}
  
      env:
-@@ -135,23 +131,6 @@
+@@ -134,23 +130,6 @@
+           - name: test-php-max-d10-stable
              php-version: 8.4
              drupal-version: 10
- 
+-
 -          - name: test-php-min-d11-stable
 -            php-version: 8.3
 -            drupal-version: 11
@@ -29,18 +30,6 @@
 -            php-version: 8.5
 -            drupal-version: 11@beta
 -            stability: canary
--
+ 
      services:
        chrome:
-         image: selenium/standalone-chromium:latest@sha256:b211549a4c35f11826bc1a7559b9f23ff055198517f8cb7d49ef74df01c5e38d
-@@ -297,10 +276,6 @@
-           - name: test-php-max-d10-stable-windows
-             php-version: 8.4
-             drupal-version: 10
--
--          - name: test-php-max-d11-stable-windows
--            php-version: 8.5
--            drupal-version: 11
- 
-     name: ${{ matrix.name }}
- 
