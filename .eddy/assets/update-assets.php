@@ -179,6 +179,10 @@ press "\r"
 expect "Tools"
 press "\r"
 
+# Confirm: Use Windows in CI - accept the default "No".
+expect "Use Windows in CI"
+press "\r"
+
 # Confirm: Keep example lifecycle scripts - accept the default "No".
 expect "Keep example lifecycle scripts"
 press "\r"

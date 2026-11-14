@@ -35,7 +35,7 @@ Eddy isn't for building websites: use [Vortex](https://github.com/drevops/vortex
 
 ## Features
 
-- ⚙️ **[CI on GitHub Actions](https://eddy.drevops.com/continuous-integration)** - PHP `8.3`, `8.4` and `8.5`, and Drupal `stable` on 10, 11 and 12, plus `legacy` and `canary` tiers on 11 and 12, with code coverage on [codecov.io](https://codecov.io). The setup works with Drupal.org GitLab CI too.
+- ⚙️ **[CI on GitHub Actions](https://eddy.drevops.com/continuous-integration)** - PHP `8.3`, `8.4` and `8.5`, and Drupal `stable` on 10, 11 and 12, plus `legacy` and `canary` tiers on 11 and 12 and an optional Windows job, with code coverage on [codecov.io](https://codecov.io). The setup works with Drupal.org GitLab CI too.
 - 💻 **[Local development](https://eddy.drevops.com/development)** - a Drupal site built on the PHP of your host by the same commands that CI runs, through `make` or [Ahoy](https://github.com/ahoy-cli/ahoy), with your development dependencies, suggested extensions and patches.
 - 🧹 **[Coding standards](https://eddy.drevops.com/development/coding-standards)** - PHPCS, PHPStan, Drupal Rector, Twig CS Fixer, ESLint, Stylelint, CSpell and Prettier.
 - 🧪 **[Tests](https://eddy.drevops.com/testing)** - PHPUnit Unit, Kernel, Functional and FunctionalJavascript tests, in a local Chrome or a Selenium container, and JavaScript tests with [Jest](https://jestjs.io/).
