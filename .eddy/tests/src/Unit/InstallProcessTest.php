@@ -1643,7 +1643,7 @@ final class InstallProcessTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderMainHelp')]
   public function testMainHelp(array $argv): void {
-    $output = $this->capture(fn() => main($argv));
+    $output = $this->capture(fn(): int => main($argv));
 
     $this->assertStringContainsString('Eddy - project installation.', $output);
     $this->assertStringContainsString('Usage:', $output);

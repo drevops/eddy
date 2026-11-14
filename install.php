@@ -657,6 +657,9 @@ function install_steps(): array {
  *
  * @return string
  *   The targeted majors.
+ *
+ * @throws \Exception
+ *   When no major is selected.
  */
 function install_drupal_versions(array $settings): string {
   // Normalize both sides to strings: PHP casts numeric-string array keys to
@@ -664,6 +667,10 @@ function install_drupal_versions(array $settings): string {
   // the string selection.
   $supported_majors = array_map(strval(...), array_keys(drupal_version_options()));
   $selected_majors = array_map(strval(...), $settings['drupal_versions']);
+
+  if ($selected_majors === []) {
+    throw new \Exception('At least one Drupal version is required.');
+  }
 
   process_drupal_version_text($selected_majors);
 
@@ -808,7 +815,9 @@ function install_cleanup(array $settings): string {
 
   // This runs after every other change, so the words in use come from the
   // files the project ships.
-  remove_unused_cspell_words([...tool_cspell_words($settings['tools_remove']), ...extension_type_cspell_words(extension_types_remove($settings['type']))]);
+  $types_remove = extension_types_remove($settings['type']);
+  $words = [...tool_cspell_words($settings['tools_remove']), ...extension_type_cspell_words($types_remove)];
+  remove_unused_cspell_words($words);
 
   return $removed === [] ? '' : 'Removed ' . join_list($removed);
 }

@@ -30,6 +30,7 @@ use function get_marker_files;
 use function github_repository_from_url;
 use function gitignore_rules;
 use function inline_json_lists;
+use function install_drupal_versions;
 use function install_from_archive;
 use function is_binary_file;
 use function is_empty_directory;
@@ -187,7 +188,7 @@ final class InstallHelpersTest extends UnitTestCase {
   }
 
   public function testMainVersion(): void {
-    $output = $this->capture(fn() => main(['install.php', '--version']));
+    $output = $this->capture(fn(): int => main(['install.php', '--version']));
 
     // The checkout's copy has no version until an archive expands it.
     $this->assertSame('development' . PHP_EOL, $output);
@@ -712,6 +713,13 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'makefile' => [['makefile'], ['Next steps:', $commit, '  2. Build: make build', '  3. Check: make lint && make test', '  4. Docs: https://eddy.drevops.com']];
     yield 'both wrappers' => [['ahoy', 'makefile'], ['Next steps:', $commit, '  2. Build: make build', '  3. Check: make lint && make test', '  4. Docs: https://eddy.drevops.com']];
     yield 'no wrapper' => [[], ['Next steps:', $commit, '  2. Build and check: follow the commands in CONTRIBUTING.md', '  3. Docs: https://eddy.drevops.com']];
+  }
+
+  public function testInstallDrupalVersionsWithoutMajor(): void {
+    $this->expectException(\Exception::class);
+    $this->expectExceptionMessage('At least one Drupal version is required.');
+
+    install_drupal_versions(['drupal_versions' => [], 'version' => NULL]);
   }
 
   #[DataProvider('dataProviderMachineNameError')]
