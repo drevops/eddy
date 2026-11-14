@@ -49,7 +49,7 @@ final class HelpersCommandPathTest extends UnitTestCase {
       $lines = $output;
       $result_code = $output === [] ? 1 : 0;
 
-      return $output[0] ?? '';
+      return $output === [] ? '' : $output[array_key_last($output)];
     });
 
     $this->assertSame($expected, command_path('composer'));
