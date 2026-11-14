@@ -278,3 +278,138 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  # Service containers run on Linux runners only, so the Windows legs run in a
+  # job of their own, without the Selenium container.
+  test-windows:
+    runs-on: windows-2025
+
+    timeout-minutes: 60
+
+    permissions:
+      contents: read
+
+    strategy:
+      fail-fast: false
+
+      matrix:
+        include:
+          - name: test-php-max-d10-stable-windows
+            php-version: 8.4
+            drupal-version: 10
+
+          - name: test-php-max-d11-stable-windows
+            php-version: 8.5
+            drupal-version: 11
+
+    name: ${{ matrix.name }}
+
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      DRUPAL_VERSION: ${{ matrix.drupal-version }}
+
+      # Which tools run on this runner. Each matrix leg is a runner of its own
+      # covering one Drupal and PHP pair, so every tool runs on all of them.
+      CI_RUNNER_INDEX: ${{ strategy.job-index }}
+      CI_RUNNER_TOTAL: ${{ strategy.job-total }}
+      CI_IS_JEST_RUNNER: true
+      CI_IS_PHPUNIT_RUNNER: true
+
+    steps:
+      # Git checks out text files with CRLF line endings on Windows, which bash
+      # cannot run as scripts.
+      - name: Keep LF line endings
+        run: git config --global core.autocrlf false
+
+      - name: Checkout code
+        uses: actions/checkout@__HASH__ # __VERSION__
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@__HASH__ # __VERSION__
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: gd, sqlite3, pdo_sqlite
+          coverage: none
+
+      # Disable Symfony deprecations helper for PHP 8.4+ until every tested
+      # Drupal version fully supports newer PHP versions.
+      # @see https://www.drupal.org/project/drupal/issues/1267246
+      - name: Update SYMFONY_DEPRECATIONS_HELPER for PHP 8.4+
+        run: |
+          if [ "$(php -r 'echo PHP_MAJOR_VERSION . PHP_MINOR_VERSION;')" -ge "84" ]; then
+            echo "SYMFONY_DEPRECATIONS_HELPER=disabled" >> "$GITHUB_ENV"
+          fi
+
+      - name: Prepare Composer cache
+        id: composer-cache
+        run: |
+          {
+            echo "dir=$(composer config cache-files-dir)"
+            echo "month=$(date -u +%Y-%m)"
+          } >> "$GITHUB_OUTPUT"
+
+      # Builds resolve without a lock file, so the key changes monthly to also
+      # cache newer releases.
+      - name: Cache Composer dependencies
+        uses: actions/cache@__HASH__ # __VERSION__
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ matrix.name }}-${{ steps.composer-cache.outputs.month }}-${{ hashFiles('composer.json', 'composer.dev.json') }}
+          restore-keys: ${{ runner.os }}-composer-${{ matrix.name }}-
+
+      - name: Install the tooling
+        run: ./scripts/eddy-tooling
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Assemble the codebase
+        run: vendor/bin/eddy-assemble
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Windows cannot connect to '__VERSION__.0', and no container needs to reach
+      # the webserver here.
+      - name: Start built-in PHP server
+        run: vendor/bin/eddy-start
+        timeout-minutes: 5
+        env:
+          WEBSERVER_HOST: 127.0.0.1
+
+      # The runner image ships a ChromeDriver that matches its Chrome.
+      - name: Start ChromeDriver
+        run: |
+          mkdir -p .logs
+          nohup "$(cygpath "$CHROMEWEBDRIVER")/chromedriver.exe" --port=4444 >.logs/chromedriver.log 2>&1 </dev/null &
+        timeout-minutes: 5
+
+      - name: Provision site
+        run: vendor/bin/eddy-provision
+
+      - name: Run JavaScript tests
+        if: ${{ env.CI_IS_JEST_RUNNER == 'true' && hashFiles('build/node_modules/.package-lock.json') != '' }}
+        working-directory: build
+        run: npm test
+        continue-on-error: ${{ vars.CI_NODEJS_TEST_IGNORE_FAILURE == '1' }}
+
+      - name: Run tests
+        if: ${{ env.CI_IS_PHPUNIT_RUNNER == 'true' }}
+        working-directory: build
+        run: php vendor/bin/phpunit --no-coverage
+        continue-on-error: ${{ vars.CI_TEST_IGNORE_FAILURE == '1' }}
+        env:
+          BROWSERTEST_OUTPUT_DIRECTORY: ../.logs/browser_output
+          SIMPLETEST_DB: sqlite://tmp/db.sqlite
+          WEBDRIVER_BACKEND: chromedriver
+
+      - name: Upload logs as an artifact
+        uses: actions/upload-artifact@__HASH__ # __VERSION__
+        if: ${{ always() && env.CI_IS_PHPUNIT_RUNNER == 'true' }}
+        with:
+          name: Artifacts (${{ matrix.name }})
+          path: .logs
+          include-hidden-files: true

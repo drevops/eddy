@@ -127,7 +127,7 @@
  ## CI/CD Support
  
  - **GitHub Actions**: `.github/workflows/test.yml` and deployment
-@@ -124,8 +114,6 @@
+@@ -125,8 +115,6 @@
  - The `build/` directory contains the assembled Drupal site
  - Extension files are symlinked from root into `build/web/modules/custom/`
  - SQLite database created in `/tmp/site_force_crystal.sqlite`

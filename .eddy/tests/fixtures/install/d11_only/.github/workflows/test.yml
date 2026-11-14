@@ -24,3 +24,14 @@
            - name: test-php-min-d11-stable
              php-version: 8.3
              drupal-version: 11
+@@ -294,10 +282,6 @@
+ 
+       matrix:
+         include:
+-          - name: test-php-max-d10-stable-windows
+-            php-version: 8.4
+-            drupal-version: 10
+-
+           - name: test-php-max-d11-stable-windows
+             php-version: 8.5
+             drupal-version: 11

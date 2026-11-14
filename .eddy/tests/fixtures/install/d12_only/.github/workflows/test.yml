@@ -53,3 +53,19 @@
              stability: canary
  
      services:
+@@ -294,13 +282,9 @@
+ 
+       matrix:
+         include:
+-          - name: test-php-max-d10-stable-windows
+-            php-version: 8.4
+-            drupal-version: 10
+-
+-          - name: test-php-max-d11-stable-windows
++          - name: test-php-max-d12-stable-windows
+             php-version: 8.5
+-            drupal-version: 11
++            drupal-version: 12
+ 
+     name: ${{ matrix.name }}
+ 

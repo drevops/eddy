@@ -19,3 +19,25 @@
  
        - name: Upload browser output as an artifact
          uses: actions/upload-artifact@__HASH__ # __VERSION__
+@@ -380,13 +373,6 @@
+         env:
+           WEBSERVER_HOST: 127.0.0.1
+ 
+-      # The runner image ships a ChromeDriver that matches its Chrome.
+-      - name: Start ChromeDriver
+-        run: |
+-          mkdir -p .logs
+-          nohup "$(cygpath "$CHROMEWEBDRIVER")/chromedriver.exe" --port=4444 >.logs/chromedriver.log 2>&1 </dev/null &
+-        timeout-minutes: 5
+-
+       - name: Provision site
+         run: vendor/bin/eddy-provision
+ 
+@@ -404,7 +390,6 @@
+         env:
+           BROWSERTEST_OUTPUT_DIRECTORY: ../.logs/browser_output
+           SIMPLETEST_DB: sqlite://tmp/db.sqlite
+-          WEBDRIVER_BACKEND: chromedriver
+ 
+       - name: Upload logs as an artifact
+         uses: actions/upload-artifact@__HASH__ # __VERSION__

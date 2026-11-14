@@ -43,7 +43,7 @@
  3. Check standards: `ahoy lint`
  4. Run tests: `ahoy test`
  5. Access site at the URL that `ahoy info` reports
-@@ -122,7 +121,7 @@
+@@ -123,7 +122,7 @@
  ## Important Notes
  
  - The `build/` directory contains the assembled Drupal site

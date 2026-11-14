@@ -14,7 +14,7 @@
  - **PHPCS**: Drupal, DrupalPractice, DrevOps and PHPCompatibility standards
  - **PHPStan**: Static analysis with Drupal extensions
  - **Rector**: Automated refactoring and deprecation fixes
-@@ -125,7 +123,6 @@
+@@ -126,7 +124,6 @@
  - Extension files are symlinked from root into `build/web/modules/custom/`
  - SQLite database created in `/tmp/site_force_crystal.sqlite`
  - The PHP and JavaScript quality tools run from within the `build/` directory
