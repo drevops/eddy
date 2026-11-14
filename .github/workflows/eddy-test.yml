@@ -36,13 +36,23 @@ jobs:
       matrix:
         # Job names include these values, so check the ruleset before renaming
         # one: https://github.com/drevops/eddy/rules/8469831
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         group: ['p0', 'p1', 'p2', 'p3', 'p4', 'p5']
         # Only the FunctionalJavascript groups (p3/p4) use a WebDriver
         # backend, so the excludes run every other group once. macOS runners
         # have no Docker, so macOS with selenium is excluded as well.
         backend: ['selenium', 'chromedriver']
+        # Windows runs the unit tests and the installer. The other groups
+        # build a site through Ahoy, make and a POSIX shell.
         exclude:
+          - os: 'windows-latest'
+            group: 'p2'
+          - os: 'windows-latest'
+            group: 'p3'
+          - os: 'windows-latest'
+            group: 'p4'
+          - os: 'windows-latest'
+            group: 'p5'
           - group: 'p0'
             backend: 'selenium'
           - group: 'p1'
@@ -55,6 +65,12 @@ jobs:
             backend: 'selenium'
 
     steps:
+      # Git checks out text files with CRLF line endings on Windows, so the
+      # snapshot fixtures would differ from the generated files.
+      - name: Keep LF line endings (Windows)
+        if: runner.os == 'Windows'
+        run: git config --global core.autocrlf false
+
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -154,6 +170,7 @@ jobs:
       - name: Run PHP tests with coverage
         if: matrix.group == 'p0'
         run: composer test-coverage -- --group="${GROUP}"
+        shell: bash
         working-directory: .eddy/tests
         env:
           GROUP: ${{ matrix.group }}
@@ -165,6 +182,7 @@ jobs:
       - name: Run PHP tests
         if: matrix.group != 'p0'
         run: composer test -- --group="${GROUP}"
+        shell: bash
         working-directory: .eddy/tests
         env:
           GROUP: ${{ matrix.group }}
