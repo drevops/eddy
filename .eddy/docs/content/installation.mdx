@@ -50,7 +50,7 @@ Download the installer into a new, empty directory and run it there:
 curl -fsSL https://eddy.drevops.com/install > install.php && php install.php
 ```
 
-`https://eddy.drevops.com/install` serves the installer of the latest Eddy release. The installer downloads that release and expands it into the directory. Then it asks about your extension, renames and rewrites the template's files to match and removes what you didn't select. At the end, it deletes itself unless you answer no to **Remove this script**. `php install.php --version` prints the release it installs.
+`https://eddy.drevops.com/install` serves the installer of the latest Eddy release. The installer downloads that release and expands it into the directory. Then it asks about your extension, renames and rewrites the template's files to match and removes what you didn't select. It shows the result of each step as it runs. At the end, it deletes itself unless you answer no to **Remove this script**, and lists your next steps. `php install.php --version` prints the release it installs.
 
 The directory counts as empty while it holds only `install.php` and hidden entries such as `.git`, so an empty repository you've cloned works too. Create your GitHub repository without a README or a license file, because either one makes the directory non-empty. In a directory with other files, the installer works on the copy of Eddy already there when the directory holds `your_extension.info.yml` (see [Install from a download](#install-from-a-download)). Otherwise, it stops and changes nothing.
 
@@ -65,14 +65,14 @@ The installer asks the following questions:
 | Question                       | What it decides                                                                                                                                                       | Default                        |
 |--------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------|
 | Extension name                 | The human-readable name, such as `My Extension`.                                                                                                                      | `My Extension`                 |
-| Machine name                   | The machine name that files, classes and services are renamed after, such as `my_extension`. It starts with a lowercase letter and holds only lowercase letters, digits and underscores. Any other name stops the installer with an error. | The extension name in lowercase, with underscores for spaces |
+| Machine name                   | The machine name that files, classes and services are renamed after, such as `my_extension`. It starts with a lowercase letter and holds only lowercase letters, digits and underscores. The installer asks again for any other name, or stops when the name comes from `INSTALL_MACHINE_NAME`. | The extension name in lowercase, with underscores for spaces |
 | Extension type                 | Module or theme.                                                                                                                                                      | Module                         |
 | Target Drupal versions         | The Drupal majors your extension supports: 10, 11 and 12. They decide the CI jobs, `core_version_requirement`, the README badges and the version a local build uses. See [Drupal versions](development/drupal-versions.mdx). | 11                             |
 | Command wrapper                | Ahoy, Makefile, both or neither. Without a wrapper, you run the [tooling commands](development/tooling.mdx) yourself.                                                  | Neither                        |
 | Tools                          | The tools to keep: PHPCS, PHPStan, Rector, Twig CS Fixer, ESLint, Stylelint, CSpell, Jest, PHPUnit, FunctionalJavascript tests and Renovate.                           | All 11                         |
 | Keep example lifecycle scripts | 4 example [lifecycle scripts](development/lifecycle-scripts.mdx), 1 per phase, that print a marker line when their phase runs.                                        | No                             |
 | Remove this script             | Whether `install.php` deletes itself when it's done.                                                                                                                  | Yes                            |
-| Proceed with installation      | The last check before the installer rewrites the template's files.                                                                                                    | Yes                            |
+| Proceed with installation      | The last check before the installer rewrites the template's files. No cancels the installation and leaves the files as they are.                                      | Yes                            |
 
 :::tip Skip the prompts
 
