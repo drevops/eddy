@@ -112,7 +112,8 @@ trait WebserverTrait {
    *   The process, once the port accepts connections or after 5 seconds.
    */
   protected static function webserverStartListener(string $cwd, string $port): Process {
-    $chromedriver = self::locationsMkdir(self::$tmp . '/webdriver-' . $port) . '/chromedriver';
+    // Windows adds '.exe' to a command name that has no extension.
+    $chromedriver = self::locationsMkdir(self::$tmp . '/webdriver-' . $port) . '/chromedriver' . (PHP_OS_FAMILY === 'Windows' ? '.exe' : '');
     symlink(PHP_BINARY, $chromedriver);
 
     return self::webserverStartProcess([$chromedriver, '-S', 'localhost:' . $port, '-t', $cwd], $cwd, $port);

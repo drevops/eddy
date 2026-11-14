@@ -63,10 +63,10 @@ $has_drush = is_file($drush_bin);
 $fields = [
   'drupal-version' => fn(): string => $has_drush ? info_drupal_version($drush_bin, $root) : '-',
   'php-version' => info_php_version(...),
-  'composer' => fn(): string => info_tool_version('composer --version 2>/dev/null', '/Composer(?:\s+version)?\s+(\S+)/i'),
-  'drush' => fn(): string => $has_drush ? info_tool_version(escapeshellarg($drush_bin) . ' --version 2>/dev/null', '/(\d+\.\d+\.\d+)/') : '-',
-  'node' => fn(): string => info_tool_version('node --version 2>/dev/null', '/v?(.+)/'),
-  'npm' => fn(): string => info_tool_version('npm --version 2>/dev/null', '/(.+)/'),
+  'composer' => fn(): string => info_tool_version('composer --version 2>' . null_device(), '/Composer(?:\s+version)?\s+(\S+)/i'),
+  'drush' => fn(): string => $has_drush ? info_tool_version(escapeshellarg(shell_path($drush_bin)) . ' --version 2>' . null_device(), '/(\d+\.\d+\.\d+)/') : '-',
+  'node' => fn(): string => info_tool_version('node --version 2>' . null_device(), '/v?(.+)/'),
+  'npm' => fn(): string => info_tool_version('npm --version 2>' . null_device(), '/(.+)/'),
   'webserver-host' => fn(): string => $webserver_host,
   'webserver-port' => fn(): string => $webserver_port,
   'site-url' => fn(): string => resolve_site_url($webserver_host, $webserver_port),
@@ -135,7 +135,7 @@ echo PHP_EOL;
  * Get the host PHP version, or '-' if it cannot be parsed.
  */
 function info_php_version(): string {
-  $output = (string) @shell_exec('php -v 2>/dev/null');
+  $output = (string) @shell_exec('php -v 2>' . null_device());
 
   if ($output === '' || !preg_match('/^PHP\s+(\S+)/m', $output, $matches)) {
     return '-';
@@ -168,7 +168,7 @@ function info_drupal_version(string $drush_bin, string $root): string {
   // stderr into its return value, which would leak any stray notice into
   // the version string returned here. This probe
   // instead discards stderr so it always yields either a clean value or '-'.
-  $command = escapeshellarg($drush_bin) . ' -r ' . escapeshellarg($root . '/build/web') . ' status --field=drupal-version 2>/dev/null';
+  $command = escapeshellarg(shell_path($drush_bin)) . ' -r ' . escapeshellarg($root . '/build/web') . ' status --field=drupal-version 2>' . null_device();
   $output = trim((string) @shell_exec($command));
 
   return $output === '' ? '-' : $output;

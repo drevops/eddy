@@ -168,7 +168,7 @@ trait MockTrait {
 
     $this->mockChecked[$function_name] = TRUE;
 
-    $total_responses = count($this->mockResponses[$function_name] ?? []);
+    $total_responses = count($this->mockResponses[$function_name]);
     $consumed_responses = $this->mockIndices[$function_name] ?? 0;
 
     $this->assertSame($total_responses, $consumed_responses, sprintf(

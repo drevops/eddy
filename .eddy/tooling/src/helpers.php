@@ -934,7 +934,37 @@ function run_custom_scripts(string $dir, string $prefix): void {
 }
 
 /**
+ * Start a command that keeps running after the tooling command exits.
+ *
+ * 'cmd.exe' has no 'nohup', so on Windows 'start /B' runs the command and
+ * returns without waiting for it.
+ *
+ * @param string $command
+ *   The command, with its arguments escaped.
+ * @param string $log
+ *   The file that receives the output of the command.
+ */
+function run_in_background(string $command, string $log): void {
+  if (!is_windows()) {
+    passthru(sprintf('nohup %s >%s 2>&1 &', $command, escapeshellarg($log)));
+
+    return;
+  }
+
+  $launcher = popen(sprintf('start "" /B %s >%s 2>&1', $command, escapeshellarg($log)), 'r');
+
+  // A failed launch leaves the command's port closed, which the caller
+  // reports.
+  if ($launcher !== FALSE) {
+    pclose($launcher);
+  }
+}
+
+/**
  * Get the command line of a process.
+ *
+ * Windows has no 'ps', so the command line is read from the process list of
+ * the Windows Management Instrumentation (WMI) there.
  *
  * @param int $pid
  *   The process ID.
@@ -943,11 +973,18 @@ function run_custom_scripts(string $dir, string $prefix): void {
  *   The command line, or an empty string when no such process runs.
  */
 function process_command(int $pid): string {
+  if (is_windows()) {
+    return trim((string) shell_exec(sprintf('powershell -NoProfile -NonInteractive -Command "(Get-CimInstance Win32_Process -Filter \'ProcessId=%d\').CommandLine" 2>NUL', $pid)));
+  }
+
   return trim((string) shell_exec(sprintf('ps -p %d -o command= 2>/dev/null', $pid)));
 }
 
 /**
  * Get the working directory of a process.
+ *
+ * Windows exposes no working directory of another process, so it is never
+ * read there.
  *
  * @param int $pid
  *   The process ID.
@@ -956,13 +993,17 @@ function process_command(int $pid): string {
  *   The absolute path, or an empty string when it cannot be read.
  */
 function process_cwd(int $pid): string {
+  if (is_windows()) {
+    return '';
+  }
+
   $output = (string) shell_exec(sprintf('lsof -a -p %d -d cwd -Fn 2>/dev/null', $pid));
 
   return preg_match('/^n(.+)$/m', $output, $matches) === 1 ? $matches[1] : '';
 }
 
 /**
- * Kill processes with SIGKILL.
+ * Kill processes with SIGKILL, or with 'taskkill /F' on Windows.
  *
  * Process IDs below 1 are ignored, because 'kill' signals a whole process
  * group for 0 and negative IDs.
@@ -974,6 +1015,12 @@ function kill_processes(array $pids): void {
   $pids = array_filter($pids, static fn(int $pid): bool => $pid > 0);
 
   if ($pids === []) {
+    return;
+  }
+
+  if (is_windows()) {
+    passthru(sprintf('taskkill /F /PID %s >NUL 2>&1', implode(' /PID ', $pids)));
+
     return;
   }
 
@@ -1073,6 +1120,26 @@ function resolve_port_value(string $name, string $default, bool $auto_discover, 
 }
 
 /**
+ * Get the host that a client connects to for a server bound to a host.
+ *
+ * A server bound to a wildcard address listens on the loopback address too,
+ * and Windows refuses a connection to the wildcard address itself.
+ *
+ * @param string $host
+ *   The host the server binds to.
+ *
+ * @return string
+ *   The loopback address for a wildcard address, or the host as given.
+ */
+function client_host(string $host): string {
+  return match ($host) {
+    '0.0.0.0' => '127.0.0.1',
+    '::', '[::]' => '[::1]',
+    default => $host,
+  };
+}
+
+/**
  * Wait for a TCP port to accept connections.
  *
  * Each probe follows a 100-millisecond pause, the first one included. The
@@ -1130,9 +1197,40 @@ function port_listener_pids_command(int|string $port): string {
 }
 
 /**
- * List the processes listening on a port, split by owner.
+ * Get the IDs of the processes listening on a TCP port.
  *
- * Windows has no 'lsof', so no process is listed there.
+ * Windows has no 'lsof', so the IDs come from the listening sockets that
+ * 'netstat -ano' prints there.
+ *
+ * @param string $port
+ *   The TCP port.
+ *
+ * @return array<int, int>
+ *   The process IDs, each once.
+ */
+function port_listener_pids(string $port): array {
+  $pids = [];
+
+  if (is_windows()) {
+    foreach (split_lines((string) shell_exec('netstat -ano 2>NUL')) as $line) {
+      $columns = preg_split('/\s+/', trim($line), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+      if (count($columns) === 5 && $columns[0] === 'TCP' && $columns[3] === 'LISTENING' && str_ends_with($columns[1], ':' . $port)) {
+        $pids[] = $columns[4];
+      }
+    }
+  }
+  else {
+    $pids = preg_split('/\s+/', trim((string) shell_exec(port_listener_pids_command($port))), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+  }
+
+  $pids = array_filter($pids, is_positive_integer(...));
+
+  return array_values(array_unique(array_map(intval(...), $pids)));
+}
+
+/**
+ * List the processes listening on a port, split by owner.
  *
  * @param string $port
  *   The TCP port.
@@ -1146,18 +1244,7 @@ function port_listener_pids_command(int|string $port): string {
 function port_listeners(string $port, callable $owns): array {
   $listeners = ['own' => [], 'other' => []];
 
-  if (is_windows()) {
-    return $listeners;
-  }
-
-  $values = preg_split('/\s+/', trim((string) shell_exec(port_listener_pids_command($port))), -1, PREG_SPLIT_NO_EMPTY) ?: [];
-
-  foreach ($values as $value) {
-    if (!is_positive_integer($value)) {
-      continue;
-    }
-
-    $pid = (int) $value;
+  foreach (port_listener_pids($port) as $pid) {
     $command = process_command($pid);
     $listeners[$owns($pid, $command) ? 'own' : 'other'][$pid] = $command;
   }
@@ -1283,7 +1370,8 @@ function resolve_site_url(string $host, string $port, string $dotenv_file = '.en
  * Get the path that a PHP webserver command line passes to '-t'.
  *
  * The command line is split on whitespace, so a path with spaces is cut at
- * the first one.
+ * the first one. On Windows, the command line keeps the double quotes that
+ * escapeshellarg() adds, so they are removed from the path.
  *
  * @param string $command
  *   The command line, as 'ps' prints it.
@@ -1295,16 +1383,34 @@ function webserver_docroot_argument(string $command): ?string {
   $arguments = preg_split('/\s+/', trim($command), -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
   foreach ($arguments as $index => $argument) {
+    $path = NULL;
+
     if ($argument === '-t') {
-      return $arguments[$index + 1] ?? NULL;
+      $path = $arguments[$index + 1] ?? NULL;
+    }
+    elseif (str_starts_with($argument, '-t')) {
+      $path = substr($argument, 2);
     }
 
-    if (str_starts_with($argument, '-t')) {
-      return substr($argument, 2);
+    if ($path !== NULL) {
+      return is_windows() ? trim($path, '"') : $path;
     }
   }
 
   return NULL;
+}
+
+/**
+ * Check whether a path is absolute.
+ *
+ * @param string $path
+ *   The path.
+ *
+ * @return bool
+ *   TRUE for a path from '/', or from a drive letter on Windows.
+ */
+function is_absolute_path(string $path): bool {
+  return str_starts_with($path, '/') || (is_windows() && preg_match('#^[A-Za-z]:[\\\\/]#', $path) === 1);
 }
 
 /**
@@ -1336,7 +1442,7 @@ function webserver_serves(string $command, string $docroot, int $pid = 0): bool 
     return FALSE;
   }
 
-  if (!str_starts_with($path, '/')) {
+  if (!is_absolute_path($path)) {
     $cwd = $pid > 0 ? process_cwd($pid) : '';
 
     if ($cwd === '') {
@@ -1489,8 +1595,15 @@ function webdriver_listeners(string $port, string $root): array {
   $resolved_root = realpath($root) ?: $root;
 
   return port_listeners($port, static function (int $pid, string $command) use ($resolved_root): bool {
-    if (preg_match('#^(?:\S*/)?chromedriver(?:\s|$)#', $command) !== 1) {
+    // On Windows, the command line can quote the path and end in '.exe'.
+    if (preg_match('#^"?(?:[^"\s]*[/\\\\])?chromedriver(?:\.exe)?"?(?:\s|$)#i', $command) !== 1) {
       return FALSE;
+    }
+
+    // Windows exposes no working directory, so a chromedriver on the port,
+    // which each project discovers for itself, counts as the project's own.
+    if (is_windows()) {
+      return TRUE;
     }
 
     $cwd = process_cwd($pid);
@@ -1532,7 +1645,7 @@ function selenium_container(string $port): string {
  *   The output, or an empty string when the container does not exist.
  */
 function selenium_container_inspect(string $port, string $format): string {
-  return (string) shell_exec(sprintf('docker inspect --format %s %s 2>/dev/null', escapeshellarg($format), escapeshellarg(selenium_container($port))));
+  return (string) shell_exec(sprintf('docker inspect --format %s %s 2>%s', escapeshellarg($format), escapeshellarg(selenium_container($port)), null_device()));
 }
 
 /**
@@ -1581,7 +1694,7 @@ function selenium_container_running(string $port): bool {
  *   The WebDriver port the container publishes.
  */
 function selenium_container_remove(string $port): void {
-  passthru(sprintf('docker rm -f %s >/dev/null 2>&1', escapeshellarg(selenium_container($port))));
+  passthru(sprintf('docker rm -f %s >%s 2>&1', escapeshellarg(selenium_container($port)), null_device()));
 }
 
 // -----------------------------------------------------------------------------

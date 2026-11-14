@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use function DrevOps\Eddy\Tooling\client_host;
 use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -51,7 +52,8 @@ final class StartTest extends UnitTestCase {
 
     $this->assertStringContainsString('START ENVIRONMENT', $output);
     $this->assertStringContainsString('Waiting up to ' . $expected_timeout . ' seconds for the server to be ready.', $output);
-    $this->assertSame([$expected_host . ':' . $expected_port], $probes, 'Only the first probe runs when it connects.');
+    // A wildcard host is probed on the loopback address.
+    $this->assertSame([client_host($expected_host) . ':' . $expected_port], $probes, 'Only the first probe runs when it connects.');
     $this->assertStringContainsString('Server started successfully', $output);
     $this->assertStringContainsString('Server can serve content', $output);
     $this->assertStringContainsString('ENVIRONMENT READY', $output);

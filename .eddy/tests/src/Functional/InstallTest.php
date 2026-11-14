@@ -288,7 +288,9 @@ final class InstallTest extends FunctionalTestCase {
    */
   protected static function archiveTemplate(): string {
     $archive = self::$tmp . '/eddy.tar.gz';
-    (new Process(['tar', '-czf', $archive, '-C', dirname(self::$sut), basename(self::$sut)]))->mustRun();
+    // GNU tar reads a drive letter in the archive path as a remote host, so
+    // the archive is named relative to the directory it is written to.
+    (new Process(['tar', '-czf', basename($archive), '-C', dirname(self::$sut), basename(self::$sut)], self::$tmp))->mustRun();
 
     return $archive;
   }

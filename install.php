@@ -1178,7 +1178,7 @@ function trim_claude_settings_permissions(array $command_wrapper): void {
 
   $encoded = json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
 
-  if (file_put_contents($file, $encoded . PHP_EOL) === FALSE) {
+  if (file_put_contents($file, $encoded . "\n") === FALSE) {
     // @codeCoverageIgnoreStart
     throw new \RuntimeException('Unable to write .claude/settings.json.');
     // @codeCoverageIgnoreEnd
@@ -1903,7 +1903,7 @@ function write_json_file(string $file, array $content, bool $inline_lists = FALS
     $encoded = inline_json_lists($encoded);
   }
 
-  if (file_put_contents($file, $encoded . PHP_EOL) === FALSE) {
+  if (file_put_contents($file, $encoded . "\n") === FALSE) {
     // @codeCoverageIgnoreStart
     throw new \RuntimeException('Unable to write ' . $file . '.');
     // @codeCoverageIgnoreEnd
@@ -2311,7 +2311,12 @@ function download_template(string $archive, string $dir, ?string $sha256 = NULL)
 
   $output = [];
   $exit_code = 0;
-  exec(sprintf('tar -xzf %s --strip-components=1 -C %s 2>&1', escapeshellarg($file), escapeshellarg($staging)), $output, $exit_code);
+  // GNU tar, such as the one in Git for Windows, reads a drive letter in the
+  // archive path as a remote host, so the paths are relative to the directory.
+  $cwd = (string) getcwd();
+  chdir($dir);
+  exec(sprintf('tar -xzf %s --strip-components=1 -C %s 2>&1', escapeshellarg(basename($file)), escapeshellarg(basename($staging))), $output, $exit_code);
+  chdir($cwd);
   unlink($file);
 
   if ($exit_code !== 0) {
@@ -2476,7 +2481,7 @@ function remove_npm(array $tools_remove): void {
   // JSON_PRETTY_PRINT indents with four spaces; package.json uses two.
   $encoded = preg_replace_callback('/^ +/m', static fn(array $m): string => str_repeat(' ', intdiv(strlen($m[0]), 2)), $encoded) ?? $encoded;
 
-  if (file_put_contents($file, $encoded . PHP_EOL) === FALSE) {
+  if (file_put_contents($file, $encoded . "\n") === FALSE) {
     // @codeCoverageIgnoreStart
     throw new \RuntimeException('Unable to write ' . $file . '.');
     // @codeCoverageIgnoreEnd

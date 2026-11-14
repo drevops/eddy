@@ -102,7 +102,7 @@ final class GeneratedProjectTest extends ToolingTestCase {
 
     self::composerHomeWrite($matches[0], FALSE);
 
-    $this->processRun('./scripts/eddy-tooling', [], [], ['COMPOSER_HOME' => self::composerHomeDir()], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->processRun('php', ['scripts/eddy-tooling'], [], ['COMPOSER_HOME' => self::composerHomeDir()], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
     $this->assertProcessAnyOutputContains('Installed drevops/eddy-tooling.');
   }

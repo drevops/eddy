@@ -23,6 +23,12 @@ abstract class ToolingTestCase extends FunctionalTestCase {
   protected function setUp(): void {
     parent::setUp();
 
+    // The tooling hides the Composer output, and Composer runs longer on
+    // Windows than the idle timeout allows between 2 lines.
+    if (PHP_OS_FAMILY === 'Windows') {
+      $this->defaultIdleTimeout = $this->defaultTimeout;
+    }
+
     $this->assertDirectoryContainsString(self::$sut, 'scaffold');
   }
 
@@ -84,7 +90,7 @@ abstract class ToolingTestCase extends FunctionalTestCase {
 
     $path = self::envGet('PATH');
 
-    return ['DISPLAY' => ':0', 'PATH' => $dir . (is_string($path) && $path !== '' ? ':' . $path : '')];
+    return ['DISPLAY' => ':0', 'PATH' => $dir . (is_string($path) && $path !== '' ? PATH_SEPARATOR . $path : '')];
   }
 
   /**

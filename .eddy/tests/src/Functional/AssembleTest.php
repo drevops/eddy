@@ -32,12 +32,12 @@ final class AssembleTest extends ToolingTestCase {
     if ($running) {
       self::webserverCreateDocroot(self::$sut);
 
-      $this->processRun('vendor/bin/eddy-start', [], [], $env, $this->defaultTimeout, $this->defaultIdleTimeout);
+      $this->processRun('php', ['vendor/bin/eddy-start'], [], $env, $this->defaultTimeout, $this->defaultIdleTimeout);
       $this->assertProcessSuccessful();
       $this->assertTrue(self::webserverPortAccepts(self::webserverPort()), 'The webserver of the project is running.');
     }
 
-    $this->processRun('vendor/bin/eddy-assemble', [], [], $env, $this->longTimeout, $this->defaultIdleTimeout);
+    $this->processRun('php', ['vendor/bin/eddy-assemble'], [], $env, $this->longTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
 
     if ($running) {
@@ -93,7 +93,7 @@ final class AssembleTest extends ToolingTestCase {
 
     $this->installTooling();
 
-    $this->processRun('vendor/bin/eddy-assemble', [], [], [], $this->longTimeout, $this->defaultIdleTimeout);
+    $this->processRun('php', ['vendor/bin/eddy-assemble'], [], [], $this->longTimeout, $this->defaultIdleTimeout);
     $this->assertProcessFailed();
 
     $this->assertProcessAnyOutputContains('No available patcher was able to apply patch');
@@ -102,7 +102,7 @@ final class AssembleTest extends ToolingTestCase {
   }
 
   protected function installTooling(): void {
-    $this->processRun('./scripts/eddy-tooling', [], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->processRun('php', ['scripts/eddy-tooling'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
   }
 
