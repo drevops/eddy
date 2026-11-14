@@ -153,6 +153,12 @@ function main(array $argv): int {
       description: 'All tools are included by default. Uncheck any to remove from your project.',
     )
     ->confirm(
+      'windows',
+      'Use Windows in CI',
+      default: FALSE,
+      description: 'Also runs the tests on Windows, in 1 job for each Drupal version.',
+    )
+    ->confirm(
       'examples',
       'Keep example lifecycle scripts',
       default: FALSE,
@@ -275,8 +281,8 @@ function machine_name_error(string $machine_name): ?string {
  * @return array
  *   The settings that the steps of 'install_steps()' take: 'name',
  *   'machine_name', 'type', 'drupal_versions', 'command_wrapper',
- *   'tools_remove', 'remove_examples', 'remove_self', 'branches', 'version'
- *   and 'repository'.
+ *   'tools_remove', 'windows', 'remove_examples', 'remove_self', 'branches',
+ *   'version' and 'repository'.
  */
 function install_settings(array $answers, array $branches, ?string $version, ?string $repository): array {
   return [
@@ -286,6 +292,7 @@ function install_settings(array $answers, array $branches, ?string $version, ?st
     'drupal_versions' => array_map(strval(...), (array) $answers['drupal_version']),
     'command_wrapper' => array_map(strval(...), (array) $answers['command_wrapper']),
     'tools_remove' => array_values(array_diff(array_keys(tool_options()), (array) $answers['tools'])),
+    'windows' => (bool) $answers['windows'],
     // The prompt asks whether to keep the example scripts.
     'remove_examples' => !$answers['examples'],
     'remove_self' => (bool) $answers['remove_self'],
@@ -509,6 +516,8 @@ Environment variables (to pre-fill prompts):
                           One or more of: phpcs, phpstan, rector, twigcs,
                           eslint, stylelint, cspell, jest, phpunit,
                           functional_javascript, renovate.
+  INSTALL_WINDOWS         Use Windows in CI: true or false. CI runs on Linux
+                          only by default.
   INSTALL_EXAMPLES        Keep example lifecycle scripts: true or false. They
                           are removed by default.
   INSTALL_REMOVE_SELF     Remove this script: true or false.
@@ -574,8 +583,10 @@ function print_version(): void {
  * @param string|null $repository
  *   The GitHub repository the README badges name, as 'owner/name', or NULL to
  *   read it from the 'origin' remote.
+ * @param bool $windows
+ *   Whether CI also runs the tests on Windows.
  */
-function process(string $extension_name, string $extension_machine_name, string $extension_type, array $drupal_versions, array $command_wrapper, array $tools_remove, bool $remove_examples, bool $remove_self, array $branches = [], ?string $version = NULL, ?string $repository = NULL): void {
+function process(string $extension_name, string $extension_machine_name, string $extension_type, array $drupal_versions, array $command_wrapper, array $tools_remove, bool $remove_examples, bool $remove_self, array $branches = [], ?string $version = NULL, ?string $repository = NULL, bool $windows = FALSE): void {
   // Validate required values.
   if ($extension_name === '') {
     throw new \Exception('Name is required.');
@@ -617,6 +628,7 @@ function process(string $extension_name, string $extension_machine_name, string 
     'drupal_versions' => $selected_majors,
     'command_wrapper' => $command_wrapper,
     'tools_remove' => $tools_remove,
+    'windows' => $windows,
     'remove_examples' => $remove_examples,
     'remove_self' => $remove_self,
     'branches' => $branches,
@@ -643,6 +655,7 @@ function install_steps(): array {
     'install_drupal_versions' => ['Targeting the Drupal versions', install_drupal_versions(...)],
     'install_command_wrapper' => ['Setting up the command wrappers', install_command_wrapper(...)],
     'install_tools' => ['Removing the unselected tools', install_tools(...)],
+    'install_windows' => ['Setting up Windows in CI', install_windows(...)],
     'install_extension' => ['Renaming the template', install_extension(...)],
     'install_workflow_branches' => ['Setting the workflow branches', install_workflow_branches(...)],
     'install_cleanup' => ['Cleaning up', install_cleanup(...)],
@@ -745,6 +758,25 @@ function install_tools(array $settings): string {
   $removed = array_intersect_key(tool_options(), array_flip(add_dependent_tools($settings['tools_remove'])));
 
   return $removed === [] ? 'Kept every tool' : 'Removed ' . join_list($removed);
+}
+
+/**
+ * Keep or remove the Windows test jobs.
+ *
+ * @param array $settings
+ *   The settings that 'install_settings()' builds.
+ *
+ * @return string
+ *   Whether the Windows test jobs were kept.
+ */
+function install_windows(array $settings): string {
+  if ($settings['windows']) {
+    return 'Kept the Windows test jobs';
+  }
+
+  remove_tokens_with_content('WINDOWS');
+
+  return 'Removed the Windows test jobs';
 }
 
 /**

@@ -327,6 +327,9 @@ Run `php install.php` once, in a fresh copy of the template, to turn it into you
 <!-- #;< DRUPAL_12 -->
   - Drupal 12 on PHP 8.5
 <!-- #;> DRUPAL_12 -->
+<!-- #;< WINDOWS -->
+- **Windows testing**: The `test-windows` job runs the tests on Windows for each Drupal version, on its highest PHP version. Its build uses Git Bash, and its database is `build/site_[EXTENSION_NAME].sqlite`
+<!-- #;> WINDOWS -->
 - **Automated deployment**: Mirror to Drupal.org after CI passes
 
 ## Important Notes

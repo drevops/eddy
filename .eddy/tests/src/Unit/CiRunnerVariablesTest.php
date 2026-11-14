@@ -79,9 +79,13 @@ final class CiRunnerVariablesTest extends UnitTestCase {
     foreach (self::ANCHORS as $name) {
       $this->assertArrayHasKey($name, $declared, sprintf('%s does not declare %s.', basename($path), $name));
 
-      $open = $blocks[$declared[$name]];
+      foreach ($declared[$name] as $line) {
+        // Only a tool block removes a tool, and a job in a block of another
+        // kind goes with its anchor.
+        $open = array_values(array_filter($blocks[$line], static fn(string $token): bool => str_starts_with($token, 'DEV_')));
 
-      $this->assertSame([], $open, sprintf('%s declares %s inside the %s block, so removing that tool takes the anchor with it.', basename($path), $name, implode(' and ', $open)));
+        $this->assertSame([], $open, sprintf('%s declares %s inside the %s block, so removing that tool takes the anchor with it.', basename($path), $name, implode(' and ', $open)));
+      }
     }
   }
 
@@ -93,7 +97,7 @@ final class CiRunnerVariablesTest extends UnitTestCase {
     $flags = [];
     $misplaced = [];
 
-    foreach ($declared as $name => $line) {
+    foreach ($declared as $name => $lines) {
       if (preg_match('/^CI_IS_([A-Z0-9]+)_RUNNER$/', $name, $matches) !== 1) {
         continue;
       }
@@ -101,8 +105,10 @@ final class CiRunnerVariablesTest extends UnitTestCase {
       $flags[] = $name;
       $token = 'DEV_' . $matches[1];
 
-      if (!in_array($token, $blocks[$line], TRUE)) {
-        $misplaced[] = sprintf('%s (expected %s)', $name, $token);
+      foreach ($lines as $line) {
+        if (!in_array($token, $blocks[$line], TRUE)) {
+          $misplaced[] = sprintf('%s on line %d (expected %s)', $name, $line + 1, $token);
+        }
       }
     }
 
@@ -131,15 +137,15 @@ final class CiRunnerVariablesTest extends UnitTestCase {
    * @param string $path
    *   The configuration to read.
    *
-   * @return array<string, int>
-   *   The line each name is declared on, keyed by name.
+   * @return array<string, list<int>>
+   *   The lines each name is declared on, keyed by name.
    */
   protected static function declaredVariables(string $path): array {
     $declared = [];
 
     foreach (self::lines($path) as $number => $line) {
       if (preg_match('/^\s*(CI_IS_[A-Z0-9]+_RUNNER|CI_RUNNER_[A-Z]+)\s*[:=]/', $line, $matches) === 1) {
-        $declared[$matches[1]] = $number;
+        $declared[$matches[1]][] = $number;
       }
     }
 

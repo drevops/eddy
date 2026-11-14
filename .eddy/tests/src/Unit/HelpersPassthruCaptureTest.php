@@ -36,6 +36,16 @@ final class HelpersPassthruCaptureTest extends UnitTestCase {
     ];
   }
 
+  public function testWrapsCommandOnWindows(): void {
+    $this->mockWindows();
+    $captured_command = NULL;
+    $this->mockRawPassthru($captured_command, 'output', 0);
+
+    passthru_capture('composer install');
+
+    $this->assertSame('(composer install) 2>&1', $captured_command);
+  }
+
   public function testReturnsCapturedOutputAndExitCode(): void {
     $captured_command = NULL;
     $this->mockRawPassthru($captured_command, 'combined stdout and stderr', 3);

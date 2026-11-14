@@ -301,6 +301,18 @@ trait MockTrait {
   }
 
   /**
+   * Mock the operating system that is_windows() detects.
+   *
+   * @param bool $windows
+   *   TRUE to report Windows, FALSE to report Linux.
+   * @param string $namespace
+   *   Namespace to mock the function in.
+   */
+  protected function mockWindows(bool $windows = TRUE, string $namespace = self::TOOLING_NAMESPACE): void {
+    $this->mockFunction('php_uname', static fn(string $mode = 'a'): string => $windows ? 'Windows NT' : 'Linux', $namespace);
+  }
+
+  /**
    * Mock posix_isatty function to control terminal color detection.
    *
    * @param bool $return_value

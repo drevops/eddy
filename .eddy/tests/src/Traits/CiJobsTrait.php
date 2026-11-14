@@ -21,7 +21,7 @@ trait CiJobsTrait {
    * @return array<int, array{name: string, php: string, drupal: string}>
    *   The jobs in workflow order, each with its PHP and Drupal versions.
    */
-  protected static function ciJobs(array $job_names = ['lint', 'test']): array {
+  protected static function ciJobs(array $job_names = ['lint', 'test', 'test-windows']): array {
     $workflow = Yaml::parse(File::read(self::rootDir() . '/.github/workflows/test.yml'));
     $jobs = [];
 

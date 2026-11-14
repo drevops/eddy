@@ -63,6 +63,27 @@ Drupal 12 requires PHP 8.5, so Eddy tests Drupal 12 on PHP 8.5 alone. Its lowest
 
 Until Drupal 12 has a stable release, every Drupal 12 job builds its newest pre-release. After 12.0.0 ships, all of them build that release. Then `canary` moves on to the 12.1 pre-releases, and `legacy` stays on the 12.0.x patches. To build Drupal 12 locally, see [Drupal versions](../development/drupal-versions.mdx#drupal-12).
 
+## Windows
+
+CI can also run the tests on Windows. The installer leaves Windows out by default. To add it, answer yes to **Use Windows in CI**, or set `INSTALL_WINDOWS=true`. Your extension then gets a `test-windows` job with 1 leg per Drupal major you selected, on the highest PHP that major supports:
+
+| Job                               | PHP   | Drupal |
+|-----------------------------------|-------|--------|
+| `test-php-max-d10-stable-windows` | `8.4` | `10`   |
+| `test-php-max-d11-stable-windows` | `8.5` | `11`   |
+| `test-php-max-d12-stable-windows` | `8.5` | `12`   |
+
+A Windows leg runs the same tooling commands as a `test` job, with these differences:
+
+- **A job of its own.** GitHub runs service containers on Linux runners only, so the Windows legs leave out the Selenium container. FunctionalJavascript tests use the ChromeDriver and Chrome of the Windows runner.
+- **Git Bash.** Every step runs in Git Bash, and the tooling runs your `scripts/*.sh` hooks with `bash`. The checkout keeps LF line endings, so the hooks run as they do on Linux.
+- **Tests only.** The linters, the coverage reports and Codecov stay on Linux.
+- **The database in the build.** Windows has no `/tmp`, so the site's SQLite database is `build/site_<machine_name>.sqlite`.
+
+Windows support covers these CI jobs. The local commands, such as `ahoy` and `make`, expect a POSIX shell. On Windows, the tooling also can't find or stop a webserver that's already running.
+
+To remove Windows from an existing extension, delete the `test-windows` job from `.github/workflows/test.yml`.
+
 ## Next steps
 
 - [Configure CI](configuration.mdx) - spreading tools across runners, letting a step fail and Codecov.

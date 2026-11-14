@@ -614,7 +614,7 @@ final class InstallHelpersTest extends UnitTestCase {
 
     $tested = [];
 
-    foreach (self::ciJobs(['test']) as $job) {
+    foreach (self::ciJobs(['test', 'test-windows']) as $job) {
       $tested[(int) $job['drupal']][] = $job['php'];
     }
 

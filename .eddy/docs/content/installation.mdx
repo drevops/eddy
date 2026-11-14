@@ -70,6 +70,7 @@ The installer asks the following questions:
 | Target Drupal versions         | The Drupal majors your extension supports: 10, 11 and 12. They decide the CI jobs, `core_version_requirement`, the README badges and the version a local build uses. See [Drupal versions](development/drupal-versions.mdx). | 11                             |
 | Command wrapper                | Ahoy, Makefile, both or neither. Without a wrapper, you run the [tooling commands](development/tooling.mdx) yourself.                                                  | Neither                        |
 | Tools                          | The tools to keep: PHPCS, PHPStan, Rector, Twig CS Fixer, ESLint, Stylelint, CSpell, Jest, PHPUnit, FunctionalJavascript tests and Renovate.                           | All 11                         |
+| Use Windows in CI              | Whether CI also runs the tests on Windows, in a `test-windows` job with 1 leg per Drupal major. See [Windows](continuous-integration/README.mdx#windows). | No                             |
 | Keep example lifecycle scripts | 4 example [lifecycle scripts](development/lifecycle-scripts.mdx), 1 per phase, that print a marker line when their phase runs.                                        | No                             |
 | Remove this script             | Whether `install.php` deletes itself when it's done.                                                                                                                  | Yes                            |
 | Proceed with installation      | The last check before the installer rewrites the template's files. No cancels the installation and leaves the files as they are.                                      | Yes                            |
@@ -184,6 +185,7 @@ The installer works on the directory in place:
   - A Drupal major: its CI jobs, its README badge and its part of `core_version_requirement`. Without Drupal 10, `phpunit.d10.xml` goes too.
   - A tool: its configuration and its CI steps. Dropping PHPUnit drops FunctionalJavascript tests too, since they run on PHPUnit.
   - A command wrapper: its file and its command permission in `.claude/settings.json`.
+  - The `test-windows` CI job, unless you use Windows in CI.
   - The example lifecycle scripts, unless you keep them.
 
   The README keeps a badge for each PHP version your selected majors support, so a Drupal 10-only extension has no PHP 8.5 badge.

@@ -48,6 +48,7 @@ Neither leaves a run of blank lines behind. When the lines they delete sit betwe
 | `DEV_AHOY`, `DEV_MAKEFILE`                          | That command wrapper isn't selected          |
 | `DEV_COMMAND_WRAPPER`                               | No command wrapper is selected               |
 | `DEV_NO_COMMAND_WRAPPER`                            | At least 1 command wrapper is selected       |
+| `WINDOWS`                                           | "Use Windows in CI" is answered no           |
 | `META`                                              | Always, since it wraps scaffold-only content |
 
 Dropping PHPUnit drops FunctionalJavascript with it, since those tests run on PHPUnit. Functional tests run on Mink and its BrowserKit driver too, so those packages belong to PHPUnit, and dropping FunctionalJavascript removes only the Selenium driver. Dropping every tool in `npm_specs()` (ESLint, Stylelint, CSpell and Jest) also deletes `package.json` and `package-lock.json`, since nothing runs npm any more, and removes the npm configuration from `renovate.json`.
