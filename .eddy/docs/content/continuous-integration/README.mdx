@@ -14,7 +14,7 @@ Your extension gets the following workflows. In the table, your branches are the
 
 | Workflow                                   | Runs on                                                    | What it does                                                                                                   |
 |--------------------------------------------|------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
-| `Test` (`test.yml`)                        | Pushes to your branches and tags, and pull requests that target your branches | Tests the extension on the PHP and Drupal versions of the [version matrix](#the-version-matrix), and lints it once per Drupal major. |
+| `Test` (`test.yml`)                        | Pushes to your branches and tags, and pull requests that target your branches | Tests the extension on the PHP and Drupal versions of the [version matrix](#the-version-matrix) and on [Windows](#windows), and lints it once per Drupal major. |
 | `Deploy` (`deploy.yml`)                    | A successful `Test` run of a push                          | Mirrors the code to Drupal.org or another git remote. See [Deployment](../deployment/README.mdx).              |
 | `Draft release notes` (`draft-release-notes.yml`) | Pushes to your branches and tags                    | Keeps a draft GitHub release up to date with the pull requests merged since the last published release.        |
 | `Auto Author Assign` (`assign-author.yml`) | Opened and reopened pull requests                          | Assigns each pull request to its author.                                                                       |
@@ -65,7 +65,7 @@ Until Drupal 12 has a stable release, every Drupal 12 job builds its newest pre-
 
 ## Windows
 
-CI can also run the tests on Windows. The installer leaves Windows out by default. To add it, answer yes to **Use Windows in CI**, or set `INSTALL_WINDOWS=true`. Your extension then gets a `test-windows` job with 1 leg per Drupal major you selected, on the highest PHP that major supports:
+CI also runs the tests on Windows. The `test-windows` job has 1 leg per Drupal major you selected, on the highest PHP that major supports:
 
 | Job                               | PHP   | Drupal |
 |-----------------------------------|-------|--------|
@@ -81,8 +81,6 @@ A Windows leg runs the same tooling commands as a `test` job, with these differe
 - **The database in the build.** Windows has no `/tmp`, so the site's SQLite database is `build/site_<machine_name>.sqlite`.
 
 Windows support covers these CI jobs. The local commands, such as `ahoy` and `make`, expect a POSIX shell. On Windows, the tooling also can't find or stop a webserver that's already running.
-
-To remove Windows from an existing extension, delete the `test-windows` job from `.github/workflows/test.yml`.
 
 ## Next steps
 

@@ -99,26 +99,6 @@ final class InstallMainTest extends UnitTestCase {
     ];
   }
 
-  /**
-   * @param array<string, string> $answers
-   *   The answers that replace the defaults, keyed by prompt.
-   */
-  #[DataProvider('dataProviderMainWindows')]
-  public function testMainWindows(array $answers, bool $expected): void {
-    self::envSetMultiple(self::answers($answers));
-
-    $output = $this->capture(fn() => $this->assertSame(0, main(['install.php'])));
-
-    $this->assertStringContainsString($expected ? 'Kept the Windows test jobs' : 'Removed the Windows test jobs', $output);
-    $this->assertSame($expected, str_contains(File::read(self::$sut . '/.github/workflows/test.yml'), 'test-windows:'));
-    $this->assertSame($expected, str_contains(File::read(self::$sut . '/AGENTS.md'), 'test-windows'));
-  }
-
-  public static function dataProviderMainWindows(): \Iterator {
-    yield 'default' => [[], FALSE];
-    yield 'windows' => [['windows' => 'true'], TRUE];
-  }
-
   public function testMainReadsBranchesAndRepository(): void {
     self::envSetMultiple(self::answers() + ['INSTALL_BRANCHES' => '2.x,3.x', 'INSTALL_GITHUB_REPOSITORY' => 'acme/widgets']);
 
@@ -173,7 +153,6 @@ final class InstallMainTest extends UnitTestCase {
       'drupal_version' => '11',
       'command_wrapper' => 'ahoy',
       'tools' => 'phpcs,phpstan,rector,twigcs,eslint,stylelint,cspell,jest,phpunit,functional_javascript,renovate',
-      'windows' => 'false',
       'examples' => 'false',
       'remove_self' => 'false',
       'proceed' => 'true',

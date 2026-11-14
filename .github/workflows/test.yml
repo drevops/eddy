@@ -338,7 +338,6 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       #;> DEV_PHPUNIT
 
-  #;< WINDOWS
   # Service containers run on Linux runners only, so the Windows legs run in a
   # job of their own, without the Selenium container.
   test-windows:
@@ -495,4 +494,3 @@ jobs:
           path: .logs
           include-hidden-files: true
       #;> DEV_PHPUNIT
-  #;> WINDOWS

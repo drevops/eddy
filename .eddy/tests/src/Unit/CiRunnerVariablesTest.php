@@ -80,9 +80,7 @@ final class CiRunnerVariablesTest extends UnitTestCase {
       $this->assertArrayHasKey($name, $declared, sprintf('%s does not declare %s.', basename($path), $name));
 
       foreach ($declared[$name] as $line) {
-        // Only a tool block removes a tool, and a job in a block of another
-        // kind goes with its anchor.
-        $open = array_values(array_filter($blocks[$line], static fn(string $token): bool => str_starts_with($token, 'DEV_')));
+        $open = $blocks[$line];
 
         $this->assertSame([], $open, sprintf('%s declares %s inside the %s block, so removing that tool takes the anchor with it.', basename($path), $name, implode(' and ', $open)));
       }

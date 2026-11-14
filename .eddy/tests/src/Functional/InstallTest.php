@@ -111,12 +111,6 @@ final class InstallTest extends FunctionalTestCase {
       ],
     ];
 
-    yield 'windows' => [
-      [
-        'windows' => 'true',
-      ],
-    ];
-
     yield 'keep_examples' => [
       [
         'examples' => 'true',
@@ -346,7 +340,6 @@ final class InstallTest extends FunctionalTestCase {
       'drupal_version' => '10,11',
       'command_wrapper' => 'ahoy',
       'tools' => 'phpcs,phpstan,rector,twigcs,eslint,stylelint,cspell,jest,phpunit,functional_javascript,renovate',
-      'windows' => 'false',
       'examples' => 'false',
       'remove_self' => 'true',
       'proceed' => 'true',

@@ -87,15 +87,14 @@ Then read the project to determine the answers for the installation script:
 5. **Command wrapper**: `ahoy` if `.ahoy.yml` exists and `makefile` if `Makefile` exists - `ahoy,makefile` when both exist, and an empty string when neither does.
 6. **Drupal versions**: the Drupal majors in the CI matrix - the `drupal-version` values in `.github/workflows/test.yml`, or the `DRUPAL_VERSION` values in `.circleci/config.yml` for a project that still uses CircleCI - as a comma-separated list (e.g. `10,11`).
 7. **Tools**: every tool whose file still exists - `phpcs` (`phpcs.xml`), `phpstan` (`phpstan.neon`), `rector` (`rector.php`), `twigcs` (`.twig-cs-fixer.php`), `eslint` (`.eslintrc.json`), `stylelint` (`.stylelintrc.js`), `cspell` (`.cspell.json`), `jest` (`jest.config.js`), `phpunit` (`phpunit.xml`), `functional_javascript` (a `tests/src/FunctionalJavascript/` directory) and `renovate` (`renovate.json`). The `functional-javascript` test suite in `phpunit.xml` doesn't tell whether the project has FunctionalJavascript tests: releases before 4.16.3 ship it with or without them, and a project can delete its tests and keep the suite.
-8. **Windows in CI**: `true` if `.github/workflows/test.yml` has a `test-windows` job, `false` otherwise.
-9. **Cloudflare** (4.18.0 and 4.19.0 only): `true` if `scripts/start-cloudflared.sh` exists, `false` otherwise. Later releases run the tunnel from the tooling package and do not ask.
-10. **GitHub repository**: the `owner/name` of the project's GitHub repository, such as `AlexSkrypnyk/drupal_helpers`, which the README badges point to:
+8. **Cloudflare** (4.18.0 and 4.19.0 only): `true` if `scripts/start-cloudflared.sh` exists, `false` otherwise. Later releases run the tunnel from the tooling package and do not ask.
+9. **GitHub repository**: the `owner/name` of the project's GitHub repository, such as `AlexSkrypnyk/drupal_helpers`, which the README badges point to:
 
 ```bash
 gh repo view --json nameWithOwner --jq .nameWithOwner
 ```
 
-11. **Workflow branches**: the branches that the `push` trigger of `.github/workflows/test.yml` filters on, the entries under `on.push.branches`, as a comma-separated list (e.g. `1.x,2.x`). Take each entry as written, quotes included, the way `install.php` reads it: a pattern such as `'*.x'` is not valid YAML without its quotes. Use an empty string when there's no such filter, such as in a project that still uses CircleCI.
+10. **Workflow branches**: the branches that the `push` trigger of `.github/workflows/test.yml` filters on, the entries under `on.push.branches`, as a comma-separated list (e.g. `1.x,2.x`). Take each entry as written, quotes included, the way `install.php` reads it: a pattern such as `'*.x'` is not valid YAML without its quotes. Use an empty string when there's no such filter, such as in a project that still uses CircleCI.
 
 These answers describe the project as it is now, and Step 5 renders the installed version with them unchanged. When the user asks to add a Drupal major, such as "include Drupal 12", or to drop one, change the Drupal versions for Step 4 only. Step 7 applies the difference between the 2 renders, so the project gains or loses the major's CI jobs, badges and docs only when the 2 renders disagree on it. For Drupal 10 that includes `phpunit.d10.xml`, so dropping Drupal 10 removes the file.
 
@@ -180,7 +179,6 @@ INSTALL_TYPE='<type>' \
 INSTALL_DRUPAL_VERSION='<drupal_version>' \
 INSTALL_COMMAND_WRAPPER='<command_wrapper>' \
 INSTALL_TOOLS='<tools>' \
-INSTALL_WINDOWS=<windows> \
 INSTALL_EXAMPLES=false \
 INSTALL_REMOVE_SELF=true \
 INSTALL_PROCEED=true \
@@ -206,8 +204,6 @@ The script is `install.php` with the `INSTALL_` prefix in releases after 4.x. A 
 `<command_wrapper>` accepts a comma-separated list (`ahoy`, `makefile`, or `ahoy,makefile`), or an empty string for neither.
 
 `<drupal_version>` is a comma-separated list of Drupal majors to target (e.g. `11`, `10,11` or `11,12`): the list from Step 1, with any major the user asked to add or drop. `<tools>` is a comma-separated list of the tools to keep - list every tool the project still uses, since anything omitted is removed.
-
-`<windows>` is the Windows in CI answer from Step 1. A release that doesn't read `INSTALL_WINDOWS` ignores it.
 
 `<repository>` is the GitHub repository from Step 1. Without it, the badges in the render name the machine name as both the owner and the repository, and every release that changes a badge conflicts with the project's real values. A release that doesn't read `INSTALL_GITHUB_REPOSITORY` ignores it and renders the machine name.
 
