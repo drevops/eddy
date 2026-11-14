@@ -76,7 +76,12 @@ $server = sprintf('php%s -S %s:%s -t %s %s >%s 2>&1', $xdebug_flags, escapeshell
 if (is_windows()) {
   // 'start /B' returns without waiting for the server, which keeps running
   // after this command exits.
-  pclose(popen('start "" /B ' . $server, 'r'));
+  // A launch that fails leaves the port closed, which the wait below reports.
+  $launcher = popen('start "" /B ' . $server, 'r');
+
+  if ($launcher !== FALSE) {
+    pclose($launcher);
+  }
 }
 else {
   passthru('nohup ' . $server . ' &');

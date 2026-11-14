@@ -42,14 +42,14 @@ final class HelpersPlatformTest extends UnitTestCase {
     $this->assertSame(PHP_OS_FAMILY === 'Windows', is_windows());
   }
 
-  #[DataProvider('dataProviderPlatform')]
+  #[DataProvider('dataProviderNullDevice')]
   public function testNullDevice(bool $windows, string $expected): void {
     $this->mockWindows($windows);
 
     $this->assertSame($expected, null_device());
   }
 
-  public static function dataProviderPlatform(): \Iterator {
+  public static function dataProviderNullDevice(): \Iterator {
     yield 'windows' => [TRUE, 'NUL'];
     yield 'posix' => [FALSE, '/dev/null'];
   }

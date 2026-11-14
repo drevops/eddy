@@ -772,7 +772,8 @@ function command_exists_or_fail(string $command): void {
  */
 function command_output(array $command, int $timeout): ?string {
   $pipes = [];
-  $process = @proc_open($command, [0 => ['file', null_device(), 'r'], 1 => ['pipe', 'w'], 2 => ['file', null_device(), 'w']], $pipes);
+  $null = null_device();
+  $process = @proc_open($command, [0 => ['file', $null, 'r'], 1 => ['pipe', 'w'], 2 => ['file', $null, 'w']], $pipes);
 
   if (!is_resource($process)) {
     return '';
@@ -1615,11 +1616,11 @@ function extension_info(): array {
 /**
  * Build the path to the extension's SQLite database file.
  *
- * @param string $extension_name
- *   Machine name of the extension, as returned by extension_info().
- *
  * The file is in '/tmp', or in the build directory on Windows, which has no
  * '/tmp'.
+ *
+ * @param string $extension_name
+ *   Machine name of the extension, as returned by extension_info().
  *
  * @return string
  *   Absolute path to the SQLite database file used by the site-install
