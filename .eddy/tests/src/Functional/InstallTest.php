@@ -198,10 +198,12 @@ final class InstallTest extends FunctionalTestCase {
 
     $this->assertProcessSuccessful();
     $this->assertProcessOutputContains([
-      'Downloading Eddy development from ' . $archive,
-      'Warning: No SHA-256 checksum is known for ' . $archive . ', so the template is not verified.',
-      'Eddy - Drupal extension scaffold',
+      'Downloading Eddy development',
+      'Downloaded from',
+      'No SHA-256 checksum is known for',
+      'Force Crystal (force_crystal) is ready.',
     ]);
+    $this->assertSame(1, substr_count($this->processGet()->getOutput(), 'Eddy - Drupal extension scaffold'), 'The installer of the template draws a second intro.');
 
     foreach ($expected_present as $path) {
       $this->assertFileExists($project . '/' . $path);
@@ -267,13 +269,13 @@ final class InstallTest extends FunctionalTestCase {
       ['install.php', 'README.md'],
     ];
 
-    yield 'missing archive' => [$none, [], TRUE, ['Unable to download the template from '], ['install.php']];
+    yield 'missing archive' => [$none, [], TRUE, ['Unable to download the template from', 'Failed.'], ['install.php']];
 
     yield 'cancelled' => [
       $none,
       ['proceed' => 'false'],
       FALSE,
-      ['Aborting.', 'The installer of the downloaded template exited with code 1.'],
+      ['Cancelled.'],
       ['install.php', 'your_extension.info.yml'],
     ];
   }
