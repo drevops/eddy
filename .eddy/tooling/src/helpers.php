@@ -809,7 +809,7 @@ function command_output(array $command, int $timeout): ?string {
   $null = null_device();
   // A pipe read on Windows blocks until the command closes its output, even
   // in non-blocking mode, so the output goes to a file there.
-  $output_file = is_windows() ? LOGS_DIR . '/command-output-' . getmypid() . '.txt' : NULL;
+  $output_file = is_windows() ? LOGS_DIR . '/command-output-' . getmypid() . '-' . bin2hex(random_bytes(4)) . '.txt' : NULL;
 
   if ($output_file !== NULL && !is_dir(LOGS_DIR)) {
     mkdir(LOGS_DIR, 0755, TRUE);
@@ -1469,8 +1469,10 @@ function resolve_site_url(string $host, string $port, string $dotenv_file = '.en
 function webserver_docroot_argument(string $command): ?string {
   $arguments = preg_split('/\s+/', trim($command), -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
+  // On Windows, the command line quotes an argument that holds a space.
   if (is_windows()) {
-    $arguments = array_map(static fn(string $argument): string => trim($argument, '"'), $arguments);
+    preg_match_all('/(?:"[^"]*"|[^\s"])+/', trim($command), $matches);
+    $arguments = array_map(static fn(string $argument): string => str_replace('"', '', $argument), $matches[0]);
   }
 
   foreach ($arguments as $index => $argument) {
@@ -1682,7 +1684,7 @@ function webdriver_listeners(string $port, string $root): array {
 
   return port_listeners($port, static function (int $pid, string $command) use ($resolved_root): bool {
     // On Windows, the command line can quote the path and end in '.exe'.
-    if (preg_match('#^"?(?:[^"\s]*[/\\\\])?chromedriver(?:\.exe)?"?(?:\s|$)#i', $command) !== 1) {
+    if (preg_match('#^(?:"(?:[^"]*[/\\\\])?chromedriver(?:\.exe)?"|(?:[^"\s]*[/\\\\])?chromedriver(?:\.exe)?)(?:\s|$)#i', $command) !== 1) {
       return FALSE;
     }
 

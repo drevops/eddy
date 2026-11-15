@@ -222,7 +222,8 @@ final class HelpersPlatformTest extends UnitTestCase {
   #[DataProvider('dataProviderWebserverServesOnWindows')]
   public function testWebserverServesOnWindows(string $docroot_argument, bool $expected): void {
     $this->mockWindows();
-    $docroot = File::mkdir(self::$tmp . '/www/build/web');
+    // A space in the docroot keeps the quoted argument whole.
+    $docroot = File::mkdir(self::$tmp . '/my www/build/web');
     $command = sprintf('php  -S "localhost":"8000" -t %s "%s/.ht.router.php"', str_replace('<docroot>', $docroot, $docroot_argument), $docroot);
 
     $this->assertSame(trim(str_replace('<docroot>', $docroot, $docroot_argument), '"'), webserver_docroot_argument($command));
@@ -248,6 +249,7 @@ final class HelpersPlatformTest extends UnitTestCase {
 
   public static function dataProviderWebdriverListenersOnWindows(): \Iterator {
     yield 'quoted path with an extension' => ['"C:\\project\\.chromedriver\\chromedriver.exe" --port="4444"', TRUE];
+    yield 'quoted path with a space' => ['"C:\\Program Files\\WebDriver\\chromedriver.exe" --port=4444', TRUE];
     yield 'unquoted path' => ['C:\\SeleniumWebDrivers\\ChromeDriver\\chromedriver.exe --port=4444', TRUE];
     yield 'another process' => ['"C:\\tools\\php\\php.exe" -S localhost:4444', FALSE];
   }

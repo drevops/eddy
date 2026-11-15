@@ -233,14 +233,17 @@ trait MockTrait {
    *   When more passthru calls are made than mocked responses available.
    */
   protected function mockPassthruMultiple(array $responses, string $namespace = self::TOOLING_NAMESPACE): void {
-    $this->mockAddResponses('passthru', $responses);
+    // The responses share the key of the mock, so teardown checks that a mock
+    // in another namespace consumed them.
+    $key = self::mockKey('passthru', $namespace);
+    $this->mockAddResponses($key, $responses);
 
-    if (isset($this->mocks['passthru'])) {
+    if (isset($this->mocks[$key])) {
       return;
     }
 
-    $this->mockFunction('passthru', function ($command, &...$args): null|false {
-      $response = $this->mockNextResponse('passthru');
+    $this->mockFunction('passthru', function ($command, &...$args) use ($key): null|false {
+      $response = $this->mockNextResponse($key);
 
       $response += [
         'output' => '',
