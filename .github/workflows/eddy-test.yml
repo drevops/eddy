@@ -122,13 +122,6 @@ jobs:
           curl -fsSL "https://github.com/ahoy-cli/ahoy/releases/download/v2.5.0/ahoy-bin-windows-amd64.exe" -o "${RUNNER_TOOL_CACHE}/ahoy/ahoy.exe"
           echo "${RUNNER_TOOL_CACHE}/ahoy" >> "$GITHUB_PATH"
 
-      # TEMPORARY: lists every Windows failure in 1 run while the suite is
-      # brought up on Windows.
-      - name: Run every test (Windows)
-        if: runner.os == 'Windows'
-        shell: bash
-        run: sed -i -E 's/stopOn(Error|Failure|Risky|Warning)="true"/stopOn\1="false"/' .eddy/tests/phpunit.xml
-
       - name: Start Chromium (selenium backend, Linux only)
         if: runner.os == 'Linux' && matrix.backend == 'selenium' && (matrix.group == 'p3' || matrix.group == 'p4')
         run: |
