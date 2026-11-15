@@ -46,11 +46,9 @@ $db_file = site_db_file($extension_name);
 
 TASK('Installing Drupal into SQLite database %s.', $db_file);
 
-$exit_code = 0;
-$db_status = trim(drush('status --field=db-status', NULL, $exit_code));
-
-if ($db_status === 'Connected') {
-  drush('sql:drop -y', NULL, $exit_code);
+// 'drush sql:drop' needs the 'sqlite3' command, which Windows does not ship.
+if (is_file($db_file)) {
+  unlink($db_file);
 }
 
 drush('site-install %s -y --db-url=%s --account-name=admin install_configure_form.enable_update_status_module=NULL install_configure_form.enable_update_status_emails=NULL', [

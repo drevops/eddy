@@ -393,7 +393,7 @@ final class AssembleTest extends UnitTestCase {
     }
 
     if ($config['robo_dry_run'] !== NULL) {
-      $patch_command = sprintf('patch --forward --batch --silent -p1 -d %s -i %s', escapeshellarg('build/vendor/consolidation/robo'), escapeshellarg(self::toolingDir() . '/src/../patches/consolidation/robo/add-command.patch'));
+      $patch_command = sprintf('patch --forward --batch --silent -p1 -d %s -i %s', escapeshellarg('build/vendor/consolidation/robo'), escapeshellarg(realpath(self::toolingDir() . '/src') . '/../patches/consolidation/robo/add-command.patch'));
       $passthru_responses[] = ['cmd' => $patch_command . ' --dry-run', 'result_code' => $config['robo_dry_run']];
 
       if ($config['robo_dry_run'] === 0) {

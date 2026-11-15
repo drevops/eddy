@@ -31,29 +31,36 @@ trait WebserverTrait {
   /**
    * Check whether a TCP port on the local host accepts connections.
    *
+   * Each loopback address is tried in turn. Windows takes about 2 seconds to
+   * refuse a connection, so a single connection to 'localhost' can time out on
+   * '::1' before it tries '127.0.0.1'.
+   *
    * @param string $port
    *   The TCP port.
    *
    * @return bool
-   *   TRUE when a connection succeeds within 1 second.
+   *   TRUE when a connection to either loopback address succeeds within 1
+   *   second.
    */
   protected static function webserverPortAccepts(string $port): bool {
-    $connection = @stream_socket_client('tcp://localhost:' . $port, $errno, $errstr, 1);
+    foreach (['127.0.0.1', '[::1]'] as $address) {
+      $connection = @stream_socket_client(sprintf('tcp://%s:%s', $address, $port), $errno, $errstr, 1);
 
-    if ($connection === FALSE) {
-      return FALSE;
+      if ($connection !== FALSE) {
+        fclose($connection);
+
+        return TRUE;
+      }
     }
 
-    fclose($connection);
-
-    return TRUE;
+    return FALSE;
   }
 
   /**
    * Find a free TCP port outside the range that the tooling discovers from.
    *
-   * A connection to 'localhost' reaches a listener on either IP version, which
-   * a bind to '127.0.0.1' alone can miss.
+   * A connection reaches a listener on either IP version, which a bind to
+   * '127.0.0.1' alone can miss.
    *
    * @return string
    *   The first port from 9000 to 9099 that accepts no connection and can be

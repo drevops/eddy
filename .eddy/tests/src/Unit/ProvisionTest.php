@@ -30,7 +30,6 @@ final class ProvisionTest extends UnitTestCase {
    */
   protected static function drushCommands(string $prefix, string $db_file, string $site_url, string $drush_version = '13.8.0', string $uli_options = ' --no-browser', string $extension_name = 'test_extension', string $profile = 'standard'): array {
     return [
-      ['cmd' => $prefix . 'status --field=db-status', 'output' => ''],
       ['cmd' => $prefix . sprintf('site-install %s -y --db-url=%s --account-name=admin install_configure_form.enable_update_status_module=NULL install_configure_form.enable_update_status_emails=NULL', self::shellQuote($profile), self::shellQuote('sqlite://localhost/' . $db_file))],
       ['cmd' => $prefix . 'status'],
       ['cmd' => $prefix . 'pm:enable ' . self::shellQuote($extension_name)],
@@ -61,7 +60,7 @@ final class ProvisionTest extends UnitTestCase {
   }
 
   #[DataProvider('dataProviderProvisionSuccess')]
-  public function testProvisionSuccess(array $env, string $extension_type, string $db_status, array $suggested, ?array $locked_types, array $expected_enabled, bool $has_ahoy, bool $has_makefile): void {
+  public function testProvisionSuccess(array $env, string $extension_type, bool $db_exists, array $suggested, ?array $locked_types, array $expected_enabled, bool $has_ahoy, bool $has_makefile): void {
     self::envSetMultiple($env);
 
     $expected_host = $env['WEBSERVER_HOST'] ?? 'localhost';
@@ -98,7 +97,9 @@ final class ProvisionTest extends UnitTestCase {
       return '';
     });
 
+    $db_file = site_db_file($extension_name);
     $this->mockIsFile([
+      $db_file => $db_exists,
       $extension_name . '.info.yml' => TRUE,
       'composer.json' => TRUE,
       'build/composer.lock' => $locked_types !== NULL,
@@ -107,16 +108,20 @@ final class ProvisionTest extends UnitTestCase {
       'Makefile' => $has_makefile,
     ]);
 
+    $db_removed = FALSE;
+    $this->mockFunction('unlink', function (string $path) use ($db_file, &$db_removed): bool {
+      if ($path !== $db_file) {
+        return \unlink($path);
+      }
+
+      $db_removed = TRUE;
+
+      return TRUE;
+    });
+
     $prefix = self::drushPrefix($cwd);
     $passthru_responses = [];
 
-    $passthru_responses[] = ['cmd' => $prefix . 'status --field=db-status', 'output' => $db_status];
-
-    if (trim($db_status) === 'Connected') {
-      $passthru_responses[] = ['cmd' => $prefix . 'sql:drop -y'];
-    }
-
-    $db_file = site_db_file($extension_name);
     $passthru_responses[] = ['cmd' => $prefix . sprintf('site-install %s -y --db-url=%s --account-name=admin install_configure_form.enable_update_status_module=NULL install_configure_form.enable_update_status_emails=NULL', escapeshellarg($drupal_profile), escapeshellarg('sqlite://localhost/' . $db_file))];
 
     $passthru_responses[] = ['cmd' => $prefix . 'status'];
@@ -142,6 +147,7 @@ final class ProvisionTest extends UnitTestCase {
 
     $output = $this->runCommand('eddy-provision');
 
+    $this->assertSame($db_exists, $db_removed, 'An existing database is removed before the install.');
     $this->assertStringContainsString('PROVISION', $output);
     $this->assertSame([
       '[TASK] Installing Drupal into SQLite database ' . $db_file . '.',
@@ -182,17 +188,17 @@ final class ProvisionTest extends UnitTestCase {
     yield 'module, fresh install, no suggestions, no helpers' => [
       'env' => [],
       'extension_type' => 'module',
-      'db_status' => '',
+      'db_exists' => FALSE,
       'suggested' => [],
       'locked_types' => NULL,
       'expected_enabled' => [],
       'has_ahoy' => FALSE,
       'has_makefile' => FALSE,
     ];
-    yield 'module, connected DB, with suggestions, ahoy and make' => [
+    yield 'module, existing DB, with suggestions, ahoy and make' => [
       'env' => [],
       'extension_type' => 'module',
-      'db_status' => 'Connected',
+      'db_exists' => TRUE,
       'suggested' => ['drupal/token' => 'Provides token support', 'drupal/pathauto' => 'Provides path aliases'],
       'locked_types' => ['drupal/token' => 'drupal-module', 'drupal/pathauto' => 'drupal-module'],
       'expected_enabled' => ['token' => 'pm:enable', 'pathauto' => 'pm:enable'],
@@ -202,7 +208,7 @@ final class ProvisionTest extends UnitTestCase {
     yield 'theme, fresh install, no suggestions, ahoy only' => [
       'env' => [],
       'extension_type' => 'theme',
-      'db_status' => '',
+      'db_exists' => FALSE,
       'suggested' => [],
       'locked_types' => NULL,
       'expected_enabled' => [],
@@ -212,7 +218,7 @@ final class ProvisionTest extends UnitTestCase {
     yield 'module, custom profile and port' => [
       'env' => ['DRUPAL_PROFILE' => 'minimal', 'WEBSERVER_PORT' => '9000', 'WEBSERVER_HOST' => '0.0.0.0'],
       'extension_type' => 'module',
-      'db_status' => '',
+      'db_exists' => FALSE,
       'suggested' => [],
       'locked_types' => NULL,
       'expected_enabled' => [],
@@ -222,7 +228,7 @@ final class ProvisionTest extends UnitTestCase {
     yield 'module with non-drupal suggestions filtered out' => [
       'env' => [],
       'extension_type' => 'module',
-      'db_status' => '',
+      'db_exists' => FALSE,
       'suggested' => ['drupal/token' => 'Token support', 'ext-json' => 'JSON extension', 'drupal/views_bulk_operations' => 'VBO'],
       'locked_types' => ['drupal/token' => 'drupal-module', 'drupal/views_bulk_operations' => 'drupal-module'],
       'expected_enabled' => ['token' => 'pm:enable', 'views_bulk_operations' => 'pm:enable'],
@@ -232,7 +238,7 @@ final class ProvisionTest extends UnitTestCase {
     yield 'module with drupal suggestion containing colon' => [
       'env' => [],
       'extension_type' => 'module',
-      'db_status' => '',
+      'db_exists' => FALSE,
       'suggested' => ['drupal/token:^2.0' => 'Token support with version constraint'],
       'locked_types' => ['drupal/token' => 'drupal-module'],
       'expected_enabled' => ['token' => 'pm:enable'],
@@ -242,7 +248,7 @@ final class ProvisionTest extends UnitTestCase {
     yield 'module with a suggested theme and module' => [
       'env' => [],
       'extension_type' => 'module',
-      'db_status' => '',
+      'db_exists' => FALSE,
       'suggested' => ['drupal/gin' => 'Admin theme', 'drupal/token' => 'Token support'],
       'locked_types' => ['drupal/gin' => 'drupal-theme', 'drupal/gin_toolbar' => 'drupal-module', 'drupal/token' => 'drupal-module'],
       'expected_enabled' => ['gin' => 'theme:enable', 'token' => 'pm:enable'],
@@ -252,7 +258,7 @@ final class ProvisionTest extends UnitTestCase {
     yield 'theme with a suggested theme' => [
       'env' => [],
       'extension_type' => 'theme',
-      'db_status' => '',
+      'db_exists' => FALSE,
       'suggested' => ['drupal/bootstrap5' => 'Base theme'],
       'locked_types' => ['drupal/bootstrap5' => 'drupal-theme'],
       'expected_enabled' => ['bootstrap5' => 'theme:enable'],
@@ -262,7 +268,7 @@ final class ProvisionTest extends UnitTestCase {
     yield 'module with a suggested theme containing colon' => [
       'env' => [],
       'extension_type' => 'module',
-      'db_status' => '',
+      'db_exists' => FALSE,
       'suggested' => ['drupal/bootstrap5:^4' => 'Theme with version constraint'],
       'locked_types' => ['drupal/bootstrap5' => 'drupal-theme'],
       'expected_enabled' => ['bootstrap5' => 'theme:enable'],
@@ -272,7 +278,7 @@ final class ProvisionTest extends UnitTestCase {
     yield 'module with a suggested custom theme' => [
       'env' => [],
       'extension_type' => 'module',
-      'db_status' => '',
+      'db_exists' => FALSE,
       'suggested' => ['drupal/custom_theme' => 'Custom theme from a VCS repository'],
       'locked_types' => ['drupal/custom_theme' => 'drupal-custom-theme'],
       'expected_enabled' => ['custom_theme' => 'theme:enable'],
@@ -282,7 +288,7 @@ final class ProvisionTest extends UnitTestCase {
     yield 'module with a suggestion missing from the lock file' => [
       'env' => [],
       'extension_type' => 'module',
-      'db_status' => '',
+      'db_exists' => FALSE,
       'suggested' => ['drupal/token' => 'Token support'],
       'locked_types' => ['drupal/pathauto' => 'drupal-module'],
       'expected_enabled' => ['token' => 'pm:enable'],
@@ -292,7 +298,7 @@ final class ProvisionTest extends UnitTestCase {
     yield 'module with suggestions and no lock file' => [
       'env' => [],
       'extension_type' => 'module',
-      'db_status' => '',
+      'db_exists' => FALSE,
       'suggested' => ['drupal/token' => 'Token support', 'drupal/gin' => 'Admin theme'],
       'locked_types' => NULL,
       'expected_enabled' => ['token' => 'pm:enable', 'gin' => 'pm:enable'],
@@ -332,7 +338,7 @@ final class ProvisionTest extends UnitTestCase {
       return '';
     });
 
-    $this->mockIsFile([$extension_name . '.info.yml' => TRUE, 'composer.json' => TRUE, '.env' => TRUE]);
+    $this->mockIsFile([site_db_file($extension_name) => FALSE, $extension_name . '.info.yml' => TRUE, 'composer.json' => TRUE, '.env' => TRUE]);
 
     $prefix = self::drushPrefix(self::PROJECT_ROOT);
     $db_file = site_db_file($extension_name);
@@ -385,7 +391,7 @@ final class ProvisionTest extends UnitTestCase {
       return '';
     });
 
-    $this->mockIsFile([$extension_name . '.info.yml' => TRUE, 'composer.json' => TRUE, '.env' => FALSE]);
+    $this->mockIsFile([site_db_file($extension_name) => FALSE, $extension_name . '.info.yml' => TRUE, 'composer.json' => TRUE, '.env' => FALSE]);
 
     $prefix = self::drushPrefix(self::PROJECT_ROOT);
     $db_file = site_db_file($extension_name);
@@ -429,7 +435,7 @@ final class ProvisionTest extends UnitTestCase {
       return (string) \file_get_contents($file);
     });
 
-    $this->mockIsFile([$extension_name . '.info.yml' => TRUE, 'composer.json' => TRUE, '.env' => FALSE]);
+    $this->mockIsFile([site_db_file($extension_name) => FALSE, $extension_name . '.info.yml' => TRUE, 'composer.json' => TRUE, '.env' => FALSE]);
 
     $prefix = self::drushPrefix($cwd);
     $db_file = site_db_file($extension_name);

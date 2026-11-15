@@ -237,6 +237,20 @@ final class InstallTest extends FunctionalTestCase {
     yield 'kept installer' => ['install.php', $none, ['remove_self' => 'false'], [...$installed, 'install.php'], $template];
   }
 
+  public function testInstallDownloadToFile(): void {
+    $archive = self::archiveTemplate();
+    $project = $this->createProject('install.php', static function (string $dir): void {});
+
+    // The installer of the template writes to the same file as this one. The
+    // file is outside of the project, which must be empty.
+    $this->processRun('sh', ['-c', 'php install.php > ../install.log'], [], self::installEnv(array_replace(self::defaultAnswers(), ['template_archive' => $archive])));
+
+    $output = File::read(dirname($project) . '/install.log');
+    $this->assertSame(0, $this->processGet()->getExitCode(), $output . $this->processGet()->getErrorOutput());
+    $this->assertStringContainsString('Downloaded from', $output, 'The installer of the template overwrites the output of this installer.');
+    $this->assertStringContainsString('Force Crystal (force_crystal) is ready.', $output);
+  }
+
   /**
    * @param array<int, string> $expected_output
    * @param array<int, string> $expected_present

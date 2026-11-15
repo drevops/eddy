@@ -2391,6 +2391,13 @@ function run_installer(string $dir, array $args): int {
   // string, which are answers too, so the installer inherits the environment.
   $downloaded = getenv('INSTALL_DOWNLOADED');
   putenv('INSTALL_DOWNLOADED=1');
+
+  // 'echo' writes past the STDOUT and STDERR streams, which stay at position
+  // 0, and proc_open() moves the offset of a file to that position. A child
+  // writing to a redirected file would overwrite the output written so far.
+  @fseek(STDOUT, 0, SEEK_END);
+  @fseek(STDERR, 0, SEEK_END);
+
   $process = proc_open([PHP_BINARY, 'install.php', ...$args], [STDIN, STDOUT, STDERR], $pipes, $dir);
   putenv($downloaded === FALSE ? 'INSTALL_DOWNLOADED' : 'INSTALL_DOWNLOADED=' . $downloaded);
 

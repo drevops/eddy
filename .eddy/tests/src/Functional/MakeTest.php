@@ -155,7 +155,9 @@ final class MakeTest extends ToolingTestCase {
       $this->processRun('make', ['reset'], [], $env, $this->defaultTimeout, $this->defaultIdleTimeout);
       $this->assertProcessSuccessful();
       $this->assertTrue(self::webserverPortAccepts($port), 'reset leaves the webserver of another project running.');
-      $this->assertTrue(self::webserverPortAccepts($webdriver_port), 'reset leaves the WebDriver backend of another project running.');
+      // Windows exposes no working directory to tell the projects apart, so a
+      // chromedriver on the port of the project counts as its own there.
+      $this->assertSame(PHP_OS_FAMILY !== 'Windows', self::webserverPortAccepts($webdriver_port), 'reset leaves the WebDriver backend of another project running, except on Windows.');
       $this->assertDirectoryDoesNotExist(self::$sut . '/vendor');
     }
     finally {

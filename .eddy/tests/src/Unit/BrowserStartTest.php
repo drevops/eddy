@@ -524,6 +524,7 @@ final class BrowserStartTest extends UnitTestCase {
     $this->assertNotSame([], array_filter($commands, fn(string $c): bool => str_contains($c, 'nohup') && str_contains($c, '/cache/chromedriver')), 'The freshly fetched binary must be launched.');
   }
 
+  #[Group('posix')]
   public function testBrowserStartFallsBackToNpxWhenDriverProbeTimesOut(): void {
     $this->mockChrome(FALSE);
     $this->mockCommandPaths(['google-chrome' => '/usr/bin/google-chrome', 'chromedriver' => '/usr/local/bin/chromedriver', 'npx' => '/usr/bin/npx']);
@@ -543,6 +544,7 @@ final class BrowserStartTest extends UnitTestCase {
     $this->assertNotSame([], array_filter($commands, fn(string $c): bool => str_contains($c, 'nohup') && str_contains($c, '/cache/chromedriver')), 'The freshly fetched binary must be launched, not the one that did not answer.');
   }
 
+  #[Group('posix')]
   public function testBrowserStartFailsWhenChromeProbeTimesOut(): void {
     $this->mockChrome(FALSE);
     $this->mockCommandPaths(['google-chrome' => '/usr/bin/google-chrome', 'chromedriver' => '/usr/local/bin/chromedriver', 'npx' => '/usr/bin/npx']);

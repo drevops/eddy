@@ -38,7 +38,8 @@ final class VerifyReleaseTest extends UnitTestCase {
     require_once self::rootDir() . '/.eddy/installer/verify-release.php';
 
     File::mkdir(self::$tmp . '/gnupg', 0700);
-    self::envSet('GNUPGHOME', self::$tmp . '/gnupg');
+    // The MSYS gpg of Git for Windows reads a path with '\' as relative.
+    self::envSet('GNUPGHOME', self::slashPath(self::$tmp . '/gnupg'));
 
     $this->release = self::$tmp . '/release';
     File::copy(self::fixture('release'), $this->release);

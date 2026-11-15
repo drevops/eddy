@@ -807,19 +807,59 @@ function command_exists_or_fail(string $command): void {
 function command_output(array $command, int $timeout): ?string {
   $pipes = [];
   $null = null_device();
-  $process = @proc_open($command, [0 => ['file', $null, 'r'], 1 => ['pipe', 'w'], 2 => ['file', $null, 'w']], $pipes);
+  // A pipe read on Windows blocks until the command closes its output, even
+  // in non-blocking mode, so the output goes to a file there.
+  $output_file = is_windows() ? LOGS_DIR . '/command-output-' . getmypid() . '.txt' : NULL;
 
-  if (!is_resource($process)) {
-    return '';
+  if ($output_file !== NULL && !is_dir(LOGS_DIR)) {
+    mkdir(LOGS_DIR, 0755, TRUE);
   }
+
+  $stdout = $output_file === NULL ? ['pipe', 'w'] : ['file', $output_file, 'w'];
+  $process = @proc_open($command, [0 => ['file', $null, 'r'], 1 => $stdout, 2 => ['file', $null, 'w']], $pipes);
+  $output = '';
+
+  if (is_resource($process)) {
+    $output = command_output_wait($process, $pipes, $timeout);
+  }
+
+  if ($output_file !== NULL) {
+    $output = $output === NULL ? NULL : (string) @file_get_contents($output_file);
+    // A killed command can leave a child process that holds the file open.
+    @unlink($output_file);
+  }
+
+  return $output;
+}
+
+/**
+ * Wait for a started command to exit and read the output pipe it writes to.
+ *
+ * @param resource $process
+ *   The process that proc_open() started.
+ * @param array<int, resource> $pipes
+ *   The pipes of the process. Index 1 is the standard output, when it is a
+ *   pipe rather than a file.
+ * @param int $timeout
+ *   Seconds to wait for the command to exit.
+ *
+ * @return string|null
+ *   The output read from the pipe, or NULL when the command was still running
+ *   at the time limit and was killed.
+ */
+function command_output_wait($process, array $pipes, int $timeout): ?string {
+  $pipe = $pipes[1] ?? NULL;
 
   // A blocking read waits until the command closes its output, so a hung
   // command would block the loop past the time limit.
-  stream_set_blocking($pipes[1], FALSE);
+  if ($pipe !== NULL) {
+    stream_set_blocking($pipe, FALSE);
+  }
+
   $output = '';
 
   for ($i = 0; $i < $timeout * 10 && proc_get_status($process)['running']; $i++) {
-    $output .= (string) stream_get_contents($pipes[1]);
+    $output .= $pipe === NULL ? '' : (string) stream_get_contents($pipe);
     usleep(100000);
   }
 
@@ -832,8 +872,11 @@ function command_output(array $command, int $timeout): ?string {
   }
 
   // Output written after the last read in the loop is still in the pipe.
-  $output .= (string) stream_get_contents($pipes[1]);
-  fclose($pipes[1]);
+  if ($pipe !== NULL) {
+    $output .= (string) stream_get_contents($pipe);
+    fclose($pipe);
+  }
+
   proc_close($process);
 
   return $timed_out ? NULL : $output;
