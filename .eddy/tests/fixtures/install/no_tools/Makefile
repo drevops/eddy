@@ -1,5 +1,11 @@
 SHELL=/bin/bash
 
+# Windows has no '/bin/bash', so make there finds 'bash' on PATH, such as
+# the one Git for Windows installs, instead of running recipes in 'cmd.exe'.
+ifeq ($(OS),Windows_NT)
+SHELL := bash.exe
+endif
+
 # Load variables from .env if present and export them to recipe shells. The
 # leading '-' on -include suppresses errors when the file does not exist.
 # Each .env variable that the shell sets to a non-empty value is made
