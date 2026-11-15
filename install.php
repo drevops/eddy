@@ -1413,7 +1413,7 @@ function committed_workflow_branches(string $file): array {
   $exit_code = 0;
   // './' resolves the path against the current directory rather than the
   // repository root.
-  exec(sprintf('git show %s 2>/dev/null', escapeshellarg('HEAD:./' . $file)), $output, $exit_code);
+  exec(sprintf('git show %s 2>%s', escapeshellarg('HEAD:./' . $file), null_device()), $output, $exit_code);
 
   if ($exit_code !== 0) {
     return [];
@@ -1582,7 +1582,7 @@ function github_repository_from_url(string $url): ?string {
 function origin_github_repository(): ?string {
   $output = [];
   $exit_code = 0;
-  exec('git rev-parse --show-toplevel 2>/dev/null', $output, $exit_code);
+  exec('git rev-parse --show-toplevel 2>' . null_device(), $output, $exit_code);
   $root = $output[0] ?? '';
 
   if ($exit_code !== 0 || $root === '' || realpath($root) !== realpath((string) getcwd())) {
@@ -1590,7 +1590,7 @@ function origin_github_repository(): ?string {
   }
 
   $output = [];
-  exec('git remote get-url origin 2>/dev/null', $output, $exit_code);
+  exec('git remote get-url origin 2>' . null_device(), $output, $exit_code);
 
   return $exit_code === 0 ? github_repository_from_url($output[0] ?? '') : NULL;
 }
@@ -2352,7 +2352,15 @@ function move_entries(string $src, string $dst): void {
       continue;
     }
 
-    rename($from, $to);
+    // Windows refuses to replace a file that a process holds open, such as
+    // the running installer, but lets it be written to.
+    if (!@rename($from, $to)) {
+      if (!copy($from, $to)) {
+        throw new \Exception(sprintf('Unable to move %s to %s.', $from, $to));
+      }
+
+      unlink($from);
+    }
   }
 }
 
@@ -3264,6 +3272,16 @@ function is_binary_file(string $file): bool {
   }
 
   return str_contains($chunk, "\0");
+}
+
+/**
+ * Get the path of the null device.
+ *
+ * @return string
+ *   'NUL' on Windows, '/dev/null' elsewhere.
+ */
+function null_device(): string {
+  return PHP_OS_FAMILY === 'Windows' ? 'NUL' : '/dev/null';
 }
 
 /**

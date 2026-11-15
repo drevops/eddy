@@ -82,7 +82,7 @@ trait MockTrait {
    */
   protected function mockFunction(string $function_name, callable $callback, string $namespace = self::TOOLING_NAMESPACE): void {
     // php-mock enables 1 mock per function, so a new mock replaces the old.
-    $this->mockRestore($function_name);
+    $this->mockRestore($function_name, $namespace);
 
     // A PHPUnit function mock takes a callback only through expects(), so
     // the function is stubbed through php-mock directly.
@@ -90,7 +90,17 @@ trait MockTrait {
     $mock->enable();
     $this->registerForTearDown($mock);
 
-    $this->mocks[$function_name] = $mock;
+    $this->mocks[self::mockKey($function_name, $namespace)] = $mock;
+  }
+
+  /**
+   * Build the registry key of a mock.
+   *
+   * A mock in the tooling namespace is keyed by the function name alone, so
+   * the helpers that look up a tooling mock by name find it.
+   */
+  protected static function mockKey(string $function_name, string $namespace): string {
+    return $namespace === self::TOOLING_NAMESPACE ? $function_name : $namespace . '\\' . $function_name;
   }
 
   /**
@@ -184,14 +194,18 @@ trait MockTrait {
    *
    * @param string $function_name
    *   The function name.
+   * @param string $namespace
+   *   The namespace the function is mocked in.
    */
-  protected function mockRestore(string $function_name): void {
-    if (!isset($this->mocks[$function_name])) {
+  protected function mockRestore(string $function_name, string $namespace = self::TOOLING_NAMESPACE): void {
+    $key = self::mockKey($function_name, $namespace);
+
+    if (!isset($this->mocks[$key])) {
       return;
     }
 
-    $this->mocks[$function_name]->disable();
-    $this->mockReset($function_name);
+    $this->mocks[$key]->disable();
+    $this->mockReset($key);
   }
 
   /**
@@ -320,15 +334,38 @@ trait MockTrait {
   }
 
   /**
+   * The namespaces whose code quotes shell arguments that tests assert on.
+   */
+  protected const array QUOTING_NAMESPACES = [self::TOOLING_NAMESPACE, 'DrevOps\\Eddy\\Tests\\Unit', 'DrevOps\\Eddy\\Assets'];
+
+  /**
    * Mock the operating system that is_windows() detects.
+   *
+   * escapeshellarg() quotes for the host, so it is mocked to quote for the
+   * same operating system in the code under test and in the tests.
    *
    * @param bool $windows
    *   TRUE to report Windows, FALSE to report Linux.
-   * @param string $namespace
-   *   Namespace to mock the function in.
    */
-  protected function mockWindows(bool $windows = TRUE, string $namespace = self::TOOLING_NAMESPACE): void {
-    $this->mockFunction('php_uname', static fn(string $mode = 'a'): string => $windows ? 'Windows NT' : 'Linux', $namespace);
+  protected function mockWindows(bool $windows = TRUE): void {
+    $this->mockFunction('php_uname', static fn(string $mode = 'a'): string => $windows ? 'Windows NT' : 'Linux');
+
+    $quote = $windows ? static fn(string $argument): string => '"' . str_replace(['"', '%', '!'], ' ', $argument) . '"' : static fn(string $argument): string => "'" . str_replace("'", "'\\''", $argument) . "'";
+
+    foreach (self::QUOTING_NAMESPACES as $namespace) {
+      $this->mockFunction('escapeshellarg', $quote, $namespace);
+    }
+  }
+
+  /**
+   * Restore the operating system of the host that the tests run on.
+   */
+  protected function mockHost(): void {
+    $this->mockRestore('php_uname');
+
+    foreach (self::QUOTING_NAMESPACES as $namespace) {
+      $this->mockRestore('escapeshellarg', $namespace);
+    }
   }
 
   /**

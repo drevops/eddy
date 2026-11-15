@@ -103,7 +103,8 @@ function verify_release(string $dir, string $public_key, string $fingerprint): v
     // Only the status lines on the standard output are parsed, because the
     // standard error holds text that the keys supply, such as user IDs.
     $sums = $dir . '/SHA256SUMS';
-    [, $status] = run(['gpgv', '--status-fd', '1', '--keyring', $keyring, $sums . '.asc', $sums]);
+    $gpgv = ['gpgv', '--status-fd', '1', '--keyring', $keyring, $sums . '.asc', $sums];
+    [$verify_code, $status, $verify_error] = run($gpgv);
   }
   finally {
     if (is_file($keyring)) {
@@ -112,7 +113,7 @@ function verify_release(string $dir, string $public_key, string $fingerprint): v
   }
 
   if (!is_signed_by($status, $fingerprint)) {
-    throw new \RuntimeException(sprintf('%s/SHA256SUMS is not signed by the Eddy signing key %s.', $dir, $fingerprint));
+    throw new \RuntimeException(sprintf('%s/SHA256SUMS is not signed by the Eddy signing key %s. gpgv exited with %d: %s', $dir, $fingerprint, $verify_code, trim($verify_error)));
   }
 
   echo sprintf('SHA256SUMS is signed by the Eddy signing key %s.', $fingerprint) . PHP_EOL;

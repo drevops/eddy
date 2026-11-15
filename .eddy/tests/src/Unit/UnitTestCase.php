@@ -84,7 +84,8 @@ abstract class UnitTestCase extends UpstreamUnitTestCase {
       $exit_code = $exception->getCode();
     }
     finally {
-      $output = (string) ob_get_clean();
+      // The tooling ends its lines with PHP_EOL, which is "\r\n" on Windows.
+      $output = str_replace("\r\n", "\n", (string) ob_get_clean());
     }
 
     $describe = static fn(?int $code): string => $code === NULL ? 'no quit()' : 'exit code ' . $code;

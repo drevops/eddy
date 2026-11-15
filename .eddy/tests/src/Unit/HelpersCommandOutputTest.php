@@ -25,6 +25,7 @@ final class HelpersCommandOutputTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderCommandOutput')]
   public function testCommandOutput(array $command, string $expected): void {
+    $this->mockHost();
     $start = microtime(TRUE);
     $output = command_output($command, 10);
     $elapsed = microtime(TRUE) - $start;
@@ -66,6 +67,7 @@ final class HelpersCommandOutputTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderCommandOutputTimesOut')]
   public function testCommandOutputTimesOut(array $command): void {
+    $this->mockHost();
     // Sleep 10 ms per poll instead of 100 ms. A real sleep lets the command
     // set up, such as its SIGTERM trap, before it is killed.
     $sleeps = [];

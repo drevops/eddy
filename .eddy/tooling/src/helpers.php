@@ -324,7 +324,7 @@ function dotenv_write_var(string $key, string $value, string $dotenv_file = '.en
   $assignment = sprintf('%s=%s', $key, $value);
 
   if (!is_file($dotenv_file)) {
-    file_write_or_fail($dotenv_file, $assignment . PHP_EOL);
+    file_write_or_fail($dotenv_file, $assignment . "\n");
 
     return;
   }
@@ -370,7 +370,7 @@ function dotenv_write_var(string $key, string $value, string $dotenv_file = '.en
     $lines[$replace_index] = $assignment;
   }
 
-  file_write_or_fail($dotenv_file, implode(PHP_EOL, $lines) . PHP_EOL);
+  file_write_or_fail($dotenv_file, implode("\n", $lines) . "\n");
 }
 
 /**
@@ -393,7 +393,7 @@ function dotenv_unset_var(string $key, string $dotenv_file = '.env'): void {
     return;
   }
 
-  file_write_or_fail($dotenv_file, implode(PHP_EOL, $kept));
+  file_write_or_fail($dotenv_file, implode("\n", $kept));
 }
 
 /**
@@ -629,7 +629,42 @@ function copy_dir(string $src, string $dst): void {
 }
 
 /**
+ * Check whether a path is a symlink, or a directory junction on Windows.
+ *
+ * Composer links a path repository with a junction on Windows, and PHP
+ * reports a junction as a directory rather than a link.
+ *
+ * @param string $path
+ *   The path.
+ *
+ * @return bool
+ *   TRUE for a link, whether its target exists or not.
+ */
+function is_link_path(string $path): bool {
+  return is_link($path) || (is_windows() && is_dir($path) && @readlink($path) !== FALSE);
+}
+
+/**
+ * Remove a link without following it.
+ *
+ * Windows removes a link to a directory with rmdir(), and any other link
+ * with unlink().
+ *
+ * @param string $path
+ *   The path of the link.
+ *
+ * @return bool
+ *   TRUE when the link was removed.
+ */
+function remove_link(string $path): bool {
+  return is_windows() && is_dir($path) ? @rmdir($path) : @unlink($path);
+}
+
+/**
  * Recursively remove a directory.
+ *
+ * A link inside the directory is removed without following it, so the files
+ * of its target stay.
  *
  * @return bool
  *   TRUE when the directory was removed or did not exist.
@@ -639,20 +674,18 @@ function remove_dir(string $dir): bool {
     return TRUE;
   }
 
-  $items = new \RecursiveIteratorIterator(
-    new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::UNIX_PATHS),
-    \RecursiveIteratorIterator::CHILD_FIRST
-  );
-
-  /** @var \SplFileInfo $item */
-  foreach ($items as $item) {
-    $path = $item->getPathname();
-
-    if (is_link($path)) {
-      @unlink($path);
+  foreach (scandir($dir) ?: [] as $name) {
+    if ($name === '.' || $name === '..') {
+      continue;
     }
-    elseif ($item->isDir()) {
-      @rmdir($path);
+
+    $path = $dir . '/' . $name;
+
+    if (is_link_path($path)) {
+      remove_link($path);
+    }
+    elseif (is_dir($path)) {
+      remove_dir($path);
     }
     else {
       @unlink($path);
@@ -773,7 +806,10 @@ function command_exists_or_fail(string $command): void {
 function command_output(array $command, int $timeout): ?string {
   $pipes = [];
   $null = null_device();
-  $process = @proc_open($command, [0 => ['file', $null, 'r'], 1 => ['pipe', 'w'], 2 => ['file', $null, 'w']], $pipes);
+  // PHP reads a pipe without blocking only outside Windows, and a socket
+  // everywhere.
+  $stdout = is_windows() ? ['socket'] : ['pipe', 'w'];
+  $process = @proc_open($command, [0 => ['file', $null, 'r'], 1 => $stdout, 2 => ['file', $null, 'w']], $pipes);
 
   if (!is_resource($process)) {
     return '';
@@ -1894,7 +1930,10 @@ function link_browser_output(string $webroot, string $logs_dir): void {
 
   $link = $simpletest_dir . '/browser_output';
 
-  if (is_link($link) || is_file($link)) {
+  if (is_link_path($link)) {
+    remove_link($link);
+  }
+  elseif (is_file($link)) {
     unlink($link);
   }
   elseif (is_dir($link)) {
@@ -2242,11 +2281,19 @@ function nvm_dir(): string {
  * is.
  *
  * @return string
- *   The prefix, or an empty string when the working directory has no '.nvmrc'
- *   or nvm is not installed.
+ *   The prefix, or an empty string when the working directory has no '.nvmrc',
+ *   nvm is not installed or the tooling runs on Windows.
  */
 function nvm_prefix(): string {
   if (!is_file('.nvmrc')) {
+    return '';
+  }
+
+  // 'nvm.sh' defines a function of a POSIX shell, which 'cmd.exe' cannot
+  // load.
+  if (is_windows()) {
+    NOTE('nvm runs in a POSIX shell only; using the Node.js on PATH, not the version in .nvmrc.');
+
     return '';
   }
 
@@ -2356,7 +2403,7 @@ function tunnel_start(string $port): void {
     return;
   }
 
-  if (file_put_contents(TUNNEL_PID_FILE, $pid . PHP_EOL) === FALSE) {
+  if (file_put_contents(TUNNEL_PID_FILE, $pid . "\n") === FALSE) {
     // tunnel_stop() finds the tunnel only through its PID file, so a tunnel
     // without one would stay public after 'eddy-stop'.
     tunnel_kill($pid);
@@ -2463,7 +2510,7 @@ PHP;
   $mode = fileperms($settings_file) ?: 0644;
   chmod($settings_file, ($mode & 0777) | 0200);
 
-  file_write_or_fail($settings_file, PHP_EOL . $marker . PHP_EOL . $settings . PHP_EOL, FILE_APPEND);
+  file_write_or_fail($settings_file, "\n" . $marker . "\n" . $settings . "\n", FILE_APPEND);
 
   PASS('Tunnel settings added.');
 }

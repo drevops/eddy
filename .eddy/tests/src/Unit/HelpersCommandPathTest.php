@@ -19,6 +19,7 @@ final class HelpersCommandPathTest extends UnitTestCase {
 
   #[DataProvider('dataProviderCommandPath')]
   public function testCommandPath(string $command, bool $expect_found): void {
+    $this->mockHost();
     $result = command_path($command);
     if ($expect_found) {
       $this->assertIsString($result);
@@ -63,11 +64,13 @@ final class HelpersCommandPathTest extends UnitTestCase {
   }
 
   public function testCommandExistsOrFailAvailable(): void {
+    $this->mockHost();
     command_exists_or_fail('php');
     $this->expectNotToPerformAssertions();
   }
 
   public function testCommandExistsOrFailUnavailable(): void {
+    $this->mockHost();
     $this->mockQuit(1);
 
     $output = $this->capture(fn() => command_exists_or_fail('nonexistent_command_12345'), 1);

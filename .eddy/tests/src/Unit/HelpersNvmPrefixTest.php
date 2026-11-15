@@ -27,6 +27,25 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
     parent::setUp();
 
     chdir(self::$sut);
+
+    // The prefix is for a POSIX shell, and PHP runs commands through
+    // 'cmd.exe' on Windows.
+    if (PHP_OS_FAMILY === 'Windows') {
+      $this->mockFunction('passthru', static function (string $command, ?int &$result_code = NULL): ?bool {
+        $pipes = [];
+        $process = proc_open(['bash', '-c', $command], [1 => ['pipe', 'w']], $pipes);
+
+        if (!is_resource($process)) {
+          throw new \RuntimeException('Unable to start bash.');
+        }
+
+        echo stream_get_contents($pipes[1]);
+        fclose($pipes[1]);
+        $result_code = proc_close($process);
+
+        return NULL;
+      });
+    }
   }
 
   /**
@@ -67,6 +86,20 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
     yield '.nvmrc directory' => ['directory', TRUE, '', ''];
     yield '.nvmrc without nvm' => ['file', FALSE, '', 'nvm is not installed in %s; using the Node.js on PATH, not the version in .nvmrc.'];
     yield '.nvmrc with nvm' => ['file', TRUE, self::PREFIX, 'Using the Node.js version in .nvmrc with nvm from %s.'];
+  }
+
+  public function testNvmPrefixOnWindows(): void {
+    $this->mockWindows();
+    File::dump('.nvmrc', "22\n");
+    self::envSet('NVM_DIR', self::createNvmDir('nvm() { :; }'));
+
+    $prefix = NULL;
+    $output = $this->capture(function () use (&$prefix): void {
+      $prefix = nvm_prefix();
+    });
+
+    $this->assertSame('', $prefix);
+    $this->assertStringContainsString('nvm runs in a POSIX shell only; using the Node.js on PATH, not the version in .nvmrc.', $output);
   }
 
   #[DataProvider('dataProviderNvmPrefixRunsInShell')]

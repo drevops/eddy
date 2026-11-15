@@ -247,7 +247,7 @@ final class AssembleTest extends UnitTestCase {
       }
       // remove_dir() walks these directories on disk, so they exist only in a
       // test that creates them.
-      if ($path === 'build/web/modules/custom' || $path === 'build/web/themes/custom') {
+      if (str_starts_with($path, 'build/web/modules/custom') || str_starts_with($path, 'build/web/themes/custom')) {
         return \is_dir($path);
       }
       if ($path === 'build/node_modules') {

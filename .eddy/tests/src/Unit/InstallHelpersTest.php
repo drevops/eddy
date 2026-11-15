@@ -1299,7 +1299,9 @@ final class InstallHelpersTest extends UnitTestCase {
     }
 
     $archive = self::$tmp . '/eddy-1.2.3.tar.gz';
-    (new Process(['tar', '-czf', $archive, '-C', self::$tmp, 'eddy-1.2.3']))->mustRun();
+    // GNU tar reads a drive letter in the archive path as a remote host, so
+    // the archive is named relative to the directory it is written to.
+    (new Process(['tar', '-czf', basename($archive), 'eddy-1.2.3'], self::$tmp))->mustRun();
 
     return $archive;
   }

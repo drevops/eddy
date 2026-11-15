@@ -362,7 +362,7 @@ final class StartTest extends UnitTestCase {
 
     // The running server of the project is stopped, and the new one is not
     // launched without its log directory.
-    $this->mockPortListeners('8000', [1234 => self::webserverCommandLine($project_dir)]);
+    $this->mockPortListeners('8000', [1234 => self::webserverCommandLine(File::cwd())]);
     $this->mockPassthru(['cmd' => self::killProcessesCommand(1234)]);
     $this->mockQuit(1);
 

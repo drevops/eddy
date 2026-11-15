@@ -289,12 +289,19 @@ function composer(string $arguments): int {
  * Remove a file, a symlink or a directory tree.
  *
  * A symlink is removed without following it, so a symlinked package keeps its
- * sources.
+ * sources. Composer links a package with a directory junction on Windows,
+ * which PHP reports as a directory and removes with rmdir().
  *
  * @param string $path
  *   The path to remove.
  */
 function remove_path(string $path): void {
+  if (PHP_OS_FAMILY === 'Windows' && is_dir($path) && @readlink($path) !== FALSE) {
+    rmdir($path);
+
+    return;
+  }
+
   if (is_link($path) || is_file($path)) {
     unlink($path);
 

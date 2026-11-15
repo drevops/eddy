@@ -26,7 +26,7 @@ final class AssembleTest extends ToolingTestCase {
     $this->installTooling();
     $this->assertProcessAnyOutputContains('Installed drevops/eddy-tooling.');
 
-    $this->assertTrue(is_link(self::$sut . '/vendor/drevops/eddy-tooling'), 'The scaffold installs the package from .eddy/tooling as a symlink.');
+    $this->assertNotFalse(readlink(self::$sut . '/vendor/drevops/eddy-tooling'), 'The scaffold installs the package from .eddy/tooling as a link.');
     $this->assertSame(self::locationsRealpath(self::$sut . '/.eddy/tooling'), self::locationsRealpath(self::$sut . '/vendor/drevops/eddy-tooling'));
 
     if ($running) {
