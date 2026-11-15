@@ -865,7 +865,12 @@ function command_output_wait($process, array $pipes, int $timeout): ?string {
 
   $timed_out = proc_get_status($process)['running'];
 
-  if ($timed_out) {
+  if ($timed_out && is_windows()) {
+    // proc_terminate() ends only the started process, and a child it started
+    // keeps the output file open.
+    exec(sprintf('taskkill /F /T /PID %d >NUL 2>&1', proc_get_status($process)['pid']));
+  }
+  elseif ($timed_out) {
     // A command can ignore SIGTERM, and proc_close() waits for it to exit, so
     // send SIGKILL. The SIGKILL constant needs the pcntl extension.
     proc_terminate($process, 9);

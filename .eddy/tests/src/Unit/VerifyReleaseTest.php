@@ -38,8 +38,7 @@ final class VerifyReleaseTest extends UnitTestCase {
     require_once self::rootDir() . '/.eddy/installer/verify-release.php';
 
     File::mkdir(self::$tmp . '/gnupg', 0700);
-    // The MSYS gpg of Git for Windows reads a path with '\' as relative.
-    self::envSet('GNUPGHOME', self::slashPath(self::$tmp . '/gnupg'));
+    self::envSet('GNUPGHOME', self::$tmp . '/gnupg');
 
     $this->release = self::$tmp . '/release';
     File::copy(self::fixture('release'), $this->release);
@@ -168,6 +167,12 @@ final class VerifyReleaseTest extends UnitTestCase {
 
   public function testPublishedKeyHasPinnedFingerprint(): void {
     $this->assertSame(self::locationsRealpath(self::rootDir() . '/install-key.asc'), self::locationsRealpath(self::installerConstant('PUBLIC_KEY')));
+
+    // The MSYS gpg of Git for Windows converts the paths in its arguments but
+    // not in GNUPGHOME, so the home directory is given relative to the
+    // working directory.
+    chdir(self::$tmp);
+    self::envSet('GNUPGHOME', 'gnupg');
 
     $output = [];
     exec('gpg --batch --show-keys --with-colons ' . escapeshellarg(self::installerConstant('PUBLIC_KEY')) . ' 2>&1', $output, $exit_code);
