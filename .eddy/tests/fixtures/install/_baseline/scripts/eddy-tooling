@@ -277,9 +277,9 @@ function composer(string $arguments): int {
  * Remove a file, a symlink or a directory tree.
  *
  * A symlink is removed without following it, so a symlinked package keeps its
- * sources. Composer links a package with a directory junction on Windows,
- * which PHP reports as a directory whose real path is its target, and removes
- * with rmdir().
+ * sources. On Windows, a directory symlink or junction is a directory whose
+ * real path is its target, and only rmdir() removes it. Composer links a
+ * package with a junction there.
  *
  * @param string $path
  *   The path to remove.
@@ -301,16 +301,8 @@ function remove_path(string $path): void {
     return;
   }
 
-  $items = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
-
-  /** @var \SplFileInfo $item */
-  foreach ($items as $item) {
-    if ($item->isDir() && !$item->isLink()) {
-      rmdir($item->getPathname());
-    }
-    else {
-      unlink($item->getPathname());
-    }
+  foreach (array_diff(scandir($path) ?: [], ['.', '..']) as $entry) {
+    remove_path($path . '/' . $entry);
   }
 
   rmdir($path);

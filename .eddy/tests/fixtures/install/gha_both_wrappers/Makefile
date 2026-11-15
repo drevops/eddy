@@ -40,9 +40,10 @@ unexport DRUSH
 # test*` runs against the same base URL, database, and browser-output
 # directory as `ahoy test*`. The webserver host and port fall back to their
 # defaults only inside the URL: an exported default port would stop `start`
-# from discovering a free one.
+# from discovering a free one. The URL names 127.0.0.1 for a server bound to
+# __VERSION__.0, because Windows refuses a connection to __VERSION__.0.
 EXTENSION_NAME = $(shell basename -s .info.yml -- ./*.info.yml)
-SIMPLETEST_BASE_URL = http://$(or $(WEBSERVER_HOST),localhost):$(or $(WEBSERVER_PORT),8000)
+SIMPLETEST_BASE_URL = http://$(patsubst __VERSION__.0,127.0.0.1,$(or $(WEBSERVER_HOST),localhost)):$(or $(WEBSERVER_PORT),8000)
 SIMPLETEST_DB = sqlite://localhost/drupal_test_$(EXTENSION_NAME).sqlite
 BROWSERTEST_OUTPUT_DIRECTORY = $(CURDIR)/.logs/browser_output
 
