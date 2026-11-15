@@ -2,9 +2,15 @@ SHELL=/bin/bash
 
 # Windows has no '/bin/bash', so make there finds 'bash' on PATH, such as
 # the one Git for Windows installs, instead of running recipes in 'cmd.exe'.
+# Make on Windows runs a recipe line without shell characters directly,
+# which cannot execute the 'vendor/bin' scripts, so PHP runs them there.
 ifeq ($(OS),Windows_NT)
 SHELL := bash.exe
+TOOLING := php vendor/bin
+else
+TOOLING := vendor/bin
 endif
+unexport TOOLING
 
 # Load variables from .env if present and export them to recipe shells. The
 # leading '-' on -include suppresses errors when the file does not exist.
@@ -78,16 +84,16 @@ build:
 	$(MAKE) provision
 
 assemble:
-	vendor/bin/eddy-assemble
+	$(TOOLING)/eddy-assemble
 
 start:
-	vendor/bin/eddy-start
+	$(TOOLING)/eddy-start
 
 stop:
-	vendor/bin/eddy-stop
+	$(TOOLING)/eddy-stop
 
 info:
-	@vendor/bin/eddy-info
+	@$(TOOLING)/eddy-info
 
 # Enable PHP XDebug step-debugging by restarting the PHP server with
 # `-d xdebug.mode=debug -d xdebug.start_with_request=yes`. State is
@@ -117,10 +123,10 @@ drush:
 	$(DRUSH) $(RUN_ARGS)
 
 login:
-	@vendor/bin/eddy-login
+	@$(TOOLING)/eddy-login
 
 provision:
-	vendor/bin/eddy-provision
+	$(TOOLING)/eddy-provision
 
 lint:
 
