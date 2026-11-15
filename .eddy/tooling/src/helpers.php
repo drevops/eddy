@@ -1457,8 +1457,8 @@ function resolve_site_url(string $host, string $port, string $dotenv_file = '.en
  * Get the path that a PHP webserver command line passes to '-t'.
  *
  * The command line is split on whitespace, so a path with spaces is cut at
- * the first one. On Windows, the command line keeps the double quotes around
- * each argument, so they are removed.
+ * the first one. On Windows, the command line quotes an argument that holds a
+ * space, so a double-quoted argument stays whole and loses its quotes.
  *
  * @param string $command
  *   The command line, as 'ps' prints it.
@@ -1469,7 +1469,6 @@ function resolve_site_url(string $host, string $port, string $dotenv_file = '.en
 function webserver_docroot_argument(string $command): ?string {
   $arguments = preg_split('/\s+/', trim($command), -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
-  // On Windows, the command line quotes an argument that holds a space.
   if (is_windows()) {
     preg_match_all('/(?:"[^"]*"|[^\s"])+/', trim($command), $matches);
     $arguments = array_map(static fn(string $argument): string => str_replace('"', '', $argument), $matches[0]);
