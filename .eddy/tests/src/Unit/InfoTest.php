@@ -183,7 +183,7 @@ final class InfoTest extends UnitTestCase {
 
     $output = $this->runInfoField('site-url', 0);
 
-    $this->assertSame($tunnel_url . PHP_EOL, $output);
+    $this->assertSame($tunnel_url . "\n", $output);
   }
 
   public function testInfoFallsBackToDefaultsWhenNothingResolves(): void {
@@ -316,7 +316,7 @@ final class InfoTest extends UnitTestCase {
 
     $output = $this->runInfoField($field, 0);
 
-    $this->assertSame($expected . PHP_EOL, $output);
+    $this->assertSame($expected . "\n", $output);
   }
 
   public static function dataProviderInfoFieldModeKnownFields(): \Iterator {
@@ -470,7 +470,7 @@ final class InfoTest extends UnitTestCase {
 
     $output = $this->runInfoField($field, 0);
 
-    $this->assertSame($expected . PHP_EOL, $output);
+    $this->assertSame($expected . "\n", $output);
   }
 
   public static function dataProviderInfoFieldFromDotenv(): \Iterator {
@@ -491,7 +491,7 @@ final class InfoTest extends UnitTestCase {
 
     $output = $this->runInfoField('not-a-field', 1);
 
-    $this->assertSame('-' . PHP_EOL, $output);
+    $this->assertSame('-' . "\n", $output);
   }
 
   public function testInfoFieldModeBypassedForFlagLikeArg(): void {

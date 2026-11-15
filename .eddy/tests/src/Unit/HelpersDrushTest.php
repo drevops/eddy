@@ -38,14 +38,14 @@ final class HelpersDrushTest extends UnitTestCase {
     yield 'string args' => [
       'command' => 'pm:enable %s',
       'args' => 'my_module',
-      'expected_command_suffix' => 'pm:enable ' . escapeshellarg('my_module'),
+      'expected_command_suffix' => 'pm:enable ' . self::shellQuote('my_module'),
       'mock_output' => '',
       'expected_output' => '',
     ];
     yield 'array args' => [
       'command' => 'config:set %s %s',
       'args' => ['system.site', 'name'],
-      'expected_command_suffix' => 'config:set ' . escapeshellarg('system.site') . ' ' . escapeshellarg('name'),
+      'expected_command_suffix' => 'config:set ' . self::shellQuote('system.site') . ' ' . self::shellQuote('name'),
       'mock_output' => 'Set',
       'expected_output' => 'Set',
     ];

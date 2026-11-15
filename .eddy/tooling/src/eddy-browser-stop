@@ -34,10 +34,10 @@ $root = (string) getcwd();
 
 // -----------------------------------------------------------------------------
 
-echo '===============================' . PHP_EOL;
-echo '        🌐 STOP BROWSER        ' . PHP_EOL;
-echo '===============================' . PHP_EOL;
-echo PHP_EOL;
+echo '===============================' . "\n";
+echo '        🌐 STOP BROWSER        ' . "\n";
+echo '===============================' . "\n";
+echo "\n";
 
 // The Selenium container publishes the port chromedriver would bind, so
 // killing the port process alone stops only the container's docker proxy.
@@ -60,8 +60,8 @@ PASS('Browser stopped on port %s.', $webdriver_port);
 
 note_port_in_use($webdriver_port, $listeners['other']);
 
-echo PHP_EOL;
-echo '===============================' . PHP_EOL;
-echo '     🌐 BROWSER STOPPED ✅    ' . PHP_EOL;
-echo '===============================' . PHP_EOL;
-echo PHP_EOL;
+echo "\n";
+echo '===============================' . "\n";
+echo '     🌐 BROWSER STOPPED ✅    ' . "\n";
+echo '===============================' . "\n";
+echo "\n";

@@ -369,19 +369,19 @@ trait MockTrait {
   }
 
   /**
-   * Mock posix_isatty function to control terminal color detection.
+   * Mock stream_isatty function to control terminal color detection.
    *
    * @param bool $return_value
    *   The value to return (TRUE for TTY/color support, FALSE for no TTY).
    * @param string $namespace
    *   Namespace to mock the function in.
    */
-  protected function mockPosixIsatty(bool $return_value, string $namespace = self::TOOLING_NAMESPACE): void {
-    $this->mockAddResponses('posix_isatty', [['value' => $return_value]]);
+  protected function mockStreamIsatty(bool $return_value, string $namespace = self::TOOLING_NAMESPACE): void {
+    $this->mockAddResponses('stream_isatty', [['value' => $return_value]]);
 
-    if (!isset($this->mocks['posix_isatty'])) {
-      $this->mockFunction('posix_isatty', function () {
-        $response = $this->mockNextResponse('posix_isatty');
+    if (!isset($this->mocks['stream_isatty'])) {
+      $this->mockFunction('stream_isatty', function () {
+        $response = $this->mockNextResponse('stream_isatty');
         return $response['value'];
       }, $namespace);
     }

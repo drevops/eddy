@@ -46,10 +46,10 @@ final class MakefileArgumentsTest extends UnitTestCase {
     File::dump(self::$sut . '/your_extension.info.yml');
 
     foreach (self::STUBS as $command => $path) {
-      self::writeStub($path, sprintf('file_put_contents(%s, json_encode(array_slice($argv, 1)) . PHP_EOL, FILE_APPEND);', var_export(self::callsFile($command), TRUE)));
+      self::writeStub($path, sprintf('file_put_contents(%s, json_encode(array_slice($argv, 1)) . "\n", FILE_APPEND);', var_export(self::callsFile($command), TRUE)));
     }
 
-    self::writeStub('vendor/bin/eddy-info', "echo ['site-url' => 'http://localhost:8000', 'webdriver-port' => '4444'][\$argv[1] ?? ''] ?? '', PHP_EOL;");
+    self::writeStub('vendor/bin/eddy-info', "echo ['site-url' => 'http://localhost:8000', 'webdriver-port' => '4444'][\$argv[1] ?? ''] ?? '', \"\\n\";");
   }
 
   /**

@@ -27,7 +27,7 @@ final class UpdateAssetsCheckDependenciesTest extends UnitTestCase {
 
     $output = $this->capture(fn() => check_dependencies());
 
-    $this->assertSame('All dependencies found.' . PHP_EOL, $output);
+    $this->assertSame('All dependencies found.' . "\n", $output);
   }
 
   /**
@@ -58,7 +58,7 @@ final class UpdateAssetsCheckDependenciesTest extends UnitTestCase {
     $shell_exec->expects($this->exactly(4))->willReturnCallback(static function (string $command) use ($missing): ?string {
       $dependency = (string) preg_replace("/^which '([^']+)' 2>\\/dev\\/null$/", '$1', $command);
 
-      return in_array($dependency, $missing, TRUE) ? NULL : '/usr/bin/' . $dependency . PHP_EOL;
+      return in_array($dependency, $missing, TRUE) ? NULL : '/usr/bin/' . $dependency . "\n";
     });
   }
 

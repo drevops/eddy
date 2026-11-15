@@ -76,7 +76,7 @@ final class UpdateAssetsRunCleanupsTest extends UnitTestCase {
       ['ahoy stop', 'ahoy browser-stop'],
       ['ahoy browser-stop' => [1, ['Browser is not running.', 'Exiting.']]],
       ['ahoy browser-stop', 'ahoy stop'],
-      ["Cleanup 'ahoy browser-stop' failed with exit code 1." . PHP_EOL . 'Browser is not running.' . PHP_EOL . 'Exiting.'],
+      ["Cleanup 'ahoy browser-stop' failed with exit code 1.\nBrowser is not running.\nExiting."],
     ];
 
     yield 'every failure is reported' => [
@@ -84,7 +84,7 @@ final class UpdateAssetsRunCleanupsTest extends UnitTestCase {
       ['ahoy stop' => [2, []], 'ahoy browser-stop' => [127, ['ahoy: command not found']]],
       ['ahoy browser-stop', 'ahoy stop'],
       [
-        "Cleanup 'ahoy browser-stop' failed with exit code 127." . PHP_EOL . 'ahoy: command not found',
+        "Cleanup 'ahoy browser-stop' failed with exit code 127.\nahoy: command not found",
         "Cleanup 'ahoy stop' failed with exit code 2.",
       ],
     ];

@@ -189,7 +189,7 @@ final class DeployTest extends UnitTestCase {
       ['cmd' => sprintf('git remote add deployremote %s', escapeshellarg($deploy_remote))],
       [
         'cmd' => sprintf('git push --force deployremote %s', escapeshellarg('refs/tags/1.2.0')),
-        'output' => ' ! [remote rejected] 1.2.0 -> 1.2.0 (pre-receive hook declined)' . PHP_EOL,
+        'output' => ' ! [remote rejected] 1.2.0 -> 1.2.0 (pre-receive hook declined)' . "\n",
         'result_code' => 1,
       ],
     ]);

@@ -26,15 +26,15 @@ $docroot = $root . '/build/web';
 
 // -----------------------------------------------------------------------------
 
-echo '===============================' . PHP_EOL;
-echo '      💻 STOP ENVIRONMENT      ' . PHP_EOL;
-echo '===============================' . PHP_EOL;
-echo PHP_EOL;
+echo '===============================' . "\n";
+echo '      💻 STOP ENVIRONMENT      ' . "\n";
+echo '===============================' . "\n";
+echo "\n";
 
 environment_stop($webserver_port, $docroot);
 
-echo PHP_EOL;
-echo '===============================' . PHP_EOL;
-echo '   💻 ENVIRONMENT STOPPED ✅  ' . PHP_EOL;
-echo '===============================' . PHP_EOL;
-echo PHP_EOL;
+echo "\n";
+echo '===============================' . "\n";
+echo '   💻 ENVIRONMENT STOPPED ✅  ' . "\n";
+echo '===============================' . "\n";
+echo "\n";

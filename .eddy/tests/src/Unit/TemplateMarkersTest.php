@@ -197,7 +197,7 @@ final class TemplateMarkersTest extends UnitTestCase {
     $root = self::rootDir();
     $skipped = ['.git', '.idea', '.chromedriver', 'vendor', 'node_modules', '.eddy', '.artifacts', '.logs', '.phpunit.cache', 'build'];
 
-    $directory = new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS);
+    $directory = new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::UNIX_PATHS);
     $filter = new \RecursiveCallbackFilterIterator($directory, static fn(\SplFileInfo $current): bool => !$current->isDir() || !in_array($current->getFilename(), $skipped, TRUE));
 
     $paths = [];

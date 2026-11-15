@@ -53,7 +53,7 @@ function main(): int {
     return 1;
   }
 
-  $encoded = json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL;
+  $encoded = json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n";
 
   if (is_current($encoded)) {
     return 0;
@@ -290,13 +290,14 @@ function composer(string $arguments): int {
  *
  * A symlink is removed without following it, so a symlinked package keeps its
  * sources. Composer links a package with a directory junction on Windows,
- * which PHP reports as a directory and removes with rmdir().
+ * which PHP reports as a directory whose real path is its target, and removes
+ * with rmdir().
  *
  * @param string $path
  *   The path to remove.
  */
 function remove_path(string $path): void {
-  if (PHP_OS_FAMILY === 'Windows' && is_dir($path) && @readlink($path) !== FALSE) {
+  if (PHP_OS_FAMILY === 'Windows' && is_dir($path) && realpath($path) !== realpath(dirname($path)) . DIRECTORY_SEPARATOR . basename($path)) {
     rmdir($path);
 
     return;
@@ -358,9 +359,9 @@ function fail(string $message): void {
  */
 function status(string $color, string $line): void {
   $term = getenv('TERM');
-  $colored = $term !== FALSE && $term !== 'dumb' && function_exists('posix_isatty') && @posix_isatty(STDOUT);
+  $colored = $term !== FALSE && $term !== 'dumb' && stream_isatty(STDOUT);
 
-  echo ($colored ? "\033[" . $color . 'm' . $line . "\033[0m" : $line) . PHP_EOL;
+  echo ($colored ? "\033[" . $color . 'm' . $line . "\033[0m" : $line) . "\n";
 }
 
 // PHPUnit loads this file to call main() directly, so it runs only outside it.

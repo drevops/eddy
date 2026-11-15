@@ -27,25 +27,6 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
     parent::setUp();
 
     chdir(self::$sut);
-
-    // The prefix is for a POSIX shell, and PHP runs commands through
-    // 'cmd.exe' on Windows.
-    if (PHP_OS_FAMILY === 'Windows') {
-      $this->mockFunction('passthru', static function (string $command, ?int &$result_code = NULL): ?bool {
-        $pipes = [];
-        $process = proc_open(['bash', '-c', $command], [1 => ['pipe', 'w']], $pipes);
-
-        if (!is_resource($process)) {
-          throw new \RuntimeException('Unable to start bash.');
-        }
-
-        echo stream_get_contents($pipes[1]);
-        fclose($pipes[1]);
-        $result_code = proc_close($process);
-
-        return NULL;
-      });
-    }
   }
 
   /**
@@ -103,6 +84,7 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
   }
 
   #[DataProvider('dataProviderNvmPrefixRunsInShell')]
+  #[Group('posix')]
   public function testNvmPrefixRunsInShell(string $nvm_script, string $expected_output, int $expected_exit_code): void {
     File::dump('.nvmrc', "22\n");
     self::envSet('NVM_DIR', self::createNvmDir($nvm_script));
@@ -126,6 +108,7 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
     yield 'loading nvm.sh fails' => ['nvm() { echo "nvm $*"; }' . "\n" . 'false', "nvm use\nnpm ran\n", 0];
   }
 
+  #[Group('posix')]
   public function testNvmPrefixFailsWithoutNvmFunction(): void {
     File::dump('.nvmrc', "22\n");
     self::envSet('NVM_DIR', self::createNvmDir('NVM_LOADED=1'));
@@ -143,11 +126,12 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
     $this->assertStringNotContainsString('npm ran', $output);
   }
 
+  #[Group('posix')]
   public function testNvmPrefixExportsDefaultDirectory(): void {
     File::dump('.nvmrc', "22\n");
 
     $home = self::$tmp . '/home';
-    File::dump($home . '/.nvm/nvm.sh', 'nvm() { echo "nvm $* from $NVM_DIR"; }' . PHP_EOL);
+    File::dump($home . '/.nvm/nvm.sh', 'nvm() { echo "nvm $* from $NVM_DIR"; }' . "\n");
 
     self::envUnset('NVM_DIR');
     self::envUnset('XDG_CONFIG_HOME');
@@ -179,7 +163,7 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
     File::mkdir($dir, 0755);
 
     if ($script !== NULL) {
-      File::dump($dir . '/nvm.sh', $script . PHP_EOL);
+      File::dump($dir . '/nvm.sh', $script . "\n");
     }
 
     return $dir;

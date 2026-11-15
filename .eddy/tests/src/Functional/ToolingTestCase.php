@@ -105,7 +105,7 @@ abstract class ToolingTestCase extends FunctionalTestCase {
     $this->assertIsArray($config);
     /** @var array{config?: array<string, array<string, mixed>>} $config */
     $config['config']['platform']['php'] = $version;
-    File::dump($manifest, json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL);
+    File::dump($manifest, json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n");
   }
 
   protected function assertTestCoverage(?string $dir = NULL): void {

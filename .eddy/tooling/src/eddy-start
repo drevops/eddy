@@ -44,10 +44,10 @@ $xdebug_flags = $xdebug_enabled ? ' -d xdebug.mode=debug -d xdebug.start_with_re
 
 // -----------------------------------------------------------------------------
 
-echo '===============================' . PHP_EOL;
-echo '      💻 START ENVIRONMENT     ' . PHP_EOL;
-echo '===============================' . PHP_EOL;
-echo PHP_EOL;
+echo '===============================' . "\n";
+echo '      💻 START ENVIRONMENT     ' . "\n";
+echo '===============================' . "\n";
+echo "\n";
 
 if ($xdebug_enabled) {
   TASK('Verifying that the XDebug PHP extension is installed.');
@@ -71,7 +71,9 @@ kill_processes(array_keys($listeners['own']));
 
 TASK('Starting the PHP webserver.');
 mkdir_or_fail(dirname($webserver_log));
-run_in_background(sprintf('php%s -S %s:%s -t %s %s', $xdebug_flags, escapeshellarg($webserver_host), escapeshellarg($webserver_port), escapeshellarg($docroot), escapeshellarg($docroot . '/.ht.router.php')), $webserver_log);
+// A Windows background command reads PATH from the environment of the user,
+// so it names the PHP that runs this command.
+run_in_background(sprintf('%s%s -S %s:%s -t %s %s', is_windows() ? escapeshellarg(PHP_BINARY) : 'php', $xdebug_flags, escapeshellarg($webserver_host), escapeshellarg($webserver_port), escapeshellarg($docroot), escapeshellarg($docroot . '/.ht.router.php')), $webserver_log);
 
 NOTE('Waiting up to %s seconds for the server to be ready.', (string) $webserver_wait_timeout);
 
@@ -101,15 +103,15 @@ run_custom_scripts('scripts', 'start-');
 
 $site_url = resolve_site_url($webserver_host, $webserver_port);
 
-echo PHP_EOL;
-echo '===============================' . PHP_EOL;
-echo '    💻 ENVIRONMENT READY  ✅  ' . PHP_EOL;
-echo '===============================' . PHP_EOL;
-echo PHP_EOL;
-echo 'Directory : ' . $docroot . PHP_EOL;
-echo 'URL       : ' . $site_url . PHP_EOL;
-echo 'XDebug    : ' . ($xdebug_enabled ? 'Enabled' : 'Disabled') . PHP_EOL;
-echo PHP_EOL;
-echo '> Next steps:' . PHP_EOL;
-echo '  vendor/bin/eddy-provision    # Provision the website' . PHP_EOL;
-echo PHP_EOL;
+echo "\n";
+echo '===============================' . "\n";
+echo '    💻 ENVIRONMENT READY  ✅  ' . "\n";
+echo '===============================' . "\n";
+echo "\n";
+echo 'Directory : ' . $docroot . "\n";
+echo 'URL       : ' . $site_url . "\n";
+echo 'XDebug    : ' . ($xdebug_enabled ? 'Enabled' : 'Disabled') . "\n";
+echo "\n";
+echo '> Next steps:' . "\n";
+echo '  vendor/bin/eddy-provision    # Provision the website' . "\n";
+echo "\n";

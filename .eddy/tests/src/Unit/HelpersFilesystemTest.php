@@ -43,6 +43,7 @@ final class HelpersFilesystemTest extends UnitTestCase {
   }
 
   public function testRemoveDirKeepsLinkedDirectory(): void {
+    $this->mockHost();
     $target = self::$tmp . '/linked_' . uniqid();
     File::dump($target . '/kept.txt', 'kept');
     $dir = self::$tmp . '/remove_' . uniqid();
@@ -71,9 +72,9 @@ final class HelpersFilesystemTest extends UnitTestCase {
       default => NULL,
     };
 
-    // A junction is a directory that readlink() resolves on Windows.
+    // The real path of a junction is its target.
     if ($type === 'junction') {
-      $this->mockFunction('readlink', fn(string $link): string|false => $link === $path ? self::$tmp : \readlink($link));
+      $this->mockFunction('realpath', fn(string $link): string|false => $link === $path ? \realpath(self::$tmp) : \realpath($link));
     }
 
     $this->assertSame($expected, is_link_path($path));
@@ -166,6 +167,7 @@ final class HelpersFilesystemTest extends UnitTestCase {
   }
 
   #[DataProvider('dataProviderChmodRecursive')]
+  #[Group('posix')]
   public function testChmodRecursive(array $structure, int $mode, array $expected_perms): void {
     $dir = self::$tmp . '/chmod_' . uniqid();
     self::directoryFixtureCreate($dir, $structure);
@@ -204,6 +206,7 @@ final class HelpersFilesystemTest extends UnitTestCase {
     ];
   }
 
+  #[Group('posix')]
   public function testChmodRecursiveSkipsSymlinks(): void {
     $dir = self::$tmp . '/chmod_symlink_' . uniqid();
     $target_dir = self::$tmp . '/chmod_target_' . uniqid();

@@ -26,7 +26,7 @@ final class HelpersDrupalProfileTest extends UnitTestCase {
     }
 
     if ($dotenv !== NULL) {
-      File::dump('.env', 'DRUPAL_PROFILE=' . $dotenv . PHP_EOL);
+      File::dump('.env', 'DRUPAL_PROFILE=' . $dotenv . "\n");
     }
 
     $this->assertSame($expected, drupal_profile());

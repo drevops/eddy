@@ -181,7 +181,7 @@ final class AssembleTest extends UnitTestCase {
         return [self::PROJECT_ROOT . '/src', self::PROJECT_ROOT . '/composer.json', self::PROJECT_ROOT . '/vendor', self::PROJECT_ROOT . '/build'];
       }
       // The patches that the tooling ships.
-      if (str_starts_with($pattern, self::toolingDir() . '/')) {
+      if (str_starts_with(self::slashPath($pattern), self::slashPath(self::toolingDir()) . '/')) {
         return \glob($pattern) ?: [];
       }
       return [];

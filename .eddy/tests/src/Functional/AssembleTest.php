@@ -62,7 +62,10 @@ final class AssembleTest extends ToolingTestCase {
     $this->assertFileDoesNotExist(self::$sut . '/build/web/modules/custom/your_extension/vendor', 'The project-root vendor directory is not symlinked into the extension.');
     $this->assertProcessAnyOutputContains('Would run build');
 
-    if ($nvmrc) {
+    if ($nvmrc && PHP_OS_FAMILY === 'Windows') {
+      $this->assertProcessAnyOutputContains('nvm runs in a POSIX shell only; using the Node.js on PATH, not the version in .nvmrc.');
+    }
+    elseif ($nvmrc) {
       $this->assertProcessAnyOutputContains('Using the Node.js version in .nvmrc with nvm from ' . $env['NVM_DIR'] . '.');
       $this->assertSame("nvm use 22\nnvm use 22\n", File::read($env['NVM_DIR'] . '/calls.log'), 'Both npm commands run after nvm use in the project root.');
     }
@@ -117,7 +120,7 @@ final class AssembleTest extends ToolingTestCase {
    */
   protected static function createNvmStub(): string {
     $dir = self::$tmp . '/nvm';
-    File::dump($dir . '/nvm.sh', 'nvm() { echo "nvm $* $(cat .nvmrc)" >> "$NVM_DIR/calls.log"; }' . PHP_EOL);
+    File::dump($dir . '/nvm.sh', 'nvm() { echo "nvm $* $(cat .nvmrc)" >> "$NVM_DIR/calls.log"; }' . "\n");
 
     return $dir;
   }
@@ -140,7 +143,7 @@ final class AssembleTest extends ToolingTestCase {
     $this->assertIsArray($config);
     /** @var array{extra?: array{patches?: array<string, array<string, string>>}} $config */
     $config['extra']['patches']['drupal/core'][$name] = 'patches/' . $name;
-    File::dump($manifest_path, json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL);
+    File::dump($manifest_path, json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n");
   }
 
   /**

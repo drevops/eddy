@@ -982,6 +982,14 @@ final class BrowserStartTest extends UnitTestCase {
       $this->probeHangs = in_array($command[0], $hanging, TRUE);
       $version = str_contains($command[0], 'chromedriver') ? $driver : $chrome;
 
+      // The tooling names the null device of the platform it is pinned to,
+      // and the stand-in runs on the host.
+      foreach ($descriptors as $index => $descriptor) {
+        if (is_array($descriptor) && ($descriptor[1] ?? NULL) === '/dev/null') {
+          $descriptors[$index][1] = PHP_OS_FAMILY === 'Windows' ? 'NUL' : '/dev/null';
+        }
+      }
+
       return \proc_open($this->probeHangs ? ['sleep', '30'] : ['printf', '%s', $version], $descriptors, $pipes);
     });
 

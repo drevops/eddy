@@ -44,10 +44,10 @@ $docroot = $root . '/build/web';
 
 // -----------------------------------------------------------------------------
 
-echo '===============================' . PHP_EOL;
-echo '         🏗️ ASSEMBLE           ' . PHP_EOL;
-echo '===============================' . PHP_EOL;
-echo PHP_EOL;
+echo '===============================' . "\n";
+echo '         🏗️ ASSEMBLE           ' . "\n";
+echo '===============================' . "\n";
+echo "\n";
 
 $build_dir = 'build';
 
@@ -130,8 +130,12 @@ if (is_dir($build_dir)) {
   TASK('Removing existing build directory.');
   chmod_recursive($build_dir, 0777);
 
+  error_clear_last();
+
   if (!remove_dir($build_dir)) {
-    FAIL('Unable to remove directory %s.', $build_dir);
+    // The last error names the entry that is left, such as a file that a
+    // process holds open on Windows.
+    FAIL('Unable to remove directory %s. %s', $build_dir, error_get_last()['message'] ?? '');
   }
 
   PASS('Existing build directory removed.');
@@ -428,12 +432,12 @@ if (is_file($build_dir . '/package-lock.json') && !is_file('.skip_npm_build')) {
 // Run custom post-assemble scripts from "scripts/assemble-*.sh", if any.
 run_custom_scripts('scripts', 'assemble-');
 
-echo PHP_EOL;
-echo '===============================' . PHP_EOL;
-echo '    🏗️ ASSEMBLE COMPLETE ✅   ' . PHP_EOL;
-echo '===============================' . PHP_EOL;
-echo PHP_EOL;
-echo '> Next steps:' . PHP_EOL;
-echo '  vendor/bin/eddy-start        # Start the webserver' . PHP_EOL;
-echo '  vendor/bin/eddy-provision    # Provision the website' . PHP_EOL;
-echo PHP_EOL;
+echo "\n";
+echo '===============================' . "\n";
+echo '    🏗️ ASSEMBLE COMPLETE ✅   ' . "\n";
+echo '===============================' . "\n";
+echo "\n";
+echo '> Next steps:' . "\n";
+echo '  vendor/bin/eddy-start        # Start the webserver' . "\n";
+echo '  vendor/bin/eddy-provision    # Provision the website' . "\n";
+echo "\n";

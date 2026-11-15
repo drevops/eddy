@@ -53,7 +53,7 @@ function main(array $argv, string $public_key = PUBLIC_KEY, string $fingerprint 
     verify_release($argv[1] ?? '', $public_key, $fingerprint);
   }
   catch (\RuntimeException $runtime_exception) {
-    echo 'Error: ' . $runtime_exception->getMessage() . PHP_EOL;
+    echo 'Error: ' . $runtime_exception->getMessage() . "\n";
 
     return 1;
   }
@@ -89,8 +89,9 @@ function verify_release(string $dir, string $public_key, string $fingerprint): v
   }
 
   // 'gpgv' checks the signature against a keyring that holds only the public
-  // key, with no keyring of the user and no 'gpg-agent'. It reads a binary
-  // keyring from a file, which a path with a slash names outside its home.
+  // key, with no keyring of the user and no 'gpg-agent'. It looks for a
+  // keyring named without a slash in its home and reads a drive letter as the
+  // scheme of a URL, so it runs in the directory and reads './<keyring>'.
   $keyring = realpath($dir) . '/.verify-release-keyring.gpg';
 
   try {
@@ -102,9 +103,8 @@ function verify_release(string $dir, string $public_key, string $fingerprint): v
 
     // Only the status lines on the standard output are parsed, because the
     // standard error holds text that the keys supply, such as user IDs.
-    $sums = $dir . '/SHA256SUMS';
-    $gpgv = ['gpgv', '--status-fd', '1', '--keyring', $keyring, $sums . '.asc', $sums];
-    [$verify_code, $status, $verify_error] = run($gpgv);
+    $gpgv = ['gpgv', '--status-fd', '1', '--keyring', './' . basename($keyring), 'SHA256SUMS.asc', 'SHA256SUMS'];
+    [$verify_code, $status, $verify_error] = run($gpgv, $dir);
   }
   finally {
     if (is_file($keyring)) {
@@ -116,10 +116,10 @@ function verify_release(string $dir, string $public_key, string $fingerprint): v
     throw new \RuntimeException(sprintf('%s/SHA256SUMS is not signed by the Eddy signing key %s. gpgv exited with %d: %s', $dir, $fingerprint, $verify_code, trim($verify_error)));
   }
 
-  echo sprintf('SHA256SUMS is signed by the Eddy signing key %s.', $fingerprint) . PHP_EOL;
+  echo sprintf('SHA256SUMS is signed by the Eddy signing key %s.', $fingerprint) . "\n";
 
   foreach (verify_checksums($dir) as $file) {
-    echo sprintf('%s: OK', $file) . PHP_EOL;
+    echo sprintf('%s: OK', $file) . "\n";
   }
 }
 
@@ -206,12 +206,14 @@ function verify_checksums(string $dir): array {
  *
  * @param list<string> $command
  *   The command and its arguments.
+ * @param string|null $cwd
+ *   The working directory of the command, or NULL for the current one.
  *
  * @return array{0: int, 1: string, 2: string}
  *   The exit code, the standard output and the standard error.
  */
-function run(array $command): array {
-  $process = proc_open($command, [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+function run(array $command, ?string $cwd = NULL): array {
+  $process = proc_open($command, [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, $cwd);
 
   // @codeCoverageIgnoreStart
   if (!is_resource($process)) {

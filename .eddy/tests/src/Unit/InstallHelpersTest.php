@@ -191,7 +191,7 @@ final class InstallHelpersTest extends UnitTestCase {
     $output = $this->capture(fn(): int => main(['install.php', '--version']));
 
     // The checkout's copy has no version until an archive expands it.
-    $this->assertSame('development' . PHP_EOL, $output);
+    $this->assertSame('development' . "\n", $output);
   }
 
   public function testMainDownloadsIntoEmptyDirectory(): void {
@@ -954,7 +954,7 @@ final class InstallHelpersTest extends UnitTestCase {
     File::dump(self::$sut . '/archived/install.php', $archived);
     $version = new Process([PHP_BINARY, 'install.php', '--version'], self::$sut . '/archived', ['SCRIPT_RUN_SKIP' => FALSE]);
     $version->mustRun();
-    $this->assertSame(($archived_match[1] === '' ? 'development' : $archived_match[1]) . PHP_EOL, $version->getOutput());
+    $this->assertSame(($archived_match[1] === '' ? 'development' : $archived_match[1]) . "\n", $version->getOutput());
   }
 
   public static function dataProviderTemplateVersionArchive(): \Iterator {

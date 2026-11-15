@@ -551,6 +551,7 @@ final class UpdateAssetsTest extends UnitTestCase {
    *   Lines the expect script must not contain.
    */
   #[DataProvider('dataProviderCreateExpectScript')]
+  #[Group('posix')]
   public function testCreateExpectScript(string $name, array $present, array $absent): void {
     $path = self::$sut . '/' . $name . '.exp';
     $workspace_dir = self::$sut . '/work space';
@@ -636,7 +637,7 @@ final class UpdateAssetsTest extends UnitTestCase {
       [0.1, 'o', implode('', array_slice($lines, 6)) . "\r\n\rlast\e[K"],
     ];
 
-    $this->assertSame(implode(PHP_EOL, ['line 11', 'line 12', 'last']), session_tail(self::cast($events), 3));
+    $this->assertSame(implode("\n", ['line 11', 'line 12', 'last']), session_tail(self::cast($events), 3));
     $this->assertSame('', session_tail(''));
   }
 
@@ -652,10 +653,10 @@ final class UpdateAssetsTest extends UnitTestCase {
   public static function dataProviderJoinLines(): \Iterator {
     yield 'none' => [[], ''];
     yield 'one' => [['a'], 'a'];
-    yield 'several' => [['a', 'b'], 'a' . PHP_EOL . 'b'];
-    yield 'empty lines skipped' => [['', 'a', '', 'b', ''], 'a' . PHP_EOL . 'b'];
+    yield 'several' => [['a', 'b'], 'a' . "\n" . 'b'];
+    yield 'empty lines skipped' => [['', 'a', '', 'b', ''], 'a' . "\n" . 'b'];
     yield 'only empty lines' => [['', ''], ''];
-    yield 'zero kept' => [['0', 'a'], '0' . PHP_EOL . 'a'];
+    yield 'zero kept' => [['0', 'a'], '0' . "\n" . 'a'];
   }
 
   #[DataProvider('dataProviderRemoveDir')]

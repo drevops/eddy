@@ -26,7 +26,7 @@ final class HelpersIsDebugTest extends UnitTestCase {
     }
 
     if ($dotenv !== NULL) {
-      File::dump('.env', 'DEBUG=' . $dotenv . PHP_EOL);
+      File::dump('.env', 'DEBUG=' . $dotenv . "\n");
     }
 
     $this->assertSame($expected, is_debug());

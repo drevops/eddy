@@ -39,6 +39,7 @@ final class DeploySshAgentTest extends UnitTestCase {
   }
 
   #[DataProvider('dataProviderAgentStarted')]
+  #[Group('posix')]
   public function testAgentStarted(string $algorithm): void {
     $key = self::createKey();
 

@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 final class HelpersMkdirOrFailTest extends UnitTestCase {
 
   #[DataProvider('dataProviderCreatesMissingDirectory')]
+  #[Group('posix')]
   public function testCreatesMissingDirectory(?int $mode, int $expected_mode): void {
     $parent = self::$tmp . '/parent';
     $dir = $parent . '/child';
@@ -44,6 +45,7 @@ final class HelpersMkdirOrFailTest extends UnitTestCase {
     yield 'owner only' => [0700, 0700];
   }
 
+  #[Group('posix')]
   public function testKeepsModeOfExistingDirectory(): void {
     $dir = self::$tmp . '/existing_mode';
     File::mkdir($dir, 0755);

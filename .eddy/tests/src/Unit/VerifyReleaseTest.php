@@ -47,7 +47,7 @@ final class VerifyReleaseTest extends UnitTestCase {
   public function testVerifyRelease(): void {
     $output = $this->capture(fn() => verify_release($this->release, self::fixture('test-key.asc'), self::TEST_FINGERPRINT));
 
-    $this->assertSame(implode(PHP_EOL, ['SHA256SUMS is signed by the Eddy signing key ' . self::TEST_FINGERPRINT . '.', 'installer.txt: OK', 'template.txt: OK']) . PHP_EOL, $output);
+    $this->assertSame(implode("\n", ['SHA256SUMS is signed by the Eddy signing key ' . self::TEST_FINGERPRINT . '.', 'installer.txt: OK', 'template.txt: OK']) . "\n", $output);
   }
 
   #[DataProvider('dataProviderVerifyReleaseFails')]
@@ -162,16 +162,16 @@ final class VerifyReleaseTest extends UnitTestCase {
   public function testMainFails(): void {
     $output = $this->capture(fn() => $this->assertSame(1, main(['verify-release.php'])));
 
-    $this->assertSame('Error: Pass the directory that holds SHA256SUMS and SHA256SUMS.asc.' . PHP_EOL, $output);
+    $this->assertSame('Error: Pass the directory that holds SHA256SUMS and SHA256SUMS.asc.' . "\n", $output);
   }
 
   public function testPublishedKeyHasPinnedFingerprint(): void {
-    $this->assertSame(self::rootDir() . '/install-key.asc', self::locationsRealpath(self::installerConstant('PUBLIC_KEY')));
+    $this->assertSame(self::locationsRealpath(self::rootDir() . '/install-key.asc'), self::locationsRealpath(self::installerConstant('PUBLIC_KEY')));
 
     $output = [];
     exec('gpg --batch --show-keys --with-colons ' . escapeshellarg(self::installerConstant('PUBLIC_KEY')) . ' 2>&1', $output, $exit_code);
 
-    $this->assertSame(0, $exit_code, implode(PHP_EOL, $output));
+    $this->assertSame(0, $exit_code, implode("\n", $output));
     $this->assertContains('fpr:::::::::' . self::installerConstant('SIGNING_KEY_FINGERPRINT') . ':', $output, 'install-key.asc holds the public key of the pinned fingerprint.');
   }
 

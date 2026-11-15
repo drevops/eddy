@@ -544,7 +544,7 @@ EOF;
  * A copy without a version, such as a clone's, prints 'development'.
  */
 function print_version(): void {
-  print (template_version(TEMPLATE_VERSION) ?? 'development') . PHP_EOL;
+  print (template_version(TEMPLATE_VERSION) ?? 'development') . "\n";
 }
 
 /**
@@ -2322,7 +2322,7 @@ function download_template(string $archive, string $dir, ?string $sha256 = NULL)
   if ($exit_code !== 0) {
     remove_dir($staging);
 
-    throw new \Exception(sprintf('Unable to extract the template from %s: %s', $archive, implode(PHP_EOL, $output)));
+    throw new \Exception(sprintf('Unable to extract the template from %s: %s', $archive, implode("\n", $output)));
   }
 
   move_entries($staging, $dir);
@@ -3020,9 +3020,9 @@ function get_files(): array {
   $gitignore = $root . '/.gitignore';
   $rules = is_file($gitignore) ? gitignore_rules((string) file_get_contents($gitignore)) : [];
 
-  $directory = new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS);
+  $directory = new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::UNIX_PATHS);
   $filter = new \RecursiveCallbackFilterIterator($directory, static function (\SplFileInfo $current) use ($root, $rules): bool {
-    $path = str_replace(DIRECTORY_SEPARATOR, '/', substr($current->getPathname(), strlen($root) + 1));
+    $path = substr($current->getPathname(), strlen($root) + 1);
 
     return is_template_path($path, $current->isDir(), $rules);
   });
@@ -3050,7 +3050,7 @@ function get_files(): array {
  *   Array of file paths.
  */
 function get_marker_files(): array {
-  $installer = getcwd() . DIRECTORY_SEPARATOR . 'install.php';
+  $installer = getcwd() . '/install.php';
 
   return array_values(array_filter(get_files(), static fn(string $file): bool => $file !== $installer));
 }
@@ -3349,12 +3349,12 @@ if (getenv('SCRIPT_RUN_SKIP') != 1) {
   }
   catch (\ErrorException $exception) {
     if ($exception->getSeverity() <= E_USER_WARNING) {
-      print PHP_EOL . 'RUNTIME ERROR: ' . $exception->getMessage() . PHP_EOL;
+      print "\n" . 'RUNTIME ERROR: ' . $exception->getMessage() . "\n";
       exit($exception->getCode() === 0 ? 1 : $exception->getCode());
     }
   }
   catch (\Exception $exception) {
-    print PHP_EOL . 'ERROR: ' . $exception->getMessage() . PHP_EOL;
+    print "\n" . 'ERROR: ' . $exception->getMessage() . "\n";
     exit($exception->getCode() == 0 ? 1 : $exception->getCode());
   }
 }

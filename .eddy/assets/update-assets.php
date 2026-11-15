@@ -273,7 +273,7 @@ function main(array $only = [], string $assets_dir = __DIR__, ?string $project_d
     }
   }
   catch (\Exception $exception) {
-    throw new \RuntimeException($exception->getMessage() . PHP_EOL . 'Recordings kept in ' . $recordings_dir, 0, $exception);
+    throw new \RuntimeException($exception->getMessage() . "\n" . 'Recordings kept in ' . $recordings_dir, 0, $exception);
   }
   finally {
     // The webserver and the browser keep running after their workspace is
@@ -281,7 +281,7 @@ function main(array $only = [], string $assets_dir = __DIR__, ?string $project_d
     // thrown: a throw from 'finally' replaces any exception already thrown
     // from the 'try'.
     foreach (run_cleanups($workspace_dir, $cleanups) as $failure) {
-      fwrite(STDERR, 'WARNING: ' . $failure . PHP_EOL);
+      fwrite(STDERR, 'WARNING: ' . $failure . "\n");
     }
 
     info('Cleaning up workspace: ' . $workspace_dir);
@@ -353,7 +353,7 @@ function run_in_workspace(string $workspace_dir, string $command): array {
 
   return [
     'exit_code' => $exit_code,
-    'output' => implode(PHP_EOL, $output),
+    'output' => implode("\n", $output),
   ];
 }
 
@@ -903,7 +903,7 @@ function session_tail(string $content, int $count = 10): string {
 
   $lines = array_filter(array_map(trim(...), preg_split('/\r?\n|\r/', $text) ?: []), static fn(string $line): bool => $line !== '');
 
-  return implode(PHP_EOL, array_slice($lines, -$count));
+  return implode("\n", array_slice($lines, -$count));
 }
 
 /**
@@ -916,7 +916,7 @@ function session_tail(string $content, int $count = 10): string {
  *   The lines, separated by line breaks.
  */
 function join_lines(string ...$lines): string {
-  return implode(PHP_EOL, array_filter($lines, static fn(string $line): bool => $line !== ''));
+  return implode("\n", array_filter($lines, static fn(string $line): bool => $line !== ''));
 }
 
 /**
@@ -942,7 +942,7 @@ function convert_to_svg(string $cast_file, string $svg_file, string $assets_dir)
   exec($command, $output, $exit_code);
 
   if ($exit_code !== 0) {
-    throw new \RuntimeException('Failed to convert cast to SVG: ' . $cast_file . PHP_EOL . implode(PHP_EOL, $output));
+    throw new \RuntimeException('Failed to convert cast to SVG: ' . $cast_file . "\n" . implode("\n", $output));
   }
 }
 
@@ -974,7 +974,7 @@ function info(string $message): void {
     return;
   }
 
-  print $message . PHP_EOL;
+  print $message . "\n";
 }
 
 // @codeCoverageIgnoreStart
@@ -982,7 +982,7 @@ if (getenv('SCRIPT_RUN_SKIP') !== '1') {
   ini_set('display_errors', '1');
 
   if (PHP_SAPI !== 'cli' || !empty($_SERVER['REMOTE_ADDR'])) {
-    print 'This script can only be run from the command line.' . PHP_EOL;
+    print 'This script can only be run from the command line.' . "\n";
     exit(1);
   }
 
@@ -999,7 +999,7 @@ if (getenv('SCRIPT_RUN_SKIP') !== '1') {
     main(array_slice($arguments, 1));
   }
   catch (\Exception $exception) {
-    fwrite(STDERR, PHP_EOL . 'ERROR: ' . $exception->getMessage() . PHP_EOL);
+    fwrite(STDERR, "\n" . 'ERROR: ' . $exception->getMessage() . "\n");
     exit(1);
   }
 }

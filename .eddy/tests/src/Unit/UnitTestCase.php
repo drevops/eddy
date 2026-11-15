@@ -84,12 +84,11 @@ abstract class UnitTestCase extends UpstreamUnitTestCase {
       $exit_code = $exception->getCode();
     }
     finally {
-      // The tooling ends its lines with PHP_EOL, which is "\r\n" on Windows.
-      $output = str_replace("\r\n", "\n", (string) ob_get_clean());
+      $output = (string) ob_get_clean();
     }
 
     $describe = static fn(?int $code): string => $code === NULL ? 'no quit()' : 'exit code ' . $code;
-    $message = sprintf('Expected %s, got %s. Output:%s%s', $describe($expected_exit_code), $describe($exit_code), PHP_EOL, $output);
+    $message = sprintf('Expected %s, got %s. Output:%s%s', $describe($expected_exit_code), $describe($exit_code), "\n", $output);
     $this->assertSame($expected_exit_code, $exit_code, $message);
 
     return $output;
@@ -166,31 +165,57 @@ abstract class UnitTestCase extends UpstreamUnitTestCase {
   }
 
   /**
+   * Write a path with '/' separators.
+   *
+   * Windows returns paths with '\' separators from readlink() and realpath(),
+   * and accepts both.
+   */
+  protected static function slashPath(string $path): string {
+    return str_replace('\\', '/', $path);
+  }
+
+  /**
+   * Quote a shell argument the way escapeshellarg() does on POSIX systems.
+   *
+   * A data provider runs before setUp() pins the quoting of the tooling, so a
+   * command that it builds is quoted here for every host.
+   *
+   * @param string $argument
+   *   The argument.
+   *
+   * @return string
+   *   The argument in single quotes.
+   */
+  protected static function shellQuote(string $argument): string {
+    return "'" . str_replace("'", "'\\''", $argument) . "'";
+  }
+
+  /**
    * Build the command that reads the project label of a Selenium container.
    */
   protected static function seleniumInspectCommand(string $port): string {
-    return sprintf('docker inspect --format %s %s 2>/dev/null', escapeshellarg('{{.Name}}|{{index .Config.Labels "eddy.project"}}'), escapeshellarg('selenium-' . $port));
+    return sprintf('docker inspect --format %s %s 2>/dev/null', self::shellQuote('{{.Name}}|{{index .Config.Labels "eddy.project"}}'), self::shellQuote('selenium-' . $port));
   }
 
   /**
    * Build the command that reads whether a Selenium container is running.
    */
   protected static function seleniumRunningCommand(string $port): string {
-    return sprintf('docker inspect --format %s %s 2>/dev/null', escapeshellarg('{{.State.Running}}'), escapeshellarg('selenium-' . $port));
+    return sprintf('docker inspect --format %s %s 2>/dev/null', self::shellQuote('{{.State.Running}}'), self::shellQuote('selenium-' . $port));
   }
 
   /**
    * Build the command that selenium_container_remove() runs.
    */
   protected static function seleniumRemoveCommand(string $port): string {
-    return sprintf('docker rm -f %s >/dev/null 2>&1', escapeshellarg('selenium-' . $port));
+    return sprintf('docker rm -f %s >/dev/null 2>&1', self::shellQuote('selenium-' . $port));
   }
 
   /**
    * Build the command that composer_show() runs.
    */
   protected static function composerShowCommand(string $package, string $version = ''): string {
-    return 'composer show --all --format=json ' . escapeshellarg($package) . ($version === '' ? '' : ' ' . escapeshellarg($version));
+    return 'composer show --all --format=json ' . self::shellQuote($package) . ($version === '' ? '' : ' ' . self::shellQuote($version));
   }
 
   /**
@@ -228,11 +253,11 @@ abstract class UnitTestCase extends UpstreamUnitTestCase {
    *   mockShellExecOutputs().
    */
   protected function mockPortListeners(string $port, array $listeners = [], array $outputs = []): void {
-    $outputs[sprintf('lsof -ti tcp:%s -sTCP:LISTEN 2>/dev/null', escapeshellarg($port))] = implode(PHP_EOL, array_keys($listeners)) . PHP_EOL;
+    $outputs[sprintf('lsof -ti tcp:%s -sTCP:LISTEN 2>/dev/null', escapeshellarg($port))] = implode("\n", array_keys($listeners)) . "\n";
 
     foreach ($listeners as $pid => $listener) {
       [$command, $cwd] = is_array($listener) ? $listener : [$listener, NULL];
-      $outputs[sprintf('ps -p %d -o command= 2>/dev/null', $pid)] = $command . PHP_EOL;
+      $outputs[sprintf('ps -p %d -o command= 2>/dev/null', $pid)] = $command . "\n";
 
       if ($cwd !== NULL) {
         $outputs[sprintf('lsof -a -p %d -d cwd -Fn 2>/dev/null', $pid)] = sprintf("p%d\nfcwd\nn%s\n", $pid, $cwd);

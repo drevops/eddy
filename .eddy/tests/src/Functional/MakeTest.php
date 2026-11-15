@@ -38,7 +38,7 @@ final class MakeTest extends ToolingTestCase {
     // twig-cs-fixer scans. Recreate that layout with a template carrying a
     // fixable delimiter-spacing violation, reachable from the scanned build
     // directory only by following the templates/ symlink.
-    File::dump(self::$sut . '/templates/your_extension.html.twig', '{{content}}' . PHP_EOL);
+    File::dump(self::$sut . '/templates/your_extension.html.twig', '{{content}}' . "\n");
     symlink(self::$sut . '/templates', self::$sut . '/build/web/modules/custom/your_extension/templates');
 
     $this->processRun('make', ['lint'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
@@ -284,7 +284,7 @@ final class MakeTest extends ToolingTestCase {
     $this->assertProcessSuccessful();
 
     // PHP: introduce a PHPCS violation.
-    File::append(self::$sut . '/your_extension.module', '$a=123;echo $a;' . PHP_EOL);
+    File::append(self::$sut . '/your_extension.module', '$a=123;echo $a;' . "\n");
 
     $this->processRun('make', ['lint'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessFailed();
@@ -295,7 +295,7 @@ final class MakeTest extends ToolingTestCase {
     $this->assertProcessSuccessful();
 
     // JS: introduce a Prettier formatting violation (fixable).
-    File::append(self::$sut . '/js/your_extension.js', 'Drupal.behaviors.yourExtension.testValue =     "test"   ;' . PHP_EOL);
+    File::append(self::$sut . '/js/your_extension.js', 'Drupal.behaviors.yourExtension.testValue =     "test"   ;' . "\n");
 
     $this->processRun('make', ['lint'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessFailed();
@@ -306,7 +306,7 @@ final class MakeTest extends ToolingTestCase {
     $this->assertProcessSuccessful();
 
     // CSS: introduce a Stylelint order violation (fixable).
-    File::append(self::$sut . '/css/your_extension.css', PHP_EOL . '.test {' . PHP_EOL . '  z-index: 1;' . PHP_EOL . '  color: red;' . PHP_EOL . '}' . PHP_EOL);
+    File::append(self::$sut . '/css/your_extension.css', "\n" . '.test {' . "\n" . '  z-index: 1;' . "\n" . '  color: red;' . "\n" . '}' . "\n");
 
     $this->processRun('make', ['lint'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessFailed();
@@ -318,12 +318,12 @@ final class MakeTest extends ToolingTestCase {
 
     // Spelling: introduce a CSpell violation. CSpell has no autofix; restore
     // the file manually after asserting the failure.
-    File::append(self::$sut . '/README.md', PHP_EOL . 'A wnoirly word.' . PHP_EOL);
+    File::append(self::$sut . '/README.md', "\n" . 'A wnoirly word.' . "\n");
 
     $this->processRun('make', ['lint'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessFailed();
 
-    File::replaceContentInFile(self::$sut . '/README.md', PHP_EOL . 'A wnoirly word.' . PHP_EOL, '');
+    File::replaceContentInFile(self::$sut . '/README.md', "\n" . 'A wnoirly word.' . "\n", '');
 
     $this->processRun('make', ['lint'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();

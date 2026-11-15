@@ -21,7 +21,7 @@ final class ProvisionTest extends UnitTestCase {
   }
 
   protected static function drushPrefix(string $cwd): string {
-    return 'build/vendor/bin/drush -r ' . escapeshellarg($cwd . '/build/web') . ' -y ';
+    return 'build/vendor/bin/drush -r ' . self::shellQuote($cwd . '/build/web') . ' -y ';
   }
 
   /**
@@ -31,12 +31,12 @@ final class ProvisionTest extends UnitTestCase {
   protected static function drushCommands(string $prefix, string $db_file, string $site_url, string $drush_version = '13.8.0', string $uli_options = ' --no-browser', string $extension_name = 'test_extension', string $profile = 'standard'): array {
     return [
       ['cmd' => $prefix . 'status --field=db-status', 'output' => ''],
-      ['cmd' => $prefix . sprintf('site-install %s -y --db-url=%s --account-name=admin install_configure_form.enable_update_status_module=NULL install_configure_form.enable_update_status_emails=NULL', escapeshellarg($profile), escapeshellarg('sqlite://localhost/' . $db_file))],
+      ['cmd' => $prefix . sprintf('site-install %s -y --db-url=%s --account-name=admin install_configure_form.enable_update_status_module=NULL install_configure_form.enable_update_status_emails=NULL', self::shellQuote($profile), self::shellQuote('sqlite://localhost/' . $db_file))],
       ['cmd' => $prefix . 'status'],
-      ['cmd' => $prefix . 'pm:enable ' . escapeshellarg($extension_name)],
+      ['cmd' => $prefix . 'pm:enable ' . self::shellQuote($extension_name)],
       ['cmd' => $prefix . 'cr'],
       ['cmd' => $prefix . 'status --field=drush-version', 'output' => $drush_version],
-      ['cmd' => $prefix . sprintf('uli -l %s', escapeshellarg($site_url)) . $uli_options, 'output' => $site_url . '/user/reset/1/abc/login'],
+      ['cmd' => $prefix . sprintf('uli -l %s', self::shellQuote($site_url)) . $uli_options, 'output' => $site_url . '/user/reset/1/abc/login'],
     ];
   }
 
@@ -163,7 +163,7 @@ final class ProvisionTest extends UnitTestCase {
 
     $browser_output_link = $cwd . '/build/web/sites/simpletest/browser_output';
     $this->assertTrue(is_link($browser_output_link));
-    $this->assertSame($cwd . '/.logs/browser_output', readlink($browser_output_link));
+    $this->assertSame(self::slashPath($cwd . '/.logs/browser_output'), self::slashPath((string) readlink($browser_output_link)));
 
     $expected_hints = [];
 

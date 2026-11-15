@@ -228,6 +228,10 @@ PHPUnit tests are tagged with `#[Group('p0'..'p5')]` so CI can shard them across
 
 Only `p0` collects coverage in CI. The other groups run the tooling and `install.php` as subprocesses, where pcov records nothing, so their reports would hold only the static analysis of files they never load. That analysis counts lines such as the shebang and top-level `const` declarations, which pcov never reports, so Codecov would show them as missed.
 
+A test of behavior that only POSIX systems have, such as file modes or a POSIX shell, also carries `#[Group('posix')]`. The Windows legs of CI pass `--exclude-group=posix`, since `phpunit.xml` fails a run on a skipped test.
+
+Unit tests run as if on Linux. `UnitTestCase::setUp()` calls `mockWindows(FALSE)`, which mocks `php_uname()` for `is_windows()` and `escapeshellarg()` for the quoting of the tooling and of the tests, so a test asserts the same command on every host. `mockWindows()` switches both to Windows, and `mockHost()` restores the host for a test that runs real commands or links. `FunctionalTestCase` restores the host for every functional test. A data provider runs before `setUp()`, so it quotes with `shellQuote()`, never `escapeshellarg()`. Eddy writes `"\n"` rather than `PHP_EOL`, which is `"\r\n"` on Windows, in its files and its output alike.
+
 **Do not DRY the per-wrapper tests.** `AhoyTest` (p3) and `MakeTest` (p4) are intentionally kept as separate, near-parallel test classes - one per command wrapper. Never merge or parameterize them into a single shared class: each wrapper (`ahoy`, `make`) must be exercised by its own independent test so a regression in one runner can never be masked by the other. `XdebugTest`'s single parameterized `assertToggle()` is a deliberate exception for one feature toggled through both wrappers, not a pattern to extend across the whole command surface.
 
 ## Running the tests

@@ -178,11 +178,13 @@ jobs:
 
       - name: Run PHP tests with coverage
         if: matrix.group == 'p0'
-        run: composer test-coverage -- --group="${GROUP}"
+        run: composer test-coverage -- --group="${GROUP}" ${EXCLUDE_GROUP:+--exclude-group="${EXCLUDE_GROUP}"}
         shell: bash
         working-directory: .eddy/tests
         env:
           GROUP: ${{ matrix.group }}
+          # Windows has no POSIX file modes or shell, which the posix group tests.
+          EXCLUDE_GROUP: ${{ runner.os == 'Windows' && 'posix' || '' }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # The other groups run the scripts as subprocesses, so their reports
@@ -190,11 +192,12 @@ jobs:
       # counts lines such as the shebang as missed.
       - name: Run PHP tests
         if: matrix.group != 'p0'
-        run: composer test -- --group="${GROUP}"
+        run: composer test -- --group="${GROUP}" ${EXCLUDE_GROUP:+--exclude-group="${EXCLUDE_GROUP}"}
         shell: bash
         working-directory: .eddy/tests
         env:
           GROUP: ${{ matrix.group }}
+          EXCLUDE_GROUP: ${{ runner.os == 'Windows' && 'posix' || '' }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WEBSERVER_HOST: ${{ (matrix.group == 'p3' || matrix.group == 'p4') && '0.0.0.0' || 'localhost' }}
           WEBDRIVER_BACKEND: ${{ (matrix.group == 'p3' || matrix.group == 'p4') && matrix.backend || '' }}

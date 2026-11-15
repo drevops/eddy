@@ -62,10 +62,10 @@ $root = (string) getcwd();
 
 // -----------------------------------------------------------------------------
 
-echo '===============================' . PHP_EOL;
-echo '       🌐 START BROWSER        ' . PHP_EOL;
-echo '===============================' . PHP_EOL;
-echo PHP_EOL;
+echo '===============================' . "\n";
+echo '       🌐 START BROWSER        ' . "\n";
+echo '===============================' . "\n";
+echo "\n";
 
 if ($webdriver_backend === 'selenium') {
   selenium_start($webdriver_port, $root);
@@ -74,11 +74,11 @@ else {
   chromedriver_start($webdriver_port, $root);
 }
 
-echo PHP_EOL;
-echo '===============================' . PHP_EOL;
-echo '      🌐 BROWSER READY ✅     ' . PHP_EOL;
-echo '===============================' . PHP_EOL;
-echo PHP_EOL;
+echo "\n";
+echo '===============================' . "\n";
+echo '      🌐 BROWSER READY ✅     ' . "\n";
+echo '===============================' . "\n";
+echo "\n";
 
 // -----------------------------------------------------------------------------
 // Local helpers.

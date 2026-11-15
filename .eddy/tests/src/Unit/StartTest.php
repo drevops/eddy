@@ -601,7 +601,7 @@ final class StartTest extends UnitTestCase {
     $launch = "nohup cloudflared tunnel --url 'http://localhost:8000' --no-autoupdate >'.logs/cloudflared.log' 2>&1 & echo \$!";
     $this->mockPortListeners('8000', [], [
       $launch => function () use ($tunnel_url): string {
-        File::dump('.logs/cloudflared.log', 'INF |  ' . $tunnel_url . '  |' . PHP_EOL);
+        File::dump('.logs/cloudflared.log', 'INF |  ' . $tunnel_url . '  |' . "\n");
 
         return "4242\n";
       },
@@ -655,7 +655,7 @@ final class StartTest extends UnitTestCase {
   }
 
   protected static function serverCommand(string $host, string $port, bool $xdebug = FALSE): string {
-    return sprintf('nohup php%s -S %s:%s -t %s %s >%s 2>&1 &', $xdebug ? ' -d xdebug.mode=debug -d xdebug.start_with_request=yes' : '', escapeshellarg($host), escapeshellarg($port), escapeshellarg(self::PROJECT_ROOT . '/build/web'), escapeshellarg(self::PROJECT_ROOT . '/build/web/.ht.router.php'), escapeshellarg('.logs/php.log'));
+    return sprintf('nohup php%s -S %s:%s -t %s %s >%s 2>&1 &', $xdebug ? ' -d xdebug.mode=debug -d xdebug.start_with_request=yes' : '', self::shellQuote($host), self::shellQuote($port), self::shellQuote(self::PROJECT_ROOT . '/build/web'), self::shellQuote(self::PROJECT_ROOT . '/build/web/.ht.router.php'), self::shellQuote('.logs/php.log'));
   }
 
 }

@@ -38,7 +38,7 @@ namespace DrevOps\Eddy\Tooling;
  * Output a note message.
  */
 function NOTE(string $format, string|int|float ...$args): void {
-  echo sprintf('       %s%s', sprintf($format, ...$args), PHP_EOL);
+  echo sprintf('       %s%s', sprintf($format, ...$args), "\n");
 }
 
 /**
@@ -92,14 +92,14 @@ function FAIL_NO_EXIT(string $format, string|int|float ...$args): void {
 function print_tagged(string $tag, string $color, string $format, string|int|float ...$args): void {
   $message = sprintf($format, ...$args);
 
-  echo term_supports_color() ? "\033[" . $color . 'm' . $tag . ' ' . $message . "\033[0m\n" : $tag . ' ' . $message . PHP_EOL;
+  echo term_supports_color() ? "\033[" . $color . 'm' . $tag . ' ' . $message . "\033[0m\n" : $tag . ' ' . $message . "\n";
 }
 
 /**
  * Check if terminal supports colors.
  */
 function term_supports_color(): bool {
-  return getenv('TERM') === 'dumb' || getenv('TERM') === FALSE ? FALSE : function_exists('posix_isatty') && @posix_isatty(STDOUT);
+  return getenv('TERM') === 'dumb' || getenv('TERM') === FALSE ? FALSE : stream_isatty(STDOUT);
 }
 
 /**
@@ -611,13 +611,13 @@ function copy_dir(string $src, string $dst): void {
   mkdir_or_fail($dst);
 
   $iterator = new \RecursiveIteratorIterator(
-    new \RecursiveDirectoryIterator($src, \RecursiveDirectoryIterator::SKIP_DOTS),
+    new \RecursiveDirectoryIterator($src, \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::UNIX_PATHS),
     \RecursiveIteratorIterator::SELF_FIRST
   );
 
   /** @var \RecursiveDirectoryIterator $item */
   foreach ($iterator as $item) {
-    $target = $dst . DIRECTORY_SEPARATOR . $iterator->getSubPathname();
+    $target = $dst . '/' . $iterator->getSubPathname();
 
     if ($item->isDir()) {
       mkdir_or_fail($target);
@@ -632,7 +632,8 @@ function copy_dir(string $src, string $dst): void {
  * Check whether a path is a symlink, or a directory junction on Windows.
  *
  * Composer links a path repository with a junction on Windows, and PHP
- * reports a junction as a directory rather than a link.
+ * reports a junction as a directory rather than a link. The real path of a
+ * junction is its target, while a directory resolves to itself.
  *
  * @param string $path
  *   The path.
@@ -641,7 +642,7 @@ function copy_dir(string $src, string $dst): void {
  *   TRUE for a link, whether its target exists or not.
  */
 function is_link_path(string $path): bool {
-  return is_link($path) || (is_windows() && is_dir($path) && @readlink($path) !== FALSE);
+  return is_link($path) || (is_windows() && is_dir($path) && realpath($path) !== realpath(dirname($path)) . DIRECTORY_SEPARATOR . basename($path));
 }
 
 /**
@@ -806,10 +807,7 @@ function command_exists_or_fail(string $command): void {
 function command_output(array $command, int $timeout): ?string {
   $pipes = [];
   $null = null_device();
-  // PHP reads a pipe without blocking only outside Windows, and a socket
-  // everywhere.
-  $stdout = is_windows() ? ['socket'] : ['pipe', 'w'];
-  $process = @proc_open($command, [0 => ['file', $null, 'r'], 1 => $stdout, 2 => ['file', $null, 'w']], $pipes);
+  $process = @proc_open($command, [0 => ['file', $null, 'r'], 1 => ['pipe', 'w'], 2 => ['file', $null, 'w']], $pipes);
 
   if (!is_resource($process)) {
     return '';
@@ -972,11 +970,18 @@ function run_custom_scripts(string $dir, string $prefix): void {
 /**
  * Start a command that keeps running after the tooling command exits.
  *
- * 'cmd.exe' has no 'nohup', so on Windows 'start /B' runs the command and
- * returns without waiting for it.
+ * Windows has no 'nohup', and ends the processes of a job object when the
+ * job closes, such as when the shell that runs a command wrapper exits. So
+ * on Windows the command starts through the Windows Management
+ * Instrumentation (WMI), which creates it outside any job, in the current
+ * directory and with the environment of the user rather than this process.
+ *
+ * A command that fails to start leaves its port closed, which the caller
+ * reports.
  *
  * @param string $command
- *   The command, with its arguments escaped.
+ *   The command, with its arguments escaped. On Windows, the executable is
+ *   an absolute path, since PATH comes from the user's environment.
  * @param string $log
  *   The file that receives the output of the command.
  */
@@ -987,13 +992,11 @@ function run_in_background(string $command, string $log): void {
     return;
   }
 
-  $launcher = popen(sprintf('start "" /B %s >%s 2>&1', $command, escapeshellarg($log)), 'r');
+  $command_line = sprintf('cmd.exe /c "%s >%s 2>&1"', $command, escapeshellarg($log));
+  $script = sprintf("exit (Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{CommandLine = '%s'; CurrentDirectory = '%s'}).ReturnValue", str_replace("'", "''", $command_line), str_replace("'", "''", (string) getcwd()));
 
-  // A failed launch leaves the command's port closed, which the caller
-  // reports.
-  if ($launcher !== FALSE) {
-    pclose($launcher);
-  }
+  // An encoded script reaches PowerShell without another layer of quoting.
+  exec('powershell -NoProfile -NonInteractive -EncodedCommand ' . base64_encode((string) iconv('UTF-8', 'UTF-16LE', $script)) . ' 2>NUL');
 }
 
 /**
@@ -1406,8 +1409,8 @@ function resolve_site_url(string $host, string $port, string $dotenv_file = '.en
  * Get the path that a PHP webserver command line passes to '-t'.
  *
  * The command line is split on whitespace, so a path with spaces is cut at
- * the first one. On Windows, the command line keeps the double quotes that
- * escapeshellarg() adds, so they are removed from the path.
+ * the first one. On Windows, the command line keeps the double quotes around
+ * each argument, so they are removed.
  *
  * @param string $command
  *   The command line, as 'ps' prints it.
@@ -1418,18 +1421,17 @@ function resolve_site_url(string $host, string $port, string $dotenv_file = '.en
 function webserver_docroot_argument(string $command): ?string {
   $arguments = preg_split('/\s+/', trim($command), -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
+  if (is_windows()) {
+    $arguments = array_map(static fn(string $argument): string => trim($argument, '"'), $arguments);
+  }
+
   foreach ($arguments as $index => $argument) {
-    $path = NULL;
-
     if ($argument === '-t') {
-      $path = $arguments[$index + 1] ?? NULL;
-    }
-    elseif (str_starts_with($argument, '-t')) {
-      $path = substr($argument, 2);
+      return $arguments[$index + 1] ?? NULL;
     }
 
-    if ($path !== NULL) {
-      return is_windows() ? trim($path, '"') : $path;
+    if (str_starts_with($argument, '-t')) {
+      return substr($argument, 2);
     }
   }
 
@@ -1443,10 +1445,10 @@ function webserver_docroot_argument(string $command): ?string {
  *   The path.
  *
  * @return bool
- *   TRUE for a path from '/', or from a drive letter on Windows.
+ *   TRUE for a path from '/' or from a drive letter, such as 'C:\'.
  */
 function is_absolute_path(string $path): bool {
-  return str_starts_with($path, '/') || (is_windows() && preg_match('#^[A-Za-z]:[\\\\/]#', $path) === 1);
+  return str_starts_with($path, '/') || preg_match('#^[A-Za-z]:[\\\\/]#', $path) === 1;
 }
 
 /**

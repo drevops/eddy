@@ -122,7 +122,7 @@ final class HelpersPlatformTest extends UnitTestCase {
   public static function dataProviderIsAbsolutePath(): \Iterator {
     yield 'posix, absolute' => [FALSE, '/www/build/web', TRUE];
     yield 'posix, relative' => [FALSE, 'build/web', FALSE];
-    yield 'posix, drive letter' => [FALSE, 'C:/www/build/web', FALSE];
+    yield 'posix, drive letter' => [FALSE, 'C:/www/build/web', TRUE];
     yield 'windows, drive letter with a backslash' => [TRUE, 'C:\\www\\build\\web', TRUE];
     yield 'windows, drive letter with a slash' => [TRUE, 'd:/www/build/web', TRUE];
     yield 'windows, root' => [TRUE, '/www/build/web', TRUE];
@@ -136,31 +136,29 @@ final class HelpersPlatformTest extends UnitTestCase {
     run_in_background("php -S 'localhost':'8000'", '.logs/php.log');
   }
 
-  #[DataProvider('dataProviderRunInBackgroundOnWindows')]
-  public function testRunInBackgroundOnWindows(bool $opens, bool $expected_close): void {
+  public function testRunInBackgroundOnWindows(): void {
     $this->mockWindows();
-    $opened = [];
-    $closed = 0;
-    $this->mockFunction('popen', function (string $command, string $mode) use (&$opened, $opens) {
-      $opened[] = [$command, $mode];
+    $this->mockFunction('getcwd', static fn(): string => "C:\\Users\\O'Brien\\project");
+    $commands = [];
+    $this->mockFunction('exec', function (string $command) use (&$commands): string {
+      $commands[] = $command;
 
-      return $opens ? fopen('php://memory', 'r') : FALSE;
-    });
-    $this->mockFunction('pclose', function ($handle) use (&$closed): int {
-      $closed++;
-
-      return 0;
+      return '';
     });
 
-    run_in_background('php -S localhost:8000', '.logs/php.log');
+    run_in_background('"C:\\php\\php.exe" -S "localhost":"8000"', '.logs/php.log');
 
-    $this->assertSame([['start "" /B php -S localhost:8000 >' . escapeshellarg('.logs/php.log') . ' 2>&1', 'r']], $opened);
-    $this->assertSame($expected_close ? 1 : 0, $closed);
-  }
+    $prefix = 'powershell -NoProfile -NonInteractive -EncodedCommand ';
+    $this->assertCount(1, $commands);
+    $this->assertStringStartsWith($prefix, $commands[0]);
+    $this->assertStringEndsWith(' 2>NUL', $commands[0]);
 
-  public static function dataProviderRunInBackgroundOnWindows(): \Iterator {
-    yield 'launched' => [TRUE, TRUE];
-    yield 'not launched' => [FALSE, FALSE];
+    $encoded = substr($commands[0], strlen($prefix), -strlen(' 2>NUL'));
+    $script = (string) iconv('UTF-16LE', 'UTF-8', (string) base64_decode($encoded, TRUE));
+
+    // A single quote in a value is doubled inside the PowerShell string.
+    $command_line = 'cmd.exe /c ""C:\\php\\php.exe" -S "localhost":"8000" >".logs/php.log" 2>&1"';
+    $this->assertSame("exit (Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{CommandLine = '" . $command_line . "'; CurrentDirectory = 'C:\\Users\\O''Brien\\project'}).ReturnValue", $script);
   }
 
   public function testProcessCommandOnWindows(): void {

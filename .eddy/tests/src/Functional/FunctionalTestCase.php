@@ -51,7 +51,7 @@ abstract class FunctionalTestCase extends UnitTestCase {
     // the removal of the workspace cannot unlink.
     $junction = self::$sut . '/vendor/drevops/eddy-tooling';
 
-    if (PHP_OS_FAMILY === 'Windows' && is_dir($junction) && @readlink($junction) !== FALSE) {
+    if (PHP_OS_FAMILY === 'Windows' && is_dir($junction) && realpath($junction) !== realpath(dirname($junction)) . DIRECTORY_SEPARATOR . basename($junction)) {
       rmdir($junction);
     }
 
