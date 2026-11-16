@@ -1,5 +1,17 @@
 SHELL=/bin/bash
 
+# Windows has no '/bin/bash', so make there finds 'bash' on PATH, such as
+# the one Git for Windows installs, instead of running recipes in 'cmd.exe'.
+# Make on Windows runs a recipe line without shell characters directly,
+# which cannot execute the 'vendor/bin' scripts, so PHP runs them there.
+ifeq ($(OS),Windows_NT)
+SHELL := bash.exe
+TOOLING := php vendor/bin
+else
+TOOLING := vendor/bin
+endif
+unexport TOOLING
+
 # Load variables from .env if present and export them to recipe shells. The
 # leading '-' on -include suppresses errors when the file does not exist.
 # Each .env variable that the shell sets to a non-empty value is made
@@ -28,9 +40,10 @@ unexport DRUSH
 # test*` runs against the same base URL, database, and browser-output
 # directory as `ahoy test*`. The webserver host and port fall back to their
 # defaults only inside the URL: an exported default port would stop `start`
-# from discovering a free one.
+# from discovering a free one. The URL names 127.0.0.1 for a server bound to
+# __VERSION__.0, because Windows refuses a connection to __VERSION__.0.
 EXTENSION_NAME = $(shell basename -s .info.yml -- ./*.info.yml)
-SIMPLETEST_BASE_URL = http://$(or $(WEBSERVER_HOST),localhost):$(or $(WEBSERVER_PORT),8000)
+SIMPLETEST_BASE_URL = http://$(patsubst __VERSION__.0,127.0.0.1,$(or $(WEBSERVER_HOST),localhost)):$(or $(WEBSERVER_PORT),8000)
 SIMPLETEST_DB = sqlite://localhost/drupal_test_$(EXTENSION_NAME).sqlite
 BROWSERTEST_OUTPUT_DIRECTORY = $(CURDIR)/.logs/browser_output
 
@@ -84,16 +97,16 @@ build:
 	$(MAKE) provision
 
 assemble:
-	vendor/bin/eddy-assemble
+	$(TOOLING)/eddy-assemble
 
 start:
-	vendor/bin/eddy-start
+	$(TOOLING)/eddy-start
 
 stop:
-	vendor/bin/eddy-stop
+	$(TOOLING)/eddy-stop
 
 info:
-	@vendor/bin/eddy-info
+	@$(TOOLING)/eddy-info
 
 # Enable PHP XDebug step-debugging by restarting the PHP server with
 # `-d xdebug.mode=debug -d xdebug.start_with_request=yes`. State is
@@ -123,10 +136,10 @@ drush:
 	$(DRUSH) $(RUN_ARGS)
 
 login:
-	@vendor/bin/eddy-login
+	@$(TOOLING)/eddy-login
 
 provision:
-	vendor/bin/eddy-provision
+	$(TOOLING)/eddy-provision
 
 lint:
 	$(call title,Running PHPCS)
@@ -217,10 +230,10 @@ test-functional-javascript:
 	popd >/dev/null || exit 1
 
 browser-start:
-	vendor/bin/eddy-browser-start
+	$(TOOLING)/eddy-browser-start
 
 browser-stop:
-	vendor/bin/eddy-browser-stop
+	$(TOOLING)/eddy-browser-stop
 
 test-javascript:
 	pushd "build" >/dev/null || exit 1 && \

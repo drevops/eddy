@@ -28,6 +28,7 @@ final class UpdateSkillRepointSearchTest extends UnitTestCase {
    *   The files the search reports, sorted.
    */
   #[DataProvider('dataProviderRepointSearch')]
+  #[Group('posix')]
   public function testRepointSearch(array $files, int $expected_exit_code, array $expected_files): void {
     $project = self::$tmp . '/project';
 

@@ -37,7 +37,7 @@ final class InstallTest extends FunctionalTestCase {
     $fixtures = $this->locationsFixtureDir();
     self::$fixtures = $fixtures;
 
-    $this->processRun(self::$sut . '/install.php', [], [], self::installEnv(array_replace(self::defaultAnswers(), $answers)));
+    $this->processRun('php', [self::$sut . '/install.php'], [], self::installEnv(array_replace(self::defaultAnswers(), $answers)));
 
     $this->assertProcessSuccessful();
 
@@ -47,7 +47,7 @@ final class InstallTest extends FunctionalTestCase {
 
     // A kept installer must still run.
     if (File::exists(self::$sut . '/install.php')) {
-      $this->processRun(self::$sut . '/install.php', ['--help']);
+      $this->processRun('php', [self::$sut . '/install.php', '--help']);
       $this->assertProcessSuccessful();
       $this->assertProcessOutputContains('Eddy - project installation.');
     }
@@ -237,6 +237,20 @@ final class InstallTest extends FunctionalTestCase {
     yield 'kept installer' => ['install.php', $none, ['remove_self' => 'false'], [...$installed, 'install.php'], $template];
   }
 
+  public function testInstallDownloadToFile(): void {
+    $archive = self::archiveTemplate();
+    $project = $this->createProject('install.php', static function (string $dir): void {});
+
+    // The installer of the template writes to the same file as this one. The
+    // file is outside of the project, which must be empty.
+    $this->processRun('sh', ['-c', 'php install.php > ../install.log'], [], self::installEnv(array_replace(self::defaultAnswers(), ['template_archive' => $archive])));
+
+    $output = File::read(dirname($project) . '/install.log');
+    $this->assertSame(0, $this->processGet()->getExitCode(), $output . $this->processGet()->getErrorOutput());
+    $this->assertStringContainsString('Downloaded from', $output, 'The installer of the template overwrites the output of this installer.');
+    $this->assertStringContainsString('Force Crystal (force_crystal) is ready.', $output);
+  }
+
   /**
    * @param array<int, string> $expected_output
    * @param array<int, string> $expected_present
@@ -288,7 +302,9 @@ final class InstallTest extends FunctionalTestCase {
    */
   protected static function archiveTemplate(): string {
     $archive = self::$tmp . '/eddy.tar.gz';
-    (new Process(['tar', '-czf', $archive, '-C', dirname(self::$sut), basename(self::$sut)]))->mustRun();
+    // GNU tar reads a drive letter in the archive path as a remote host, so
+    // the archive is named relative to the directory it is written to.
+    (new Process(['tar', '-czf', basename($archive), '-C', dirname(self::$sut), basename(self::$sut)], self::$tmp))->mustRun();
 
     return $archive;
   }

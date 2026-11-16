@@ -53,6 +53,19 @@ final class HelpersRunCustomScriptsTest extends UnitTestCase {
     $this->assertStringContainsString('assemble-zeta.sh', $output);
   }
 
+  public function testRunsScriptsWithBashOnWindows(): void {
+    $this->mockWindows();
+    $dir = self::createScriptsDir(['assemble-alpha.sh' => 'echo alpha']);
+
+    $this->mockPassthruMultiple([
+      ['cmd' => 'bash ' . escapeshellarg($dir . '/assemble-alpha.sh'), 'result_code' => 0],
+    ]);
+
+    $output = $this->capture(fn() => run_custom_scripts($dir, 'assemble-'));
+
+    $this->assertStringContainsString("Completed custom script '" . $dir . "/assemble-alpha.sh'", $output);
+  }
+
   /**
    * @param array<string, string> $files
    *   The contents of each file in the scripts directory, keyed by file name.

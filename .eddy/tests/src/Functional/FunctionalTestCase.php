@@ -20,6 +20,9 @@ abstract class FunctionalTestCase extends UnitTestCase {
   protected function setUp(): void {
     parent::setUp();
 
+    // Functional tests run the tooling as it runs on the host.
+    $this->mockHost();
+
     self::locationsCopy('../../', self::$sut, [], [
       '*.png',
       '.idea',
@@ -43,6 +46,14 @@ abstract class FunctionalTestCase extends UnitTestCase {
    */
   protected function tearDown(): void {
     $this->processTearDown();
+
+    // Composer links the tooling with a directory junction on Windows, which
+    // the removal of the workspace cannot unlink.
+    $junction = self::$sut . '/vendor/drevops/eddy-tooling';
+
+    if (PHP_OS_FAMILY === 'Windows' && is_dir($junction) && realpath($junction) !== realpath(dirname($junction)) . DIRECTORY_SEPARATOR . basename($junction)) {
+      rmdir($junction);
+    }
 
     parent::tearDown();
   }

@@ -17,6 +17,13 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('p0')]
 final class HelpersLinkBrowserOutputTest extends UnitTestCase {
 
+  protected function setUp(): void {
+    parent::setUp();
+
+    // The links are real, so they are removed the way the host removes them.
+    $this->mockHost();
+  }
+
   public function testMissingWebrootDoesNothing(): void {
     $webroot = self::$tmp . '/web_' . uniqid();
     $logs = self::$tmp . '/logs_' . uniqid();
@@ -37,7 +44,7 @@ final class HelpersLinkBrowserOutputTest extends UnitTestCase {
 
     $this->assertDirectoryExists($target);
     $this->assertTrue(is_link($link));
-    $this->assertSame($target, readlink($link));
+    $this->assertSame(self::slashPath($target), self::slashPath((string) readlink($link)));
 
     File::dump($link . '/page.html', 'dump');
     $this->assertFileExists($target . '/page.html');
@@ -64,7 +71,7 @@ final class HelpersLinkBrowserOutputTest extends UnitTestCase {
     link_browser_output($webroot, $logs);
 
     $this->assertTrue(is_link($link));
-    $this->assertSame($logs . '/browser_output', readlink($link));
+    $this->assertSame(self::slashPath($logs . '/browser_output'), self::slashPath((string) readlink($link)));
   }
 
   public static function dataProviderReplacesExisting(): \Iterator {

@@ -38,7 +38,7 @@ namespace DrevOps\Eddy\Tooling;
  * Output a note message.
  */
 function NOTE(string $format, string|int|float ...$args): void {
-  echo sprintf('       %s%s', sprintf($format, ...$args), PHP_EOL);
+  echo sprintf('       %s%s', sprintf($format, ...$args), "\n");
 }
 
 /**
@@ -92,14 +92,14 @@ function FAIL_NO_EXIT(string $format, string|int|float ...$args): void {
 function print_tagged(string $tag, string $color, string $format, string|int|float ...$args): void {
   $message = sprintf($format, ...$args);
 
-  echo term_supports_color() ? "\033[" . $color . 'm' . $tag . ' ' . $message . "\033[0m\n" : $tag . ' ' . $message . PHP_EOL;
+  echo term_supports_color() ? "\033[" . $color . 'm' . $tag . ' ' . $message . "\033[0m\n" : $tag . ' ' . $message . "\n";
 }
 
 /**
  * Check if terminal supports colors.
  */
 function term_supports_color(): bool {
-  return getenv('TERM') === 'dumb' || getenv('TERM') === FALSE ? FALSE : function_exists('posix_isatty') && @posix_isatty(STDOUT);
+  return getenv('TERM') === 'dumb' || getenv('TERM') === FALSE ? FALSE : stream_isatty(STDOUT);
 }
 
 /**
@@ -324,7 +324,7 @@ function dotenv_write_var(string $key, string $value, string $dotenv_file = '.en
   $assignment = sprintf('%s=%s', $key, $value);
 
   if (!is_file($dotenv_file)) {
-    file_write_or_fail($dotenv_file, $assignment . PHP_EOL);
+    file_write_or_fail($dotenv_file, $assignment . "\n");
 
     return;
   }
@@ -370,7 +370,7 @@ function dotenv_write_var(string $key, string $value, string $dotenv_file = '.en
     $lines[$replace_index] = $assignment;
   }
 
-  file_write_or_fail($dotenv_file, implode(PHP_EOL, $lines) . PHP_EOL);
+  file_write_or_fail($dotenv_file, implode("\n", $lines) . "\n");
 }
 
 /**
@@ -393,7 +393,7 @@ function dotenv_unset_var(string $key, string $dotenv_file = '.env'): void {
     return;
   }
 
-  file_write_or_fail($dotenv_file, implode(PHP_EOL, $kept));
+  file_write_or_fail($dotenv_file, implode("\n", $kept));
 }
 
 /**
@@ -611,13 +611,13 @@ function copy_dir(string $src, string $dst): void {
   mkdir_or_fail($dst);
 
   $iterator = new \RecursiveIteratorIterator(
-    new \RecursiveDirectoryIterator($src, \RecursiveDirectoryIterator::SKIP_DOTS),
+    new \RecursiveDirectoryIterator($src, \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::UNIX_PATHS),
     \RecursiveIteratorIterator::SELF_FIRST
   );
 
   /** @var \RecursiveDirectoryIterator $item */
   foreach ($iterator as $item) {
-    $target = $dst . DIRECTORY_SEPARATOR . $iterator->getSubPathname();
+    $target = $dst . '/' . $iterator->getSubPathname();
 
     if ($item->isDir()) {
       mkdir_or_fail($target);
@@ -629,7 +629,43 @@ function copy_dir(string $src, string $dst): void {
 }
 
 /**
+ * Check whether a path is a symlink, or a directory junction on Windows.
+ *
+ * Composer links a path repository with a junction on Windows, and PHP
+ * reports a junction as a directory rather than a link. The real path of a
+ * junction is its target, while a directory resolves to itself.
+ *
+ * @param string $path
+ *   The path.
+ *
+ * @return bool
+ *   TRUE for a link, whether its target exists or not.
+ */
+function is_link_path(string $path): bool {
+  return is_link($path) || (is_windows() && is_dir($path) && realpath($path) !== realpath(dirname($path)) . DIRECTORY_SEPARATOR . basename($path));
+}
+
+/**
+ * Remove a link without following it.
+ *
+ * Windows removes a link to a directory with rmdir(), and any other link
+ * with unlink().
+ *
+ * @param string $path
+ *   The path of the link.
+ *
+ * @return bool
+ *   TRUE when the link was removed.
+ */
+function remove_link(string $path): bool {
+  return is_windows() && is_dir($path) ? @rmdir($path) : @unlink($path);
+}
+
+/**
  * Recursively remove a directory.
+ *
+ * A link inside the directory is removed without following it, so the files
+ * of its target stay.
  *
  * @return bool
  *   TRUE when the directory was removed or did not exist.
@@ -639,20 +675,18 @@ function remove_dir(string $dir): bool {
     return TRUE;
   }
 
-  $items = new \RecursiveIteratorIterator(
-    new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::UNIX_PATHS),
-    \RecursiveIteratorIterator::CHILD_FIRST
-  );
-
-  /** @var \SplFileInfo $item */
-  foreach ($items as $item) {
-    $path = $item->getPathname();
-
-    if (is_link($path)) {
-      @unlink($path);
+  foreach (scandir($dir) ?: [] as $name) {
+    if ($name === '.' || $name === '..') {
+      continue;
     }
-    elseif ($item->isDir()) {
-      @rmdir($path);
+
+    $path = $dir . '/' . $name;
+
+    if (is_link_path($path)) {
+      remove_link($path);
+    }
+    elseif (is_dir($path)) {
+      remove_dir($path);
     }
     else {
       @unlink($path);
@@ -692,16 +726,58 @@ const LOGS_DIR = '.logs';
 // -----------------------------------------------------------------------------
 
 /**
+ * Check whether the tooling runs on Windows.
+ *
+ * PHP runs shell commands through 'cmd.exe' on Windows, so a command that
+ * relies on POSIX shell syntax needs a Windows form there.
+ *
+ * @return bool
+ *   TRUE on Windows.
+ */
+function is_windows(): bool {
+  return str_starts_with(php_uname('s'), 'Windows');
+}
+
+/**
+ * Get the path of the null device.
+ *
+ * @return string
+ *   'NUL' on Windows, '/dev/null' elsewhere.
+ */
+function null_device(): string {
+  return is_windows() ? 'NUL' : '/dev/null';
+}
+
+/**
  * Get the path to a command, or FALSE if the command does not exist.
+ *
+ * 'where' prints every match on Windows, so the first one is returned.
  */
 function command_path(string $command): string|false {
   if (!preg_match('/^[A-Za-z0-9_\-]+(?: [A-Za-z0-9_\-]+)*$/', $command)) {
     return FALSE;
   }
 
-  exec(sprintf('command -v %s 2>/dev/null', $command), $output, $exit_code);
+  exec(sprintf(is_windows() ? 'where %s 2>NUL' : 'command -v %s 2>/dev/null', $command), $output, $exit_code);
 
   return $exit_code === 0 && !empty($output[0]) ? trim($output[0]) : FALSE;
+}
+
+/**
+ * Get the form of a relative executable path that the shell runs.
+ *
+ * 'cmd.exe' reads a '/' in a command name as the start of a switch, so the
+ * path takes backslashes on Windows. It then finds the '.bat' proxy that
+ * Composer writes next to each binary.
+ *
+ * @param string $path
+ *   The path, with '/' separators.
+ *
+ * @return string
+ *   The path to put in a command.
+ */
+function shell_path(string $path): string {
+  return is_windows() ? str_replace('/', '\\', $path) : $path;
 }
 
 /**
@@ -716,8 +792,8 @@ function command_exists_or_fail(string $command): void {
 /**
  * Run a command and capture its output, killing it after a time limit.
  *
- * The command runs without a shell. Its standard input reads from '/dev/null'
- * and its standard error is discarded.
+ * The command runs without a shell. Its standard input reads from the null
+ * device and its standard error is discarded.
  *
  * @param list<string> $command
  *   The executable followed by its arguments.
@@ -730,33 +806,82 @@ function command_exists_or_fail(string $command): void {
  */
 function command_output(array $command, int $timeout): ?string {
   $pipes = [];
-  $process = @proc_open($command, [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['file', '/dev/null', 'w']], $pipes);
+  $null = null_device();
+  // A pipe read on Windows blocks until the command closes its output, even
+  // in non-blocking mode, so the output goes to a file there.
+  $output_file = is_windows() ? LOGS_DIR . '/command-output-' . getmypid() . '-' . bin2hex(random_bytes(4)) . '.txt' : NULL;
 
-  if (!is_resource($process)) {
-    return '';
+  if ($output_file !== NULL && !is_dir(LOGS_DIR)) {
+    mkdir(LOGS_DIR, 0755, TRUE);
   }
+
+  $stdout = $output_file === NULL ? ['pipe', 'w'] : ['file', $output_file, 'w'];
+  $process = @proc_open($command, [0 => ['file', $null, 'r'], 1 => $stdout, 2 => ['file', $null, 'w']], $pipes);
+  $output = '';
+
+  if (is_resource($process)) {
+    $output = command_output_wait($process, $pipes, $timeout);
+  }
+
+  if ($output_file !== NULL) {
+    $output = $output === NULL ? NULL : (string) @file_get_contents($output_file);
+    // A killed command can leave a child process that holds the file open.
+    @unlink($output_file);
+  }
+
+  return $output;
+}
+
+/**
+ * Wait for a started command to exit and read the output pipe it writes to.
+ *
+ * @param resource $process
+ *   The process that proc_open() started.
+ * @param array<int, resource> $pipes
+ *   The pipes of the process. Index 1 is the standard output, when it is a
+ *   pipe rather than a file.
+ * @param int $timeout
+ *   Seconds to wait for the command to exit.
+ *
+ * @return string|null
+ *   The output read from the pipe, or NULL when the command was still running
+ *   at the time limit and was killed.
+ */
+function command_output_wait($process, array $pipes, int $timeout): ?string {
+  $pipe = $pipes[1] ?? NULL;
 
   // A blocking read waits until the command closes its output, so a hung
   // command would block the loop past the time limit.
-  stream_set_blocking($pipes[1], FALSE);
+  if ($pipe !== NULL) {
+    stream_set_blocking($pipe, FALSE);
+  }
+
   $output = '';
 
   for ($i = 0; $i < $timeout * 10 && proc_get_status($process)['running']; $i++) {
-    $output .= (string) stream_get_contents($pipes[1]);
+    $output .= $pipe === NULL ? '' : (string) stream_get_contents($pipe);
     usleep(100000);
   }
 
   $timed_out = proc_get_status($process)['running'];
 
-  if ($timed_out) {
+  if ($timed_out && is_windows()) {
+    // proc_terminate() ends only the started process, and a child it started
+    // keeps the output file open.
+    exec(sprintf('taskkill /F /T /PID %d >NUL 2>&1', proc_get_status($process)['pid']));
+  }
+  elseif ($timed_out) {
     // A command can ignore SIGTERM, and proc_close() waits for it to exit, so
     // send SIGKILL. The SIGKILL constant needs the pcntl extension.
     proc_terminate($process, 9);
   }
 
   // Output written after the last read in the loop is still in the pipe.
-  $output .= (string) stream_get_contents($pipes[1]);
-  fclose($pipes[1]);
+  if ($pipe !== NULL) {
+    $output .= (string) stream_get_contents($pipe);
+    fclose($pipe);
+  }
+
   proc_close($process);
 
   return $timed_out ? NULL : $output;
@@ -767,6 +892,8 @@ function command_output(array $command, int $timeout): ?string {
  *
  * The command is wrapped in a brace group so both streams are captured
  * together and the exit status is preserved, even for compound commands.
+ * 'cmd.exe' has no brace group, so on Windows the command is wrapped in
+ * parentheses instead.
  *
  * @param string $command
  *   The command to run.
@@ -780,7 +907,7 @@ function command_output(array $command, int $timeout): ?string {
  */
 function passthru_capture(string $command, ?int &$exit_code = NULL): string {
   ob_start();
-  passthru('{ ' . $command . '; } 2>&1', $exit_code);
+  passthru(is_windows() ? '(' . $command . ') 2>&1' : '{ ' . $command . '; } 2>&1', $exit_code);
 
   return ob_get_clean() ?: '';
 }
@@ -854,6 +981,9 @@ function passthru_verbose_or_fail(string $command, string $format = '', string|i
  * directory or an empty match set returns silently. This is the extension
  * point behind the assemble, provision, start and stop hooks.
  *
+ * 'cmd.exe' cannot run a '.sh' file, so on Windows each script runs through
+ * the 'bash' on PATH, such as the one Git for Windows installs.
+ *
  * @param string $dir
  *   Directory to scan, relative to the current working directory.
  * @param string $prefix
@@ -880,13 +1010,48 @@ function run_custom_scripts(string $dir, string $prefix): void {
     TASK("Running custom script '%s'.", $file);
     // Show the hook's output - these scripts are the project's own and their
     // output is intentional, unlike the suppressed dependency-tool commands.
-    passthru_verbose_or_fail(escapeshellarg($file), "Custom script '%s' failed.", $file);
+    passthru_verbose_or_fail((is_windows() ? 'bash ' : '') . escapeshellarg($file), "Custom script '%s' failed.", $file);
     PASS("Completed custom script '%s'.", $file);
   }
 }
 
 /**
+ * Start a command that keeps running after the tooling command exits.
+ *
+ * Windows has no 'nohup', and ends the processes of a job object when the
+ * job closes, such as when the shell that runs a command wrapper exits. So
+ * on Windows the command starts through the Windows Management
+ * Instrumentation (WMI), which creates it outside any job, in the current
+ * directory and with the environment of the user rather than this process.
+ *
+ * A command that fails to start leaves its port closed, which the caller
+ * reports.
+ *
+ * @param string $command
+ *   The command, with its arguments escaped. On Windows, the executable is
+ *   an absolute path, since PATH comes from the user's environment.
+ * @param string $log
+ *   The file that receives the output of the command.
+ */
+function run_in_background(string $command, string $log): void {
+  if (!is_windows()) {
+    passthru(sprintf('nohup %s >%s 2>&1 &', $command, escapeshellarg($log)));
+
+    return;
+  }
+
+  $command_line = sprintf('cmd.exe /c "%s >%s 2>&1"', $command, escapeshellarg($log));
+  $script = sprintf("exit (Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{CommandLine = '%s'; CurrentDirectory = '%s'}).ReturnValue", str_replace("'", "''", $command_line), str_replace("'", "''", (string) getcwd()));
+
+  // An encoded script reaches PowerShell without another layer of quoting.
+  exec('powershell -NoProfile -NonInteractive -EncodedCommand ' . base64_encode((string) iconv('UTF-8', 'UTF-16LE', $script)) . ' 2>NUL');
+}
+
+/**
  * Get the command line of a process.
+ *
+ * Windows has no 'ps', so the command line is read from the process list of
+ * the Windows Management Instrumentation (WMI) there.
  *
  * @param int $pid
  *   The process ID.
@@ -895,11 +1060,18 @@ function run_custom_scripts(string $dir, string $prefix): void {
  *   The command line, or an empty string when no such process runs.
  */
 function process_command(int $pid): string {
+  if (is_windows()) {
+    return trim((string) shell_exec(sprintf('powershell -NoProfile -NonInteractive -Command "(Get-CimInstance Win32_Process -Filter \'ProcessId=%d\').CommandLine" 2>NUL', $pid)));
+  }
+
   return trim((string) shell_exec(sprintf('ps -p %d -o command= 2>/dev/null', $pid)));
 }
 
 /**
  * Get the working directory of a process.
+ *
+ * Windows exposes no working directory of another process, so it is never
+ * read there.
  *
  * @param int $pid
  *   The process ID.
@@ -908,13 +1080,17 @@ function process_command(int $pid): string {
  *   The absolute path, or an empty string when it cannot be read.
  */
 function process_cwd(int $pid): string {
+  if (is_windows()) {
+    return '';
+  }
+
   $output = (string) shell_exec(sprintf('lsof -a -p %d -d cwd -Fn 2>/dev/null', $pid));
 
   return preg_match('/^n(.+)$/m', $output, $matches) === 1 ? $matches[1] : '';
 }
 
 /**
- * Kill processes with SIGKILL.
+ * Kill processes with SIGKILL, or with 'taskkill /F' on Windows.
  *
  * Process IDs below 1 are ignored, because 'kill' signals a whole process
  * group for 0 and negative IDs.
@@ -926,6 +1102,12 @@ function kill_processes(array $pids): void {
   $pids = array_filter($pids, static fn(int $pid): bool => $pid > 0);
 
   if ($pids === []) {
+    return;
+  }
+
+  if (is_windows()) {
+    passthru(sprintf('taskkill /F /PID %s >NUL 2>&1', implode(' /PID ', $pids)));
+
     return;
   }
 
@@ -1025,6 +1207,26 @@ function resolve_port_value(string $name, string $default, bool $auto_discover, 
 }
 
 /**
+ * Get the host that a client connects to for a server bound to a host.
+ *
+ * A server bound to a wildcard address listens on the loopback address too,
+ * and Windows refuses a connection to the wildcard address itself.
+ *
+ * @param string $host
+ *   The host the server binds to.
+ *
+ * @return string
+ *   The loopback address for a wildcard address, or the host as given.
+ */
+function client_host(string $host): string {
+  return match ($host) {
+    '0.0.0.0' => '127.0.0.1',
+    '::', '[::]' => '[::1]',
+    default => $host,
+  };
+}
+
+/**
  * Wait for a TCP port to accept connections.
  *
  * Each probe follows a 100-millisecond pause, the first one included. The
@@ -1082,6 +1284,39 @@ function port_listener_pids_command(int|string $port): string {
 }
 
 /**
+ * Get the IDs of the processes listening on a TCP port.
+ *
+ * Windows has no 'lsof', so the IDs come from the listening sockets that
+ * 'netstat -ano' prints there.
+ *
+ * @param string $port
+ *   The TCP port.
+ *
+ * @return array<int, int>
+ *   The process IDs, each once.
+ */
+function port_listener_pids(string $port): array {
+  $pids = [];
+
+  if (is_windows()) {
+    foreach (split_lines((string) shell_exec('netstat -ano 2>NUL')) as $line) {
+      $columns = preg_split('/\s+/', trim($line), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+      if (count($columns) === 5 && $columns[0] === 'TCP' && $columns[3] === 'LISTENING' && str_ends_with($columns[1], ':' . $port)) {
+        $pids[] = $columns[4];
+      }
+    }
+  }
+  else {
+    $pids = preg_split('/\s+/', trim((string) shell_exec(port_listener_pids_command($port))), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+  }
+
+  $pids = array_filter($pids, is_positive_integer(...));
+
+  return array_values(array_unique(array_map(intval(...), $pids)));
+}
+
+/**
  * List the processes listening on a port, split by owner.
  *
  * @param string $port
@@ -1095,14 +1330,8 @@ function port_listener_pids_command(int|string $port): string {
  */
 function port_listeners(string $port, callable $owns): array {
   $listeners = ['own' => [], 'other' => []];
-  $values = preg_split('/\s+/', trim((string) shell_exec(port_listener_pids_command($port))), -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
-  foreach ($values as $value) {
-    if (!is_positive_integer($value)) {
-      continue;
-    }
-
-    $pid = (int) $value;
+  foreach (port_listener_pids($port) as $pid) {
     $command = process_command($pid);
     $listeners[$owns($pid, $command) ? 'own' : 'other'][$pid] = $command;
   }
@@ -1228,7 +1457,8 @@ function resolve_site_url(string $host, string $port, string $dotenv_file = '.en
  * Get the path that a PHP webserver command line passes to '-t'.
  *
  * The command line is split on whitespace, so a path with spaces is cut at
- * the first one.
+ * the first one. On Windows, the command line quotes an argument that holds a
+ * space, so a double-quoted argument stays whole and loses its quotes.
  *
  * @param string $command
  *   The command line, as 'ps' prints it.
@@ -1238,6 +1468,11 @@ function resolve_site_url(string $host, string $port, string $dotenv_file = '.en
  */
 function webserver_docroot_argument(string $command): ?string {
   $arguments = preg_split('/\s+/', trim($command), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+  if (is_windows()) {
+    preg_match_all('/(?:"[^"]*"|[^\s"])+/', trim($command), $matches);
+    $arguments = array_map(static fn(string $argument): string => str_replace('"', '', $argument), $matches[0]);
+  }
 
   foreach ($arguments as $index => $argument) {
     if ($argument === '-t') {
@@ -1250,6 +1485,19 @@ function webserver_docroot_argument(string $command): ?string {
   }
 
   return NULL;
+}
+
+/**
+ * Check whether a path is absolute.
+ *
+ * @param string $path
+ *   The path.
+ *
+ * @return bool
+ *   TRUE for a path from '/' or from a drive letter, such as 'C:\'.
+ */
+function is_absolute_path(string $path): bool {
+  return str_starts_with($path, '/') || preg_match('#^[A-Za-z]:[\\\\/]#', $path) === 1;
 }
 
 /**
@@ -1281,7 +1529,7 @@ function webserver_serves(string $command, string $docroot, int $pid = 0): bool 
     return FALSE;
   }
 
-  if (!str_starts_with($path, '/')) {
+  if (!is_absolute_path($path)) {
     $cwd = $pid > 0 ? process_cwd($pid) : '';
 
     if ($cwd === '') {
@@ -1434,8 +1682,15 @@ function webdriver_listeners(string $port, string $root): array {
   $resolved_root = realpath($root) ?: $root;
 
   return port_listeners($port, static function (int $pid, string $command) use ($resolved_root): bool {
-    if (preg_match('#^(?:\S*/)?chromedriver(?:\s|$)#', $command) !== 1) {
+    // On Windows, the command line can quote the path and end in '.exe'.
+    if (preg_match('#^(?:"(?:[^"]*[/\\\\])?chromedriver(?:\.exe)?"|(?:[^"\s]*[/\\\\])?chromedriver(?:\.exe)?)(?:\s|$)#i', $command) !== 1) {
       return FALSE;
+    }
+
+    // Windows exposes no working directory, so a chromedriver on the port,
+    // which each project discovers for itself, counts as the project's own.
+    if (is_windows()) {
+      return TRUE;
     }
 
     $cwd = process_cwd($pid);
@@ -1477,7 +1732,7 @@ function selenium_container(string $port): string {
  *   The output, or an empty string when the container does not exist.
  */
 function selenium_container_inspect(string $port, string $format): string {
-  return (string) shell_exec(sprintf('docker inspect --format %s %s 2>/dev/null', escapeshellarg($format), escapeshellarg(selenium_container($port))));
+  return (string) shell_exec(sprintf('docker inspect --format %s %s 2>%s', escapeshellarg($format), escapeshellarg(selenium_container($port)), null_device()));
 }
 
 /**
@@ -1526,7 +1781,7 @@ function selenium_container_running(string $port): bool {
  *   The WebDriver port the container publishes.
  */
 function selenium_container_remove(string $port): void {
-  passthru(sprintf('docker rm -f %s >/dev/null 2>&1', escapeshellarg(selenium_container($port))));
+  passthru(sprintf('docker rm -f %s >%s 2>&1', escapeshellarg(selenium_container($port)), null_device()));
 }
 
 // -----------------------------------------------------------------------------
@@ -1561,6 +1816,9 @@ function extension_info(): array {
 /**
  * Build the path to the extension's SQLite database file.
  *
+ * The file is in '/tmp', or in the build directory on Windows, which has no
+ * '/tmp'.
+ *
  * @param string $extension_name
  *   Machine name of the extension, as returned by extension_info().
  *
@@ -1569,7 +1827,24 @@ function extension_info(): array {
  *   and status commands.
  */
 function site_db_file(string $extension_name): string {
-  return '/tmp/site_' . $extension_name . '.sqlite';
+  return (is_windows() ? getcwd() . '/build' : '/tmp') . '/site_' . $extension_name . '.sqlite';
+}
+
+/**
+ * Build the URL of the extension's SQLite database.
+ *
+ * Drupal resolves a path after 'sqlite://localhost/' against the docroot
+ * unless it starts with another '/', so a Windows path, which starts with a
+ * drive letter, is given relative to 'build/web'.
+ *
+ * @param string $extension_name
+ *   Machine name of the extension, as returned by extension_info().
+ *
+ * @return string
+ *   The URL that the site-install command takes as '--db-url'.
+ */
+function site_db_url(string $extension_name): string {
+  return 'sqlite://localhost/' . (is_windows() ? '../' . basename(site_db_file($extension_name)) : site_db_file($extension_name));
 }
 
 /**
@@ -1628,7 +1903,7 @@ function drush(string $command, mixed $args = NULL, ?int &$exit_code = NULL): st
   $exit_code_provided = $exit_code !== NULL;
   $exit_code = 0;
 
-  $command = 'build/vendor/bin/drush -r ' . escapeshellarg(getcwd() . '/build/web') . ' -y ' . $command;
+  $command = shell_path('build/vendor/bin/drush') . ' -r ' . escapeshellarg(getcwd() . '/build/web') . ' -y ' . $command;
 
   if (is_debug()) {
     // Stream drush's progress - which it writes to stderr - live, while still
@@ -1706,7 +1981,10 @@ function link_browser_output(string $webroot, string $logs_dir): void {
 
   $link = $simpletest_dir . '/browser_output';
 
-  if (is_link($link) || is_file($link)) {
+  if (is_link_path($link)) {
+    remove_link($link);
+  }
+  elseif (is_file($link)) {
     unlink($link);
   }
   elseif (is_dir($link)) {
@@ -2054,11 +2332,19 @@ function nvm_dir(): string {
  * is.
  *
  * @return string
- *   The prefix, or an empty string when the working directory has no '.nvmrc'
- *   or nvm is not installed.
+ *   The prefix, or an empty string when the working directory has no '.nvmrc',
+ *   nvm is not installed or the tooling runs on Windows.
  */
 function nvm_prefix(): string {
   if (!is_file('.nvmrc')) {
+    return '';
+  }
+
+  // 'nvm.sh' defines a function of a POSIX shell, which 'cmd.exe' cannot
+  // load.
+  if (is_windows()) {
+    NOTE('nvm runs in a POSIX shell only; using the Node.js on PATH, not the version in .nvmrc.');
+
     return '';
   }
 
@@ -2168,7 +2454,7 @@ function tunnel_start(string $port): void {
     return;
   }
 
-  if (file_put_contents(TUNNEL_PID_FILE, $pid . PHP_EOL) === FALSE) {
+  if (file_put_contents(TUNNEL_PID_FILE, $pid . "\n") === FALSE) {
     // tunnel_stop() finds the tunnel only through its PID file, so a tunnel
     // without one would stay public after 'eddy-stop'.
     tunnel_kill($pid);
@@ -2275,7 +2561,7 @@ PHP;
   $mode = fileperms($settings_file) ?: 0644;
   chmod($settings_file, ($mode & 0777) | 0200);
 
-  file_write_or_fail($settings_file, PHP_EOL . $marker . PHP_EOL . $settings . PHP_EOL, FILE_APPEND);
+  file_write_or_fail($settings_file, "\n" . $marker . "\n" . $settings . "\n", FILE_APPEND);
 
   PASS('Tunnel settings added.');
 }

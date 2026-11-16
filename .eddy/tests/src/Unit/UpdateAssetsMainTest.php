@@ -150,7 +150,7 @@ final class UpdateAssetsMainTest extends UnitTestCase {
 
     $output = $this->capture(fn() => main([], $this->assetsDir, $this->projectDir));
 
-    $this->assertSame(["WARNING: Cleanup 'ahoy browser-stop' failed with exit code 1." . PHP_EOL . 'No browser is running.' . PHP_EOL], $this->stderr);
+    $this->assertSame(["WARNING: Cleanup 'ahoy browser-stop' failed with exit code 1.\nNo browser is running.\n"], $this->stderr);
     $this->assertContains('run: ahoy stop', $this->steps, 'A failed cleanup does not stop the next one.');
     $this->assertStringContainsString('Done. SVG assets updated in ' . $this->assetsDir, $output);
     $this->assertDirectoryDoesNotExist($this->workspaceDir);
@@ -176,7 +176,7 @@ final class UpdateAssetsMainTest extends UnitTestCase {
     }
     catch (\RuntimeException $exception) {
       $this->assertStringStartsWith($expected_start, $exception->getMessage());
-      $this->assertStringEndsWith(PHP_EOL . 'Recordings kept in ' . $this->recordingsDir, $exception->getMessage());
+      $this->assertStringEndsWith("\n" . 'Recordings kept in ' . $this->recordingsDir, $exception->getMessage());
     }
 
     $this->assertSame($expected_steps, $this->steps);
@@ -190,13 +190,13 @@ final class UpdateAssetsMainTest extends UnitTestCase {
     yield 'preparing an asset fails' => [
       ['npm install --no-audit --no-fund' => [1, ['npm error code E404']]],
       NULL,
-      "Preparing 'lint' failed:" . PHP_EOL . 'npm error code E404',
+      "Preparing 'lint' failed:\nnpm error code E404",
       [...$before_lint, 'run: npm install --no-audit --no-fund', 'run: ahoy stop', 'remove: workspace'],
     ];
     yield 'recording an asset fails' => [
       [],
       'build',
-      "Recording 'build' failed. The session exited with code 1. Its last output:" . PHP_EOL . '$ ahoy build',
+      "Recording 'build' failed. The session exited with code 1. Its last output:\n\$ ahoy build",
       ['export', 'record: install', 'render: install', 'record: build', 'run: ahoy stop', 'remove: workspace'],
     ];
   }
@@ -215,7 +215,7 @@ final class UpdateAssetsMainTest extends UnitTestCase {
 
     $this->mockFunction('shell_exec', function (string $command): string {
       if (preg_match("/^which '([^']+)' 2>\\/dev\\/null$/", $command, $matches) === 1) {
-        return '/usr/bin/' . $matches[1] . PHP_EOL;
+        return '/usr/bin/' . $matches[1] . "\n";
       }
 
       if (preg_match("/^cd '([^']+)' && git archive HEAD \\| tar -x -C '([^']+)' 2>&1$/", $command, $matches) === 1) {

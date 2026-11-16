@@ -44,14 +44,14 @@ $xdebug_flags = $xdebug_enabled ? ' -d xdebug.mode=debug -d xdebug.start_with_re
 
 // -----------------------------------------------------------------------------
 
-echo '===============================' . PHP_EOL;
-echo '      💻 START ENVIRONMENT     ' . PHP_EOL;
-echo '===============================' . PHP_EOL;
-echo PHP_EOL;
+echo '===============================' . "\n";
+echo '      💻 START ENVIRONMENT     ' . "\n";
+echo '===============================' . "\n";
+echo "\n";
 
 if ($xdebug_enabled) {
   TASK('Verifying that the XDebug PHP extension is installed.');
-  $output = (string) shell_exec('php -v 2>/dev/null');
+  $output = (string) shell_exec('php -v 2>' . null_device());
 
   if (stripos($output, 'xdebug') === FALSE) {
     FAIL('XDEBUG=1 is set but the XDebug PHP extension is not installed on the host. Install it (see https://xdebug.org/docs/install) and try again.');
@@ -71,11 +71,13 @@ kill_processes(array_keys($listeners['own']));
 
 TASK('Starting the PHP webserver.');
 mkdir_or_fail(dirname($webserver_log));
-passthru(sprintf('nohup php%s -S %s:%s -t %s %s >%s 2>&1 &', $xdebug_flags, escapeshellarg($webserver_host), escapeshellarg($webserver_port), escapeshellarg($docroot), escapeshellarg($docroot . '/.ht.router.php'), escapeshellarg($webserver_log)));
+// A Windows background command reads PATH from the environment of the user,
+// so it names the PHP that runs this command.
+run_in_background(sprintf('%s%s -S %s:%s -t %s %s', is_windows() ? escapeshellarg(PHP_BINARY) : 'php', $xdebug_flags, escapeshellarg($webserver_host), escapeshellarg($webserver_port), escapeshellarg($docroot), escapeshellarg($docroot . '/.ht.router.php')), $webserver_log);
 
 NOTE('Waiting up to %s seconds for the server to be ready.', (string) $webserver_wait_timeout);
 
-if (!wait_for_port($webserver_host, $webserver_port, $webserver_wait_timeout)) {
+if (!wait_for_port(client_host($webserver_host), $webserver_port, $webserver_wait_timeout)) {
   $content = file_read($webserver_log);
   FAIL('Unable to start inbuilt PHP server.%s', $content !== '' ? "\n" . $content : '');
 }
@@ -84,7 +86,7 @@ PASS('Server started successfully.');
 
 TASK('Checking that the server can serve content.');
 $context = stream_context_create(['http' => ['method' => 'HEAD', 'timeout' => 5, 'ignore_errors' => TRUE]]);
-$headers = @get_headers(sprintf('http://%s:%s', $webserver_host, $webserver_port), FALSE, $context);
+$headers = @get_headers(sprintf('http://%s:%s', client_host($webserver_host), $webserver_port), FALSE, $context);
 
 if ($headers === FALSE || !isset($headers[0]) || (!str_contains($headers[0], '200') && !str_contains($headers[0], '302'))) {
   FAIL('Server is started, but site cannot be served.');
@@ -101,15 +103,15 @@ run_custom_scripts('scripts', 'start-');
 
 $site_url = resolve_site_url($webserver_host, $webserver_port);
 
-echo PHP_EOL;
-echo '===============================' . PHP_EOL;
-echo '    💻 ENVIRONMENT READY  ✅  ' . PHP_EOL;
-echo '===============================' . PHP_EOL;
-echo PHP_EOL;
-echo 'Directory : ' . $docroot . PHP_EOL;
-echo 'URL       : ' . $site_url . PHP_EOL;
-echo 'XDebug    : ' . ($xdebug_enabled ? 'Enabled' : 'Disabled') . PHP_EOL;
-echo PHP_EOL;
-echo '> Next steps:' . PHP_EOL;
-echo '  vendor/bin/eddy-provision    # Provision the website' . PHP_EOL;
-echo PHP_EOL;
+echo "\n";
+echo '===============================' . "\n";
+echo '    💻 ENVIRONMENT READY  ✅  ' . "\n";
+echo '===============================' . "\n";
+echo "\n";
+echo 'Directory : ' . $docroot . "\n";
+echo 'URL       : ' . $site_url . "\n";
+echo 'XDebug    : ' . ($xdebug_enabled ? 'Enabled' : 'Disabled') . "\n";
+echo "\n";
+echo '> Next steps:' . "\n";
+echo '  vendor/bin/eddy-provision    # Provision the website' . "\n";
+echo "\n";

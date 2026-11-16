@@ -150,6 +150,16 @@ final class WrapperDotenvTest extends UnitTestCase {
       ['WEBSERVER_PORT' => '9001'],
       ['WEBSERVER_PORT' => '9001', 'DRUPAL_PROFILE' => '', 'SIMPLETEST_BASE_URL' => 'http://localhost:9001'],
     ];
+    yield 'wildcard host from .env becomes the loopback address' => [
+      "WEBSERVER_HOST=0.0.0.0\nWEBSERVER_PORT=8001\n",
+      [],
+      ['WEBSERVER_PORT' => '8001', 'DRUPAL_PROFILE' => '', 'SIMPLETEST_BASE_URL' => 'http://127.0.0.1:8001'],
+    ];
+    yield 'named host from the shell stays' => [
+      NULL,
+      ['WEBSERVER_HOST' => 'example.test'],
+      ['WEBSERVER_PORT' => '', 'DRUPAL_PROFILE' => '', 'SIMPLETEST_BASE_URL' => 'http://example.test:8000'],
+    ];
     // Bash marks a SHELLOPTS or BASHOPTS from the environment readonly. A
     // 'posix' in SHELLOPTS starts bash in POSIX mode.
     yield 'shell exports readonly SHELLOPTS' => [

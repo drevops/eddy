@@ -36,11 +36,12 @@ jobs:
       matrix:
         # Job names include these values, so check the ruleset before renaming
         # one: https://github.com/drevops/eddy/rules/8469831
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         group: ['p0', 'p1', 'p2', 'p3', 'p4', 'p5']
         # Only the FunctionalJavascript groups (p3/p4) use a WebDriver
-        # backend, so the excludes run every other group once. macOS runners
-        # have no Docker, so macOS with selenium is excluded as well.
+        # backend, so the excludes run every other group once. macOS and
+        # Windows runners have no Docker for the Linux Selenium image, so they
+        # run without selenium as well.
         backend: ['selenium', 'chromedriver']
         exclude:
           - group: 'p0'
@@ -53,8 +54,16 @@ jobs:
             backend: 'selenium'
           - os: 'macos-latest'
             backend: 'selenium'
+          - os: 'windows-latest'
+            backend: 'selenium'
 
     steps:
+      # Git checks out text files with CRLF line endings on Windows, so the
+      # snapshot fixtures would differ from the generated files.
+      - name: Keep LF line endings (Windows)
+        if: runner.os == 'Windows'
+        run: git config --global core.autocrlf false
+
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -93,7 +102,7 @@ jobs:
           ini-values: ${{ matrix.group == 'p5' && 'xdebug.mode=off' || 'pcov.directory=.' }}
 
       - name: Install Ahoy
-        if: matrix.group == 'p3' || matrix.group == 'p5'
+        if: (matrix.group == 'p3' || matrix.group == 'p5') && runner.os != 'Windows'
         run: |
           os=$(uname -s | tr '[:upper:]' '[:lower:]')
           case "$(uname -m)" in
@@ -104,6 +113,14 @@ jobs:
           sudo wget -q "https://github.com/ahoy-cli/ahoy/releases/download/v2.5.0/ahoy-bin-${os}-${architecture}" -O /usr/local/bin/ahoy
           sudo chown "$USER" /usr/local/bin/ahoy
           chmod +x /usr/local/bin/ahoy
+
+      - name: Install Ahoy (Windows)
+        if: (matrix.group == 'p3' || matrix.group == 'p5') && runner.os == 'Windows'
+        shell: bash
+        run: |
+          mkdir -p "${RUNNER_TOOL_CACHE}/ahoy"
+          curl -fsSL "https://github.com/ahoy-cli/ahoy/releases/download/v2.5.0/ahoy-bin-windows-amd64.exe" -o "${RUNNER_TOOL_CACHE}/ahoy/ahoy.exe"
+          echo "${RUNNER_TOOL_CACHE}/ahoy" >> "$GITHUB_PATH"
 
       - name: Start Chromium (selenium backend, Linux only)
         if: runner.os == 'Linux' && matrix.backend == 'selenium' && (matrix.group == 'p3' || matrix.group == 'p4')
@@ -118,6 +135,7 @@ jobs:
 
       - name: Start chromedriver (chromedriver backend)
         if: matrix.backend == 'chromedriver' && (matrix.group == 'p3' || matrix.group == 'p4')
+        shell: bash
         run: |
           ./scripts/eddy-tooling
           vendor/bin/eddy-browser-start
@@ -153,10 +171,13 @@ jobs:
 
       - name: Run PHP tests with coverage
         if: matrix.group == 'p0'
-        run: composer test-coverage -- --group="${GROUP}"
+        run: composer test-coverage -- --group="${GROUP}" ${EXCLUDE_GROUP:+--exclude-group="${EXCLUDE_GROUP}"}
+        shell: bash
         working-directory: .eddy/tests
         env:
           GROUP: ${{ matrix.group }}
+          # Windows has no POSIX file modes or shell, which the posix group tests.
+          EXCLUDE_GROUP: ${{ runner.os == 'Windows' && 'posix' || '' }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # The other groups run the scripts as subprocesses, so their reports
@@ -164,10 +185,12 @@ jobs:
       # counts lines such as the shebang as missed.
       - name: Run PHP tests
         if: matrix.group != 'p0'
-        run: composer test -- --group="${GROUP}"
+        run: composer test -- --group="${GROUP}" ${EXCLUDE_GROUP:+--exclude-group="${EXCLUDE_GROUP}"}
+        shell: bash
         working-directory: .eddy/tests
         env:
           GROUP: ${{ matrix.group }}
+          EXCLUDE_GROUP: ${{ runner.os == 'Windows' && 'posix' || '' }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WEBSERVER_HOST: ${{ (matrix.group == 'p3' || matrix.group == 'p4') && '0.0.0.0' || 'localhost' }}
           WEBDRIVER_BACKEND: ${{ (matrix.group == 'p3' || matrix.group == 'p4') && matrix.backend || '' }}

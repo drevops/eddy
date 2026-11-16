@@ -544,7 +544,7 @@ EOF;
  * A copy without a version, such as a clone's, prints 'development'.
  */
 function print_version(): void {
-  print (template_version(TEMPLATE_VERSION) ?? 'development') . PHP_EOL;
+  print (template_version(TEMPLATE_VERSION) ?? 'development') . "\n";
 }
 
 /**
@@ -1178,7 +1178,7 @@ function trim_claude_settings_permissions(array $command_wrapper): void {
 
   $encoded = json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
 
-  if (file_put_contents($file, $encoded . PHP_EOL) === FALSE) {
+  if (file_put_contents($file, $encoded . "\n") === FALSE) {
     // @codeCoverageIgnoreStart
     throw new \RuntimeException('Unable to write .claude/settings.json.');
     // @codeCoverageIgnoreEnd
@@ -1413,7 +1413,7 @@ function committed_workflow_branches(string $file): array {
   $exit_code = 0;
   // './' resolves the path against the current directory rather than the
   // repository root.
-  exec(sprintf('git show %s 2>/dev/null', escapeshellarg('HEAD:./' . $file)), $output, $exit_code);
+  exec(sprintf('git show %s 2>%s', escapeshellarg('HEAD:./' . $file), null_device()), $output, $exit_code);
 
   if ($exit_code !== 0) {
     return [];
@@ -1582,7 +1582,7 @@ function github_repository_from_url(string $url): ?string {
 function origin_github_repository(): ?string {
   $output = [];
   $exit_code = 0;
-  exec('git rev-parse --show-toplevel 2>/dev/null', $output, $exit_code);
+  exec('git rev-parse --show-toplevel 2>' . null_device(), $output, $exit_code);
   $root = $output[0] ?? '';
 
   if ($exit_code !== 0 || $root === '' || realpath($root) !== realpath((string) getcwd())) {
@@ -1590,7 +1590,7 @@ function origin_github_repository(): ?string {
   }
 
   $output = [];
-  exec('git remote get-url origin 2>/dev/null', $output, $exit_code);
+  exec('git remote get-url origin 2>' . null_device(), $output, $exit_code);
 
   return $exit_code === 0 ? github_repository_from_url($output[0] ?? '') : NULL;
 }
@@ -1903,7 +1903,7 @@ function write_json_file(string $file, array $content, bool $inline_lists = FALS
     $encoded = inline_json_lists($encoded);
   }
 
-  if (file_put_contents($file, $encoded . PHP_EOL) === FALSE) {
+  if (file_put_contents($file, $encoded . "\n") === FALSE) {
     // @codeCoverageIgnoreStart
     throw new \RuntimeException('Unable to write ' . $file . '.');
     // @codeCoverageIgnoreEnd
@@ -2311,13 +2311,18 @@ function download_template(string $archive, string $dir, ?string $sha256 = NULL)
 
   $output = [];
   $exit_code = 0;
-  exec(sprintf('tar -xzf %s --strip-components=1 -C %s 2>&1', escapeshellarg($file), escapeshellarg($staging)), $output, $exit_code);
+  // GNU tar, such as the one in Git for Windows, reads a drive letter in the
+  // archive path as a remote host, so the paths are relative to the directory.
+  $cwd = (string) getcwd();
+  chdir($dir);
+  exec(sprintf('tar -xzf %s --strip-components=1 -C %s 2>&1', escapeshellarg(basename($file)), escapeshellarg(basename($staging))), $output, $exit_code);
+  chdir($cwd);
   unlink($file);
 
   if ($exit_code !== 0) {
     remove_dir($staging);
 
-    throw new \Exception(sprintf('Unable to extract the template from %s: %s', $archive, implode(PHP_EOL, $output)));
+    throw new \Exception(sprintf('Unable to extract the template from %s: %s', $archive, implode("\n", $output)));
   }
 
   move_entries($staging, $dir);
@@ -2347,7 +2352,15 @@ function move_entries(string $src, string $dst): void {
       continue;
     }
 
-    rename($from, $to);
+    // Windows refuses to replace a file that a process holds open, such as
+    // the running installer, but lets it be written to.
+    if (!@rename($from, $to)) {
+      if (!copy($from, $to)) {
+        throw new \Exception(sprintf('Unable to move %s to %s.', $from, $to));
+      }
+
+      unlink($from);
+    }
   }
 }
 
@@ -2378,6 +2391,13 @@ function run_installer(string $dir, array $args): int {
   // string, which are answers too, so the installer inherits the environment.
   $downloaded = getenv('INSTALL_DOWNLOADED');
   putenv('INSTALL_DOWNLOADED=1');
+
+  // 'echo' writes past the STDOUT and STDERR streams, which stay at position
+  // 0, and proc_open() moves the offset of a file to that position. A child
+  // writing to a redirected file would overwrite the output written so far.
+  @fseek(STDOUT, 0, SEEK_END);
+  @fseek(STDERR, 0, SEEK_END);
+
   $process = proc_open([PHP_BINARY, 'install.php', ...$args], [STDIN, STDOUT, STDERR], $pipes, $dir);
   putenv($downloaded === FALSE ? 'INSTALL_DOWNLOADED' : 'INSTALL_DOWNLOADED=' . $downloaded);
 
@@ -2476,7 +2496,7 @@ function remove_npm(array $tools_remove): void {
   // JSON_PRETTY_PRINT indents with four spaces; package.json uses two.
   $encoded = preg_replace_callback('/^ +/m', static fn(array $m): string => str_repeat(' ', intdiv(strlen($m[0]), 2)), $encoded) ?? $encoded;
 
-  if (file_put_contents($file, $encoded . PHP_EOL) === FALSE) {
+  if (file_put_contents($file, $encoded . "\n") === FALSE) {
     // @codeCoverageIgnoreStart
     throw new \RuntimeException('Unable to write ' . $file . '.');
     // @codeCoverageIgnoreEnd
@@ -3007,9 +3027,9 @@ function get_files(): array {
   $gitignore = $root . '/.gitignore';
   $rules = is_file($gitignore) ? gitignore_rules((string) file_get_contents($gitignore)) : [];
 
-  $directory = new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS);
+  $directory = new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::UNIX_PATHS);
   $filter = new \RecursiveCallbackFilterIterator($directory, static function (\SplFileInfo $current) use ($root, $rules): bool {
-    $path = str_replace(DIRECTORY_SEPARATOR, '/', substr($current->getPathname(), strlen($root) + 1));
+    $path = substr($current->getPathname(), strlen($root) + 1);
 
     return is_template_path($path, $current->isDir(), $rules);
   });
@@ -3037,7 +3057,7 @@ function get_files(): array {
  *   Array of file paths.
  */
 function get_marker_files(): array {
-  $installer = getcwd() . DIRECTORY_SEPARATOR . 'install.php';
+  $installer = getcwd() . '/install.php';
 
   return array_values(array_filter(get_files(), static fn(string $file): bool => $file !== $installer));
 }
@@ -3262,6 +3282,16 @@ function is_binary_file(string $file): bool {
 }
 
 /**
+ * Get the path of the null device.
+ *
+ * @return string
+ *   'NUL' on Windows, '/dev/null' elsewhere.
+ */
+function null_device(): string {
+  return PHP_OS_FAMILY === 'Windows' ? 'NUL' : '/dev/null';
+}
+
+/**
  * Remove directory recursively with all files.
  *
  * @param string $dir
@@ -3326,12 +3356,12 @@ if (getenv('SCRIPT_RUN_SKIP') != 1) {
   }
   catch (\ErrorException $exception) {
     if ($exception->getSeverity() <= E_USER_WARNING) {
-      print PHP_EOL . 'RUNTIME ERROR: ' . $exception->getMessage() . PHP_EOL;
+      print "\n" . 'RUNTIME ERROR: ' . $exception->getMessage() . "\n";
       exit($exception->getCode() === 0 ? 1 : $exception->getCode());
     }
   }
   catch (\Exception $exception) {
-    print PHP_EOL . 'ERROR: ' . $exception->getMessage() . PHP_EOL;
+    print "\n" . 'ERROR: ' . $exception->getMessage() . "\n";
     exit($exception->getCode() == 0 ? 1 : $exception->getCode());
   }
 }

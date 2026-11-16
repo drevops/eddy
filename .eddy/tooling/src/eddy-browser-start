@@ -62,10 +62,10 @@ $root = (string) getcwd();
 
 // -----------------------------------------------------------------------------
 
-echo '===============================' . PHP_EOL;
-echo '       🌐 START BROWSER        ' . PHP_EOL;
-echo '===============================' . PHP_EOL;
-echo PHP_EOL;
+echo '===============================' . "\n";
+echo '       🌐 START BROWSER        ' . "\n";
+echo '===============================' . "\n";
+echo "\n";
 
 if ($webdriver_backend === 'selenium') {
   selenium_start($webdriver_port, $root);
@@ -74,11 +74,11 @@ else {
   chromedriver_start($webdriver_port, $root);
 }
 
-echo PHP_EOL;
-echo '===============================' . PHP_EOL;
-echo '      🌐 BROWSER READY ✅     ' . PHP_EOL;
-echo '===============================' . PHP_EOL;
-echo PHP_EOL;
+echo "\n";
+echo '===============================' . "\n";
+echo '      🌐 BROWSER READY ✅     ' . "\n";
+echo '===============================' . "\n";
+echo "\n";
 
 // -----------------------------------------------------------------------------
 // Local helpers.
@@ -163,7 +163,7 @@ function chromedriver_start(string $port, string $root): void {
   chromedriver_stop($port, $root);
 
   TASK('Starting chromedriver on port %s.', $port);
-  passthru(sprintf('nohup %s --port=%s >%s 2>&1 &', escapeshellarg($binary), escapeshellarg($port), escapeshellarg(CHROMEDRIVER_LOG_FILE)));
+  run_in_background(sprintf('%s --port=%s', escapeshellarg($binary), escapeshellarg($port)), CHROMEDRIVER_LOG_FILE);
 
   NOTE('Waiting for chromedriver to be ready.');
 
@@ -295,6 +295,15 @@ function detect_chrome_version(): string {
     return '';
   }
 
+  // Chrome on Windows prints nothing for '--version', and installs each
+  // version into a directory named after it next to 'chrome.exe'.
+  if (is_windows()) {
+    $versions = array_values(array_filter(array_map(basename(...), glob(dirname($binary) . '/*', GLOB_ONLYDIR) ?: []), static fn(string $name): bool => preg_match('/^\d+(?:\.\d+){3}$/', $name) === 1));
+    sort($versions, SORT_NATURAL);
+
+    return $versions === [] ? '' : end($versions);
+  }
+
   $output = command_output([$binary, '--version'], VERSION_PROBE_TIMEOUT);
 
   if ($output === NULL) {
@@ -312,6 +321,19 @@ function detect_chrome_binary(): string {
 
   if (is_executable($mac_chrome)) {
     return $mac_chrome;
+  }
+
+  // Chrome on Windows installs into the program files of the machine or of
+  // the user, which are not on PATH.
+  if (is_windows()) {
+    foreach (['ProgramFiles', 'ProgramFiles(x86)', 'LOCALAPPDATA'] as $variable) {
+      $base = getenv_default($variable, '');
+      $windows_chrome = $base . '\\Google\\Chrome\\Application\\chrome.exe';
+
+      if ($base !== '' && is_file($windows_chrome)) {
+        return $windows_chrome;
+      }
+    }
   }
 
   foreach (['google-chrome', 'chromium', 'chromium-browser'] as $candidate) {

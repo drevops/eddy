@@ -52,6 +52,7 @@ final class ToolingInstallerTest extends UnitTestCase {
     self::envUnset('DEBUG');
     self::envUnset('GITHUB_TOKEN');
     self::envUnset('COMPOSER_AUTH');
+    self::envUnset('COMPOSER');
     self::envUnset('TERM');
   }
 
@@ -76,7 +77,7 @@ final class ToolingInstallerTest extends UnitTestCase {
     $this->assertStringContainsString('[ OK ] Installed drevops/eddy-tooling.', $output);
     $this->assertStringNotContainsString('Composer progress', $output, 'Composer output is shown only on failure.');
     $this->assertSame([self::COMMAND . ' 2>&1'], $this->commands);
-    $this->assertSame(json_encode($expected_manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL, File::read('vendor/eddy-tooling.json'));
+    $this->assertSame(json_encode($expected_manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n", File::read('vendor/eddy-tooling.json'));
   }
 
   public static function dataProviderInstall(): \Iterator {
@@ -439,10 +440,10 @@ final class ToolingInstallerTest extends UnitTestCase {
       self::envSet('TERM', $term);
     }
 
-    // The color check calls posix_isatty() once per printed line, or never
+    // The color check calls stream_isatty() once per printed line, or never
     // when it short-circuits, so the mock returns a fixed answer, not queued
     // responses.
-    $this->mockFunction('posix_isatty', fn(): bool => $tty, self::NAMESPACE);
+    $this->mockFunction('stream_isatty', fn(): bool => $tty, self::NAMESPACE);
     self::writeDevManifest(['require-dev' => ['drevops/eddy-tooling' => '~1.0.0']]);
     $this->mockComposer();
 
@@ -500,7 +501,9 @@ final class ToolingInstallerTest extends UnitTestCase {
    */
   protected function mockComposer(int $exit_code = 0, string $output = '', array $bins = self::BINS, array $watched_paths = []): void {
     $this->mockFunction('passthru', function (string $command, mixed &...$args) use ($exit_code, $output, $bins, $watched_paths): null {
-      $this->commands[] = $command;
+      // The installer passes the manifest to Composer in the COMPOSER
+      // variable, so the command is recorded with it as a prefix.
+      $this->commands[] = sprintf('COMPOSER=%s %s', escapeshellarg((string) getenv('COMPOSER')), $command);
 
       foreach ($watched_paths as $path) {
         $this->pathsAtComposerRun[$path] = File::exists($path) || is_link($path);

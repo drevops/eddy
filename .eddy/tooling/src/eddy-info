@@ -63,10 +63,10 @@ $has_drush = is_file($drush_bin);
 $fields = [
   'drupal-version' => fn(): string => $has_drush ? info_drupal_version($drush_bin, $root) : '-',
   'php-version' => info_php_version(...),
-  'composer' => fn(): string => info_tool_version('composer --version 2>/dev/null', '/Composer(?:\s+version)?\s+(\S+)/i'),
-  'drush' => fn(): string => $has_drush ? info_tool_version(escapeshellarg($drush_bin) . ' --version 2>/dev/null', '/(\d+\.\d+\.\d+)/') : '-',
-  'node' => fn(): string => info_tool_version('node --version 2>/dev/null', '/v?(.+)/'),
-  'npm' => fn(): string => info_tool_version('npm --version 2>/dev/null', '/(.+)/'),
+  'composer' => fn(): string => info_tool_version('composer --version 2>' . null_device(), '/Composer(?:\s+version)?\s+(\S+)/i'),
+  'drush' => fn(): string => $has_drush ? info_tool_version(escapeshellarg(shell_path($drush_bin)) . ' --version 2>' . null_device(), '/(\d+\.\d+\.\d+)/') : '-',
+  'node' => fn(): string => info_tool_version('node --version 2>' . null_device(), '/v?(.+)/'),
+  'npm' => fn(): string => info_tool_version('npm --version 2>' . null_device(), '/(.+)/'),
   'webserver-host' => fn(): string => $webserver_host,
   'webserver-port' => fn(): string => $webserver_port,
   'site-url' => fn(): string => resolve_site_url($webserver_host, $webserver_port),
@@ -87,11 +87,11 @@ $field = isset($argv[1]) && !str_starts_with($argv[1], '-') ? $argv[1] : NULL;
 
 if ($field !== NULL) {
   if (isset($fields[$field])) {
-    echo $fields[$field]() . PHP_EOL;
+    echo $fields[$field]() . "\n";
     quit(0);
   }
 
-  echo '-' . PHP_EOL;
+  echo '-' . "\n";
   quit(1);
 }
 
@@ -102,30 +102,30 @@ if ($field !== NULL) {
 $values = array_map(fn(callable $cb): string => $cb(), $fields);
 $php_path = command_path('php');
 
-echo '===============================' . PHP_EOL;
-echo '      ℹ️ ENVIRONMENT INFO      ' . PHP_EOL;
-echo '===============================' . PHP_EOL;
-echo PHP_EOL;
-echo 'Drupal version:     ' . $values['drupal-version'] . PHP_EOL;
-echo 'PHP version:        ' . $values['php-version'] . ($php_path !== FALSE && $values['php-version'] !== '-' ? ' (' . $php_path . ')' : '') . PHP_EOL;
-echo 'Composer:           ' . $values['composer'] . PHP_EOL;
-echo 'Drush:              ' . $values['drush'] . PHP_EOL;
-echo 'Node / npm:         ' . $values['node'] . ' / ' . $values['npm'] . PHP_EOL;
-echo PHP_EOL;
-echo 'Webserver host:     ' . $values['webserver-host'] . ' (' . $host_source . ')' . PHP_EOL;
-echo 'Webserver port:     ' . $values['webserver-port'] . ' (' . $port_source . ')' . PHP_EOL;
-echo 'Site URL:           ' . $values['site-url'] . PHP_EOL;
-echo 'XDebug:             ' . $values['xdebug'] . PHP_EOL;
+echo '===============================' . "\n";
+echo '      ℹ️ ENVIRONMENT INFO      ' . "\n";
+echo '===============================' . "\n";
+echo "\n";
+echo 'Drupal version:     ' . $values['drupal-version'] . "\n";
+echo 'PHP version:        ' . $values['php-version'] . ($php_path !== FALSE && $values['php-version'] !== '-' ? ' (' . $php_path . ')' : '') . "\n";
+echo 'Composer:           ' . $values['composer'] . "\n";
+echo 'Drush:              ' . $values['drush'] . "\n";
+echo 'Node / npm:         ' . $values['node'] . ' / ' . $values['npm'] . "\n";
+echo "\n";
+echo 'Webserver host:     ' . $values['webserver-host'] . ' (' . $host_source . ')' . "\n";
+echo 'Webserver port:     ' . $values['webserver-port'] . ' (' . $port_source . ')' . "\n";
+echo 'Site URL:           ' . $values['site-url'] . "\n";
+echo 'XDebug:             ' . $values['xdebug'] . "\n";
 
 if ($has_functional_javascript) {
-  echo 'WebDriver port:     ' . $values['webdriver-port'] . PHP_EOL;
+  echo 'WebDriver port:     ' . $values['webdriver-port'] . "\n";
 }
 
-echo PHP_EOL;
-echo 'Build dir:          ' . $values['build-dir'] . PHP_EOL;
-echo 'Database:           ' . $values['database'] . PHP_EOL;
-echo 'Drupal profile:     ' . $values['drupal-profile'] . PHP_EOL;
-echo PHP_EOL;
+echo "\n";
+echo 'Build dir:          ' . $values['build-dir'] . "\n";
+echo 'Database:           ' . $values['database'] . "\n";
+echo 'Drupal profile:     ' . $values['drupal-profile'] . "\n";
+echo "\n";
 
 // -----------------------------------------------------------------------------
 // Local helpers.
@@ -135,7 +135,7 @@ echo PHP_EOL;
  * Get the host PHP version, or '-' if it cannot be parsed.
  */
 function info_php_version(): string {
-  $output = (string) @shell_exec('php -v 2>/dev/null');
+  $output = (string) @shell_exec('php -v 2>' . null_device());
 
   if ($output === '' || !preg_match('/^PHP\s+(\S+)/m', $output, $matches)) {
     return '-';
@@ -168,7 +168,7 @@ function info_drupal_version(string $drush_bin, string $root): string {
   // stderr into its return value, which would leak any stray notice into
   // the version string returned here. This probe
   // instead discards stderr so it always yields either a clean value or '-'.
-  $command = escapeshellarg($drush_bin) . ' -r ' . escapeshellarg($root . '/build/web') . ' status --field=drupal-version 2>/dev/null';
+  $command = escapeshellarg(shell_path($drush_bin)) . ' -r ' . escapeshellarg($root . '/build/web') . ' status --field=drupal-version 2>' . null_device();
   $output = trim((string) @shell_exec($command));
 
   return $output === '' ? '-' : $output;

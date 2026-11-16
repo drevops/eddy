@@ -72,7 +72,7 @@ final class UpdateAssetsRecordSessionTest extends UnitTestCase {
         '[0.1,"x","1"]',
       ]),
       ['asciinema: session ended'],
-      implode(PHP_EOL, [
+      implode("\n", [
         'The session exited with code 1. Its last output:',
         '$ ahoy lint',
         'pushd: build: No such file or directory',
@@ -83,12 +83,12 @@ final class UpdateAssetsRecordSessionTest extends UnitTestCase {
     yield 'no asciinema output' => [
       '{"version":3,"term":{"cols":80,"rows":24}}' . "\n" . '[0.5,"o","The session ended unexpectedly.\r\n"]' . "\n",
       [],
-      'The session exited with code 1. Its last output:' . PHP_EOL . 'The session ended unexpectedly.',
+      'The session exited with code 1. Its last output:' . "\n" . 'The session ended unexpectedly.',
     ];
     yield 'no recording' => [
       NULL,
       ['asciinema: no such file'],
-      'No recording was written to %s.' . PHP_EOL . 'asciinema: no such file',
+      'No recording was written to %s.' . "\n" . 'asciinema: no such file',
     ];
   }
 

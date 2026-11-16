@@ -27,7 +27,7 @@ final class HelpersFormatterTest extends UnitTestCase {
   public function testOutputFormatters(string $function, ?bool $is_tty, string $expected_output): void {
     if ($is_tty !== NULL) {
       self::envSet('TERM', 'xterm-256color');
-      $this->mockPosixIsatty($is_tty);
+      $this->mockStreamIsatty($is_tty);
     }
     $callable = 'DrevOps\\Eddy\\Tooling\\' . $function;
     if (!is_callable($callable)) {
@@ -56,7 +56,7 @@ final class HelpersFormatterTest extends UnitTestCase {
   #[DataProvider('dataProviderFail')]
   public function testFail(bool $is_tty, string $expected_output): void {
     self::envSet('TERM', 'xterm-256color');
-    $this->mockPosixIsatty($is_tty);
+    $this->mockStreamIsatty($is_tty);
     $this->mockQuit(1);
 
     $output = $this->capture(fn() => FAIL('Test failure %s', 'message'), 1);

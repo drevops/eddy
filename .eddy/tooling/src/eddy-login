@@ -18,7 +18,7 @@ require_once __DIR__ . '/helpers.php';
 $webserver = resolve_webserver();
 $login_link = login_link(resolve_site_url($webserver['host'], $webserver['port']));
 
-echo $login_link . PHP_EOL;
+echo $login_link . "\n";
 
 if (resolve_env_value('LOGIN_QRCODE', '')['value'] !== '') {
   print_qrcode($login_link);

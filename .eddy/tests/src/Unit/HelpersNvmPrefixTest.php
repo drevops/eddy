@@ -69,7 +69,22 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
     yield '.nvmrc with nvm' => ['file', TRUE, self::PREFIX, 'Using the Node.js version in .nvmrc with nvm from %s.'];
   }
 
+  public function testNvmPrefixOnWindows(): void {
+    $this->mockWindows();
+    File::dump('.nvmrc', "22\n");
+    self::envSet('NVM_DIR', self::createNvmDir('nvm() { :; }'));
+
+    $prefix = NULL;
+    $output = $this->capture(function () use (&$prefix): void {
+      $prefix = nvm_prefix();
+    });
+
+    $this->assertSame('', $prefix);
+    $this->assertStringContainsString('nvm runs in a POSIX shell only; using the Node.js on PATH, not the version in .nvmrc.', $output);
+  }
+
   #[DataProvider('dataProviderNvmPrefixRunsInShell')]
+  #[Group('posix')]
   public function testNvmPrefixRunsInShell(string $nvm_script, string $expected_output, int $expected_exit_code): void {
     File::dump('.nvmrc', "22\n");
     self::envSet('NVM_DIR', self::createNvmDir($nvm_script));
@@ -93,6 +108,7 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
     yield 'loading nvm.sh fails' => ['nvm() { echo "nvm $*"; }' . "\n" . 'false', "nvm use\nnpm ran\n", 0];
   }
 
+  #[Group('posix')]
   public function testNvmPrefixFailsWithoutNvmFunction(): void {
     File::dump('.nvmrc', "22\n");
     self::envSet('NVM_DIR', self::createNvmDir('NVM_LOADED=1'));
@@ -110,11 +126,12 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
     $this->assertStringNotContainsString('npm ran', $output);
   }
 
+  #[Group('posix')]
   public function testNvmPrefixExportsDefaultDirectory(): void {
     File::dump('.nvmrc', "22\n");
 
     $home = self::$tmp . '/home';
-    File::dump($home . '/.nvm/nvm.sh', 'nvm() { echo "nvm $* from $NVM_DIR"; }' . PHP_EOL);
+    File::dump($home . '/.nvm/nvm.sh', 'nvm() { echo "nvm $* from $NVM_DIR"; }' . "\n");
 
     self::envUnset('NVM_DIR');
     self::envUnset('XDG_CONFIG_HOME');
@@ -146,7 +163,7 @@ final class HelpersNvmPrefixTest extends UnitTestCase {
     File::mkdir($dir, 0755);
 
     if ($script !== NULL) {
-      File::dump($dir . '/nvm.sh', $script . PHP_EOL);
+      File::dump($dir . '/nvm.sh', $script . "\n");
     }
 
     return $dir;

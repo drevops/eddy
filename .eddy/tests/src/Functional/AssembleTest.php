@@ -26,18 +26,18 @@ final class AssembleTest extends ToolingTestCase {
     $this->installTooling();
     $this->assertProcessAnyOutputContains('Installed drevops/eddy-tooling.');
 
-    $this->assertTrue(is_link(self::$sut . '/vendor/drevops/eddy-tooling'), 'The scaffold installs the package from .eddy/tooling as a symlink.');
+    $this->assertNotFalse(readlink(self::$sut . '/vendor/drevops/eddy-tooling'), 'The scaffold installs the package from .eddy/tooling as a link.');
     $this->assertSame(self::locationsRealpath(self::$sut . '/.eddy/tooling'), self::locationsRealpath(self::$sut . '/vendor/drevops/eddy-tooling'));
 
     if ($running) {
       self::webserverCreateDocroot(self::$sut);
 
-      $this->processRun('vendor/bin/eddy-start', [], [], $env, $this->defaultTimeout, $this->defaultIdleTimeout);
+      $this->processRun('php', ['vendor/bin/eddy-start'], [], $env, $this->defaultTimeout, $this->defaultIdleTimeout);
       $this->assertProcessSuccessful();
       $this->assertTrue(self::webserverPortAccepts(self::webserverPort()), 'The webserver of the project is running.');
     }
 
-    $this->processRun('vendor/bin/eddy-assemble', [], [], $env, $this->longTimeout, $this->defaultIdleTimeout);
+    $this->processRun('php', ['vendor/bin/eddy-assemble'], [], $env, $this->longTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
 
     if ($running) {
@@ -62,7 +62,10 @@ final class AssembleTest extends ToolingTestCase {
     $this->assertFileDoesNotExist(self::$sut . '/build/web/modules/custom/your_extension/vendor', 'The project-root vendor directory is not symlinked into the extension.');
     $this->assertProcessAnyOutputContains('Would run build');
 
-    if ($nvmrc) {
+    if ($nvmrc && PHP_OS_FAMILY === 'Windows') {
+      $this->assertProcessAnyOutputContains('nvm runs in a POSIX shell only; using the Node.js on PATH, not the version in .nvmrc.');
+    }
+    elseif ($nvmrc) {
       $this->assertProcessAnyOutputContains('Using the Node.js version in .nvmrc with nvm from ' . $env['NVM_DIR'] . '.');
       $this->assertSame("nvm use 22\nnvm use 22\n", File::read($env['NVM_DIR'] . '/calls.log'), 'Both npm commands run after nvm use in the project root.');
     }
@@ -93,7 +96,7 @@ final class AssembleTest extends ToolingTestCase {
 
     $this->installTooling();
 
-    $this->processRun('vendor/bin/eddy-assemble', [], [], [], $this->longTimeout, $this->defaultIdleTimeout);
+    $this->processRun('php', ['vendor/bin/eddy-assemble'], [], [], $this->longTimeout, $this->defaultIdleTimeout);
     $this->assertProcessFailed();
 
     $this->assertProcessAnyOutputContains('No available patcher was able to apply patch');
@@ -102,7 +105,7 @@ final class AssembleTest extends ToolingTestCase {
   }
 
   protected function installTooling(): void {
-    $this->processRun('./scripts/eddy-tooling', [], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->processRun('php', ['scripts/eddy-tooling'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
   }
 
@@ -117,7 +120,7 @@ final class AssembleTest extends ToolingTestCase {
    */
   protected static function createNvmStub(): string {
     $dir = self::$tmp . '/nvm';
-    File::dump($dir . '/nvm.sh', 'nvm() { echo "nvm $* $(cat .nvmrc)" >> "$NVM_DIR/calls.log"; }' . PHP_EOL);
+    File::dump($dir . '/nvm.sh', 'nvm() { echo "nvm $* $(cat .nvmrc)" >> "$NVM_DIR/calls.log"; }' . "\n");
 
     return $dir;
   }
@@ -140,7 +143,7 @@ final class AssembleTest extends ToolingTestCase {
     $this->assertIsArray($config);
     /** @var array{extra?: array{patches?: array<string, array<string, string>>}} $config */
     $config['extra']['patches']['drupal/core'][$name] = 'patches/' . $name;
-    File::dump($manifest_path, json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL);
+    File::dump($manifest_path, json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n");
   }
 
   /**

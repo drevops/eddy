@@ -8,6 +8,8 @@ use AlexSkrypnyk\File\File;
 use AlexSkrypnyk\PhpunitHelpers\Traits\ProcessTrait;
 use DrevOps\Eddy\Tests\Traits\WebserverTrait;
 use DrevOps\Eddy\Tests\Unit\UnitTestCase;
+use function DrevOps\Eddy\Tooling\kill_processes;
+use function DrevOps\Eddy\Tooling\port_listener_pids;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
 
@@ -37,9 +39,15 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
    */
   protected array $startedPorts = [];
 
+  protected function setUp(): void {
+    parent::setUp();
+    // The tooling functions called in the test process stop real servers.
+    $this->mockHost();
+  }
+
   protected function tearDown(): void {
     foreach ($this->startedPorts as $port) {
-      @exec(sprintf('lsof -ti tcp:%s -sTCP:LISTEN | xargs kill -9 2>/dev/null', escapeshellarg($port)));
+      kill_processes(port_listener_pids($port));
     }
     sleep(1);
 
@@ -167,17 +175,21 @@ final class AutoPortDiscoveryTest extends UnitTestCase {
     $this->assertProcessSuccessful();
     $this->startedPorts[] = $port;
 
+    // The command line on Windows keeps the quotes around the docroot, and the
+    // working directory it starts from has '\' separators.
+    $other_docroot = PHP_OS_FAMILY === 'Windows' ? '"' . realpath($this->sut2) . '/build/web"' : $this->sut2 . '/build/web';
+
     $this->processCwd = $this->sut1;
     $this->processRun('php', [self::TOOLING_DIR . '/eddy-stop'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
     $this->assertProcessAnyOutputContains('Port ' . $port . ' is still in use by another process, which was left running:');
-    $this->assertProcessAnyOutputContains('-t ' . $this->sut2 . '/build/web');
+    $this->assertProcessAnyOutputContains('-t ' . $other_docroot);
     $this->assertTrue(self::webserverPortAccepts($port), 'stop in one project leaves the webserver of the other project running.');
 
     $this->processRun('php', [self::TOOLING_DIR . '/eddy-start'], [], ['WEBSERVER_HOST' => 'localhost'], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessFailed();
     $this->assertProcessAnyOutputContains('Port ' . $port . ' is in use by another process. Stop it, or set WEBSERVER_PORT in .env to a free port.');
-    $this->assertProcessAnyOutputContains('-t ' . $this->sut2 . '/build/web');
+    $this->assertProcessAnyOutputContains('-t ' . $other_docroot);
     $this->assertTrue(self::webserverPortAccepts($port), 'start in one project leaves the webserver of the other project running.');
 
     $this->processCwd = $this->sut2;

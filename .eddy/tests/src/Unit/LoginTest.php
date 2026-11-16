@@ -41,7 +41,7 @@ final class LoginTest extends UnitTestCase {
 
     $output = $this->runCommand('eddy-login');
 
-    $this->assertSame($link . PHP_EOL . ($expected_qrcode ? '[QR-CODE]' : ''), $output);
+    $this->assertSame($link . "\n" . ($expected_qrcode ? '[QR-CODE]' : ''), $output);
   }
 
   public static function dataProviderLogin(): \Iterator {
@@ -91,7 +91,7 @@ final class LoginTest extends UnitTestCase {
 
     $output = $this->runCommand('eddy-login', 1);
 
-    $this->assertStringStartsWith($link . PHP_EOL, $output);
+    $this->assertStringStartsWith($link . "\n", $output);
     $this->assertStringContainsString("Command 'qrencode' is not available", $output);
   }
 
@@ -112,11 +112,11 @@ final class LoginTest extends UnitTestCase {
    *   The Drush commands that generate a link on Drush 13, in order.
    */
   protected static function drushResponses(string $site_url, string $uli_output, int $uli_result_code = 0): array {
-    $prefix = 'build/vendor/bin/drush -r ' . escapeshellarg(self::PROJECT_ROOT . '/build/web') . ' -y ';
+    $prefix = 'build/vendor/bin/drush -r ' . self::shellQuote(self::PROJECT_ROOT . '/build/web') . ' -y ';
 
     return [
       ['cmd' => $prefix . 'status --field=drush-version', 'output' => "13.8.0\n", 'result_code' => 0],
-      ['cmd' => $prefix . 'uli -l ' . escapeshellarg($site_url) . ' --no-browser', 'output' => $uli_output, 'result_code' => $uli_result_code],
+      ['cmd' => $prefix . 'uli -l ' . self::shellQuote($site_url) . ' --no-browser', 'output' => $uli_output, 'result_code' => $uli_result_code],
     ];
   }
 

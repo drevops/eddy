@@ -81,13 +81,26 @@ trait MockTrait {
    *   The namespace where the function should be mocked.
    */
   protected function mockFunction(string $function_name, callable $callback, string $namespace = self::TOOLING_NAMESPACE): void {
+    // php-mock enables 1 mock per function, so a new mock replaces the old.
+    $this->mockRestore($function_name, $namespace);
+
     // A PHPUnit function mock takes a callback only through expects(), so
     // the function is stubbed through php-mock directly.
     $mock = (new MockBuilder())->setNamespace($namespace)->setName($function_name)->setFunction($callback)->build();
     $mock->enable();
     $this->registerForTearDown($mock);
 
-    $this->mocks[$function_name] = $mock;
+    $this->mocks[self::mockKey($function_name, $namespace)] = $mock;
+  }
+
+  /**
+   * Build the registry key of a mock.
+   *
+   * A mock in the tooling namespace is keyed by the function name alone, so
+   * the helpers that look up a tooling mock by name find it.
+   */
+  protected static function mockKey(string $function_name, string $namespace): string {
+    return $namespace === self::TOOLING_NAMESPACE ? $function_name : $namespace . '\\' . $function_name;
   }
 
   /**
@@ -154,7 +167,8 @@ trait MockTrait {
    *   When not all responses were consumed.
    */
   protected function assertMockConsumed(string $function_name): void {
-    if (!isset($this->mocks[$function_name])) {
+    // A mock with no queued responses has nothing to consume.
+    if (!isset($this->mocks[$function_name], $this->mockResponses[$function_name])) {
       return;
     }
 
@@ -164,7 +178,7 @@ trait MockTrait {
 
     $this->mockChecked[$function_name] = TRUE;
 
-    $total_responses = count($this->mockResponses[$function_name] ?? []);
+    $total_responses = count($this->mockResponses[$function_name]);
     $consumed_responses = $this->mockIndices[$function_name] ?? 0;
 
     $this->assertSame($total_responses, $consumed_responses, sprintf(
@@ -173,6 +187,25 @@ trait MockTrait {
       $total_responses,
       $consumed_responses
     ));
+  }
+
+  /**
+   * Disable the mock of a function, so the real function runs again.
+   *
+   * @param string $function_name
+   *   The function name.
+   * @param string $namespace
+   *   The namespace the function is mocked in.
+   */
+  protected function mockRestore(string $function_name, string $namespace = self::TOOLING_NAMESPACE): void {
+    $key = self::mockKey($function_name, $namespace);
+
+    if (!isset($this->mocks[$key])) {
+      return;
+    }
+
+    $this->mocks[$key]->disable();
+    $this->mockReset($key);
   }
 
   /**
@@ -200,14 +233,17 @@ trait MockTrait {
    *   When more passthru calls are made than mocked responses available.
    */
   protected function mockPassthruMultiple(array $responses, string $namespace = self::TOOLING_NAMESPACE): void {
-    $this->mockAddResponses('passthru', $responses);
+    // The responses share the key of the mock, so teardown checks that a mock
+    // in another namespace consumed them.
+    $key = self::mockKey('passthru', $namespace);
+    $this->mockAddResponses($key, $responses);
 
-    if (isset($this->mocks['passthru'])) {
+    if (isset($this->mocks[$key])) {
       return;
     }
 
-    $this->mockFunction('passthru', function ($command, &...$args): null|false {
-      $response = $this->mockNextResponse('passthru');
+    $this->mockFunction('passthru', function ($command, &...$args) use ($key): null|false {
+      $response = $this->mockNextResponse($key);
 
       $response += [
         'output' => '',
@@ -301,19 +337,54 @@ trait MockTrait {
   }
 
   /**
-   * Mock posix_isatty function to control terminal color detection.
+   * The namespaces whose code quotes shell arguments that tests assert on.
+   */
+  protected const array QUOTING_NAMESPACES = [self::TOOLING_NAMESPACE, 'DrevOps\\Eddy\\Tests\\Unit', 'DrevOps\\Eddy\\Assets'];
+
+  /**
+   * Mock the operating system that is_windows() detects.
+   *
+   * escapeshellarg() quotes for the host, so it is mocked to quote for the
+   * same operating system in the code under test and in the tests.
+   *
+   * @param bool $windows
+   *   TRUE to report Windows, FALSE to report Linux.
+   */
+  protected function mockWindows(bool $windows = TRUE): void {
+    $this->mockFunction('php_uname', static fn(string $mode = 'a'): string => $windows ? 'Windows NT' : 'Linux');
+
+    $quote = $windows ? static fn(string $argument): string => '"' . str_replace(['"', '%', '!'], ' ', $argument) . '"' : static fn(string $argument): string => "'" . str_replace("'", "'\\''", $argument) . "'";
+
+    foreach (self::QUOTING_NAMESPACES as $namespace) {
+      $this->mockFunction('escapeshellarg', $quote, $namespace);
+    }
+  }
+
+  /**
+   * Restore the operating system of the host that the tests run on.
+   */
+  protected function mockHost(): void {
+    $this->mockRestore('php_uname');
+
+    foreach (self::QUOTING_NAMESPACES as $namespace) {
+      $this->mockRestore('escapeshellarg', $namespace);
+    }
+  }
+
+  /**
+   * Mock stream_isatty function to control terminal color detection.
    *
    * @param bool $return_value
    *   The value to return (TRUE for TTY/color support, FALSE for no TTY).
    * @param string $namespace
    *   Namespace to mock the function in.
    */
-  protected function mockPosixIsatty(bool $return_value, string $namespace = self::TOOLING_NAMESPACE): void {
-    $this->mockAddResponses('posix_isatty', [['value' => $return_value]]);
+  protected function mockStreamIsatty(bool $return_value, string $namespace = self::TOOLING_NAMESPACE): void {
+    $this->mockAddResponses('stream_isatty', [['value' => $return_value]]);
 
-    if (!isset($this->mocks['posix_isatty'])) {
-      $this->mockFunction('posix_isatty', function () {
-        $response = $this->mockNextResponse('posix_isatty');
+    if (!isset($this->mocks['stream_isatty'])) {
+      $this->mockFunction('stream_isatty', function () {
+        $response = $this->mockNextResponse('stream_isatty');
         return $response['value'];
       }, $namespace);
     }

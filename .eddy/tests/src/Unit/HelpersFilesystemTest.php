@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace DrevOps\Eddy\Tests\Unit;
 
 use function DrevOps\Eddy\Tooling\chmod_recursive;
+use function DrevOps\Eddy\Tooling\is_link_path;
 use function DrevOps\Eddy\Tooling\remove_dir;
+use function DrevOps\Eddy\Tooling\remove_link;
 use AlexSkrypnyk\File\File;
 use DrevOps\Eddy\Tests\Traits\DirectoryFixtureTrait;
 use PHPUnit\Framework\Attributes\CoversFunction;
@@ -15,6 +17,8 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 #[CoversFunction('DrevOps\Eddy\Tooling\remove_dir')]
 #[CoversFunction('DrevOps\Eddy\Tooling\chmod_recursive')]
+#[CoversFunction('DrevOps\Eddy\Tooling\is_link_path')]
+#[CoversFunction('DrevOps\Eddy\Tooling\remove_link')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersFilesystemTest extends UnitTestCase {
@@ -36,6 +40,91 @@ final class HelpersFilesystemTest extends UnitTestCase {
     $this->assertDirectoryExists($dir);
     $this->assertTrue(remove_dir($dir));
     $this->assertDirectoryDoesNotExist($dir);
+  }
+
+  public function testRemoveDirKeepsLinkedDirectory(): void {
+    $this->mockHost();
+    $target = self::$tmp . '/linked_' . uniqid();
+    File::dump($target . '/kept.txt', 'kept');
+    $dir = self::$tmp . '/remove_' . uniqid();
+    File::mkdir($dir);
+    symlink($target, $dir . '/link');
+
+    $this->assertTrue(remove_dir($dir));
+    $this->assertDirectoryDoesNotExist($dir);
+    $this->assertFileExists($target . '/kept.txt', 'The files of a linked directory stay.');
+  }
+
+  /**
+   * @param string $type
+   *   What the path is: 'file', 'directory', 'symlink', 'junction' or
+   *   'missing'.
+   */
+  #[DataProvider('dataProviderIsLinkPath')]
+  public function testIsLinkPath(string $type, bool $windows, bool $expected): void {
+    $this->mockWindows($windows);
+    $path = self::$tmp . '/path_' . uniqid();
+
+    match ($type) {
+      'file' => File::dump($path, 'content'),
+      'directory', 'junction' => File::mkdir($path),
+      'symlink' => symlink(self::$tmp, $path),
+      default => NULL,
+    };
+
+    // The real path of a junction is its target.
+    if ($type === 'junction') {
+      $this->mockFunction('realpath', fn(string $link): string|false => $link === $path ? \realpath(self::$tmp) : \realpath($link));
+    }
+
+    $this->assertSame($expected, is_link_path($path));
+  }
+
+  public static function dataProviderIsLinkPath(): \Iterator {
+    yield 'file' => ['file', FALSE, FALSE];
+    yield 'directory' => ['directory', FALSE, FALSE];
+    yield 'symlink' => ['symlink', FALSE, TRUE];
+    yield 'missing' => ['missing', FALSE, FALSE];
+    yield 'directory on Windows' => ['directory', TRUE, FALSE];
+    yield 'junction on Windows' => ['junction', TRUE, TRUE];
+    yield 'symlink on Windows' => ['symlink', TRUE, TRUE];
+  }
+
+  #[DataProvider('dataProviderRemoveLink')]
+  public function testRemoveLink(bool $windows, string $expected_call): void {
+    $this->mockWindows($windows);
+    $link = self::$tmp . '/link_' . uniqid();
+    symlink(self::$tmp, $link);
+    $calls = [];
+    $this->mockFunction('rmdir', function (string $path) use (&$calls): bool {
+      $calls[] = 'rmdir';
+
+      return self::removeLinkOnHost($path);
+    });
+    $this->mockFunction('unlink', function (string $path) use (&$calls): bool {
+      $calls[] = 'unlink';
+
+      return self::removeLinkOnHost($path);
+    });
+
+    $this->assertTrue(remove_link($link));
+    $this->assertSame([$expected_call], $calls);
+    $this->assertDirectoryExists(self::$tmp, 'The target of the link stays.');
+  }
+
+  public static function dataProviderRemoveLink(): \Iterator {
+    yield 'posix' => [FALSE, 'unlink'];
+    yield 'windows, a link to a directory' => [TRUE, 'rmdir'];
+  }
+
+  /**
+   * Remove a link with the call that the host needs.
+   *
+   * A link to a directory is removed with unlink() on POSIX systems and with
+   * rmdir() on Windows.
+   */
+  protected static function removeLinkOnHost(string $path): bool {
+    return PHP_OS_FAMILY === 'Windows' ? \rmdir($path) : \unlink($path);
   }
 
   public function testRemoveDirFailure(): void {
@@ -78,6 +167,7 @@ final class HelpersFilesystemTest extends UnitTestCase {
   }
 
   #[DataProvider('dataProviderChmodRecursive')]
+  #[Group('posix')]
   public function testChmodRecursive(array $structure, int $mode, array $expected_perms): void {
     $dir = self::$tmp . '/chmod_' . uniqid();
     self::directoryFixtureCreate($dir, $structure);
@@ -116,6 +206,7 @@ final class HelpersFilesystemTest extends UnitTestCase {
     ];
   }
 
+  #[Group('posix')]
   public function testChmodRecursiveSkipsSymlinks(): void {
     $dir = self::$tmp . '/chmod_symlink_' . uniqid();
     $target_dir = self::$tmp . '/chmod_target_' . uniqid();

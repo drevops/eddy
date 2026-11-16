@@ -42,7 +42,7 @@ final class HelpersTunnelTest extends UnitTestCase {
 
   protected const string PS = 'ps -p 4242 -o command= 2>/dev/null';
 
-  protected const string API_ERROR = '2026-10-08T00:00:01Z ERR failed to request quick Tunnel: Post "https://api.trycloudflare.com/tunnel": dial tcp: lookup api.trycloudflare.com: no such host' . PHP_EOL;
+  protected const string API_ERROR = '2026-10-08T00:00:01Z ERR failed to request quick Tunnel: Post "https://api.trycloudflare.com/tunnel": dial tcp: lookup api.trycloudflare.com: no such host' . "\n";
 
   protected function setUp(): void {
     parent::setUp();
@@ -61,7 +61,7 @@ final class HelpersTunnelTest extends UnitTestCase {
     }
 
     if ($dotenv !== NULL) {
-      File::dump('.env', 'CLOUDFLARE_TUNNEL=' . $dotenv . PHP_EOL);
+      File::dump('.env', 'CLOUDFLARE_TUNNEL=' . $dotenv . "\n");
     }
 
     $this->assertSame($expected, tunnel_enabled());
@@ -481,6 +481,7 @@ final class HelpersTunnelTest extends UnitTestCase {
     $this->assertFileDoesNotExist('build/web/sites/default/settings.php');
   }
 
+  #[Group('posix')]
   public function testTunnelWriteSettingsAppendsOnce(): void {
     $file = 'build/web/sites/default/settings.php';
     File::dump($file, "<?php\n\n\$databases = [];\n");
@@ -556,11 +557,11 @@ PHP;
   }
 
   protected static function banner(string $url): string {
-    return implode(PHP_EOL, [
+    return implode("\n", [
       '2026-10-08T00:00:00Z INF Requesting new quick Tunnel on trycloudflare.com...',
       '2026-10-08T00:00:01Z INF |  Your quick Tunnel has been created! Visit it at (it may take some time to be reachable):  |',
       '2026-10-08T00:00:01Z INF |  ' . $url . '  |',
-    ]) . PHP_EOL;
+    ]) . "\n";
   }
 
   /**

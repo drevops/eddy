@@ -26,6 +26,7 @@ final class HelpersPatchPackageTest extends UnitTestCase {
 
   #[DataProvider('dataProviderPatchesWithRealPatch')]
   public function testPatchesWithRealPatch(?string $installed, string $expected_result, ?string $expected_content): void {
+    $this->mockHost();
     $package_dir = self::$tmp . '/vendor/acme/package';
     $patch_file = self::$tmp . '/example.patch';
     File::dump($patch_file, self::PATCH);
@@ -58,6 +59,7 @@ final class HelpersPatchPackageTest extends UnitTestCase {
 
   #[DataProvider('dataProviderFailsWhenPatchIsUnreadable')]
   public function testFailsWhenPatchIsUnreadable(?string $patch_content): void {
+    $this->mockHost();
     $package_dir = self::$tmp . '/vendor/acme/package';
     $patch_file = self::$tmp . '/example.patch';
     File::dump($package_dir . '/src/Example.php', self::UNPATCHED);

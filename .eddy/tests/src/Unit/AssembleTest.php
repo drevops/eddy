@@ -181,7 +181,7 @@ final class AssembleTest extends UnitTestCase {
         return [self::PROJECT_ROOT . '/src', self::PROJECT_ROOT . '/composer.json', self::PROJECT_ROOT . '/vendor', self::PROJECT_ROOT . '/build'];
       }
       // The patches that the tooling ships.
-      if (str_starts_with($pattern, self::toolingDir() . '/')) {
+      if (str_starts_with(self::slashPath($pattern), self::slashPath(self::toolingDir()) . '/')) {
         return \glob($pattern) ?: [];
       }
       return [];
@@ -247,7 +247,7 @@ final class AssembleTest extends UnitTestCase {
       }
       // remove_dir() walks these directories on disk, so they exist only in a
       // test that creates them.
-      if ($path === 'build/web/modules/custom' || $path === 'build/web/themes/custom') {
+      if (str_starts_with($path, 'build/web/modules/custom') || str_starts_with($path, 'build/web/themes/custom')) {
         return \is_dir($path);
       }
       if ($path === 'build/node_modules') {
@@ -393,7 +393,7 @@ final class AssembleTest extends UnitTestCase {
     }
 
     if ($config['robo_dry_run'] !== NULL) {
-      $patch_command = sprintf('patch --forward --batch --silent -p1 -d %s -i %s', escapeshellarg('build/vendor/consolidation/robo'), escapeshellarg(self::toolingDir() . '/src/../patches/consolidation/robo/add-command.patch'));
+      $patch_command = sprintf('patch --forward --batch --silent -p1 -d %s -i %s', escapeshellarg('build/vendor/consolidation/robo'), escapeshellarg(realpath(self::toolingDir() . '/src') . '/../patches/consolidation/robo/add-command.patch'));
       $passthru_responses[] = ['cmd' => $patch_command . ' --dry-run', 'result_code' => $config['robo_dry_run']];
 
       if ($config['robo_dry_run'] === 0) {

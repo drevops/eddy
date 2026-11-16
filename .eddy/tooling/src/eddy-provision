@@ -33,10 +33,10 @@ $root = (string) getcwd();
 
 // -----------------------------------------------------------------------------
 
-echo '===============================' . PHP_EOL;
-echo '         🚀 PROVISION          ' . PHP_EOL;
-echo '===============================' . PHP_EOL;
-echo PHP_EOL;
+echo '===============================' . "\n";
+echo '         🚀 PROVISION          ' . "\n";
+echo '===============================' . "\n";
+echo "\n";
 
 $extension_info = extension_info();
 $extension_name = $extension_info['name'];
@@ -46,16 +46,14 @@ $db_file = site_db_file($extension_name);
 
 TASK('Installing Drupal into SQLite database %s.', $db_file);
 
-$exit_code = 0;
-$db_status = trim(drush('status --field=db-status', NULL, $exit_code));
-
-if ($db_status === 'Connected') {
-  drush('sql:drop -y', NULL, $exit_code);
+// 'drush sql:drop' needs the 'sqlite3' command, which Windows does not ship.
+if (is_file($db_file)) {
+  unlink($db_file);
 }
 
 drush('site-install %s -y --db-url=%s --account-name=admin install_configure_form.enable_update_status_module=NULL install_configure_form.enable_update_status_emails=NULL', [
   $drupal_profile,
-  'sqlite://localhost/' . $db_file,
+  site_db_url($extension_name),
 ]);
 
 PASS('Drupal installed.');
@@ -104,7 +102,7 @@ if (isset($extension_json['suggest']) && is_array($extension_json['suggest'])) {
 PASS('Suggested extensions enabled.');
 
 TASK('Pre-warming caches.');
-@file_get_contents(sprintf('http://%s:%s', $webserver_host, $webserver_port));
+@file_get_contents(sprintf('http://%s:%s', client_host($webserver_host), $webserver_port));
 PASS('Caches pre-warmed.');
 
 TASK('Linking browser test output into %s.', LOGS_DIR . '/browser_output');
@@ -121,21 +119,21 @@ run_custom_scripts('scripts', 'provision-');
 $site_url = resolve_site_url($webserver_host, $webserver_port);
 $login_link = login_link($site_url);
 
-echo PHP_EOL;
-echo '===============================' . PHP_EOL;
-echo '   🚀 PROVISION COMPLETE  ✅  ' . PHP_EOL;
-echo '===============================' . PHP_EOL;
-echo PHP_EOL;
-echo 'Site URL:            ' . $site_url . PHP_EOL;
-echo 'One-time login link: ' . $login_link . PHP_EOL;
-echo PHP_EOL;
+echo "\n";
+echo '===============================' . "\n";
+echo '   🚀 PROVISION COMPLETE  ✅  ' . "\n";
+echo '===============================' . "\n";
+echo "\n";
+echo 'Site URL:            ' . $site_url . "\n";
+echo 'One-time login link: ' . $login_link . "\n";
+echo "\n";
 
 if (is_file('.ahoy.yml')) {
-  echo 'Run `ahoy` to see available commands.' . PHP_EOL;
+  echo 'Run `ahoy` to see available commands.' . "\n";
 }
 
 if (is_file('Makefile')) {
-  echo 'Run `make help` to see available commands.' . PHP_EOL;
+  echo 'Run `make help` to see available commands.' . "\n";
 }
 
-echo PHP_EOL;
+echo "\n";

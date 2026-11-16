@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DrevOps\Eddy\Tests\Unit;
 
+use function DrevOps\Eddy\Tooling\client_host;
 use AlexSkrypnyk\File\File;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -51,7 +52,8 @@ final class StartTest extends UnitTestCase {
 
     $this->assertStringContainsString('START ENVIRONMENT', $output);
     $this->assertStringContainsString('Waiting up to ' . $expected_timeout . ' seconds for the server to be ready.', $output);
-    $this->assertSame([$expected_host . ':' . $expected_port], $probes, 'Only the first probe runs when it connects.');
+    // A wildcard host is probed on the loopback address.
+    $this->assertSame([client_host($expected_host) . ':' . $expected_port], $probes, 'Only the first probe runs when it connects.');
     $this->assertStringContainsString('Server started successfully', $output);
     $this->assertStringContainsString('Server can serve content', $output);
     $this->assertStringContainsString('ENVIRONMENT READY', $output);
@@ -360,7 +362,7 @@ final class StartTest extends UnitTestCase {
 
     // The running server of the project is stopped, and the new one is not
     // launched without its log directory.
-    $this->mockPortListeners('8000', [1234 => self::webserverCommandLine($project_dir)]);
+    $this->mockPortListeners('8000', [1234 => self::webserverCommandLine(File::cwd())]);
     $this->mockPassthru(['cmd' => self::killProcessesCommand(1234)]);
     $this->mockQuit(1);
 
@@ -599,7 +601,7 @@ final class StartTest extends UnitTestCase {
     $launch = "nohup cloudflared tunnel --url 'http://localhost:8000' --no-autoupdate >'.logs/cloudflared.log' 2>&1 & echo \$!";
     $this->mockPortListeners('8000', [], [
       $launch => function () use ($tunnel_url): string {
-        File::dump('.logs/cloudflared.log', 'INF |  ' . $tunnel_url . '  |' . PHP_EOL);
+        File::dump('.logs/cloudflared.log', 'INF |  ' . $tunnel_url . '  |' . "\n");
 
         return "4242\n";
       },
@@ -653,7 +655,7 @@ final class StartTest extends UnitTestCase {
   }
 
   protected static function serverCommand(string $host, string $port, bool $xdebug = FALSE): string {
-    return sprintf('nohup php%s -S %s:%s -t %s %s >%s 2>&1 &', $xdebug ? ' -d xdebug.mode=debug -d xdebug.start_with_request=yes' : '', escapeshellarg($host), escapeshellarg($port), escapeshellarg(self::PROJECT_ROOT . '/build/web'), escapeshellarg(self::PROJECT_ROOT . '/build/web/.ht.router.php'), escapeshellarg('.logs/php.log'));
+    return sprintf('nohup php%s -S %s:%s -t %s %s >%s 2>&1 &', $xdebug ? ' -d xdebug.mode=debug -d xdebug.start_with_request=yes' : '', self::shellQuote($host), self::shellQuote($port), self::shellQuote(self::PROJECT_ROOT . '/build/web'), self::shellQuote(self::PROJECT_ROOT . '/build/web/.ht.router.php'), self::shellQuote('.logs/php.log'));
   }
 
 }

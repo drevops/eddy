@@ -45,7 +45,7 @@ final class UpdateAssetsConvertToSvgTest extends UnitTestCase {
   }
 
   public static function dataProviderConvertToSvgFails(): \Iterator {
-    yield 'renderer output' => [['Error: invalid cast', 'at line 3'], 'Failed to convert cast to SVG: /casts/install.cast' . PHP_EOL . 'Error: invalid cast' . PHP_EOL . 'at line 3'];
+    yield 'renderer output' => [['Error: invalid cast', 'at line 3'], 'Failed to convert cast to SVG: /casts/install.cast' . "\n" . 'Error: invalid cast' . "\n" . 'at line 3'];
     yield 'no output' => [[], 'Failed to convert cast to SVG: /casts/install.cast'];
   }
 

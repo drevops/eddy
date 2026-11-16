@@ -108,7 +108,7 @@ final class StopTest extends UnitTestCase {
     File::dump('.logs/cloudflared.pid', "4242\n");
     File::dump('.env', "WEBSERVER_PORT=8000\nTUNNEL_URL=https://seasonal-deck-organisms-sf.trycloudflare.com\n");
 
-    $this->mockPortListeners('8000', [1234 => self::webserverCommandLine($project_dir)], [
+    $this->mockPortListeners('8000', [1234 => self::webserverCommandLine(File::cwd())], [
       'ps -p 4242 -o command= 2>/dev/null' => "cloudflared tunnel --url http://localhost:8000 --no-autoupdate\n",
     ]);
 

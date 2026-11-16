@@ -67,7 +67,7 @@ final class VariableNamesTest extends UnitTestCase {
 
     foreach ($paths as $path) {
       // The sample data of this test holds project-prefixed names on purpose.
-      if ($path === __FILE__) {
+      if (self::locationsRealpath($path) === self::locationsRealpath(__FILE__)) {
         continue;
       }
 

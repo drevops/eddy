@@ -61,7 +61,7 @@ final class ToolingInstallerTest extends UnitTestCase {
       $this->assertFileExists(self::$sut . '/vendor/bin/' . $bin);
     }
 
-    $this->processRun('vendor/bin/eddy-info', ['drupal-profile'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->processRun('php', ['vendor/bin/eddy-info', 'drupal-profile'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
     $this->assertSame('standard', trim($this->processGet()->getOutput()), 'The installed commands run through their proxies.');
 
@@ -121,7 +121,7 @@ final class ToolingInstallerTest extends UnitTestCase {
   }
 
   protected function runInstaller(): void {
-    $this->processRun('./scripts/eddy-tooling', [], [], ['COMPOSER_HOME' => self::composerHomeDir()], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->processRun('php', ['scripts/eddy-tooling'], [], ['COMPOSER_HOME' => self::composerHomeDir()], $this->defaultTimeout, $this->defaultIdleTimeout);
   }
 
   protected static function writeDevManifest(array $contents): void {

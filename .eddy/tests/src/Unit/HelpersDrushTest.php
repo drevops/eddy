@@ -38,14 +38,14 @@ final class HelpersDrushTest extends UnitTestCase {
     yield 'string args' => [
       'command' => 'pm:enable %s',
       'args' => 'my_module',
-      'expected_command_suffix' => 'pm:enable ' . escapeshellarg('my_module'),
+      'expected_command_suffix' => 'pm:enable ' . self::shellQuote('my_module'),
       'mock_output' => '',
       'expected_output' => '',
     ];
     yield 'array args' => [
       'command' => 'config:set %s %s',
       'args' => ['system.site', 'name'],
-      'expected_command_suffix' => 'config:set ' . escapeshellarg('system.site') . ' ' . escapeshellarg('name'),
+      'expected_command_suffix' => 'config:set ' . self::shellQuote('system.site') . ' ' . self::shellQuote('name'),
       'mock_output' => 'Set',
       'expected_output' => 'Set',
     ];
@@ -107,6 +107,15 @@ final class HelpersDrushTest extends UnitTestCase {
     $result = drush('status', NULL, $exit_code);
     $this->assertSame('Drupal version : 11', $result);
     $this->assertSame(0, $exit_code);
+  }
+
+  public function testDrushOnWindows(): void {
+    $this->mockWindows();
+    self::envSet('DEBUG', '1');
+    $expected_command = 'build\\vendor\\bin\\drush -r ' . escapeshellarg(File::cwd() . '/build/web') . ' -y status';
+    $this->mockPassthru(['cmd' => $expected_command, 'output' => 'Drupal version : 11', 'result_code' => 0]);
+
+    $this->assertSame('Drupal version : 11', drush('status'));
   }
 
 }

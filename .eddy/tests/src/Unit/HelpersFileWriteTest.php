@@ -74,6 +74,7 @@ JSON;
     $this->assertSame('content', File::read('target.txt'));
   }
 
+  #[Group('posix')]
   public function testSymlinkOrFail(): void {
     File::dump('source.txt', 'content');
 

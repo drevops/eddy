@@ -15,6 +15,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  * exercised the same way the tooling uses it.
  */
 #[CoversFunction('DrevOps\Eddy\Tooling\command_output')]
+#[CoversFunction('DrevOps\Eddy\Tooling\command_output_wait')]
 #[RunTestsInSeparateProcesses]
 #[Group('p0')]
 final class HelpersCommandOutputTest extends UnitTestCase {
@@ -25,6 +26,9 @@ final class HelpersCommandOutputTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderCommandOutput')]
   public function testCommandOutput(array $command, string $expected): void {
+    $this->mockHost();
+    // On Windows, the output goes to a file under the working directory.
+    chdir(self::$tmp);
     $start = microtime(TRUE);
     $output = command_output($command, 10);
     $elapsed = microtime(TRUE) - $start;
@@ -66,6 +70,8 @@ final class HelpersCommandOutputTest extends UnitTestCase {
    */
   #[DataProvider('dataProviderCommandOutputTimesOut')]
   public function testCommandOutputTimesOut(array $command): void {
+    $this->mockHost();
+    chdir(self::$tmp);
     // Sleep 10 ms per poll instead of 100 ms. A real sleep lets the command
     // set up, such as its SIGTERM trap, before it is killed.
     $sleeps = [];
