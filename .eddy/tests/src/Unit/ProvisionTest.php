@@ -139,6 +139,12 @@ final class ProvisionTest extends UnitTestCase {
       $passthru_responses[] = ['cmd' => $prefix . $drush_command . ' ' . escapeshellarg($name)];
     }
 
+    $sdc_devel = isset($locked_types['drupal/sdc_devel']);
+
+    if ($sdc_devel) {
+      $passthru_responses[] = ['cmd' => $prefix . 'pm:enable sdc_devel'];
+    }
+
     $site_url = sprintf('http://%s:%s', $expected_host, $expected_port);
     $passthru_responses[] = ['cmd' => $prefix . 'status --field=drush-version', 'output' => '13.8.0'];
     $passthru_responses[] = ['cmd' => $prefix . sprintf('uli -l %s --no-browser', escapeshellarg($site_url)), 'output' => $site_url . '/user/reset/1/abc/login'];
@@ -158,6 +164,7 @@ final class ProvisionTest extends UnitTestCase {
       '[ OK ] Caches cleared.',
       '[TASK] Enabling suggested extensions, if any.',
       '[ OK ] Suggested extensions enabled.',
+      ...($sdc_devel ? ['[TASK] Enabling sdc_devel for Single Directory Component validation.', '[ OK ] sdc_devel enabled.'] : []),
       '[TASK] Pre-warming caches.',
       '[ OK ] Caches pre-warmed.',
       '[TASK] Linking browser test output into .logs/browser_output.',
@@ -291,6 +298,26 @@ final class ProvisionTest extends UnitTestCase {
       'db_exists' => FALSE,
       'suggested' => ['drupal/token' => 'Token support'],
       'locked_types' => ['drupal/pathauto' => 'drupal-module'],
+      'expected_enabled' => ['token' => 'pm:enable'],
+      'has_ahoy' => FALSE,
+      'has_makefile' => FALSE,
+    ];
+    yield 'module with sdc_devel in the build' => [
+      'env' => [],
+      'extension_type' => 'module',
+      'db_exists' => FALSE,
+      'suggested' => [],
+      'locked_types' => ['drupal/sdc_devel' => 'drupal-module'],
+      'expected_enabled' => [],
+      'has_ahoy' => FALSE,
+      'has_makefile' => FALSE,
+    ];
+    yield 'theme with sdc_devel and a suggestion in the build' => [
+      'env' => [],
+      'extension_type' => 'theme',
+      'db_exists' => FALSE,
+      'suggested' => ['drupal/token' => 'Token support'],
+      'locked_types' => ['drupal/token' => 'drupal-module', 'drupal/sdc_devel' => 'drupal-module'],
       'expected_enabled' => ['token' => 'pm:enable'],
       'has_ahoy' => FALSE,
       'has_makefile' => FALSE,

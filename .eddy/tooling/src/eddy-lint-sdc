@@ -49,8 +49,6 @@ if (!isset(locked_packages('build/composer.lock', 'version')['drupal/sdc_devel']
   FAIL('The build does not install drupal/sdc_devel. Add it to "require-dev" in composer.dev.json, then run assemble again.');
 }
 
-drush('pm:enable sdc_devel');
-
 mkdir_or_fail(LOGS_DIR);
 
 // Drush logs to stderr and prints the report to stdout, so each goes to a file
@@ -59,9 +57,11 @@ $exit_code = 0;
 drush('sdc-devel:validate %s --format=json > %s 2> %s', [$extension_name, $report_file, $log_file], $exit_code);
 $log = file_read($log_file);
 
+// Drush has no 'sdc-devel:validate' command until provision enables the
+// module.
 if ($exit_code !== 0) {
   echo $log;
-  FAIL('Drush command failed: sdc-devel:validate.');
+  FAIL('Drush command failed: sdc-devel:validate. Run provision, which enables sdc_devel, then run this command again.');
 }
 
 // The report is empty both when every component is valid and when Drupal

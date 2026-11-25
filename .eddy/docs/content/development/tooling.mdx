@@ -107,7 +107,7 @@ The command works as follows:
 
 - It prints every finding with its severity, component, line and message. A finding in a Twig line also shows that line.
 - It fails when a finding is at or above `SDC_DEVEL_FAIL_LEVEL`, which defaults to `warning`. So Emergency, Alert, Critical, Error and Warning findings fail, and Notice, Info and Debug findings only print. A severity it doesn't recognize also fails.
-- It enables the `sdc_devel` module on the site before it validates.
+- It fails with a hint to run `provision` when the `sdc_devel` module isn't enabled. `provision` enables the module whenever the build installs it.
 - It exits with code `0` without running Drush when your extension has no `components` directory.
 - It fails when Drupal finds no components of your extension, which happens while the extension isn't enabled.
 

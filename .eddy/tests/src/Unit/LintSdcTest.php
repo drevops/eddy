@@ -147,14 +147,20 @@ final class LintSdcTest extends UnitTestCase {
     yield 'blank' => ['   ', ''];
   }
 
-  public function testLintSdcFailsWhenDrushFails(): void {
-    $this->createProject(log: " [error]  Drush was unable to query the database.\n");
+  #[DataProvider('dataProviderLintSdcFailsWhenDrushFails')]
+  public function testLintSdcFailsWhenDrushFails(string $log): void {
+    $this->createProject(log: $log);
     $this->mockPassthruMultiple(self::drushResponses(1));
     $this->mockQuit(1);
 
     $output = $this->runCommand('eddy-lint-sdc', 1);
 
-    $this->assertStringContainsString(" [error]  Drush was unable to query the database.\n[FAIL] Drush command failed: sdc-devel:validate.", $output);
+    $this->assertStringContainsString($log . '[FAIL] Drush command failed: sdc-devel:validate. Run provision, which enables sdc_devel, then run this command again.', $output);
+  }
+
+  public static function dataProviderLintSdcFailsWhenDrushFails(): \Iterator {
+    yield 'site not provisioned' => [" [error]  Drush was unable to query the database.\n"];
+    yield 'module not enabled' => ["\n  There are no commands defined in the \"sdc-devel\" namespace.\n\n"];
   }
 
   public function testLintSdcFailsWhenNoComponentsFound(): void {
@@ -250,13 +256,12 @@ final class LintSdcTest extends UnitTestCase {
 
   /**
    * @return array<int, array{cmd: string, result_code: int}>
-   *   The Drush commands that enable 'sdc_devel' and validate, in order.
+   *   The only Drush command, which validates without enabling 'sdc_devel'.
    */
   protected static function drushResponses(int $validate_result_code = 0): array {
     $prefix = 'build/vendor/bin/drush -r ' . self::shellQuote(File::cwd() . '/build/web') . ' -y ';
 
     return [
-      ['cmd' => $prefix . 'pm:enable sdc_devel', 'result_code' => 0],
       ['cmd' => $prefix . "sdc-devel:validate 'my_theme' --format=json > '.logs/sdc-devel.json' 2> '.logs/sdc-devel.log'", 'result_code' => $validate_result_code],
     ];
   }
