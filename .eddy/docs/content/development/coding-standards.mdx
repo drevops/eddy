@@ -75,6 +75,22 @@ CSpell checks prose, code and inline code in Markdown, and skips fenced code blo
 - Add a word the whole project uses to the `words` of `.cspell.json`.
 - Add a word only 1 file uses to that file, in a comment such as `cspell:ignore laminas` written in the file's own comment syntax. 1 comment can list several words, separated by spaces.
 
+## Single Directory Components
+
+`lint-sdc` validates the `*.component.yml` definitions and Twig templates in your `components` directory with [SDC Devel](https://www.drupal.org/project/sdc_devel). It needs the provisioned site, so `lint` leaves it out. After you add a `components` directory, run `assemble` and `provision` again, so the build links the directory and Drupal finds the components.
+
+To validate the components, run the following command:
+
+<CommandTabs
+  make={`make lint-sdc`}
+  ahoy={`ahoy lint-sdc`}
+  none={`vendor/bin/eddy-lint-sdc`}
+/>
+
+It prints every finding and fails on a Warning or a more severe finding. To fail on less severe findings too, or only on more severe ones, set `SDC_DEVEL_FAIL_LEVEL`, such as `SDC_DEVEL_FAIL_LEVEL=notice`. An extension without a `components` directory passes without any check. [`eddy-lint-sdc`](tooling.mdx#eddy-lint-sdc) covers the rest of its behavior.
+
+CI runs it in every `test` job, after the job provisions the site. Its ignore-failure variable is `CI_SDC_DEVEL_IGNORE_FAILURE`, and the job log shows every finding either way.
+
 ## In CI
 
 CI runs the same tools in its `lint` jobs, 1 per Drupal major you test. Each tool runs in a step of its own, apart from ESLint and Stylelint, which share 1. CSpell runs first, then the others in the order of the table. A step that fails stops the job, so the steps after it don't run.

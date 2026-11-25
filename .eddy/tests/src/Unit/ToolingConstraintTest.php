@@ -39,6 +39,7 @@ final class ToolingConstraintTest extends UnitTestCase {
     'eddy-info webdriver-port' => '1.0.0',
     'eddy-info webserver-port' => '1.0.0',
     'eddy-info xdebug' => '1.0.0',
+    'eddy-lint-sdc' => '1.2.0',
     'eddy-login' => '1.0.4',
     'eddy-provision' => '1.0.0',
     'eddy-start' => '1.0.0',

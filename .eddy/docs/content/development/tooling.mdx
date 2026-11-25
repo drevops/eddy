@@ -22,7 +22,7 @@ The version constraint lives in `composer.dev.json`:
 
 ```json
 "require-dev": {
-    "drevops/eddy-tooling": "~1.1.0"
+    "drevops/eddy-tooling": "~1.2.0"
 }
 ```
 
@@ -101,7 +101,7 @@ Apart from `webdriver-host`, a value that can't be resolved, such as the Drupal 
 
 `vendor/bin/eddy-lint-sdc` validates the components in your extension's `components` directory with the `sdc-devel:validate` Drush command of [`drupal/sdc_devel`](https://www.drupal.org/project/sdc_devel). That Drush command exits with code `0` whatever it finds, so `eddy-lint-sdc` reads its report and sets the exit code itself.
 
-Before you run it, add `drupal/sdc_devel` to `require-dev` in `composer.dev.json`, then run `assemble` and `provision`. A `components` directory you add later also needs `assemble`, which links it into the build.
+It needs `drupal/sdc_devel` in the `require-dev` of `composer.dev.json`, which the installer adds when you keep SDC Devel, and a provisioned site. A `components` directory you add later also needs `assemble`, which links it into the build. The `lint-sdc` command of `make` and Ahoy runs it.
 
 The command works as follows:
 

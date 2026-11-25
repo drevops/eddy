@@ -143,7 +143,7 @@ describe('Home', () => {
 
     const section = screen.getByRole('heading', { name: 'What floats along' }).closest('section');
 
-    expect(within(section).getAllByRole('listitem')).toHaveLength(25);
+    expect(within(section).getAllByRole('listitem')).toHaveLength(26);
   });
 
   test.each([

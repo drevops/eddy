@@ -131,49 +131,55 @@ final class InstallTest extends FunctionalTestCase {
 
     yield 'no_php_lint' => [
       [
-        'tools' => 'eslint,stylelint,cspell,jest,phpunit,functional_javascript,renovate',
+        'tools' => 'sdc_devel,eslint,stylelint,cspell,jest,phpunit,functional_javascript,renovate',
       ],
     ];
 
     yield 'no_javascript_lint' => [
       [
-        'tools' => 'phpcs,phpstan,rector,twigcs,cspell,jest,phpunit,functional_javascript,renovate',
+        'tools' => 'phpcs,phpstan,rector,twigcs,sdc_devel,cspell,jest,phpunit,functional_javascript,renovate',
       ],
     ];
 
     yield 'no_cspell' => [
       [
-        'tools' => 'phpcs,phpstan,rector,twigcs,eslint,stylelint,jest,phpunit,functional_javascript,renovate',
+        'tools' => 'phpcs,phpstan,rector,twigcs,sdc_devel,eslint,stylelint,jest,phpunit,functional_javascript,renovate',
+      ],
+    ];
+
+    yield 'no_sdc_devel' => [
+      [
+        'tools' => 'phpcs,phpstan,rector,twigcs,eslint,stylelint,cspell,jest,phpunit,functional_javascript,renovate',
       ],
     ];
 
     yield 'no_jest' => [
       [
-        'tools' => 'phpcs,phpstan,rector,twigcs,eslint,stylelint,cspell,phpunit,functional_javascript,renovate',
+        'tools' => 'phpcs,phpstan,rector,twigcs,sdc_devel,eslint,stylelint,cspell,phpunit,functional_javascript,renovate',
       ],
     ];
 
     yield 'no_npm' => [
       [
-        'tools' => 'phpcs,phpstan,rector,twigcs,phpunit,functional_javascript,renovate',
+        'tools' => 'phpcs,phpstan,rector,twigcs,sdc_devel,phpunit,functional_javascript,renovate',
       ],
     ];
 
     yield 'no_functional_javascript' => [
       [
-        'tools' => 'phpcs,phpstan,rector,twigcs,eslint,stylelint,cspell,jest,phpunit,renovate',
+        'tools' => 'phpcs,phpstan,rector,twigcs,sdc_devel,eslint,stylelint,cspell,jest,phpunit,renovate',
       ],
     ];
 
     yield 'no_phpunit' => [
       [
-        'tools' => 'phpcs,phpstan,rector,twigcs,eslint,stylelint,cspell,jest,functional_javascript,renovate',
+        'tools' => 'phpcs,phpstan,rector,twigcs,sdc_devel,eslint,stylelint,cspell,jest,functional_javascript,renovate',
       ],
     ];
 
     yield 'no_renovate' => [
       [
-        'tools' => 'phpcs,phpstan,rector,twigcs,eslint,stylelint,cspell,jest,phpunit,functional_javascript',
+        'tools' => 'phpcs,phpstan,rector,twigcs,sdc_devel,eslint,stylelint,cspell,jest,phpunit,functional_javascript',
       ],
     ];
 
@@ -355,7 +361,7 @@ final class InstallTest extends FunctionalTestCase {
       'type' => 'module',
       'drupal_version' => '10,11',
       'command_wrapper' => 'ahoy',
-      'tools' => 'phpcs,phpstan,rector,twigcs,eslint,stylelint,cspell,jest,phpunit,functional_javascript,renovate',
+      'tools' => 'phpcs,phpstan,rector,twigcs,sdc_devel,eslint,stylelint,cspell,jest,phpunit,functional_javascript,renovate',
       'examples' => 'false',
       'remove_self' => 'true',
       'proceed' => 'true',

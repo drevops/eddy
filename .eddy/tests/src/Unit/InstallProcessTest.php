@@ -427,6 +427,14 @@ final class InstallProcessTest extends UnitTestCase {
       ['vendor/bin/twig-cs-fixer'],
     ];
 
+    yield 'sdc_devel' => [
+      ['sdc_devel'],
+      [],
+      ['drupal/sdc_devel'],
+      [],
+      ['eddy-lint-sdc', 'lint-sdc', 'CI_IS_SDC_RUNNER', 'CI_SDC_DEVEL_IGNORE_FAILURE'],
+    ];
+
     yield 'all php lint tools' => [
       ['phpcs', 'phpstan', 'rector', 'twigcs'],
       ['phpcs.xml', 'phpstan.neon', 'rector.php', '.twig-cs-fixer.php'],
@@ -543,6 +551,7 @@ final class InstallProcessTest extends UnitTestCase {
 
     yield 'no tool' => [[], []];
     yield 'functional_javascript' => [['functional_javascript'], ['lullabot/mink-selenium2-driver']];
+    yield 'sdc_devel' => [['sdc_devel'], ['drupal/sdc_devel']];
     yield 'phpunit' => [['phpunit'], [...$phpunit, 'lullabot/mink-selenium2-driver']];
     yield 'phpunit and functional_javascript' => [['phpunit', 'functional_javascript'], [...$phpunit, 'lullabot/mink-selenium2-driver']];
   }
@@ -580,7 +589,7 @@ final class InstallProcessTest extends UnitTestCase {
     $phpunit = ['behat', 'browserkit', 'codecov', 'mikey', 'phpspec', 'vfsstream'];
     $functional_javascript = ['chromedriver', 'headful', 'lullabot', 'webdriver'];
     $renovate = ['renovatebot'];
-    $every_tool_but_cspell = ['phpcs', 'phpstan', 'rector', 'twigcs', 'eslint', 'stylelint', 'jest', 'phpunit', 'functional_javascript', 'renovate'];
+    $every_tool_but_cspell = ['phpcs', 'phpstan', 'rector', 'twigcs', 'sdc_devel', 'eslint', 'stylelint', 'jest', 'phpunit', 'functional_javascript', 'renovate'];
 
     yield 'no tool' => [[], []];
     yield 'phpcs' => [['phpcs'], $phpcs];
@@ -749,7 +758,7 @@ final class InstallProcessTest extends UnitTestCase {
     yield 'no PHPCS' => [['phpcs'], 'PHP and JavaScript', 'Composer, npm, Drush'];
     yield 'no PHP lint tools' => [$php_lint, 'JavaScript', 'Composer, npm, Drush'];
     yield 'no PHP or JavaScript lint tools' => [[...$php_lint, 'eslint', 'stylelint'], '', 'Composer, npm, Drush'];
-    yield 'no tools' => [[...$php_lint, ...$npm, 'phpunit', 'functional_javascript', 'renovate'], '', 'Composer, Drush'];
+    yield 'no tools' => [[...$php_lint, ...$npm, 'sdc_devel', 'phpunit', 'functional_javascript', 'renovate'], '', 'Composer, Drush'];
   }
 
   /**
@@ -1075,7 +1084,7 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   public static function dataProviderProcessLeavesNoDoubleBlankLines(): \Iterator {
-    $tools = ['phpcs', 'phpstan', 'rector', 'twigcs', 'eslint', 'stylelint', 'cspell', 'jest', 'phpunit', 'functional_javascript', 'renovate'];
+    $tools = ['phpcs', 'phpstan', 'rector', 'twigcs', 'sdc_devel', 'eslint', 'stylelint', 'cspell', 'jest', 'phpunit', 'functional_javascript', 'renovate'];
 
     yield 'both wrappers' => [['10', '11'], ['ahoy', 'makefile'], []];
     yield 'ahoy only' => [['10', '11'], ['ahoy'], []];
@@ -1120,7 +1129,7 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   public static function dataProviderProcessKeepsInstaller(): \Iterator {
-    $tools = ['phpcs', 'phpstan', 'rector', 'twigcs', 'eslint', 'stylelint', 'cspell', 'jest', 'phpunit', 'functional_javascript', 'renovate'];
+    $tools = ['phpcs', 'phpstan', 'rector', 'twigcs', 'sdc_devel', 'eslint', 'stylelint', 'cspell', 'jest', 'phpunit', 'functional_javascript', 'renovate'];
 
     yield 'module, all majors, both wrappers, every tool' => ['module', ['10', '11', '12'], ['ahoy', 'makefile'], []];
     yield 'module, Drupal 12, no wrapper, no tools' => ['module', ['12'], [], $tools];
@@ -1180,7 +1189,7 @@ final class InstallProcessTest extends UnitTestCase {
 
   public static function dataProviderProcessRemovesNpm(): \Iterator {
     yield 'every npm tool' => [['eslint', 'stylelint', 'cspell', 'jest'], FALSE];
-    yield 'every tool' => [['phpcs', 'phpstan', 'rector', 'twigcs', 'eslint', 'stylelint', 'cspell', 'jest', 'phpunit', 'functional_javascript', 'renovate'], FALSE];
+    yield 'every tool' => [['phpcs', 'phpstan', 'rector', 'twigcs', 'sdc_devel', 'eslint', 'stylelint', 'cspell', 'jest', 'phpunit', 'functional_javascript', 'renovate'], FALSE];
     yield 'all npm tools but ESLint' => [['stylelint', 'cspell', 'jest'], TRUE];
     yield 'all npm tools but Stylelint' => [['eslint', 'cspell', 'jest'], TRUE];
     yield 'all npm tools but CSpell' => [['eslint', 'stylelint', 'jest'], TRUE];
@@ -1214,7 +1223,7 @@ final class InstallProcessTest extends UnitTestCase {
 
   public static function dataProviderProcessRemovesRenovateNpm(): \Iterator {
     yield 'every npm tool' => [['eslint', 'stylelint', 'cspell', 'jest'], FALSE];
-    yield 'every tool but Renovate' => [['phpcs', 'phpstan', 'rector', 'twigcs', 'eslint', 'stylelint', 'cspell', 'jest', 'phpunit', 'functional_javascript'], FALSE];
+    yield 'every tool but Renovate' => [['phpcs', 'phpstan', 'rector', 'twigcs', 'sdc_devel', 'eslint', 'stylelint', 'cspell', 'jest', 'phpunit', 'functional_javascript'], FALSE];
     yield 'all npm tools but ESLint' => [['stylelint', 'cspell', 'jest'], TRUE];
     yield 'all npm tools but Stylelint' => [['eslint', 'cspell', 'jest'], TRUE];
     yield 'all npm tools but CSpell' => [['eslint', 'stylelint', 'jest'], TRUE];
@@ -1573,7 +1582,7 @@ final class InstallProcessTest extends UnitTestCase {
 
   public static function dataProviderProcessNamesOwnCustomDirectory(): \Iterator {
     $configs = ['.twig-cs-fixer.php', 'AGENTS.md', 'CONTRIBUTING.md', 'jest.config.js', 'package.json', 'phpcs.xml', 'phpstan.neon', 'phpunit.d10.xml', 'phpunit.xml', 'rector.php'];
-    $tools = ['phpcs', 'phpstan', 'rector', 'twigcs', 'eslint', 'stylelint', 'cspell', 'jest', 'phpunit', 'functional_javascript', 'renovate'];
+    $tools = ['phpcs', 'phpstan', 'rector', 'twigcs', 'sdc_devel', 'eslint', 'stylelint', 'cspell', 'jest', 'phpunit', 'functional_javascript', 'renovate'];
 
     yield 'module' => ['module', [], $configs];
     yield 'theme' => ['theme', [], $configs];

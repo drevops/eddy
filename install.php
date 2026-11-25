@@ -227,6 +227,7 @@ function tool_options(): array {
     'phpstan' => 'PHPStan',
     'rector' => 'Rector',
     'twigcs' => 'Twig CS Fixer',
+    'sdc_devel' => 'SDC Devel',
     'eslint' => 'ESLint',
     'stylelint' => 'Stylelint',
     'cspell' => 'CSpell',
@@ -507,8 +508,8 @@ Environment variables (to pre-fill prompts):
   INSTALL_TOOLS           Tools to keep: comma-separated. All are kept by
                           default; list only the ones to keep to drop the rest.
                           One or more of: phpcs, phpstan, rector, twigcs,
-                          eslint, stylelint, cspell, jest, phpunit,
-                          functional_javascript, renovate.
+                          sdc_devel, eslint, stylelint, cspell, jest,
+                          phpunit, functional_javascript, renovate.
   INSTALL_EXAMPLES        Keep example lifecycle scripts: true or false. They
                           are removed by default.
   INSTALL_REMOVE_SELF     Remove this script: true or false.
@@ -1775,6 +1776,14 @@ function tool_specs(): array {
       'composer_allow_plugins' => [],
       'composer_extra' => [],
       'cspell_words' => ['twigcsfixer', 'vincentlanglet'],
+    ],
+    'sdc_devel' => [
+      'token' => 'DEV_SDC',
+      'files' => [],
+      'dirs' => [],
+      'composer_dev' => ['drupal/sdc_devel'],
+      'composer_allow_plugins' => [],
+      'composer_extra' => [],
     ],
     'eslint' => [
       'token' => 'DEV_ESLINT',

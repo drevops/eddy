@@ -61,6 +61,9 @@ TARGETS += test-functional-javascript browser-start browser-stop
 #;< DEV_JEST
 TARGETS += test-javascript test-js
 #;> DEV_JEST
+#;< DEV_SDC
+TARGETS += lint-sdc
+#;> DEV_SDC
 .PHONY: $(TARGETS)
 
 help:
@@ -73,6 +76,9 @@ help:
 	@echo "info                       - Print a read-only summary of the current environment (alias: describe)."
 	@echo "lint                       - Check coding standards for violations."
 	@echo "lint-fix                   - Fix violations in coding standards."
+	@#;< DEV_SDC
+	@echo "lint-sdc                   - Validate Single Directory Components on the provisioned site."
+	@#;> DEV_SDC
 	@echo "login                      - Login to a website."
 	@echo "provision                  - Provision application within assembled codebase."
 	@echo "reset                      - Reset project to the default state (aliases: delete, destroy)."
@@ -107,6 +113,9 @@ test: tooling
 #;< DEV_FUNCTIONAL_JAVASCRIPT
 browser-start browser-stop test-functional-javascript: tooling
 #;> DEV_FUNCTIONAL_JAVASCRIPT
+#;< DEV_SDC
+lint-sdc: tooling
+#;> DEV_SDC
 
 tooling:
 	@./scripts/eddy-tooling >&2
@@ -205,6 +214,11 @@ lint-fix:
 	$(call title,Running ESLint)
 	pushd "build" >/dev/null || exit 1 && ([ ! -d node_modules ] || npm run lint-fix) && popd >/dev/null || exit 1
 	@#;> DEV_NODEJS_LINT
+
+#;< DEV_SDC
+lint-sdc:
+	$(TOOLING)/eddy-lint-sdc
+#;> DEV_SDC
 
 # The test targets that pass their arguments to PHPUnit. The list is split
 # across the same DEV_* markers as `TARGETS` so a stripped feature leaves no

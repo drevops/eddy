@@ -100,6 +100,12 @@ commands:
       #;> DEV_NODEJS_LINT
       popd >/dev/null || exit 1
 
+  #;< DEV_SDC
+  lint-sdc:
+    usage: Validate Single Directory Components on the provisioned site.
+    cmd: vendor/bin/eddy-lint-sdc
+  #;> DEV_SDC
+
   test:
     usage: Run all tests.
     cmd: |
