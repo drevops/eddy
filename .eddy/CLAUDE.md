@@ -204,13 +204,13 @@ Generated projects install the tooling from the releases that the `drevops/eddy-
 
 `eddy-assemble` patches a dependency of the site build when a release breaks the build, such as Robo 5.2.1-5.2.3 breaking Drush 13 on Drupal 10. Each patch lives at `.eddy/tooling/patches/<vendor>/<package>/<name>.patch`, with paths relative to the package root. `package_patches()` finds every patch by that layout, so `eddy-assemble` names none of them. `HelpersPackagePatchesTest` fails for a file elsewhere in `patches/`.
 
-After the last Composer step, `patch_package()` dry-runs each patch against the installed package and applies it only when the dry run succeeds. A release that already holds the fix, or lacks the patched code, stays as installed. So a patch can stay in the tooling after upstream releases the fix. Delete it in any later release.
+After the last Composer step, `patch_package()` dry-runs each patch against the installed package and applies it only when the dry run succeeds. `installed_package_dirs()` reads where Composer installed each package from `vendor/composer/installed.json`, so a patch reaches a Drupal module in `web/modules/contrib` as well as a package in `vendor/`. A release that already holds the fix, or lacks the patched code, stays as installed. So a patch can stay in the tooling after upstream releases the fix. Delete it in any later release.
 
 To add a patch:
 
-1. Download the fix from a pinned commit, never from a pull request branch, which can change.
+1. Download the fix from a pinned commit, never from a pull request branch, which can change. When upstream has no fix yet, write the patch against the affected release.
 2. Keep only the files that the package ships. A hunk for a test file fails the dry run on every release.
-3. Start the file with what it fixes and links to the upstream issue and commit. `patch` ignores the lines before the first `diff`.
+3. Start the file with what it fixes and links to the upstream issue and commit, or say that upstream has none yet. `patch` ignores the lines before the first `diff`.
 4. Dry-run it against every affected release, and against a release it must skip.
 
 Generated projects get a new patch with the next tooling release that the template's `drevops/eddy-tooling` constraint allows, since CI installs the tooling on every run.

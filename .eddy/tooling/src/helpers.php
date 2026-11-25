@@ -2280,6 +2280,32 @@ function locked_packages(string $lock_file, string $field): array {
 }
 
 /**
+ * Get the directory that Composer installed each package of a build into.
+ *
+ * An installer path, such as the one of a Drupal module, places a package
+ * outside the vendor directory.
+ *
+ * @param string $vendor_dir
+ *   The vendor directory of the build.
+ *
+ * @return array<string, string>
+ *   The directories keyed by package name, built from the 'install-path' of
+ *   'composer/installed.json'. Empty when the file cannot be read.
+ */
+function installed_package_dirs(string $vendor_dir): array {
+  $installed = json_file($vendor_dir . '/composer/installed.json');
+  $dirs = [];
+
+  foreach ((array) ($installed['packages'] ?? []) as $package) {
+    if (is_array($package) && is_string($package['name'] ?? NULL) && is_string($package['install-path'] ?? NULL)) {
+      $dirs[$package['name']] = $vendor_dir . '/composer/' . $package['install-path'];
+    }
+  }
+
+  return $dirs;
+}
+
+/**
  * List the packages a Composer lock file installs from development branches.
  *
  * @param string $lock_file
