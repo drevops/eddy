@@ -81,6 +81,8 @@ use function template_archive_sha256;
 use function template_archive_url;
 use function template_version;
 use function tool_cspell_words;
+use function tool_default;
+use function tool_options;
 use function tool_specs;
 use function uncomment_line;
 use function workflow_push_branches;
@@ -231,6 +233,22 @@ final class InstallHelpersTest extends UnitTestCase {
     }
 
     $this->assertSame(['10' => FALSE, '11' => TRUE, '12' => FALSE], $checked);
+  }
+
+  /**
+   * @param array<int, string> $expected_unchecked
+   *   The tools that start unchecked.
+   */
+  #[DataProvider('dataProviderToolDefault')]
+  public function testToolDefault(string $type, array $expected_unchecked): void {
+    $expected = array_values(array_diff(array_keys(tool_options()), $expected_unchecked));
+
+    $this->assertSame($expected, tool_default($type));
+  }
+
+  public static function dataProviderToolDefault(): \Iterator {
+    yield 'theme checks every tool' => ['theme', []];
+    yield 'module leaves SDC Devel unchecked' => ['module', ['sdc_devel']];
   }
 
   /**
