@@ -28,8 +28,8 @@ endif
 
 # Resolve the site URL through the shared `eddy-info` resolver so `drush`
 # reports the same tunnel-aware URL as start, provision, login, and info
-# (see resolve_site_url()). Lazy `=` so the probe runs only when the recipes
-# that expand it are invoked.
+# (see resolve_site_url() in vendor/drevops/eddy-tooling/src/helpers.php).
+# Lazy `=` so the probe runs only when the recipes that expand it are invoked.
 DRUSH = build/vendor/bin/drush -l "$(shell vendor/bin/eddy-info site-url)"
 # Recipes expand $(DRUSH) themselves. Exported, it would run the probe for
 # every recipe, including the one that installs the tooling.
@@ -87,8 +87,7 @@ help:
 # `reset`, which still cleans up when the install fails. Progress goes to
 # stderr, so a captured target output holds only the target's own.
 assemble build debug drush info login provision start stop: tooling
-test: tooling
-browser-start browser-stop test-functional-javascript: tooling
+browser-start browser-stop test test-functional-javascript: tooling
 lint-sdc: tooling
 
 tooling:
@@ -172,9 +171,7 @@ lint-fix:
 lint-sdc:
 	$(TOOLING)/eddy-lint-sdc
 
-# The test targets that pass their arguments to PHPUnit. The list is split
-# across the same DEV_* markers as `TARGETS` so a stripped feature leaves no
-# dangling entry.
+# The test targets that pass their arguments to PHPUnit.
 TEST_TARGETS := test
 TEST_TARGETS += test-unit test-kernel test-functional
 TEST_TARGETS += test-functional-javascript

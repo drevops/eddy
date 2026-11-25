@@ -1,7 +1,7 @@
 @@ -8,12 +8,11 @@
     - PHP with SQLite support
     - Composer
-    - Node.js with npm, which the build uses
+    - Node.js with npm, for the packages in `package.json`
 -   - [Ahoy](https://github.com/ahoy-cli/ahoy)
  2. Clone this repository.
  3. Build the site:

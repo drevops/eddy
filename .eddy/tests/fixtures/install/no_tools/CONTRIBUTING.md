@@ -2,8 +2,9 @@
  1. Install the following tools:
     - PHP with SQLite support
     - Composer
--   - Node.js with npm, which the build uses
-    - [Ahoy](https://github.com/ahoy-cli/ahoy)
+-   - Node.js with npm, for the packages in `package.json`
+-   - [Ahoy](https://github.com/ahoy-cli/ahoy)
++   - [Ahoy](https://github.com/ahoy-cli/ahoy), optional, as an alternative to `make`
  2. Clone this repository.
  3. Build the site:
  
