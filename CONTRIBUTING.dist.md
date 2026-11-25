@@ -330,6 +330,7 @@ vendor/bin/twig-cs-fixer --no-cache --fix
 #;< DEV_NODEJS_LINT
 npm run lint-fix
 #;> DEV_NODEJS_LINT
+cd ..
 ```
 <!-- #;> DEV_NO_COMMAND_WRAPPER -->
 <!-- #;< DEV_SDC -->
@@ -399,6 +400,7 @@ php -d pcov.directory=.. vendor/bin/phpunit
 #;< DEV_JEST
 npm test
 #;> DEV_JEST
+cd ..
 ```
 <!-- #;> DEV_NO_COMMAND_WRAPPER -->
 <!-- #;< DEV_PHPUNIT -->

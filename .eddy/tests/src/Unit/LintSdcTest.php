@@ -103,7 +103,12 @@ final class LintSdcTest extends UnitTestCase {
     $this->assertSame($expected, $output);
   }
 
-  public function testLintSdcSkipsWithoutComponents(): void {
+  #[DataProvider('dataProviderLintSdcSkipsWithoutComponents')]
+  public function testLintSdcSkipsWithoutComponents(?string $level): void {
+    if ($level !== NULL) {
+      self::envSet('SDC_DEVEL_FAIL_LEVEL', $level);
+    }
+
     $this->createProject(components: FALSE, lock: '');
     $this->mockPassthruNever();
     $this->mockQuit(0);
@@ -111,6 +116,11 @@ final class LintSdcTest extends UnitTestCase {
     $output = $this->runCommand('eddy-lint-sdc', 0);
 
     $this->assertStringContainsString('[ OK ] No components directory, so there is nothing to validate.', $output);
+  }
+
+  public static function dataProviderLintSdcSkipsWithoutComponents(): \Iterator {
+    yield 'default level' => [NULL];
+    yield 'invalid level' => ['loud'];
   }
 
   #[DataProvider('dataProviderLintSdcFailsWithoutPackage')]
@@ -138,7 +148,7 @@ final class LintSdcTest extends UnitTestCase {
 
     $output = $this->runCommand('eddy-lint-sdc', 1);
 
-    $this->assertSame(sprintf('[FAIL] Invalid SDC_DEVEL_FAIL_LEVEL "%s". Use one of: emergency, alert, critical, error, warning, notice, info, debug.', $expected_level) . "\n", $output);
+    $this->assertSame('[TASK] Validating Single Directory Components of my_theme.' . "\n" . sprintf('[FAIL] Invalid SDC_DEVEL_FAIL_LEVEL "%s". Use one of: emergency, alert, critical, error, warning, notice, info, debug.', $expected_level) . "\n", $output);
   }
 
   public static function dataProviderLintSdcFailsOnInvalidLevel(): \Iterator {

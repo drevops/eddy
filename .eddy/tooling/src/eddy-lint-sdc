@@ -30,12 +30,6 @@ $log_file = LOGS_DIR . '/sdc-devel.log';
 
 // -----------------------------------------------------------------------------
 
-$fail_rank = log_severity_rank($fail_level);
-
-if ($fail_rank === NULL) {
-  FAIL('Invalid SDC_DEVEL_FAIL_LEVEL "%s". Use one of: %s.', $fail_level, implode(', ', LOG_SEVERITIES));
-}
-
 $extension_name = extension_info()['name'];
 
 TASK('Validating Single Directory Components of %s.', $extension_name);
@@ -43,6 +37,12 @@ TASK('Validating Single Directory Components of %s.', $extension_name);
 if (!is_dir('components')) {
   PASS('No components directory, so there is nothing to validate.');
   quit(0);
+}
+
+$fail_rank = log_severity_rank($fail_level);
+
+if ($fail_rank === NULL) {
+  FAIL('Invalid SDC_DEVEL_FAIL_LEVEL "%s". Use one of: %s.', $fail_level, implode(', ', LOG_SEVERITIES));
 }
 
 if (!isset(locked_packages('build/composer.lock', 'version')['drupal/sdc_devel'])) {
