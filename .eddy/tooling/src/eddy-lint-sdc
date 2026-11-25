@@ -1,0 +1,107 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * @file
+ * Validate the extension's Single Directory Components with 'sdc_devel'.
+ *
+ * - Prints every finding of 'drush sdc-devel:validate', which always exits 0.
+ * - Fails when a finding is at or above SDC_DEVEL_FAIL_LEVEL, 'warning' by
+ *   default, or has a severity it does not know.
+ * - Does nothing for an extension without a 'components' directory.
+ */
+
+declare(strict_types=1);
+
+namespace DrevOps\Eddy\Tooling;
+
+require_once __DIR__ . '/helpers.php';
+
+// -----------------------------------------------------------------------------
+// Variables.
+// -----------------------------------------------------------------------------
+
+// The least severe finding that fails the validation.
+$fail_level = strtolower(trim(resolve_env_value('SDC_DEVEL_FAIL_LEVEL', 'warning')['value']));
+
+// The report and the Drush log of the last run.
+$report_file = LOGS_DIR . '/sdc-devel.json';
+$log_file = LOGS_DIR . '/sdc-devel.log';
+
+// -----------------------------------------------------------------------------
+
+$fail_rank = log_severity_rank($fail_level);
+
+if ($fail_rank === NULL) {
+  FAIL('Invalid SDC_DEVEL_FAIL_LEVEL "%s". Use one of: %s.', $fail_level, implode(', ', LOG_SEVERITIES));
+}
+
+$extension_name = extension_info()['name'];
+
+TASK('Validating Single Directory Components of %s.', $extension_name);
+
+if (!is_dir('components')) {
+  PASS('No components directory, so there is nothing to validate.');
+  quit(0);
+}
+
+if (!isset(locked_packages('build/composer.lock', 'version')['drupal/sdc_devel'])) {
+  FAIL('The build does not install drupal/sdc_devel. Add it to "require-dev" in composer.dev.json, then run assemble again.');
+}
+
+drush('pm:enable sdc_devel');
+
+mkdir_or_fail(LOGS_DIR);
+
+// Drush logs to stderr and prints the report to stdout, so each goes to a file
+// of its own and the report stays valid JSON.
+$exit_code = 0;
+drush('sdc-devel:validate %s --format=json > %s 2> %s', [$extension_name, $report_file, $log_file], $exit_code);
+$log = file_read($log_file);
+
+if ($exit_code !== 0) {
+  echo $log;
+  FAIL('Drush command failed: sdc-devel:validate.');
+}
+
+// The report is empty both when every component is valid and when Drupal
+// finds none. Drupal finds none while the extension is not enabled, or before
+// assemble links a new 'components' directory into the build.
+if (str_contains($log, 'No components found')) {
+  echo $log;
+  FAIL('sdc_devel found no components of %s. Run assemble and provision, then run this command again.', $extension_name);
+}
+
+$findings = sdc_devel_findings(file_read($report_file));
+
+if ($findings === NULL) {
+  FAIL('Unable to read the sdc_devel report in %s.', $report_file);
+
+  // @codeCoverageIgnoreStart
+  $findings = [];
+  // @codeCoverageIgnoreEnd
+}
+
+$failures = 0;
+
+foreach ($findings as $finding) {
+  $rank = log_severity_rank($finding['severity']);
+
+  // A severity that this command does not know fails, so a change in the
+  // report format cannot pass unnoticed.
+  if ($rank === NULL || $rank <= $fail_rank) {
+    $failures++;
+  }
+
+  NOTE('[%s] %s, line %s, %s: %s', $finding['severity'], $finding['component'], $finding['line'], $finding['type'], $finding['message']);
+
+  if ($finding['source'] !== '') {
+    NOTE('  %s', $finding['source']);
+  }
+}
+
+if ($failures > 0) {
+  FAIL('Findings at or above "%s": %d of %d.', $fail_level, $failures, count($findings));
+}
+
+PASS('Findings at or above "%s": 0 of %d.', $fail_level, count($findings));

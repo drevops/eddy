@@ -31,6 +31,8 @@ return RectorConfig::configure()
     __DIR__ . '/../tooling/src/eddy-deploy',
     __DIR__ . '/../tooling/src/helpers.php',
     __DIR__ . '/../tooling/src/eddy-info',
+    __DIR__ . '/../tooling/src/eddy-lint-sdc',
+    __DIR__ . '/../tooling/src/eddy-login',
     __DIR__ . '/../tooling/src/eddy-provision',
     __DIR__ . '/../tooling/src/eddy-qrcode',
     __DIR__ . '/../tooling/src/eddy-start',
