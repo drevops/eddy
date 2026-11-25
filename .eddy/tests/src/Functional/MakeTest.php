@@ -11,6 +11,21 @@ use Symfony\Component\Process\Process;
 #[Group('p4')]
 final class MakeTest extends ToolingTestCase {
 
+  /**
+   * A component definition with 1 prop, which each test template prints.
+   */
+  protected const string COMPONENT_DEFINITION = <<<'YAML'
+    $schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+    name: Card
+    props:
+      type: object
+      properties:
+        title:
+          type: string
+          title: Title
+
+    YAML;
+
   public function testAssembleSkipNpmBuild(): void {
     File::dump(self::$sut . '/.skip_npm_build');
 
@@ -196,6 +211,11 @@ final class MakeTest extends ToolingTestCase {
     $this->assertProcessSuccessful();
     $this->assertProcessAnyOutputContains('ENVIRONMENT STOPPED');
 
+    // 'assemble' links the top-level items of the project into the build, so
+    // the 'components' directory exists before it runs.
+    File::dump(self::$sut . '/components/card/card.component.yml', self::COMPONENT_DEFINITION);
+    File::dump(self::$sut . '/components/card/card.twig', "<div{{ attributes }}>{{ title }}</div>\n");
+
     $this->processRun('make', ['assemble'], [], [], $this->longTimeout, $this->defaultIdleTimeout);
     $this->assertProcessSuccessful();
     $this->assertProcessAnyOutputContains('ASSEMBLE COMPLETE');
@@ -255,6 +275,8 @@ final class MakeTest extends ToolingTestCase {
     $this->assertProcessAnyOutputContains('Webserver port:');
     $this->assertProcessAnyOutputContains('Site URL:           http://');
 
+    $this->runLintSdc();
+
     $this->runLint();
 
     $this->processRun('make', ['test'], [], [], $this->longTimeout, $this->defaultIdleTimeout);
@@ -271,6 +293,41 @@ final class MakeTest extends ToolingTestCase {
     $this->runFunctionalTests();
 
     $this->runFunctionalJavascriptTests();
+  }
+
+  protected function runLintSdc(): void {
+    $this->processRun('make', ['lint-sdc'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->assertProcessSuccessful();
+    $this->assertProcessAnyOutputContains('Findings at or above "warning": 0 of 0.');
+
+    // A Notice finding prints and passes until the level includes it.
+    File::dump(self::$sut . '/components/hero/hero.component.yml', self::COMPONENT_DEFINITION);
+    File::dump(self::$sut . '/components/hero/hero.twig', "<div{{ attributes }}>{{ title ? true : false }}</div>\n");
+
+    $this->processRun('make', ['lint-sdc'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->assertProcessSuccessful();
+    $this->assertProcessAnyOutputContains('[Notice] your_extension:hero');
+    $this->assertProcessAnyOutputContains('Findings at or above "warning": 0 of 1.');
+
+    $this->processRun('make', ['lint-sdc'], [], ['SDC_DEVEL_FAIL_LEVEL' => 'notice'], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->assertProcessFailed();
+    $this->assertProcessAnyOutputContains('Findings at or above "notice": 1 of 1.');
+
+    // An Error finding fails until the level is above it.
+    File::dump(self::$sut . '/components/teaser/teaser.component.yml', self::COMPONENT_DEFINITION);
+    File::dump(self::$sut . '/components/teaser/teaser.twig', "<div{{ attributes }}>{{ title }}{{ undefined_variable }}</div>\n");
+
+    $this->processRun('make', ['lint-sdc'], [], [], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->assertProcessFailed();
+    $this->assertProcessAnyOutputContains('[Error] your_extension:teaser');
+    $this->assertProcessAnyOutputContains('Findings at or above "warning": 1 of 2.');
+
+    $this->processRun('make', ['lint-sdc'], [], ['SDC_DEVEL_FAIL_LEVEL' => 'critical'], $this->defaultTimeout, $this->defaultIdleTimeout);
+    $this->assertProcessSuccessful();
+    $this->assertProcessAnyOutputContains('Findings at or above "critical": 0 of 2.');
+
+    File::rmdir(self::$sut . '/components/hero');
+    File::rmdir(self::$sut . '/components/teaser');
   }
 
   protected function runLint(): void {

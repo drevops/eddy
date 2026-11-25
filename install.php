@@ -149,8 +149,8 @@ function main(array $argv): int {
       'tools',
       'Tools',
       options: tool_options(),
-      default: array_keys(tool_options()),
-      description: 'All tools are included by default. Uncheck any to remove from your project.',
+      default: static fn(array $answers): array => tool_default((string) $answers['type']),
+      description: static fn(array $answers): string => $answers['type'] === 'theme' ? 'All tools are included by default. Uncheck any to remove from your project.' : 'All tools but SDC Devel are included by default. Check or uncheck any to change your project.',
     )
     ->confirm(
       'examples',
@@ -227,6 +227,7 @@ function tool_options(): array {
     'phpstan' => 'PHPStan',
     'rector' => 'Rector',
     'twigcs' => 'Twig CS Fixer',
+    'sdc_devel' => 'SDC Devel',
     'eslint' => 'ESLint',
     'stylelint' => 'Stylelint',
     'cspell' => 'CSpell',
@@ -235,6 +236,24 @@ function tool_options(): array {
     'functional_javascript' => 'FunctionalJavascript tests',
     'renovate' => 'Renovate',
   ];
+}
+
+/**
+ * Define the tools pre-selected in the installation prompt.
+ *
+ * Themes ship Single Directory Components far more often than modules, so
+ * SDC Devel starts checked for a theme only.
+ *
+ * @param string $type
+ *   The extension type: 'module' or 'theme'.
+ *
+ * @return array<int, string>
+ *   The machine names of the tools to start checked.
+ */
+function tool_default(string $type): array {
+  $tools = array_keys(tool_options());
+
+  return $type === 'theme' ? $tools : array_values(array_diff($tools, ['sdc_devel']));
 }
 
 /**
@@ -505,8 +524,9 @@ Environment variables (to pre-fill prompts):
   INSTALL_COMMAND_WRAPPER Command wrapper: ahoy, makefile, or both
                           (comma-separated).
   INSTALL_TOOLS           Tools to keep: comma-separated. All are kept by
-                          default; list only the ones to keep to drop the rest.
-                          One or more of: phpcs, phpstan, rector, twigcs,
+                          default, apart from sdc_devel for a module; list
+                          only the ones to keep to drop the rest. One or more
+                          of: phpcs, phpstan, rector, twigcs, sdc_devel,
                           eslint, stylelint, cspell, jest, phpunit,
                           functional_javascript, renovate.
   INSTALL_EXAMPLES        Keep example lifecycle scripts: true or false. They
@@ -1775,6 +1795,14 @@ function tool_specs(): array {
       'composer_allow_plugins' => [],
       'composer_extra' => [],
       'cspell_words' => ['twigcsfixer', 'vincentlanglet'],
+    ],
+    'sdc_devel' => [
+      'token' => 'DEV_SDC',
+      'files' => [],
+      'dirs' => [],
+      'composer_dev' => ['drupal/sdc_devel'],
+      'composer_allow_plugins' => [],
+      'composer_extra' => [],
     ],
     'eslint' => [
       'token' => 'DEV_ESLINT',

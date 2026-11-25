@@ -1,0 +1,28 @@
+Load each component template by its path relative to the app root on Windows.
+Core strips the app root from the template path only when both use
+DIRECTORY_SEPARATOR, and Drush and Drupal give the root with '/' on Windows.
+The path then stays absolute, Twig's filesystem loader cannot resolve it, and
+'sdc-devel:validate' fails with 'Template "C:/.../card.twig" is not defined.'
+
+Issue: none upstream yet.
+Source: written for Eddy against sdc_devel 1.1.0.
+
+diff --git a/src/TwigValidator/TwigValidator.php b/src/TwigValidator/TwigValidator.php
+index 369c5fa..d95b69c 100644
+--- a/src/TwigValidator/TwigValidator.php
++++ b/src/TwigValidator/TwigValidator.php
+@@ -63,6 +63,14 @@ final class TwigValidator extends ValidatorBase {
+   public function validateComponent(string $id, Component $component): void {
+     $path = $component->getTemplatePath();
+
++    // Twig resolves a template path relative to the app root only, and core
++    // leaves the path absolute when it and the root mix separators.
++    if ($path !== NULL) {
++      $root = \str_replace('\\', '/', \Drupal::root()) . '/';
++      $path = \str_replace('\\', '/', $path);
++      $path = \str_starts_with($path, $root) ? \substr($path, \strlen($root)) : $path;
++    }
++
+     if ($path === NULL) {
+       $this->addMessage(ValidatorMessage::createForString($id, new TranslatableMarkup('This component has no template!'), RfcLogLevel::CRITICAL));
+

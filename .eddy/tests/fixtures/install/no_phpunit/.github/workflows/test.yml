@@ -16,10 +16,10 @@
        CI_RUNNER_TOTAL: ${{ strategy.job-total }}
        CI_IS_JEST_RUNNER: true
 -      CI_IS_PHPUNIT_RUNNER: true
+       CI_IS_SDC_RUNNER: true
  
      steps:
-       - name: Checkout code
-@@ -241,40 +234,3 @@
+@@ -247,40 +240,3 @@
          working-directory: build
          run: npm test
          continue-on-error: ${{ vars.CI_NODEJS_TEST_IGNORE_FAILURE == '1' }}

@@ -152,7 +152,7 @@ final class InstallMainTest extends UnitTestCase {
       'type' => 'module',
       'drupal_version' => '11',
       'command_wrapper' => 'ahoy',
-      'tools' => 'phpcs,phpstan,rector,twigcs,eslint,stylelint,cspell,jest,phpunit,functional_javascript,renovate',
+      'tools' => 'phpcs,phpstan,rector,twigcs,sdc_devel,eslint,stylelint,cspell,jest,phpunit,functional_javascript,renovate',
       'examples' => 'false',
       'remove_self' => 'false',
       'proceed' => 'true',

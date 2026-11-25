@@ -101,6 +101,13 @@ if (isset($extension_json['suggest']) && is_array($extension_json['suggest'])) {
 
 PASS('Suggested extensions enabled.');
 
+// 'eddy-lint-sdc' runs the Drush command of the module.
+if (isset(locked_packages('build/composer.lock', 'type')['drupal/sdc_devel'])) {
+  TASK('Enabling sdc_devel for Single Directory Component validation.');
+  drush('pm:enable sdc_devel');
+  PASS('sdc_devel enabled.');
+}
+
 TASK('Pre-warming caches.');
 @file_get_contents(sprintf('http://%s:%s', client_host($webserver_host), $webserver_port));
 PASS('Caches pre-warmed.');

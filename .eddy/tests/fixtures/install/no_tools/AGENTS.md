@@ -1,4 +1,4 @@
-@@ -8,24 +8,28 @@
+@@ -8,25 +8,28 @@
  
  ## Development Commands
  
@@ -17,6 +17,7 @@
 -- **PHPStan**: `ahoy lint` - never `vendor/bin/phpstan`.
 -- **Rector**: `ahoy lint` (dry-run) / `ahoy lint-fix` - never `vendor/bin/rector`.
 -- **Twig CS Fixer**: `ahoy lint` / `ahoy lint-fix` - never `vendor/bin/twig-cs-fixer`.
+-- **SDC Devel**: `ahoy lint-sdc`, on a provisioned site - never `drush sdc-devel:validate`, which exits with code 0 whatever it finds.
 -- **ESLint / Stylelint**: `ahoy lint` / `ahoy lint-fix` - never `npx eslint` or `npx stylelint`.
 -- **CSpell**: `ahoy lint` - never `npx cspell`.
 -- **PHPUnit**: `ahoy test` / `ahoy test-unit` / `ahoy test-kernel` / `ahoy test-functional` - never `vendor/bin/phpunit`.
@@ -36,7 +37,7 @@
  **Using Ahoy:**
  - `ahoy build` - Complete build process
  - `ahoy assemble` - Assemble codebase
-@@ -37,33 +41,31 @@
+@@ -38,34 +41,31 @@
  ### Code Quality
  
  **Linting:**
@@ -44,6 +45,7 @@
 +- `make lint-fix` - Auto-fix coding standards violations
  - `ahoy lint` - Run all linting tools
  - `ahoy lint-fix` - Auto-fix coding standards violations
+-- `ahoy lint-sdc` - Validate Single Directory Components on the provisioned site. `lint` leaves it out, because it needs a site
  
  **Testing:**
 +- `make test` - Run all tests
@@ -77,7 +79,7 @@
  - `config/schema/` - Configuration schema definitions
  - `build/` - Assembled Drupal codebase (symlinked extension)
  - `vendor/` - The installed `drevops/eddy-tooling` package, whose commands (`vendor/bin/eddy-*`) assemble, start, provision and deploy the extension. Not committed and not part of the extension
-@@ -74,7 +76,6 @@
+@@ -76,7 +76,6 @@
  
  - **Service-based architecture**: Main functionality in services registered via `*.services.yml`
  - **Configuration-driven**: Uses Drupal configuration system with schema validation
@@ -85,7 +87,7 @@
  - **Form integration**: Admin forms in `src/Form/` for configuration
  
  ## Environment Variables
-@@ -82,9 +83,6 @@
+@@ -84,37 +83,24 @@
  - `DRUPAL_VERSION` - Target Drupal version (e.g., `10`, `11`, `11@alpha`, `12@beta`). Defaults to `extra.eddy.drupal-version` in `composer.dev.json`
  - `WEBSERVER_HOST` - Development server host (default: localhost)
  - `WEBSERVER_PORT` - Development server port. Auto-discovered from range 8000-8099 and written to `.env` if not already set
@@ -95,8 +97,8 @@
  - `WEBSERVER_WAIT_TIMEOUT` - Seconds that `start` waits for the development server to accept connections (default: 5)
  - `DRUPAL_PROFILE` - Install profile that `provision` installs the site from (default: `standard`)
  - `XDEBUG` - Set to `1` to start the development server with XDebug step-debugging
-@@ -91,26 +89,18 @@
  - `CLOUDFLARE_TUNNEL` - Set to `1` to expose the development server through a public Cloudflare quick tunnel. `start` writes the tunnel URL to `.env` as `TUNNEL_URL`
+-- `SDC_DEVEL_FAIL_LEVEL` - Least severe Single Directory Component finding that fails `vendor/bin/eddy-lint-sdc`: `emergency`, `alert`, `critical`, `error`, `warning`, `notice`, `info` or `debug`. Defaults to `warning`
  - `LOGIN_QRCODE` - Set to `1` to also render the `login` link as a terminal QR code (needs `qrencode`)
  - `GITHUB_TOKEN` - GitHub API token to avoid rate limits
 -- `DEBUG` - Set to `1` to stream the full output of the underlying commands (Composer, npm, Drush). By default this output is suppressed and shown only when a command fails
@@ -121,13 +123,14 @@
 -- **PHPStan**: Static analysis with Drupal extensions
 -- **Rector**: Automated refactoring and deprecation fixes
 -- **Twig CS Fixer**: Twig template formatting
+-- **SDC Devel**: Single Directory Component validation of the `*.component.yml` definitions and Twig templates in `components/`, on the provisioned site
 -- **ESLint**: JavaScript linting with Prettier formatting (config at `.eslintrc.json`)
 -- **Stylelint**: CSS linting (config at `.stylelintrc.js`)
 -
  ## CI/CD Support
  
  - **GitHub Actions**: `.github/workflows/test.yml` and deployment
-@@ -124,8 +114,6 @@
+@@ -128,8 +114,6 @@
  - The `build/` directory contains the assembled Drupal site
  - Extension files are symlinked from root into `build/web/modules/custom/`
  - SQLite database created in `/tmp/site_force_crystal.sqlite`

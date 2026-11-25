@@ -46,7 +46,7 @@
  ```
  
  The build pins Drupal core to the newest release that matches `DRUPAL_VERSION` and prints that release. A version without a stable release resolves to its newest pre-release.
-@@ -119,8 +118,8 @@
+@@ -121,8 +120,8 @@
  The development server can run with [XDebug](https://xdebug.org/docs/install) step-debugging. Install the XDebug PHP extension on your host first, so that `php -v` prints `with Xdebug`. Then restart the server with XDebug turned on or off:
  
  ```bash
@@ -57,7 +57,7 @@
  ```
  
  The `debug` command has the aliases `debug-on`, `xdebug` and `xdebug-on`. The `start` command has the aliases `debug-off` and `xdebug-off`.
-@@ -145,7 +144,7 @@
+@@ -147,7 +146,7 @@
  To run every check:
  
  ```bash
@@ -66,7 +66,7 @@
  ```
  
  ### Fixing coding standards issues
-@@ -153,7 +152,7 @@
+@@ -155,7 +154,7 @@
  To fix the issues that have an automatic fix, run the fixers:
  
  ```bash
@@ -74,8 +74,17 @@
 +make lint-fix
  ```
  
- ## Testing
-@@ -161,7 +160,7 @@
+ ### Validating Single Directory Components
+@@ -165,7 +164,7 @@
+ To validate the components:
+ 
+ ```bash
+-ahoy lint-sdc
++make lint-sdc
+ ```
+ 
+ The command prints every finding and fails on a Warning or a more severe finding. Notice, Info and Debug findings only print. To fail on Notice findings too, set `SDC_DEVEL_FAIL_LEVEL=notice`. The accepted levels are `emergency`, `alert`, `critical`, `error`, `warning`, `notice`, `info` and `debug`. An extension without a `components` directory passes without any check.
+@@ -177,7 +176,7 @@
  To run every test:
  
  ```bash
@@ -84,7 +93,7 @@
  ```
  
  The PHPUnit tests live in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests, and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both use Drupal core's bootstrap file, `web/core/tests/bootstrap.php`, to boot Drupal before the tests run.
-@@ -169,10 +168,10 @@
+@@ -185,10 +184,10 @@
  To run 1 test suite:
  
  ```bash
@@ -99,7 +108,7 @@
  ```
  
  ### Running FunctionalJavascript tests
-@@ -182,10 +181,10 @@
+@@ -198,10 +197,10 @@
  To run the FunctionalJavascript tests with Chrome:
  
  ```bash
@@ -114,7 +123,7 @@
  ```
  
  The `test` and `test-functional-javascript` commands start the browser before they run the tests. The browser keeps running for the next run to reuse, so stop it with `browser-stop` when you're done.
-@@ -195,10 +194,10 @@
+@@ -211,10 +210,10 @@
  To run the browser in a Selenium container, start Docker and set `WEBDRIVER_BACKEND=selenium`. The container can't reach the `localhost` of your host, so start the webserver on all interfaces with `WEBSERVER_HOST=__VERSION__.0`:
  
  ```bash
@@ -129,7 +138,7 @@
  ```
  
  With Chrome, the browser reaches the webserver at `localhost`. From the Selenium container, the browser uses `host.docker.internal` on macOS and `__VERSION__.1` on other systems. To use another address, set `WEBDRIVER_HOST`.
-@@ -212,10 +211,12 @@
+@@ -228,10 +227,12 @@
  To run some of the tests, pass a test file path or a PHPUnit option, such as `--filter` or `--group`, to a test command. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site:
  
  ```bash

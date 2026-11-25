@@ -20,7 +20,7 @@ env:
   CI_IS_PHPUNIT_RUNNER: true
 ```
 
-The `test` job runs 2 tools, Jest and PHPUnit. Each tool has a `CI_IS_<TOOL>_RUNNER` flag, and its steps run only on a runner where the flag is `true`. Every flag is `true`, so every tool runs on every runner and tests every PHP and Drupal pair. The linters run in the `lint` jobs, which have no flags.
+The `test` job runs 3 tools: Jest, PHPUnit and SDC Devel. Each tool has a `CI_IS_<TOOL>_RUNNER` flag, and its steps run only on a runner where the flag is `true`. Every flag is `true`, so every tool runs on every runner and tests every PHP and Drupal pair. The linters run in the `lint` jobs, which have no flags.
 
 To run a tool on 1 runner only, replace its `true` with an expression that's true on that runner alone. The following flag compares the runner's `matrix.name` with the name of 1 job, so Jest runs on that job only:
 
@@ -49,6 +49,7 @@ The following table lists the variables and the step each one covers:
 | `CI_PHPSTAN_IGNORE_FAILURE`      | PHPStan              |
 | `CI_RECTOR_IGNORE_FAILURE`       | Rector               |
 | `CI_TWIGCSFIXER_IGNORE_FAILURE`  | Twig CS Fixer        |
+| `CI_SDC_DEVEL_IGNORE_FAILURE`    | SDC Devel            |
 | `CI_NODEJS_LINT_IGNORE_FAILURE`  | ESLint and Stylelint |
 | `CI_NODEJS_TEST_IGNORE_FAILURE`  | Jest                 |
 | `CI_TEST_IGNORE_FAILURE`         | PHPUnit              |

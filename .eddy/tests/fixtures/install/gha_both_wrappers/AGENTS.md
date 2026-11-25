@@ -1,4 +1,4 @@
-@@ -8,10 +8,22 @@
+@@ -8,10 +8,23 @@
  
  ## Development Commands
  
@@ -13,6 +13,7 @@
 +- **PHPStan**: `make lint` - never `vendor/bin/phpstan`.
 +- **Rector**: `make lint` (dry-run) / `make lint-fix` - never `vendor/bin/rector`.
 +- **Twig CS Fixer**: `make lint` / `make lint-fix` - never `vendor/bin/twig-cs-fixer`.
++- **SDC Devel**: `make lint-sdc`, on a provisioned site - never `drush sdc-devel:validate`, which exits with code 0 whatever it finds.
 +- **ESLint / Stylelint**: `make lint` / `make lint-fix` - never `npx eslint` or `npx stylelint`.
 +- **CSpell**: `make lint` - never `npx cspell`.
 +- **PHPUnit**: `make test` / `make test-unit` / `make test-kernel` / `make test-functional` - never `vendor/bin/phpunit`.
@@ -22,7 +23,7 @@
  Run each tool through its `ahoy` wrapper, never the binary directly:
  
  - **PHPCS / PHPCBF**: `ahoy lint` / `ahoy lint-fix` - never `vendor/bin/phpcs` or `vendor/bin/phpcbf`.
-@@ -26,6 +38,14 @@
+@@ -27,6 +40,14 @@
  
  ### Build and Environment Management
  
@@ -37,14 +38,16 @@
  **Using Ahoy:**
  - `ahoy build` - Complete build process
  - `ahoy assemble` - Assemble codebase
-@@ -37,10 +57,20 @@
+@@ -38,11 +59,22 @@
  ### Code Quality
  
  **Linting:**
 +- `make lint` - Run all linting tools
 +- `make lint-fix` - Auto-fix coding standards violations
++- `make lint-sdc` - Validate Single Directory Components on the provisioned site. `lint` leaves it out, because it needs a site
  - `ahoy lint` - Run all linting tools
  - `ahoy lint-fix` - Auto-fix coding standards violations
+ - `ahoy lint-sdc` - Validate Single Directory Components on the provisioned site. `lint` leaves it out, because it needs a site
  
  **Testing:**
 +- `make test` - Run all tests
@@ -58,7 +61,7 @@
  - `ahoy test` - Run all tests
  - `ahoy test-unit` - Run unit tests only
  - `ahoy test-kernel` - Run kernel tests only
-@@ -52,11 +82,14 @@
+@@ -54,11 +86,14 @@
  
  ### Drupal Commands
  
@@ -73,7 +76,7 @@
  - `ahoy info` - Print a read-only summary of PHP/Drupal/Composer/Drush/Node/npm versions, webserver host/port (with source), site URL, XDebug state, WebDriver port, build directory, database path, and active profile. (alias: `ahoy describe`)
  
  ## Project Structure
-@@ -95,11 +128,11 @@
+@@ -98,11 +133,11 @@
  
  ## Development Workflow
  

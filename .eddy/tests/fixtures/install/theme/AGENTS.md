@@ -7,7 +7,7 @@
  
  ## Development Commands
  
-@@ -62,9 +62,8 @@
+@@ -64,9 +64,8 @@
  ## Project Structure
  
  **Key Directories:**
@@ -19,7 +19,7 @@
  - `build/` - Assembled Drupal codebase (symlinked extension)
  - `vendor/` - The installed `drevops/eddy-tooling` package, whose commands (`vendor/bin/eddy-*`) assemble, start, provision and deploy the extension. Not committed and not part of the extension
  - `scripts/eddy-tooling` - Installs the tooling package into `vendor/` from the constraint in `composer.dev.json`. The command wrappers and CI run it before the tooling commands
-@@ -72,10 +71,10 @@
+@@ -74,10 +73,10 @@
  
  ## Architecture
  
@@ -34,7 +34,7 @@
  
  ## Environment Variables
  
-@@ -96,7 +95,7 @@
+@@ -99,7 +98,7 @@
  ## Development Workflow
  
  1. Build environment: `ahoy build`
@@ -43,7 +43,7 @@
  3. Check standards: `ahoy lint`
  4. Run tests: `ahoy test`
  5. Access site at the URL that `ahoy info` reports
-@@ -122,7 +121,7 @@
+@@ -126,7 +125,7 @@
  ## Important Notes
  
  - The `build/` directory contains the assembled Drupal site

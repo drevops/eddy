@@ -1,4 +1,4 @@
-@@ -8,56 +8,30 @@
+@@ -8,58 +8,30 @@
  
  ## Development Commands
  
@@ -13,6 +13,7 @@
 -- **PHPStan**: `ahoy lint` - never `vendor/bin/phpstan`.
 -- **Rector**: `ahoy lint` (dry-run) / `ahoy lint-fix` - never `vendor/bin/rector`.
 -- **Twig CS Fixer**: `ahoy lint` / `ahoy lint-fix` - never `vendor/bin/twig-cs-fixer`.
+-- **SDC Devel**: `ahoy lint-sdc`, on a provisioned site - never `drush sdc-devel:validate`, which exits with code 0 whatever it finds.
 -- **ESLint / Stylelint**: `ahoy lint` / `ahoy lint-fix` - never `npx eslint` or `npx stylelint`.
 -- **CSpell**: `ahoy lint` - never `npx cspell`.
 -- **PHPUnit**: `ahoy test` / `ahoy test-unit` / `ahoy test-kernel` / `ahoy test-functional` - never `vendor/bin/phpunit`.
@@ -39,6 +40,7 @@
 -**Linting:**
 -- `ahoy lint` - Run all linting tools
 -- `ahoy lint-fix` - Auto-fix coding standards violations
+-- `ahoy lint-sdc` - Validate Single Directory Components on the provisioned site. `lint` leaves it out, because it needs a site
 +Run the linters and the tests with the commands that `CONTRIBUTING.md` lists.
  
 -**Testing:**
@@ -65,7 +67,7 @@
  
  ## Project Structure
  
-@@ -67,7 +41,7 @@
+@@ -69,7 +41,7 @@
  - `config/schema/` - Configuration schema definitions
  - `build/` - Assembled Drupal codebase (symlinked extension)
  - `vendor/` - The installed `drevops/eddy-tooling` package, whose commands (`vendor/bin/eddy-*`) assemble, start, provision and deploy the extension. Not committed and not part of the extension
@@ -74,10 +76,10 @@
  - `scripts/` - Custom lifecycle hooks: post-assemble (`assemble-*.sh`), post-provision (`provision-*.sh`), post-start (`start-*.sh`), and pre-stop (`stop-*.sh`). Run automatically during each phase in lexicographic order; non-zero exit aborts the parent. Excluded from distribution archives via `.gitattributes`
  
  ## Architecture
-@@ -89,17 +63,16 @@
- - `DRUPAL_PROFILE` - Install profile that `provision` installs the site from (default: `standard`)
+@@ -92,17 +64,16 @@
  - `XDEBUG` - Set to `1` to start the development server with XDebug step-debugging
  - `CLOUDFLARE_TUNNEL` - Set to `1` to expose the development server through a public Cloudflare quick tunnel. `start` writes the tunnel URL to `.env` as `TUNNEL_URL`
+ - `SDC_DEVEL_FAIL_LEVEL` - Least severe Single Directory Component finding that fails `vendor/bin/eddy-lint-sdc`: `emergency`, `alert`, `critical`, `error`, `warning`, `notice`, `info` or `debug`. Defaults to `warning`
 -- `LOGIN_QRCODE` - Set to `1` to also render the `login` link as a terminal QR code (needs `qrencode`)
  - `GITHUB_TOKEN` - GitHub API token to avoid rate limits
  - `DEBUG` - Set to `1` to stream the full output of the underlying commands (Composer, npm, Drush). By default this output is suppressed and shown only when a command fails

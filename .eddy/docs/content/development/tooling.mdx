@@ -22,7 +22,7 @@ The version constraint lives in `composer.dev.json`:
 
 ```json
 "require-dev": {
-    "drevops/eddy-tooling": "~1.1.0"
+    "drevops/eddy-tooling": "~1.2.0"
 }
 ```
 
@@ -56,6 +56,7 @@ The package installs the following commands into `vendor/bin`:
 | `eddy-stop`          | Stops the webserver.                                                                                                    |
 | `eddy-provision`     | Installs Drupal on the assembled site and enables the extension.                                                        |
 | `eddy-login`         | Prints a one-time login link without opening it in a browser, and draws it as a QR code when `LOGIN_QRCODE` is set.     |
+| `eddy-lint-sdc`      | Validates the extension's Single Directory Components with `drupal/sdc_devel`, and fails on findings at or above `SDC_DEVEL_FAIL_LEVEL`. |
 | `eddy-deploy`        | Mirrors the extension to a remote git repository, such as Drupal.org. CI runs it.                                       |
 | `eddy-browser-start` | Starts the WebDriver backend for FunctionalJavascript tests. When neither your shell nor `.env` sets `WEBDRIVER_PORT`, discovers a free port from 4444 to 4543 and writes it to `.env`. |
 | `eddy-browser-stop`  | Stops the WebDriver backend.                                                                                            |
@@ -95,6 +96,22 @@ These pages describe each command in detail:
 | `drupal-profile`    | The install profile, from `DRUPAL_PROFILE`.                                                    |
 
 Apart from `webdriver-host`, a value that can't be resolved, such as the Drupal version before the first build, prints `-`.
+
+### `eddy-lint-sdc`
+
+`vendor/bin/eddy-lint-sdc` validates the components in your extension's `components` directory with the `sdc-devel:validate` Drush command of [`drupal/sdc_devel`](https://www.drupal.org/project/sdc_devel). That Drush command exits with code `0` whatever it finds, so `eddy-lint-sdc` reads its report and sets the exit code itself.
+
+It needs `drupal/sdc_devel` in the `require-dev` of `composer.dev.json`, which the installer adds when you keep SDC Devel, and a provisioned site. A `components` directory you add later also needs `assemble`, which links it into the build. The `lint-sdc` command of `make` and Ahoy runs it.
+
+The command works as follows:
+
+- It prints every finding with its severity, component, line and message. A finding in a Twig line also shows that line.
+- It fails when a finding is at or above `SDC_DEVEL_FAIL_LEVEL`, which defaults to `warning`. So Emergency, Alert, Critical, Error and Warning findings fail, and Notice, Info and Debug findings only print. A severity it doesn't recognize also fails.
+- It fails with a hint to run `provision` when the `sdc_devel` module isn't enabled. `provision` enables the module whenever the build installs it.
+- It exits with code `0` without running Drush when your extension has no `components` directory.
+- It fails when Drupal finds no components of your extension, which happens while the extension isn't enabled.
+
+It saves the report to `.logs/sdc-devel.json` and the Drush log to `.logs/sdc-devel.log`.
 
 ## Command output
 

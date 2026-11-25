@@ -63,7 +63,7 @@
  ```
  
  The build pins Drupal core to the newest release that matches `DRUPAL_VERSION` and prints that release. A version without a stable release resolves to its newest pre-release.
-@@ -119,14 +115,10 @@
+@@ -121,14 +117,10 @@
  The development server can run with [XDebug](https://xdebug.org/docs/install) step-debugging. Install the XDebug PHP extension on your host first, so that `php -v` prints `with Xdebug`. Then restart the server with XDebug turned on or off:
  
  ```bash
@@ -80,7 +80,7 @@
  The XDebug settings apply only to the development server, so the tests still collect code coverage with [pcov](https://github.com/krakjoe/pcov).
  
  With XDebug on, every request starts a debug session, so a browser extension that sets the XDebug trigger has no effect. To skip debugging, stop listening in your IDE.
-@@ -145,7 +137,15 @@
+@@ -147,7 +139,15 @@
  To run every check:
  
  ```bash
@@ -97,7 +97,7 @@
  ```
  
  ### Fixing coding standards issues
-@@ -153,7 +153,11 @@
+@@ -155,7 +155,12 @@
  To fix the issues that have an automatic fix, run the fixers:
  
  ```bash
@@ -107,10 +107,20 @@
 +vendor/bin/phpcbf
 +vendor/bin/twig-cs-fixer --no-cache --fix
 +npm run lint-fix
++cd ..
  ```
  
- ## Testing
-@@ -161,7 +165,16 @@
+ ### Validating Single Directory Components
+@@ -165,7 +170,7 @@
+ To validate the components:
+ 
+ ```bash
+-ahoy lint-sdc
++vendor/bin/eddy-lint-sdc
+ ```
+ 
+ The command prints every finding and fails on a Warning or a more severe finding. Notice, Info and Debug findings only print. To fail on Notice findings too, set `SDC_DEVEL_FAIL_LEVEL=notice`. The accepted levels are `emergency`, `alert`, `critical`, `error`, `warning`, `notice`, `info` and `debug`. An extension without a `components` directory passes without any check.
+@@ -177,7 +182,17 @@
  To run every test:
  
  ```bash
@@ -125,10 +135,11 @@
 +cd build
 +php -d pcov.directory=.. vendor/bin/phpunit
 +npm test
++cd ..
  ```
  
  The PHPUnit tests live in the `tests/src` directory. The `phpunit.xml` file configures PHPUnit to run the tests, and `phpunit.d10.xml` replaces it in a Drupal 10 build. Both use Drupal core's bootstrap file, `web/core/tests/bootstrap.php`, to boot Drupal before the tests run.
-@@ -169,10 +182,13 @@
+@@ -185,10 +200,13 @@
  To run 1 test suite:
  
  ```bash
@@ -146,7 +157,7 @@
  ```
  
  ### Running FunctionalJavascript tests
-@@ -182,23 +198,37 @@
+@@ -198,23 +216,37 @@
  To run the FunctionalJavascript tests with Chrome:
  
  ```bash
@@ -196,7 +207,7 @@
  ```
  
  With Chrome, the browser reaches the webserver at `localhost`. From the Selenium container, the browser uses `host.docker.internal` on macOS and `__VERSION__.1` on other systems. To use another address, set `WEBDRIVER_HOST`.
-@@ -207,17 +237,11 @@
+@@ -223,17 +255,11 @@
  
  The `ForceCrystalFunctionalJavascriptTestBase` base class points the WebDriver endpoint at that port, so extend it in every FunctionalJavascript test. A test that extends `WebDriverTestBase` directly uses the default endpoint from `phpunit.xml`, unless it exports its own `MINK_DRIVER_ARGS_WEBDRIVER`.
  

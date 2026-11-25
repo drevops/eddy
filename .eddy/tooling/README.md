@@ -15,7 +15,7 @@ The installer reads the version constraint from `composer.dev.json`:
 
 ```json
 "require-dev": {
-    "drevops/eddy-tooling": "~1.1.0"
+    "drevops/eddy-tooling": "~1.2.0"
 }
 ```
 
@@ -34,6 +34,7 @@ The installer runs Composer only when the constraint, the patches for the packag
 | `eddy-stop`          | Stop the development server.                                                                                            |
 | `eddy-provision`     | Install Drupal on the assembled site and enable the extension.                                                          |
 | `eddy-login`         | Print a one-time login link without opening it in a browser, and draw it as a QR code when `LOGIN_QRCODE` is set.       |
+| `eddy-lint-sdc`      | Validate the extension's Single Directory Components with `drupal/sdc_devel`, and fail on findings at or above `SDC_DEVEL_FAIL_LEVEL` (default `warning`). |
 | `eddy-deploy`        | Mirror the extension to a remote git repository (e.g. drupal.org). Used in CI.                                          |
 | `eddy-browser-start` | Start the WebDriver backend used by FunctionalJavascript tests. Auto-discovers a free port from 4444 and writes `.env`. |
 | `eddy-browser-stop`  | Stop the WebDriver backend.                                                                                             |

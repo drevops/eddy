@@ -45,7 +45,7 @@ const STATIONS = [
   {
     step: 'Filter',
     title: 'Coding standards',
-    text: 'PHPCS, PHPStan, Drupal Rector, Twig CS Fixer, ESLint, Stylelint, CSpell and Prettier, set up for Drupal.',
+    text: 'PHPCS, PHPStan, Drupal Rector, Twig CS Fixer, SDC Devel, ESLint, Stylelint, CSpell and Prettier, set up for Drupal.',
     command: 'ahoy lint',
     demo: { src: '/img/demos/lint.svg', alt: 'ahoy lint running PHPCS, PHPStan, Rector, ESLint and CSpell' },
   },
@@ -80,7 +80,7 @@ const STATIONS = [
   },
 ];
 
-const TOOLS = ['PHPUnit', 'Jest', 'PHPStan', 'Drupal Rector', 'PHPCS', 'Twig CS Fixer', 'ESLint', 'Stylelint', 'Prettier', 'CSpell', 'pcov', 'Codecov', 'GitHub Actions', 'GitLab CI', 'Drupal.org', 'Renovate', 'Composer', 'Drush', 'Make', 'Ahoy', 'Chrome', 'Selenium', 'Xdebug', 'SQLite', 'Cloudflare Tunnel'];
+const TOOLS = ['PHPUnit', 'Jest', 'PHPStan', 'Drupal Rector', 'PHPCS', 'Twig CS Fixer', 'SDC Devel', 'ESLint', 'Stylelint', 'Prettier', 'CSpell', 'pcov', 'Codecov', 'GitHub Actions', 'GitLab CI', 'Drupal.org', 'Renovate', 'Composer', 'Drush', 'Make', 'Ahoy', 'Chrome', 'Selenium', 'Xdebug', 'SQLite', 'Cloudflare Tunnel'];
 
 const PROJECTS = [
   { name: 'Testmode', repository: 'drevops/testmode', text: 'Alters existing site content and other configuration when running tests.' },

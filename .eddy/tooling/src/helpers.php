@@ -1950,6 +1950,70 @@ function login_link(string $site_url): string {
 }
 
 /**
+ * The RFC 5424 log severities that Drupal names, from the most severe.
+ */
+const LOG_SEVERITIES = ['emergency', 'alert', 'critical', 'error', 'warning', 'notice', 'info', 'debug'];
+
+/**
+ * Rank a log severity by how severe it is.
+ *
+ * @param string $severity
+ *   A severity name, such as 'Warning', in any letter case.
+ *
+ * @return int|null
+ *   0 for 'emergency' up to 7 for 'debug', or NULL for an unknown name.
+ */
+function log_severity_rank(string $severity): ?int {
+  $rank = array_search(strtolower(trim($severity)), LOG_SEVERITIES, TRUE);
+
+  return $rank === FALSE ? NULL : $rank;
+}
+
+/**
+ * Read the findings of an 'sdc-devel:validate --format=json' report.
+ *
+ * 'sdc_devel' wraps each message with chunk_split(), which inserts "\r\n"
+ * every 76 characters, so the line breaks are removed.
+ *
+ * @param string $json
+ *   The report.
+ *
+ * @return array<int, array{component: string, severity: string, message: string, type: string, line: string, source: string}>|null
+ *   The findings in report order, or NULL when the report is not a JSON list
+ *   of objects.
+ */
+function sdc_devel_findings(string $json): ?array {
+  // Objects decode as objects, so '{}' stays apart from the empty list '[]'.
+  $rows = json_decode($json);
+
+  if (!is_array($rows)) {
+    return NULL;
+  }
+
+  $findings = [];
+
+  foreach ($rows as $row) {
+    if (!$row instanceof \stdClass) {
+      return NULL;
+    }
+
+    $row = get_object_vars($row);
+    $field = static fn(string $name): string => is_scalar($row[$name] ?? NULL) ? (string) $row[$name] : '';
+
+    $findings[] = [
+      'component' => $field('component'),
+      'severity' => $field('severity'),
+      'message' => str_replace("\r\n", '', $field('message')),
+      'type' => $field('type'),
+      'line' => $field('line'),
+      'source' => $field('source'),
+    ];
+  }
+
+  return $findings;
+}
+
+/**
  * Redirect Drupal's browser test output directory into the logs directory.
  *
  * Drupal writes functional test HTML dumps - and, for JavaScript tests,
@@ -2213,6 +2277,32 @@ function locked_packages(string $lock_file, string $field): array {
   $values = array_filter(array_column($packages, $field, 'name'), is_string(...));
 
   return $values;
+}
+
+/**
+ * Get the directory that Composer installed each package of a build into.
+ *
+ * An installer path, such as the one of a Drupal module, places a package
+ * outside the vendor directory.
+ *
+ * @param string $vendor_dir
+ *   The vendor directory of the build.
+ *
+ * @return array<string, string>
+ *   The directories keyed by package name, built from the 'install-path' of
+ *   'composer/installed.json'. Empty when the file cannot be read.
+ */
+function installed_package_dirs(string $vendor_dir): array {
+  $installed = json_file($vendor_dir . '/composer/installed.json');
+  $dirs = [];
+
+  foreach ((array) ($installed['packages'] ?? []) as $package) {
+    if (is_array($package) && is_string($package['name'] ?? NULL) && is_string($package['install-path'] ?? NULL)) {
+      $dirs[$package['name']] = $vendor_dir . '/composer/' . $package['install-path'];
+    }
+  }
+
+  return $dirs;
 }
 
 /**

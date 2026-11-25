@@ -222,6 +222,9 @@ jobs:
       #;< DEV_PHPUNIT
       CI_IS_PHPUNIT_RUNNER: true
       #;> DEV_PHPUNIT
+      #;< DEV_SDC
+      CI_IS_SDC_RUNNER: true
+      #;> DEV_SDC
 
     steps:
       - name: Checkout code
@@ -288,6 +291,13 @@ jobs:
 
       - name: Provision site
         run: vendor/bin/eddy-provision
+
+      #;< DEV_SDC
+      - name: Validate Single Directory Components
+        if: ${{ env.CI_IS_SDC_RUNNER == 'true' }}
+        run: vendor/bin/eddy-lint-sdc
+        continue-on-error: ${{ vars.CI_SDC_DEVEL_IGNORE_FAILURE == '1' }}
+      #;> DEV_SDC
 
       #;< DEV_JEST
       - name: Run JavaScript tests

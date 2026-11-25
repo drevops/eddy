@@ -4,12 +4,12 @@
        CI_RUNNER_TOTAL: ${{ strategy.job-total }}
 -      CI_IS_JEST_RUNNER: true
        CI_IS_PHPUNIT_RUNNER: true
+       CI_IS_SDC_RUNNER: true
  
-     steps:
-@@ -235,12 +234,6 @@
- 
-       - name: Provision site
-         run: vendor/bin/eddy-provision
+@@ -241,12 +240,6 @@
+         if: ${{ env.CI_IS_SDC_RUNNER == 'true' }}
+         run: vendor/bin/eddy-lint-sdc
+         continue-on-error: ${{ vars.CI_SDC_DEVEL_IGNORE_FAILURE == '1' }}
 -
 -      - name: Run JavaScript tests
 -        if: ${{ env.CI_IS_JEST_RUNNER == 'true' && hashFiles('build/node_modules/.package-lock.json') != '' }}

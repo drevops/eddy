@@ -64,19 +64,25 @@
      name: ${{ matrix.name }}
  
      env:
-@@ -167,8 +122,6 @@
+@@ -167,9 +122,6 @@
        # covering one Drupal and PHP pair, so every tool runs on all of them.
        CI_RUNNER_INDEX: ${{ strategy.job-index }}
        CI_RUNNER_TOTAL: ${{ strategy.job-total }}
 -      CI_IS_JEST_RUNNER: true
 -      CI_IS_PHPUNIT_RUNNER: true
+-      CI_IS_SDC_RUNNER: true
  
      steps:
        - name: Checkout code
-@@ -235,46 +188,3 @@
+@@ -236,51 +188,3 @@
  
        - name: Provision site
          run: vendor/bin/eddy-provision
+-
+-      - name: Validate Single Directory Components
+-        if: ${{ env.CI_IS_SDC_RUNNER == 'true' }}
+-        run: vendor/bin/eddy-lint-sdc
+-        continue-on-error: ${{ vars.CI_SDC_DEVEL_IGNORE_FAILURE == '1' }}
 -
 -      - name: Run JavaScript tests
 -        if: ${{ env.CI_IS_JEST_RUNNER == 'true' && hashFiles('build/node_modules/.package-lock.json') != '' }}

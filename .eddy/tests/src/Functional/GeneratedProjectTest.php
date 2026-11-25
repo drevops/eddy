@@ -28,7 +28,7 @@ final class GeneratedProjectTest extends ToolingTestCase {
       'INSTALL_TYPE' => $type,
       'INSTALL_DRUPAL_VERSION' => '11',
       'INSTALL_COMMAND_WRAPPER' => 'makefile',
-      'INSTALL_TOOLS' => 'phpcs,phpstan,rector,twigcs,eslint,stylelint,cspell,jest,phpunit,functional_javascript,renovate',
+      'INSTALL_TOOLS' => 'phpcs,phpstan,rector,twigcs,sdc_devel,eslint,stylelint,cspell,jest,phpunit,functional_javascript,renovate',
       'INSTALL_EXAMPLES' => 'false',
       'INSTALL_REMOVE_SELF' => 'true',
       'INSTALL_PROCEED' => 'true',

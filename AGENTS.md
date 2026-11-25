@@ -37,6 +37,9 @@ Run each tool through its `make` wrapper, never the binary directly:
 <!-- #;< DEV_TWIGCS -->
 - **Twig CS Fixer**: `make lint` / `make lint-fix` - never `vendor/bin/twig-cs-fixer`.
 <!-- #;> DEV_TWIGCS -->
+<!-- #;< DEV_SDC -->
+- **SDC Devel**: `make lint-sdc`, on a provisioned site - never `drush sdc-devel:validate`, which exits with code 0 whatever it finds.
+<!-- #;> DEV_SDC -->
 <!-- #;< DEV_NODEJS_LINT -->
 - **ESLint / Stylelint**: `make lint` / `make lint-fix` - never `npx eslint` or `npx stylelint`.
 <!-- #;> DEV_NODEJS_LINT -->
@@ -67,6 +70,9 @@ Run each tool through its `ahoy` wrapper, never the binary directly:
 <!-- #;< DEV_TWIGCS -->
 - **Twig CS Fixer**: `ahoy lint` / `ahoy lint-fix` - never `vendor/bin/twig-cs-fixer`.
 <!-- #;> DEV_TWIGCS -->
+<!-- #;< DEV_SDC -->
+- **SDC Devel**: `ahoy lint-sdc`, on a provisioned site - never `drush sdc-devel:validate`, which exits with code 0 whatever it finds.
+<!-- #;> DEV_SDC -->
 <!-- #;< DEV_NODEJS_LINT -->
 - **ESLint / Stylelint**: `ahoy lint` / `ahoy lint-fix` - never `npx eslint` or `npx stylelint`.
 <!-- #;> DEV_NODEJS_LINT -->
@@ -119,10 +125,16 @@ Run each tool through its `ahoy` wrapper, never the binary directly:
 <!-- #;< DEV_MAKEFILE -->
 - `make lint` - Run all linting tools
 - `make lint-fix` - Auto-fix coding standards violations
+<!-- #;< DEV_SDC -->
+- `make lint-sdc` - Validate Single Directory Components on the provisioned site. `lint` leaves it out, because it needs a site
+<!-- #;> DEV_SDC -->
 <!-- #;> DEV_MAKEFILE -->
 <!-- #;< DEV_AHOY -->
 - `ahoy lint` - Run all linting tools
 - `ahoy lint-fix` - Auto-fix coding standards violations
+<!-- #;< DEV_SDC -->
+- `ahoy lint-sdc` - Validate Single Directory Components on the provisioned site. `lint` leaves it out, because it needs a site
+<!-- #;> DEV_SDC -->
 <!-- #;> DEV_AHOY -->
 
 **Testing:**
@@ -255,6 +267,9 @@ Run the linters and the tests with the commands that `CONTRIBUTING.md` lists.
 - `DRUPAL_PROFILE` - Install profile that `provision` installs the site from (default: `standard`)
 - `XDEBUG` - Set to `1` to start the development server with XDebug step-debugging
 - `CLOUDFLARE_TUNNEL` - Set to `1` to expose the development server through a public Cloudflare quick tunnel. `start` writes the tunnel URL to `.env` as `TUNNEL_URL`
+<!-- #;< DEV_SDC -->
+- `SDC_DEVEL_FAIL_LEVEL` - Least severe Single Directory Component finding that fails `vendor/bin/eddy-lint-sdc`: `emergency`, `alert`, `critical`, `error`, `warning`, `notice`, `info` or `debug`. Defaults to `warning`
+<!-- #;> DEV_SDC -->
 <!-- #;< DEV_COMMAND_WRAPPER -->
 - `LOGIN_QRCODE` - Set to `1` to also render the `login` link as a terminal QR code (needs `qrencode`)
 <!-- #;> DEV_COMMAND_WRAPPER -->
@@ -307,6 +322,9 @@ Run `php install.php` once, in a fresh copy of the template, to turn it into you
 <!-- #;< DEV_TWIGCS -->
 - **Twig CS Fixer**: Twig template formatting
 <!-- #;> DEV_TWIGCS -->
+<!-- #;< DEV_SDC -->
+- **SDC Devel**: Single Directory Component validation of the `*.component.yml` definitions and Twig templates in `components/`, on the provisioned site
+<!-- #;> DEV_SDC -->
 <!-- #;< DEV_ESLINT -->
 - **ESLint**: JavaScript linting with Prettier formatting (config at `.eslintrc.json`)
 <!-- #;> DEV_ESLINT -->
