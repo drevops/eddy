@@ -11,7 +11,7 @@
      name: ${{ matrix.name }}
  
      env:
-@@ -250,7 +244,6 @@
+@@ -256,7 +250,6 @@
          env:
            BROWSERTEST_OUTPUT_DIRECTORY: ../.logs/browser_output
            SIMPLETEST_DB: sqlite://tmp/db.sqlite

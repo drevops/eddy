@@ -77,7 +77,18 @@
  ahoy lint-fix
  ```
  
-@@ -161,6 +198,10 @@
+@@ -163,6 +200,10 @@
+ To validate the components:
+ 
+ ```bash
++make lint-sdc
++```
++
++```bash
+ ahoy lint-sdc
+ ```
+ 
+@@ -175,6 +216,10 @@
  To run every test:
  
  ```bash
@@ -88,7 +99,7 @@
  ahoy test
  ```
  
-@@ -169,6 +210,13 @@
+@@ -183,6 +228,13 @@
  To run 1 test suite:
  
  ```bash
@@ -102,7 +113,7 @@
  ahoy test-unit                    # Run Unit tests
  ahoy test-kernel                  # Run Kernel tests
  ahoy test-functional              # Run Functional tests
-@@ -182,6 +230,13 @@
+@@ -196,6 +248,13 @@
  To run the FunctionalJavascript tests with Chrome:
  
  ```bash
@@ -116,7 +127,7 @@
  ahoy start
  ahoy provision
  ahoy test-functional-javascript
-@@ -195,6 +250,13 @@
+@@ -209,6 +268,13 @@
  To run the browser in a Selenium container, start Docker and set `WEBDRIVER_BACKEND=selenium`. The container can't reach the `localhost` of your host, so start the webserver on all interfaces with `WEBSERVER_HOST=__VERSION__.0`:
  
  ```bash
@@ -130,7 +141,7 @@
  WEBSERVER_HOST=__VERSION__.0 ahoy start
  ahoy provision
  WEBDRIVER_BACKEND=selenium ahoy test-functional-javascript
-@@ -210,6 +272,14 @@
+@@ -224,6 +290,14 @@
  ### Running specific tests
  
  To run some of the tests, pass a test file path or a PHPUnit option, such as `--filter` or `--group`, to a test command. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site:

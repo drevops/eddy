@@ -6,10 +6,10 @@
 -- **PHPStan**: `ahoy lint` - never `vendor/bin/phpstan`.
 -- **Rector**: `ahoy lint` (dry-run) / `ahoy lint-fix` - never `vendor/bin/rector`.
 -- **Twig CS Fixer**: `ahoy lint` / `ahoy lint-fix` - never `vendor/bin/twig-cs-fixer`.
+ - **SDC Devel**: `ahoy lint-sdc`, on a provisioned site - never `drush sdc-devel:validate`, which exits with code 0 whatever it finds.
  - **ESLint / Stylelint**: `ahoy lint` / `ahoy lint-fix` - never `npx eslint` or `npx stylelint`.
  - **CSpell**: `ahoy lint` - never `npx cspell`.
- - **PHPUnit**: `ahoy test` / `ahoy test-unit` / `ahoy test-kernel` / `ahoy test-functional` - never `vendor/bin/phpunit`.
-@@ -104,10 +100,6 @@
+@@ -107,10 +103,6 @@
  ## Code Quality Tools
  
  - **CSpell**: Spell checking across the codebase (config at `.cspell.json`)
@@ -17,10 +17,10 @@
 -- **PHPStan**: Static analysis with Drupal extensions
 -- **Rector**: Automated refactoring and deprecation fixes
 -- **Twig CS Fixer**: Twig template formatting
+ - **SDC Devel**: Single Directory Component validation of the `*.component.yml` definitions and Twig templates in `components/`, on the provisioned site
  - **ESLint**: JavaScript linting with Prettier formatting (config at `.eslintrc.json`)
  - **Stylelint**: CSS linting (config at `.stylelintrc.js`)
- 
-@@ -124,7 +116,7 @@
+@@ -128,7 +120,7 @@
  - The `build/` directory contains the assembled Drupal site
  - Extension files are symlinked from root into `build/web/modules/custom/`
  - SQLite database created in `/tmp/site_force_crystal.sqlite`

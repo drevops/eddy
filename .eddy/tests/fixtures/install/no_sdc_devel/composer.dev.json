@@ -1,0 +1,8 @@
+@@ -7,7 +7,6 @@
+         "drevops/eddy-tooling": "__VERSION__",
+         "drevops/phpcs-standard": "__VERSION__",
+         "drupal/coder": "^8 || ^9",
+-        "drupal/sdc_devel": "__VERSION__",
+         "drush/drush": "^12 || ^13 || ^14",
+         "jangregor/phpstan-prophecy": "__VERSION__ || ^2",
+         "lullabot/mink-selenium2-driver": "^1.7 || ^2",

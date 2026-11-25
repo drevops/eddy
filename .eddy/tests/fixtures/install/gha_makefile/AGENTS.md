@@ -1,4 +1,4 @@
-@@ -8,56 +8,56 @@
+@@ -8,58 +8,58 @@
  
  ## Development Commands
  
@@ -14,6 +14,7 @@
 -- **PHPStan**: `ahoy lint` - never `vendor/bin/phpstan`.
 -- **Rector**: `ahoy lint` (dry-run) / `ahoy lint-fix` - never `vendor/bin/rector`.
 -- **Twig CS Fixer**: `ahoy lint` / `ahoy lint-fix` - never `vendor/bin/twig-cs-fixer`.
+-- **SDC Devel**: `ahoy lint-sdc`, on a provisioned site - never `drush sdc-devel:validate`, which exits with code 0 whatever it finds.
 -- **ESLint / Stylelint**: `ahoy lint` / `ahoy lint-fix` - never `npx eslint` or `npx stylelint`.
 -- **CSpell**: `ahoy lint` - never `npx cspell`.
 -- **PHPUnit**: `ahoy test` / `ahoy test-unit` / `ahoy test-kernel` / `ahoy test-functional` - never `vendor/bin/phpunit`.
@@ -23,6 +24,7 @@
 +- **PHPStan**: `make lint` - never `vendor/bin/phpstan`.
 +- **Rector**: `make lint` (dry-run) / `make lint-fix` - never `vendor/bin/rector`.
 +- **Twig CS Fixer**: `make lint` / `make lint-fix` - never `vendor/bin/twig-cs-fixer`.
++- **SDC Devel**: `make lint-sdc`, on a provisioned site - never `drush sdc-devel:validate`, which exits with code 0 whatever it finds.
 +- **ESLint / Stylelint**: `make lint` / `make lint-fix` - never `npx eslint` or `npx stylelint`.
 +- **CSpell**: `make lint` - never `npx cspell`.
 +- **PHPUnit**: `make test` / `make test-unit` / `make test-kernel` / `make test-functional` - never `vendor/bin/phpunit`.
@@ -51,8 +53,10 @@
  **Linting:**
 -- `ahoy lint` - Run all linting tools
 -- `ahoy lint-fix` - Auto-fix coding standards violations
+-- `ahoy lint-sdc` - Validate Single Directory Components on the provisioned site. `lint` leaves it out, because it needs a site
 +- `make lint` - Run all linting tools
 +- `make lint-fix` - Auto-fix coding standards violations
++- `make lint-sdc` - Validate Single Directory Components on the provisioned site. `lint` leaves it out, because it needs a site
  
  **Testing:**
 -- `ahoy test` - Run all tests
@@ -86,7 +90,7 @@
  
  ## Project Structure
  
-@@ -95,11 +95,11 @@
+@@ -98,11 +98,11 @@
  
  ## Development Workflow
  

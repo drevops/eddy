@@ -7,7 +7,7 @@
  
  ### Drupal versions
  
-@@ -162,67 +162,4 @@
+@@ -176,67 +176,4 @@
  
  ```bash
  ahoy test

@@ -55,6 +55,7 @@ TARGETS := assemble build debug debug-off debug-on delete describe destroy drush
 TARGETS += test-unit test-kernel test-functional
 TARGETS += test-functional-javascript browser-start browser-stop
 TARGETS += test-javascript test-js
+TARGETS += lint-sdc
 .PHONY: $(TARGETS)
 
 help:
@@ -67,6 +68,7 @@ help:
 	@echo "info                       - Print a read-only summary of the current environment (alias: describe)."
 	@echo "lint                       - Check coding standards for violations."
 	@echo "lint-fix                   - Fix violations in coding standards."
+	@echo "lint-sdc                   - Validate Single Directory Components on the provisioned site."
 	@echo "login                      - Login to a website."
 	@echo "provision                  - Provision application within assembled codebase."
 	@echo "reset                      - Reset project to the default state (aliases: delete, destroy)."
@@ -87,6 +89,7 @@ help:
 assemble build debug drush info login provision start stop: tooling
 test: tooling
 browser-start browser-stop test-functional-javascript: tooling
+lint-sdc: tooling
 
 tooling:
 	@./scripts/eddy-tooling >&2
@@ -165,6 +168,9 @@ lint-fix:
 	pushd "build" >/dev/null || exit 1 && vendor/bin/twig-cs-fixer --no-cache --fix && popd >/dev/null || exit 1
 	$(call title,Running ESLint)
 	pushd "build" >/dev/null || exit 1 && ([ ! -d node_modules ] || npm run lint-fix) && popd >/dev/null || exit 1
+
+lint-sdc:
+	$(TOOLING)/eddy-lint-sdc
 
 # The test targets that pass their arguments to PHPUnit. The list is split
 # across the same DEV_* markers as `TARGETS` so a stripped feature leaves no
