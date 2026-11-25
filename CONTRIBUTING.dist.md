@@ -10,6 +10,9 @@ This guide is for developers working on this extension. Follow it to build a loc
 <!-- #;< DEV_NPM -->
    - Node.js with npm, for the packages in `package.json`
 <!-- #;> DEV_NPM -->
+<!-- #;< DEV_MAKEFILE -->
+   - Make
+<!-- #;> DEV_MAKEFILE -->
 <!-- #;< DEV_AHOY -->
    - [Ahoy](https://github.com/ahoy-cli/ahoy), optional, as an alternative to `make`
 <!-- #;> DEV_AHOY -->

@@ -935,25 +935,27 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   /**
-   * The Ahoy prerequisite in 'CONTRIBUTING.md' is optional only next to `make`.
+   * The 'CONTRIBUTING.md' prerequisites list the kept command wrappers, and
+   * Ahoy is optional only next to Make.
    *
    * @param array<string> $command_wrapper
+   * @param array<string> $expected
    */
-  #[DataProvider('dataProviderProcessRendersContributingAhoyPrerequisite')]
-  public function testProcessRendersContributingAhoyPrerequisite(array $command_wrapper, ?string $expected): void {
+  #[DataProvider('dataProviderProcessRendersContributingWrapperPrerequisites')]
+  public function testProcessRendersContributingWrapperPrerequisites(array $command_wrapper, array $expected): void {
     process('My Extension', 'my_extension', 'module', ['10', '11'], $command_wrapper, [], FALSE, FALSE);
 
     $contributing = File::read(self::$sut . '/CONTRIBUTING.md');
-    $matched = preg_match('/^   - \[Ahoy\].*$/m', $contributing, $matches) === 1;
+    preg_match_all('/^   - (?:Make|\[Ahoy\].*)$/m', $contributing, $matches);
 
-    $this->assertSame($expected, $matched ? $matches[0] : NULL);
+    $this->assertSame($expected, $matches[0]);
   }
 
-  public static function dataProviderProcessRendersContributingAhoyPrerequisite(): \Iterator {
-    yield 'both wrappers' => [['ahoy', 'makefile'], '   - [Ahoy](https://github.com/ahoy-cli/ahoy), optional, as an alternative to `make`'];
-    yield 'ahoy only' => [['ahoy'], '   - [Ahoy](https://github.com/ahoy-cli/ahoy)'];
-    yield 'makefile only' => [['makefile'], NULL];
-    yield 'no wrappers' => [[], NULL];
+  public static function dataProviderProcessRendersContributingWrapperPrerequisites(): \Iterator {
+    yield 'both wrappers' => [['ahoy', 'makefile'], ['   - Make', '   - [Ahoy](https://github.com/ahoy-cli/ahoy), optional, as an alternative to `make`']];
+    yield 'ahoy only' => [['ahoy'], ['   - [Ahoy](https://github.com/ahoy-cli/ahoy)']];
+    yield 'makefile only' => [['makefile'], ['   - Make']];
+    yield 'no wrappers' => [[], []];
   }
 
   /**
