@@ -1983,19 +1983,21 @@ function log_severity_rank(string $severity): ?int {
  *   of objects.
  */
 function sdc_devel_findings(string $json): ?array {
-  $rows = json_decode($json, TRUE);
+  // Objects decode as objects, so '{}' stays apart from the empty list '[]'.
+  $rows = json_decode($json);
 
-  if (!is_array($rows) || !array_is_list($rows)) {
+  if (!is_array($rows)) {
     return NULL;
   }
 
   $findings = [];
 
   foreach ($rows as $row) {
-    if (!is_array($row)) {
+    if (!$row instanceof \stdClass) {
       return NULL;
     }
 
+    $row = get_object_vars($row);
     $field = static fn(string $name): string => is_scalar($row[$name] ?? NULL) ? (string) $row[$name] : '';
 
     $findings[] = [

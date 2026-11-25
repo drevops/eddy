@@ -67,6 +67,9 @@ final class HelpersSdcDevelTest extends UnitTestCase {
     yield 'invalid JSON' => ['[{"component": ', NULL];
     yield 'table output' => [" Component      Severity\n my_theme:card  Error\n", NULL];
     yield 'object' => ['{"component": "my_theme:card"}', NULL];
+    yield 'empty object' => ['{}', NULL];
+    yield 'list of lists' => ['[["my_theme:card", "Error"]]', NULL];
+    yield 'list of empty objects' => ['[{}]', [['component' => '', 'severity' => '', 'message' => '', 'type' => '', 'line' => '', 'source' => '']]];
     yield 'list of scalars' => ['["my_theme:card"]', NULL];
     yield 'string' => ['"Error"', NULL];
   }

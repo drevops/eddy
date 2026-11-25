@@ -184,6 +184,7 @@ final class LintSdcTest extends UnitTestCase {
     yield 'empty report' => [''];
     yield 'table instead of JSON' => [' Component  Severity  Message'];
     yield 'object instead of a list' => ['{"component": "my_theme:card"}'];
+    yield 'empty object instead of a list' => ['{}'];
   }
 
   /**
