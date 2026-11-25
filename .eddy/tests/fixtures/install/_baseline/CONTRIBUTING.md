@@ -100,6 +100,8 @@ To avoid GitHub API rate limits, set the `GITHUB_TOKEN` environment variable to 
 
 The provision command installs a Drupal site from the `standard` profile. It enables the extension and every `drupal/*` module and theme in the `suggest` section of `composer.json`. To install from another profile, set the `DRUPAL_PROFILE` environment variable.
 
+The provision command also enables SDC Devel, which validates the Single Directory Components.
+
 The start command serves the site on `localhost` and prints its URL. To serve the site on another host name, set the `WEBSERVER_HOST` environment variable.
 
 The start command resolves the port, `WEBSERVER_PORT`, in this order:

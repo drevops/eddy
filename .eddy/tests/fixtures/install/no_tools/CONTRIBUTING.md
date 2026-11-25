@@ -58,7 +58,16 @@
  DRUPAL_VERSION=11 ahoy build
  
  # Newest Drupal 11.1.x patch release.
-@@ -119,6 +142,11 @@
+@@ -100,8 +123,6 @@
+ 
+ The provision command installs a Drupal site from the `standard` profile. It enables the extension and every `drupal/*` module and theme in the `suggest` section of `composer.json`. To install from another profile, set the `DRUPAL_PROFILE` environment variable.
+ 
+-The provision command also enables SDC Devel, which validates the Single Directory Components.
+-
+ The start command serves the site on `localhost` and prints its URL. To serve the site on another host name, set the `WEBSERVER_HOST` environment variable.
+ 
+ The start command resolves the port, `WEBSERVER_PORT`, in this order:
+@@ -121,6 +142,11 @@
  The development server can run with [XDebug](https://xdebug.org/docs/install) step-debugging. Install the XDebug PHP extension on your host first, so that `php -v` prints `with Xdebug`. Then restart the server with XDebug turned on or off:
  
  ```bash
@@ -70,7 +79,7 @@
  ahoy debug      # restart with XDebug enabled
  ahoy start      # restart without XDebug
  ```
-@@ -133,16 +161,11 @@
+@@ -135,16 +161,11 @@
  
  ## Coding standards
  
@@ -91,7 +100,7 @@
  
  ```bash
  ahoy lint
-@@ -153,90 +176,21 @@
+@@ -155,90 +176,21 @@
  To fix the issues that have an automatic fix, run the fixers:
  
  ```bash

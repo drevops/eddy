@@ -1,4 +1,4 @@
-@@ -140,7 +140,6 @@
+@@ -142,7 +142,6 @@
  - Twig CS Fixer checks Twig templates.
  - ESLint checks JavaScript code.
  - Stylelint checks CSS code.

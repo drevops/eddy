@@ -1,4 +1,4 @@
-@@ -134,10 +134,6 @@
+@@ -136,10 +136,6 @@
  ## Coding standards
  
  The following tools check the codebase, each with its configuration file in the root of the project:

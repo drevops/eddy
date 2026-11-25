@@ -43,7 +43,7 @@
  DRUPAL_VERSION=11 ahoy build
  
  # Newest Drupal 11.1.x patch release.
-@@ -119,6 +143,11 @@
+@@ -121,6 +145,11 @@
  The development server can run with [XDebug](https://xdebug.org/docs/install) step-debugging. Install the XDebug PHP extension on your host first, so that `php -v` prints `with Xdebug`. Then restart the server with XDebug turned on or off:
  
  ```bash
@@ -55,7 +55,7 @@
  ahoy debug      # restart with XDebug enabled
  ahoy start      # restart without XDebug
  ```
-@@ -145,6 +174,10 @@
+@@ -147,6 +176,10 @@
  To run every check:
  
  ```bash
@@ -66,7 +66,7 @@
  ahoy lint
  ```
  
-@@ -153,6 +186,10 @@
+@@ -155,6 +188,10 @@
  To fix the issues that have an automatic fix, run the fixers:
  
  ```bash
@@ -77,7 +77,7 @@
  ahoy lint-fix
  ```
  
-@@ -163,6 +200,10 @@
+@@ -165,6 +202,10 @@
  To validate the components:
  
  ```bash
@@ -88,7 +88,7 @@
  ahoy lint-sdc
  ```
  
-@@ -175,6 +216,10 @@
+@@ -177,6 +218,10 @@
  To run every test:
  
  ```bash
@@ -99,7 +99,7 @@
  ahoy test
  ```
  
-@@ -183,6 +228,13 @@
+@@ -185,6 +230,13 @@
  To run 1 test suite:
  
  ```bash
@@ -113,7 +113,7 @@
  ahoy test-unit                    # Run Unit tests
  ahoy test-kernel                  # Run Kernel tests
  ahoy test-functional              # Run Functional tests
-@@ -196,6 +248,13 @@
+@@ -198,6 +250,13 @@
  To run the FunctionalJavascript tests with Chrome:
  
  ```bash
@@ -127,7 +127,7 @@
  ahoy start
  ahoy provision
  ahoy test-functional-javascript
-@@ -209,6 +268,13 @@
+@@ -211,6 +270,13 @@
  To run the browser in a Selenium container, start Docker and set `WEBDRIVER_BACKEND=selenium`. The container can't reach the `localhost` of your host, so start the webserver on all interfaces with `WEBSERVER_HOST=__VERSION__.0`:
  
  ```bash
@@ -141,7 +141,7 @@
  WEBSERVER_HOST=__VERSION__.0 ahoy start
  ahoy provision
  WEBDRIVER_BACKEND=selenium ahoy test-functional-javascript
-@@ -224,6 +290,14 @@
+@@ -226,6 +292,14 @@
  ### Running specific tests
  
  To run some of the tests, pass a test file path or a PHPUnit option, such as `--filter` or `--group`, to a test command. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site:

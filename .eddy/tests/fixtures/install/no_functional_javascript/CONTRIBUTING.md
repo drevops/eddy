@@ -7,7 +7,7 @@
  
  ### Drupal versions
  
-@@ -186,40 +186,7 @@
+@@ -188,40 +188,7 @@
  ahoy test-unit                    # Run Unit tests
  ahoy test-kernel                  # Run Kernel tests
  ahoy test-functional              # Run Functional tests
