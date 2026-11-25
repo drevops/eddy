@@ -1,9 +1,10 @@
-@@ -7,12 +7,15 @@
+@@ -7,12 +7,16 @@
  1. Install the following tools:
     - PHP with SQLite support
     - Composer
 -   - Node.js with npm, for the packages in `package.json`
 -   - [Ahoy](https://github.com/ahoy-cli/ahoy)
++   - Make
 +   - [Ahoy](https://github.com/ahoy-cli/ahoy), optional, as an alternative to `make`
  2. Clone this repository.
  3. Build the site:
@@ -16,7 +17,7 @@
     ahoy build
     ```
  
-@@ -37,6 +40,12 @@
+@@ -37,6 +41,12 @@
  The `build` command is a wrapper for 3 commands that each run 1 stage:
  
  ```bash
@@ -29,7 +30,7 @@
  ahoy assemble     # Assemble the codebase
  ahoy start        # Start the PHP server
  ahoy provision    # Provision the Drupal website
-@@ -46,7 +55,7 @@
+@@ -46,7 +56,7 @@
  
  The `info` command prints a read-only summary of the environment, such as the PHP, Drupal and Drush versions, the site URL and the database path. The `login` command prints a new one-time login link.
  
@@ -38,7 +39,7 @@
  
  ### Drupal versions
  
-@@ -56,6 +65,20 @@
+@@ -56,6 +66,20 @@
  
  ```bash
  # Newest stable Drupal 11 release.
@@ -59,7 +60,7 @@
  DRUPAL_VERSION=11 ahoy build
  
  # Newest Drupal 11.1.x patch release.
-@@ -100,8 +123,6 @@
+@@ -100,8 +124,6 @@
  
  The provision command installs a Drupal site from the `standard` profile. It enables the extension and every `drupal/*` module and theme in the `suggest` section of `composer.json`. To install from another profile, set the `DRUPAL_PROFILE` environment variable.
  
@@ -68,7 +69,7 @@
  The start command serves the site on `localhost` and prints its URL. To serve the site on another host name, set the `WEBSERVER_HOST` environment variable.
  
  The start command resolves the port, `WEBSERVER_PORT`, in this order:
-@@ -121,6 +142,11 @@
+@@ -121,6 +143,11 @@
  The development server can run with [XDebug](https://xdebug.org/docs/install) step-debugging. Install the XDebug PHP extension on your host first, so that `php -v` prints `with Xdebug`. Then restart the server with XDebug turned on or off:
  
  ```bash
@@ -80,7 +81,7 @@
  ahoy debug      # restart with XDebug enabled
  ahoy start      # restart without XDebug
  ```
-@@ -135,16 +161,11 @@
+@@ -135,16 +162,11 @@
  
  ## Coding standards
  
@@ -101,7 +102,7 @@
  
  ```bash
  ahoy lint
-@@ -155,90 +176,21 @@
+@@ -155,90 +177,21 @@
  To fix the issues that have an automatic fix, run the fixers:
  
  ```bash
