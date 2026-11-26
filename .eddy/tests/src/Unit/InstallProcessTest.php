@@ -125,6 +125,7 @@ final class InstallProcessTest extends UnitTestCase {
       'CONTRIBUTING.dist.md',
       'LICENSE.txt',
       'MIGRATION.md',
+      'RELEASING.md',
       'SECURITY.md',
       'install-key.asc',
       'logo.svg',

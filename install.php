@@ -1355,6 +1355,7 @@ function process_internal(string $extension_name, string $extension_machine_name
   // Remove scaffold files.
   @unlink('LICENSE.txt');
   @unlink('MIGRATION.md');
+  @unlink('RELEASING.md');
   @unlink('SECURITY.md');
   @unlink('install-key.asc');
   @unlink('logo.svg');
