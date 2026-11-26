@@ -12,7 +12,6 @@ use Rector\CodeQuality\Rector\Empty_\SimplifyEmptyCheckOnEmptyArrayRector;
 use Rector\CodingStyle\Rector\Catch_\CatchExceptionNameMatchingTypeRector;
 use Rector\CodingStyle\Rector\ClassLike\NewlineBetweenClassLikeStmtsRector;
 use Rector\CodingStyle\Rector\ClassMethod\NewlineBeforeNewAssignSetRector;
-use Rector\CodingStyle\Rector\Stmt\NewlineAfterStatementRector;
 use Rector\Config\RectorConfig;
 use Rector\DeadCode\Rector\If_\RemoveAlwaysTrueIfConditionRector;
 use Rector\Php55\Rector\String_\StringClassNameToClassConstantRector;
@@ -53,7 +52,6 @@ return RectorConfig::configure()
     CatchExceptionNameMatchingTypeRector::class,
     ChangeSwitchToMatchRector::class,
     InlineArrayReturnAssignRector::class,
-    NewlineAfterStatementRector::class,
     NewlineBeforeNewAssignSetRector::class,
     NewlineBetweenClassLikeStmtsRector::class,
     RemoveAlwaysTrueIfConditionRector::class,
