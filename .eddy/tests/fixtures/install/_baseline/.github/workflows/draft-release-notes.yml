@@ -2,19 +2,21 @@ name: Draft release notes
 
 on:
   push:
-    tags:
-      - '*'
     branches:
       - 1.x
 
-permissions:
-  contents: read
+permissions: {}
+
+# Overlapping runs can each create a draft, so runs queue instead.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
 
 jobs:
   release-drafter:
     permissions:
-      contents: write
-      pull-requests: write
+      contents: write # Create and update the draft release.
+      pull-requests: read # List the merged pull requests for the notes.
 
     runs-on: ubuntu-26.04
 
