@@ -37,8 +37,7 @@ final class RenovateConfigTest extends UnitTestCase {
     $this->assertTrue($config['minimumReleaseAgePackageManagerSync'] ?? NULL, 'renovate.json must pass the release age to npm, so lock file maintenance waits too.');
     $this->assertSame('strict', $config['internalChecksFilter'] ?? NULL, 'renovate.json must hold back an update until the release age passes.');
 
-    foreach ($config['packageRules'] ?? [] as $rule) {
-      $this->assertIsArray($rule);
+    foreach (self::packageRules() as $rule) {
       $this->assertArrayNotHasKey('minimumReleaseAge', $rule, 'No package rule may shorten the release age.');
     }
   }
@@ -113,12 +112,8 @@ final class RenovateConfigTest extends UnitTestCase {
     $resolved = ['enabled' => TRUE, 'automerge' => $config['automerge'] ?? FALSE, 'groupSlug' => NULL];
     $matchers = ['matchManagers' => 'manager', 'matchDepTypes' => 'depType', 'matchDepNames' => 'depName', 'matchPackageNames' => 'depName', 'matchUpdateTypes' => 'updateType'];
 
-    foreach ($config['packageRules'] ?? [] as $rule) {
-      if (!is_array($rule)) {
-        self::fail('A package rule in renovate.json is not an object.');
-      }
-
-      foreach (array_filter(array_keys($rule), static fn(string $key): bool => str_starts_with($key, 'match')) as $key) {
+    foreach (self::packageRules() as $rule) {
+      foreach (array_filter(array_keys($rule), static fn(int|string $key): bool => str_starts_with((string) $key, 'match')) as $key) {
         if (!isset($matchers[$key])) {
           self::fail(sprintf('RenovateConfigTest does not support the "%s" matcher.', $key));
         }
@@ -139,7 +134,7 @@ final class RenovateConfigTest extends UnitTestCase {
   /**
    * Read the template's Renovate configuration.
    *
-   * @return array<string, mixed>
+   * @return array<mixed>
    *   The configuration.
    */
   protected static function config(): array {
@@ -150,6 +145,32 @@ final class RenovateConfigTest extends UnitTestCase {
     }
 
     return $config;
+  }
+
+  /**
+   * Read the package rules of the template's Renovate configuration.
+   *
+   * @return list<array<mixed>>
+   *   The package rules, in order.
+   */
+  protected static function packageRules(): array {
+    $rules = self::config()['packageRules'] ?? [];
+
+    if (!is_array($rules)) {
+      self::fail('The packageRules of renovate.json is not a list.');
+    }
+
+    $list = [];
+
+    foreach ($rules as $rule) {
+      if (!is_array($rule)) {
+        self::fail('A package rule in renovate.json is not an object.');
+      }
+
+      $list[] = $rule;
+    }
+
+    return $list;
   }
 
 }
