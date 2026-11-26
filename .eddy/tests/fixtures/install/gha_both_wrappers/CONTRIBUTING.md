@@ -1,4 +1,11 @@
-@@ -13,6 +13,10 @@
+@@ -8,11 +8,16 @@
+    - PHP with SQLite support
+    - Composer
+    - Node.js with npm, for the packages in `package.json`
+-   - [Ahoy](https://github.com/ahoy-cli/ahoy)
++   - Make
++   - [Ahoy](https://github.com/ahoy-cli/ahoy), optional, as an alternative to `make`
+ 2. Clone this repository.
  3. Build the site:
  
     ```bash
@@ -9,7 +16,7 @@
     ahoy build
     ```
  
-@@ -37,6 +41,12 @@
+@@ -37,6 +42,12 @@
  The `build` command is a wrapper for 3 commands that each run 1 stage:
  
  ```bash
@@ -22,7 +29,7 @@
  ahoy assemble     # Assemble the codebase
  ahoy start        # Start the PHP server
  ahoy provision    # Provision the Drupal website
-@@ -56,6 +66,20 @@
+@@ -56,6 +67,20 @@
  
  ```bash
  # Newest stable Drupal 11 release.
@@ -43,7 +50,7 @@
  DRUPAL_VERSION=11 ahoy build
  
  # Newest Drupal 11.1.x patch release.
-@@ -121,6 +145,11 @@
+@@ -121,6 +146,11 @@
  The development server can run with [XDebug](https://xdebug.org/docs/install) step-debugging. Install the XDebug PHP extension on your host first, so that `php -v` prints `with Xdebug`. Then restart the server with XDebug turned on or off:
  
  ```bash
@@ -55,7 +62,7 @@
  ahoy debug      # restart with XDebug enabled
  ahoy start      # restart without XDebug
  ```
-@@ -147,6 +176,10 @@
+@@ -147,6 +177,10 @@
  To run every check:
  
  ```bash
@@ -66,7 +73,7 @@
  ahoy lint
  ```
  
-@@ -155,6 +188,10 @@
+@@ -155,6 +189,10 @@
  To fix the issues that have an automatic fix, run the fixers:
  
  ```bash
@@ -77,7 +84,7 @@
  ahoy lint-fix
  ```
  
-@@ -165,6 +202,10 @@
+@@ -165,6 +203,10 @@
  To validate the components:
  
  ```bash
@@ -88,7 +95,7 @@
  ahoy lint-sdc
  ```
  
-@@ -177,6 +218,10 @@
+@@ -177,6 +219,10 @@
  To run every test:
  
  ```bash
@@ -99,7 +106,7 @@
  ahoy test
  ```
  
-@@ -185,6 +230,13 @@
+@@ -185,6 +231,13 @@
  To run 1 test suite:
  
  ```bash
@@ -113,7 +120,7 @@
  ahoy test-unit                    # Run Unit tests
  ahoy test-kernel                  # Run Kernel tests
  ahoy test-functional              # Run Functional tests
-@@ -198,6 +250,13 @@
+@@ -198,6 +251,13 @@
  To run the FunctionalJavascript tests with Chrome:
  
  ```bash
@@ -127,7 +134,7 @@
  ahoy start
  ahoy provision
  ahoy test-functional-javascript
-@@ -211,6 +270,13 @@
+@@ -211,6 +271,13 @@
  To run the browser in a Selenium container, start Docker and set `WEBDRIVER_BACKEND=selenium`. The container can't reach the `localhost` of your host, so start the webserver on all interfaces with `WEBSERVER_HOST=__VERSION__.0`:
  
  ```bash
@@ -141,7 +148,7 @@
  WEBSERVER_HOST=__VERSION__.0 ahoy start
  ahoy provision
  WEBDRIVER_BACKEND=selenium ahoy test-functional-javascript
-@@ -226,6 +292,14 @@
+@@ -226,6 +293,14 @@
  ### Running specific tests
  
  To run some of the tests, pass a test file path or a PHPUnit option, such as `--filter` or `--group`, to a test command. PHPUnit runs inside `build`, so a test path starts at the extension's symlink in the assembled site:

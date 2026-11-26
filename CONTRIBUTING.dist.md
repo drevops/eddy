@@ -8,10 +8,13 @@ This guide is for developers working on this extension. Follow it to build a loc
    - PHP with SQLite support
    - Composer
 <!-- #;< DEV_NPM -->
-   - Node.js with npm, which the build uses
+   - Node.js with npm, for the packages in `package.json`
 <!-- #;> DEV_NPM -->
+<!-- #;< DEV_MAKEFILE -->
+   - Make
+<!-- #;> DEV_MAKEFILE -->
 <!-- #;< DEV_AHOY -->
-   - [Ahoy](https://github.com/ahoy-cli/ahoy)
+   - [Ahoy](https://github.com/ahoy-cli/ahoy), optional, as an alternative to `make`
 <!-- #;> DEV_AHOY -->
 2. Clone this repository.
 3. Build the site:

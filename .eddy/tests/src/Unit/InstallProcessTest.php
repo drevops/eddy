@@ -762,8 +762,8 @@ final class InstallProcessTest extends UnitTestCase {
   }
 
   /**
-   * The 'Makefile' 'test' recipe exports the WebDriver port only with
-   * FunctionalJavascript.
+   * The 'Makefile' 'test' recipe exports the WebDriver port, and installs the
+   * tooling to read it, only with FunctionalJavascript.
    *
    * @param array<string> $tools_remove
    */
@@ -778,6 +778,7 @@ final class InstallProcessTest extends UnitTestCase {
 
     $this->assertSame($expect_phpunit, str_contains($makefile, $recipe), 'Makefile PHPUnit recipe line mismatch.');
     $this->assertSame($expect_webdriver, stripos($makefile, 'webdriver') !== FALSE, 'Makefile WebDriver text presence mismatch.');
+    $this->assertSame($expect_webdriver, preg_match('/^(?:[\w-]+ )*test(?: [\w-]+)*: tooling$/m', $makefile) === 1, 'Makefile test tooling prerequisite mismatch.');
   }
 
   public static function dataProviderProcessRendersMakefileTestRecipe(): \Iterator {
@@ -931,6 +932,30 @@ final class InstallProcessTest extends UnitTestCase {
 
   public static function dataProviderProcessRemovesContributingCommands(): \Iterator {
     yield from self::dataProviderProcessRemovesWrapperDocs();
+  }
+
+  /**
+   * The 'CONTRIBUTING.md' prerequisites list the kept command wrappers, and
+   * Ahoy is optional only next to Make.
+   *
+   * @param array<string> $command_wrapper
+   * @param array<string> $expected
+   */
+  #[DataProvider('dataProviderProcessRendersContributingWrapperPrerequisites')]
+  public function testProcessRendersContributingWrapperPrerequisites(array $command_wrapper, array $expected): void {
+    process('My Extension', 'my_extension', 'module', ['10', '11'], $command_wrapper, [], FALSE, FALSE);
+
+    $contributing = File::read(self::$sut . '/CONTRIBUTING.md');
+    preg_match_all('/^   - (?:Make|\[Ahoy\].*)$/m', $contributing, $matches);
+
+    $this->assertSame($expected, $matches[0]);
+  }
+
+  public static function dataProviderProcessRendersContributingWrapperPrerequisites(): \Iterator {
+    yield 'both wrappers' => [['ahoy', 'makefile'], ['   - Make', '   - [Ahoy](https://github.com/ahoy-cli/ahoy), optional, as an alternative to `make`']];
+    yield 'ahoy only' => [['ahoy'], ['   - [Ahoy](https://github.com/ahoy-cli/ahoy)']];
+    yield 'makefile only' => [['makefile'], ['   - Make']];
+    yield 'no wrappers' => [[], []];
   }
 
   /**

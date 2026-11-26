@@ -944,6 +944,9 @@ function remove_extension_types(array $types): void {
  * blocks instead, so only the 'AGENTS.md' note on what runs the tooling
  * installer changes.
  *
+ * The Ahoy prerequisite in 'CONTRIBUTING.md' is optional only next to `make`,
+ * so it loses that note when `make` is not kept.
+ *
  * @param array<string> $command_wrapper
  *   The selected command wrappers.
  */
@@ -958,6 +961,10 @@ function process_command_wrapper_text(array $command_wrapper): void {
 
   foreach (['', 'build', 'info', 'lint', 'test'] as $command) {
     replace_string_content(command_wrapper_text($wrappers, $command), command_wrapper_text($command_wrapper, $command));
+  }
+
+  if (!in_array('makefile', $command_wrapper, TRUE)) {
+    replace_string_content(', optional, as an alternative to `make`', '');
   }
 }
 
