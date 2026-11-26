@@ -173,13 +173,15 @@ jobs:
     runs-on: ubuntu-26.04
 
     permissions:
-      actions: read # Wait for the 'Draft release notes' runs.
       contents: write # Attach the assets and publish the release.
 
-    # Releases share Release Drafter's single draft, so 2 runs must not overlap.
+    # Release Drafter sets its draft's tag back to its own guess, so this job
+    # shares the 'draft-release-notes.yml' group. 'queue: max' keeps every
+    # waiting run, where the default queue cancels all but the newest.
     concurrency:
-      group: eddy-release
+      group: release-drafter
       cancel-in-progress: false
+      queue: max
 
     env:
       GH_TOKEN: ${{ github.token }}
@@ -203,18 +205,18 @@ jobs:
 
       - name: Publish the release
         run: |
-          # Tags can move while the job waits, and the assets must match the
-          # commit the tag points to.
-          tag_sha="$(gh api "repos/${GH_REPO}/commits/${TAG}" --jq .sha)"
-          if [ "${tag_sha}" != "${GITHUB_SHA}" ]; then
-            echo "::error::Tag '${TAG}' now points to ${tag_sha}, not to ${GITHUB_SHA}, which the assets were built from."
-            exit 1
-          fi
+          # Tags can move while the job waits in its queue or runs, and the
+          # assets must match the commit the tag points to.
+          check_tag() {
+            local tag_sha
+            tag_sha="$(gh api "repos/${GH_REPO}/commits/${TAG}" --jq .sha)"
+            if [ "${tag_sha}" != "${GITHUB_SHA}" ]; then
+              echo "::error::Tag '${TAG}' now points to ${tag_sha}, not to ${GITHUB_SHA}, which the assets were built from."
+              exit 1
+            fi
+          }
 
-          # A running Release Drafter sets its draft's tag back to its own guess.
-          for run in $(gh run list --workflow draft-release-notes.yml --json databaseId,status --jq '.[] | select(.status != "completed") | .databaseId' 2>/dev/null || true); do
-            gh run watch "${run}" > /dev/null || true
-          done
+          check_tag
 
           # Prints 'draft', 'published' or 'none'.
           release_state() {
@@ -291,6 +293,7 @@ jobs:
           fi
           printf '%s\n' "${notes}" > "${RUNNER_TEMP}/notes.md"
 
+          check_tag
           gh release edit "${TAG}" --notes-file "${RUNNER_TEMP}/notes.md" --draft=false --prerelease="${prerelease}" --latest="${latest}" --verify-tag
 
   eddy-release-installer-verify:
