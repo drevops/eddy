@@ -171,7 +171,7 @@ A release starts from a pushed version tag on `main`, such as `5.2.1` or `5.3.0-
 2. `eddy-release-installer-publish` holds the only write token and no secret. It moves the draft to the tag, uploads the 5 files and publishes the release.
 3. `eddy-release-installer-verify` reads the published release. It checks the signature and the attestations again, that `releases/latest/download/install.php` and `https://eddy.drevops.com/install` serve the published installer, and that the installer installs from the release.
 
-`draft-release-notes.yml` runs only on branch pushes, so a tag push can't race the publish job for the draft's tag. [`RELEASING.md`](../RELEASING.md) is the maintainer guide to cutting a release, the signing key and the repository settings the flow relies on. `process_internal()` removes it from generated projects.
+Release Drafter sets its draft's tag back to its own guess, so `draft-release-notes.yml` and the publish job share the `release-drafter` concurrency group with `queue: max`, and never run at once. [`RELEASING.md`](../RELEASING.md) is the maintainer guide to cutting a release, the signing key and the repository settings the flow relies on. `process_internal()` removes it from generated projects.
 
 `install-key.asc` in the repository root is the public half of the `Eddy Release Signing` key, fingerprint `7B8D 3C97 93E0 FF52 EAAB  FEC8 E532 2FD0 EC15 511E`. It expires on 2028-11-09. `process_internal()` removes it from generated projects. `VerifyReleaseTest` fails until the key, `SIGNING_KEY_FINGERPRINT` and the fingerprint on this page, in `README.md`, `RELEASING.md` and `.eddy/docs/content/installation.mdx` agree. `RELEASING.md` shows how to store, extend and replace the key.
 

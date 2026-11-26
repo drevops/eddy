@@ -58,8 +58,8 @@ The workflow publishes a tag with a suffix as a pre-release, which never becomes
 
 `eddy-release-installer-publish` holds a token that writes releases, and no secret:
 
-1. Checks the checksums and the attestations of the files from the build job, and that the tag still points to the commit they came from.
-2. Waits for any running `Draft release notes` run. Release Drafter sets its draft's tag back to its own guess.
+1. Waits in the `release-drafter` concurrency group, which `Draft release notes` runs in too. Release Drafter sets its draft's tag back to its own guess, so the 2 never run at once.
+2. Checks the checksums and the attestations of the files from the build job, and that the tag still points to the commit they came from. It checks the tag again right before it publishes.
 3. Moves the draft to the pushed tag when Release Drafter guessed another version, or creates a draft when there's none.
 4. Uploads the 5 files to the draft, then publishes it.
 
