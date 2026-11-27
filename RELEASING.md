@@ -146,7 +146,7 @@ Then update the expiry date in [Manage the signing key](#manage-the-signing-key)
 
 To replace the key with a new one:
 
-1. Create the new key as a primary key that signs, with no signing subkey. `verify-release.php` checks the fingerprint of the key that made the signature, so a signature from a subkey fails.
+1. Create the new key. `verify-release.php` pins the fingerprint of its primary key, and accepts a signature from that key or from one of its subkeys.
 2. Store the new key with the steps in [Store the signing key](#store-the-signing-key), with its fingerprint in place of the old one.
 3. Export its public half to `install-key.asc`. Put the new fingerprint in `verify-release.php`, in this file, in `.eddy/CLAUDE.md`, in `README.md` and in `.eddy/docs/content/installation.mdx`.
 4. Add a note about the new key to the release notes of the next version.

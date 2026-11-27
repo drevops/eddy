@@ -374,7 +374,7 @@ GitHub has no API for the social preview, so upload the new PNG by hand in the r
 
 `.github/workflows/eddy-audit.yml` uploads OpenSSF Scorecard, CodeQL (`actions` and `javascript-typescript`) and Semgrep (`p/php` on `install.php` and `.eddy/installer`) results to code scanning. Scorecard runs on pushes to `main`, weekly and on branch protection changes, but not on pull requests, since most of its checks rate repository settings.
 
-The `eddy-*` workflows install npm packages with `npm ci --ignore-scripts`. `renovate.json` holds every new version back for 7 days and never automerges npm `dependencies`. It ships to generated projects, so `RenovateConfigTest` pins that policy.
+The `eddy-*` workflows install npm packages with `npm ci --ignore-scripts`. `renovate.json` holds every new version back for 7 days, and never automerges npm `dependencies` or lock file maintenance, which moves them within their ranges. It ships to generated projects, so `RenovateConfigTest` pins that policy.
 
 `.github/workflows/deploy.yml` deploys `main` and release tags to [`drevops/eddy_destination`](https://github.com/drevops/eddy_destination) the way it deploys a generated project to Drupal.org. The `DEPLOY_BRANCH` repository variable sends `main` to `5.x` there, and the `DEPLOY_PROCEED` secret set to `1` lets the push through.
 

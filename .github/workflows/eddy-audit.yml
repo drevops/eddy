@@ -68,13 +68,22 @@ jobs:
         with:
           persist-credentials: false
 
-      # 'actions' covers every workflow, and 'javascript-typescript' covers the
-      # documentation site and the installer stamping script.
+      # The JavaScript extractor skips dot-directories below its root, so the
+      # documentation site and the asset scripts under '.eddy' are listed as
+      # roots of their own.
       - name: Initialize CodeQL
         uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
           languages: actions,javascript-typescript
           build-mode: none
+          config: |
+            paths:
+              - .github
+              - .eddy/docs
+              - .eddy/assets
+              - js
+              - jest.config.js
+              - .stylelintrc.js
 
       - name: Scan code for vulnerabilities with CodeQL
         uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3

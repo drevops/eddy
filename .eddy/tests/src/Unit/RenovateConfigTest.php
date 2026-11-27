@@ -12,7 +12,9 @@ use PHPUnit\Framework\Attributes\Group;
  * Tests the update policy that the Renovate configuration sets.
  *
  * Without lock file maintenance, Renovate never updates the transitive npm
- * dependencies in `package-lock.json` that the direct ones still accept.
+ * dependencies in `package-lock.json` that the direct ones still accept. A
+ * lock refresh also moves runtime `dependencies` within their ranges, so it
+ * waits for a review.
  *
  * The install snapshot pins `renovate.json`, but a snapshot update accepts
  * any change to it.
@@ -27,7 +29,7 @@ final class RenovateConfigTest extends UnitTestCase {
 
   public static function dataProviderLockFileMaintenanceOption(): \Iterator {
     yield 'enabled' => ['option' => 'enabled', 'expected' => TRUE];
-    yield 'automerge' => ['option' => 'automerge', 'expected' => TRUE];
+    yield 'automerge' => ['option' => 'automerge', 'expected' => FALSE];
   }
 
   public function testMinimumReleaseAge(): void {
