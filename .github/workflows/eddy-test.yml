@@ -64,6 +64,18 @@ jobs:
         if: runner.os == 'Windows'
         run: git config --global core.autocrlf false
 
+      # The tests build every project under the system temp directory, which is
+      # on the slower C: drive of a Windows runner. RUNNER_TEMP is on D:.
+      - name: Move temporary files to the D drive (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          {
+            echo "TEMP=${RUNNER_TEMP}"
+            echo "TMP=${RUNNER_TEMP}"
+            echo "COMPOSER_CACHE_DIR=${RUNNER_TEMP}\\composer-cache"
+          } >> "$GITHUB_ENV"
+
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -203,6 +215,16 @@ jobs:
           path: .eddy/tests/.logs
           include-hidden-files: true
           if-no-files-found: error
+
+      # The JUnit results hold the time of each test. The p0 coverage artifact
+      # above already includes them.
+      - name: Upload test results as an artifact
+        if: ${{ !cancelled() && matrix.group != 'p0' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ${{ github.job }}-test-results-${{ matrix.os }}-${{ matrix.group }}-${{ matrix.backend }}
+          path: .eddy/tests/.logs/test_results
+          if-no-files-found: warn
 
       - name: Upload coverage report to Codecov
         if: ${{ env.CODECOV_TOKEN != '' && matrix.group == 'p0' }}
