@@ -189,9 +189,10 @@ To extend the key by 2 years:
 To replace the key with a new one:
 
 1. Create the new key. `verify-release.php` pins the fingerprint of its primary key, and accepts a signature from that key or from one of its subkeys.
-2. Publish the new key and store its secrets with the steps in [Store the signing key](#store-the-signing-key), with its fingerprint in place of the old one. keys.openpgp.org links the address to the newly confirmed key, and releases stop until both secrets hold that key.
-3. Put the new fingerprint in `verify-release.php`, in this file, in `.eddy/CLAUDE.md`, in `README.md` and in `.eddy/docs/content/installation.mdx`.
-4. Add a note about the new key to the release notes of the next version.
+2. Confirm a second address on the retiring key at keys.openpgp.org. The address moves to the new key in the next step, and a key left with no user ID fails to import into older GnuPG releases, so older Eddy releases stop verifying.
+3. Publish the new key and store its secrets with the steps in [Store the signing key](#store-the-signing-key), with its fingerprint in place of the old one. keys.openpgp.org links the address to the newly confirmed key, and releases stop until both secrets hold that key.
+4. Put the new fingerprint in `verify-release.php`, in this file, in `.eddy/CLAUDE.md`, in `README.md` and in `.eddy/docs/content/installation.mdx`.
+5. Add a note about the new key to the release notes of the next version.
 
 ## Repository settings
 
