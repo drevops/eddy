@@ -52,8 +52,8 @@ The workflow publishes a tag with a suffix as a pre-release, which never becomes
 2. Builds `eddy-TAG.tar.gz` from the tag with `git archive`. GitHub builds its own archives on demand, with no promise that their bytes stay the same, so the release carries an archive of its own.
 3. Stamps `install.php` with the version and with the URL and SHA-256 checksum of the archive, through `.eddy/docs/scripts/stamp-installer.mjs`. Then it checks that the installer reports the version and holds the URL and the checksum.
 4. Runs the stamped installer in an empty directory against the local archive. The installer verifies the archive against the stamped checksum and installs an extension.
-5. Writes `SHA256SUMS` for the installer and the archive. It signs the file as `SHA256SUMS.asc` with `GPG_PRIVATE_KEY`, and with `GPG_PASSPHRASE` when the key has one.
-6. Checks the signature with `.eddy/installer/verify-release.php`. The script accepts only a signature from the pinned fingerprint of `install-key.asc`, then checks every file that `SHA256SUMS` lists.
+5. Writes `SHA256SUMS` for the installer and the archive. It fetches the key that keys.openpgp.org has confirmed for the `RELEASE_GPG_KEY_EMAIL` address, and stops unless it's the key in `GPG_PRIVATE_KEY`. Then it signs the file as `SHA256SUMS.asc`, with `GPG_PASSPHRASE` when the key has one, and checks the signature with `gpgv` against the keyserver's copy.
+6. Checks the signature with `.eddy/installer/verify-release.php`. The script fetches the key from keys.openpgp.org by its pinned fingerprint and accepts only a signature from that key. Then it checks every file that `SHA256SUMS` lists.
 7. Attests the installer, the archive and `SHA256SUMS`. It saves the attestation bundle as `eddy-TAG.intoto.jsonl`. OpenSSF Scorecard reads provenance from release assets only.
 
 `eddy-release-installer-publish` holds a token that writes releases, and no secret:
@@ -116,40 +116,83 @@ To check the files of a release by hand, run these commands in a clone of `drevo
 
 ## Manage the signing key
 
-`install-key.asc` in the repository root is the public half of the `Eddy Release Signing` key, fingerprint `7B8D 3C97 93E0 FF52 EAAB  FEC8 E532 2FD0 EC15 511E`. The key expires on 2028-11-09. `VerifyReleaseTest` fails until the key, `SIGNING_KEY_FINGERPRINT` in `.eddy/installer/verify-release.php` and the fingerprint in `.eddy/CLAUDE.md`, `README.md` and `.eddy/docs/content/installation.mdx` agree.
+The `Eddy Release Signing` key has the fingerprint `7B8D 3C97 93E0 FF52 EAAB  FEC8 E532 2FD0 EC15 511E` and expires on 2028-11-09. Its public half is on [keys.openpgp.org](https://keys.openpgp.org/search?q=7B8D3C9793E0FF52EAABFEC8E5322FD0EC15511E), confirmed for `alex+eddy@drevops.com`. The workflow signs with the private half, which it reads from the `GPG_PRIVATE_KEY` secret. `VerifyReleaseTest` fails until `SIGNING_KEY_FINGERPRINT` in `.eddy/installer/verify-release.php` and the fingerprint in `.eddy/CLAUDE.md`, `README.md` and `.eddy/docs/content/installation.mdx` agree.
+
+keys.openpgp.org returns 1 key for an address, so the signing address belongs to Eddy alone. A plus address such as `alex+eddy@drevops.com` reaches the same mailbox.
 
 ### Store the signing key
 
-To store the key, create the `release` environment, then store the private key and its passphrase there. The last command prompts for the passphrase:
+To publish the key and store its secrets in the `release` environment:
 
-```bash
-gh api -X PUT repos/drevops/eddy/environments/release
-gpg --armor --export-secret-keys 7B8D3C9793E0FF52EAABFEC8E5322FD0EC15511E | gh secret set GPG_PRIVATE_KEY --env release --repo drevops/eddy
-gh secret set GPG_PASSPHRASE --env release --repo drevops/eddy
-```
+1. Add the signing address to the key as a user ID, unless the key already has it:
+
+   ```bash
+   gpg --quick-add-uid 7B8D3C9793E0FF52EAABFEC8E5322FD0EC15511E 'Eddy Release Signing <alex+eddy@drevops.com>'
+   ```
+
+2. Upload the public half to keys.openpgp.org:
+
+   ```bash
+   gpg --export 7B8D3C9793E0FF52EAABFEC8E5322FD0EC15511E | curl -T - https://keys.openpgp.org
+   ```
+
+3. Open the link that the upload prints, and request verification of `alex+eddy@drevops.com`. Confirm the address from the email that keys.openpgp.org sends.
+4. Create the `release` environment:
+
+   ```bash
+   gh api -X PUT repos/drevops/eddy/environments/release
+   ```
+
+5. Store the private key as `GPG_PRIVATE_KEY`:
+
+   ```bash
+   gpg --armor --export-secret-keys 7B8D3C9793E0FF52EAABFEC8E5322FD0EC15511E | gh secret set GPG_PRIVATE_KEY --env release --repo drevops/eddy
+   ```
+
+6. Store the confirmed address as `RELEASE_GPG_KEY_EMAIL`, and the passphrase as `GPG_PASSPHRASE`. Each command prompts for its value:
+
+   ```bash
+   gh secret set RELEASE_GPG_KEY_EMAIL --env release --repo drevops/eddy
+   gh secret set GPG_PASSPHRASE --env release --repo drevops/eddy
+   ```
 
 In **Settings > Environments > release**, limit **Deployment branches and tags** to tags that match `[0-9]*`, so only a version tag reaches the key. To approve every release before it reads the key, add yourself under **Required reviewers**.
 
 ### Extend the signing key
 
-Extend the key before it expires. The fingerprint stays the same, so only `install-key.asc` and the stored private key change:
+Extend the key before it expires. The fingerprint stays the same, so `verify-release.php` needs no change.
 
-```bash
-gpg --quick-set-expire 7B8D3C9793E0FF52EAABFEC8E5322FD0EC15511E 2y
-gpg --armor --output install-key.asc --export 7B8D3C9793E0FF52EAABFEC8E5322FD0EC15511E
-gpg --armor --export-secret-keys 7B8D3C9793E0FF52EAABFEC8E5322FD0EC15511E | gh secret set GPG_PRIVATE_KEY --env release --repo drevops/eddy
-```
+To extend the key by 2 years:
 
-Then update the expiry date in [Manage the signing key](#manage-the-signing-key) and in `.eddy/CLAUDE.md`.
+1. Set the new expiry date:
+
+   ```bash
+   gpg --quick-set-expire 7B8D3C9793E0FF52EAABFEC8E5322FD0EC15511E 2y
+   ```
+
+2. Upload the extended public half to keys.openpgp.org:
+
+   ```bash
+   gpg --export 7B8D3C9793E0FF52EAABFEC8E5322FD0EC15511E | curl -T - https://keys.openpgp.org
+   ```
+
+3. Store the extended private key again. `GPG_PRIVATE_KEY` still holds the copy with the old expiry date:
+
+   ```bash
+   gpg --armor --export-secret-keys 7B8D3C9793E0FF52EAABFEC8E5322FD0EC15511E | gh secret set GPG_PRIVATE_KEY --env release --repo drevops/eddy
+   ```
+
+4. Update the expiry date in [Manage the signing key](#manage-the-signing-key) and in `.eddy/CLAUDE.md`.
 
 ### Replace the signing key
 
 To replace the key with a new one:
 
 1. Create the new key. `verify-release.php` pins the fingerprint of its primary key, and accepts a signature from that key or from one of its subkeys.
-2. Store the new key with the steps in [Store the signing key](#store-the-signing-key), with its fingerprint in place of the old one.
-3. Export its public half to `install-key.asc`. Put the new fingerprint in `verify-release.php`, in this file, in `.eddy/CLAUDE.md`, in `README.md` and in `.eddy/docs/content/installation.mdx`.
-4. Add a note about the new key to the release notes of the next version.
+2. Confirm a second address on the retiring key at keys.openpgp.org. The address moves to the new key in the next step, and a key left with no user ID fails to import into older GnuPG releases, so older Eddy releases stop verifying.
+3. Publish the new key and store its secrets with the steps in [Store the signing key](#store-the-signing-key), with its fingerprint in place of the old one. keys.openpgp.org links the address to the newly confirmed key, and releases stop until both secrets hold that key.
+4. Put the new fingerprint in `verify-release.php`, in this file, in `.eddy/CLAUDE.md`, in `README.md` and in `.eddy/docs/content/installation.mdx`.
+5. Add a note about the new key to the release notes of the next version.
 
 ## Repository settings
 
@@ -174,4 +217,4 @@ curl -fsSL https://getscaffold.dev/install.sh | bash -s -- github --github-owner
 
 To apply the changes, run the command again without `--dry-run`.
 
-<!-- cspell:ignore intoto EAAB subkey subkeys -->
+<!-- cspell:ignore intoto EAAB gpgv keyserver openpgp subkey subkeys -->

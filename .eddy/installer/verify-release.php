@@ -7,8 +7,7 @@
  *
  * Passes when 'SHA256SUMS.asc' is a valid signature of 'SHA256SUMS' by the
  * Eddy signing key, and every file that 'SHA256SUMS' lists is in the
- * directory and matches its checksum. The key comes from 'install-key.asc'
- * in the repository root.
+ * directory and matches its checksum. The key comes from keys.openpgp.org.
  *
  * Dependencies: gpg, gpgv
  *
@@ -31,9 +30,9 @@ namespace DrevOps\Eddy\Installer;
 const SIGNING_KEY_FINGERPRINT = '7B8D3C9793E0FF52EAABFEC8E5322FD0EC15511E';
 
 /**
- * The public half of the Eddy signing key.
+ * The keys.openpgp.org URL of the public half of the Eddy signing key.
  */
-const PUBLIC_KEY = __DIR__ . '/../../install-key.asc';
+const SIGNING_KEY_URL = 'https://keys.openpgp.org/vks/v1/by-fingerprint/' . SIGNING_KEY_FINGERPRINT;
 
 /**
  * Verify the release assets in the directory passed as the first argument.
@@ -41,14 +40,14 @@ const PUBLIC_KEY = __DIR__ . '/../../install-key.asc';
  * @param array<int, string> $argv
  *   The command line arguments.
  * @param string $public_key
- *   The path to the armored public key of the signing key.
+ *   The URL or the path of the armored public key of the signing key.
  * @param string $fingerprint
  *   The fingerprint of the primary key that must have made the signature.
  *
  * @return int
  *   The exit code.
  */
-function main(array $argv, string $public_key = PUBLIC_KEY, string $fingerprint = SIGNING_KEY_FINGERPRINT): int {
+function main(array $argv, string $public_key = SIGNING_KEY_URL, string $fingerprint = SIGNING_KEY_FINGERPRINT): int {
   try {
     verify_release($argv[1] ?? '', $public_key, $fingerprint);
   }
@@ -67,38 +66,45 @@ function main(array $argv, string $public_key = PUBLIC_KEY, string $fingerprint 
  * @param string $dir
  *   The directory that holds 'SHA256SUMS', 'SHA256SUMS.asc' and the files.
  * @param string $public_key
- *   The path to the armored public key of the signing key.
+ *   The URL or the path of the armored public key of the signing key.
  * @param string $fingerprint
  *   The fingerprint of the primary key that must have made the signature.
  *
  * @throws \RuntimeException
- *   When a file is missing, the signature is not by the key, or a file does
- *   not match its checksum.
+ *   When a file is missing, the key can't be fetched, the signature is not by
+ *   the key, or a file does not match its checksum.
  */
 function verify_release(string $dir, string $public_key, string $fingerprint): void {
   if ($dir === '' || !is_dir($dir)) {
     throw new \RuntimeException('Pass the directory that holds SHA256SUMS and SHA256SUMS.asc.');
   }
 
-  foreach (['SHA256SUMS', 'SHA256SUMS.asc', $public_key] as $file) {
-    $path = $file === $public_key ? $file : $dir . '/' . $file;
-
-    if (!is_file($path)) {
-      throw new \RuntimeException(sprintf('%s does not exist.', $path));
+  foreach (['SHA256SUMS', 'SHA256SUMS.asc'] as $file) {
+    if (!is_file($dir . '/' . $file)) {
+      throw new \RuntimeException(sprintf('%s/%s does not exist.', $dir, $file));
     }
+  }
+
+  $armored = @file_get_contents($public_key, FALSE, stream_context_create(['http' => ['timeout' => 30]]));
+
+  if ($armored === FALSE || $armored === '') {
+    throw new \RuntimeException(sprintf('Could not fetch the Eddy signing key %s from %s.', $fingerprint, $public_key));
   }
 
   // 'gpgv' checks the signature against a keyring that holds only the public
   // key, with no keyring of the user and no 'gpg-agent'. It looks for a
   // keyring named without a slash in its home and reads a drive letter as the
   // scheme of a URL, so it runs in the directory and reads './<keyring>'.
+  $key = realpath($dir) . '/.verify-release-key.asc';
   $keyring = realpath($dir) . '/.verify-release-keyring.gpg';
 
   try {
-    [$dearmor_code, , $dearmor_error] = run(['gpg', '--batch', '--yes', '--output', $keyring, '--dearmor', $public_key]);
+    file_put_contents($key, $armored);
+
+    [$dearmor_code, , $dearmor_error] = run(['gpg', '--batch', '--yes', '--output', $keyring, '--dearmor', $key]);
 
     if ($dearmor_code !== 0) {
-      throw new \RuntimeException(sprintf('gpg could not read the public key %s: %s', $public_key, trim($dearmor_error)));
+      throw new \RuntimeException(sprintf('gpg could not read the public key from %s: %s', $public_key, trim($dearmor_error)));
     }
 
     // Only the status lines on the standard output are parsed, because the
@@ -107,8 +113,10 @@ function verify_release(string $dir, string $public_key, string $fingerprint): v
     [$verify_code, $status, $verify_error] = run($gpgv, $dir);
   }
   finally {
-    if (is_file($keyring)) {
-      unlink($keyring);
+    foreach ([$key, $keyring] as $file) {
+      if (is_file($file)) {
+        unlink($file);
+      }
     }
   }
 
