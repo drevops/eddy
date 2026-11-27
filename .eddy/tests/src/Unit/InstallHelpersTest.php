@@ -1891,6 +1891,15 @@ final class InstallHelpersTest extends UnitTestCase {
       ['src/file.php', 'src/Sub/deep.php'],
     ];
 
+    yield 'eddy directory excluded at the root only' => [
+      function (string $dir): void {
+        File::dump($dir . '/.eddy/CLAUDE.md', 'maintenance');
+        File::dump($dir . '/docs/.eddy/notes.md', 'notes');
+      },
+      ['docs/.eddy/notes.md'],
+      ['.eddy/CLAUDE.md'],
+    ];
+
     yield 'nested excluded directories' => [
       function (string $dir): void {
         File::dump($dir . '/tools/vendor/autoload.php', 'vendor');
@@ -1975,6 +1984,9 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'nested vendor directory' => ['.eddy/tests/vendor', TRUE, FALSE];
     yield 'node_modules directory' => ['node_modules', TRUE, FALSE];
     yield 'chromedriver directory' => ['.chromedriver', TRUE, FALSE];
+    yield 'eddy directory' => ['.eddy', TRUE, FALSE];
+    yield 'eddy directory below the root' => ['docs/.eddy', TRUE, TRUE];
+    yield 'file named like the eddy directory' => ['.eddy', FALSE, TRUE];
     yield 'file named like an excluded directory' => ['docs/vendor', FALSE, TRUE];
     yield 'claude directory' => ['.claude', TRUE, TRUE];
     yield 'claude settings' => ['.claude/settings.json', FALSE, TRUE];

@@ -3101,8 +3101,10 @@ function get_marker_files(): array {
  * Check whether a project path belongs to the template.
  *
  * The '.git', '.idea', '.chromedriver', 'vendor' and 'node_modules'
- * directories do not, at any depth. Neither does anything in '.claude' except
- * 'settings.json', nor any path that the '.gitignore' rules ignore.
+ * directories do not, at any depth. Neither does the root '.eddy' directory,
+ * which 'process_internal()' deletes, so no pass reads its files. Neither
+ * does anything in '.claude' except 'settings.json', nor any path that the
+ * '.gitignore' rules ignore.
  *
  * @param string $path
  *   The path, relative to the project root and separated with '/'.
@@ -3116,6 +3118,10 @@ function get_marker_files(): array {
  */
 function is_template_path(string $path, bool $is_dir, array $rules): bool {
   if ($is_dir && in_array(basename($path), ['.git', '.idea', '.chromedriver', 'vendor', 'node_modules'], TRUE)) {
+    return FALSE;
+  }
+
+  if ($is_dir && $path === '.eddy') {
     return FALSE;
   }
 
