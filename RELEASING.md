@@ -217,4 +217,4 @@ curl -fsSL https://getscaffold.dev/install.sh | bash -s -- github --github-owner
 
 To apply the changes, run the command again without `--dry-run`.
 
-<!-- cspell:ignore intoto EAAB openpgp subkey subkeys -->
+<!-- cspell:ignore intoto EAAB gpgv keyserver openpgp subkey subkeys -->
