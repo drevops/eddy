@@ -186,9 +186,12 @@ final class VerifyReleaseTest extends UnitTestCase {
     $groups = str_split(self::installerConstant('SIGNING_KEY_FINGERPRINT'), 4);
     $grouped = implode(' ', array_slice($groups, 0, 5)) . '  ' . implode(' ', array_slice($groups, 5));
 
-    foreach (['README.md', '.eddy/docs/content/installation.mdx', '.eddy/CLAUDE.md'] as $file) {
+    foreach (['README.md', 'RELEASING.md', '.eddy/docs/content/installation.mdx', '.eddy/CLAUDE.md'] as $file) {
       $this->assertStringContainsString($grouped, File::read(self::rootDir() . '/' . $file), sprintf('%s shows the fingerprint of the signing key.', $file));
     }
+
+    // The key commands take the fingerprint without spaces.
+    $this->assertStringContainsString(self::installerConstant('SIGNING_KEY_FINGERPRINT'), File::read(self::rootDir() . '/RELEASING.md'), 'RELEASING.md runs the key commands on the fingerprint of the signing key.');
   }
 
   protected static function fixture(string $name): string {

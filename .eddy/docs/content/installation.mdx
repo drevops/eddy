@@ -82,14 +82,15 @@ Every answer can come from an environment variable instead, which helps in scrip
 
 ### Verify the installer
 
-`install.php` runs on your machine with your permissions, so check it before you run it. `https://eddy.drevops.com/install` redirects to the `install.php` attached to the latest release on GitHub. Each release attaches 4 files:
+`install.php` runs on your machine with your permissions, so check it before you run it. `https://eddy.drevops.com/install` redirects to the `install.php` attached to the latest release on GitHub. Each release attaches 5 files:
 
 - `install.php`, the installer of that release
 - `eddy-<version>.tar.gz`, the template that the installer downloads
 - `SHA256SUMS`, the SHA-256 checksums of those 2 files
 - `SHA256SUMS.asc`, a GPG signature of `SHA256SUMS`
+- `eddy-<version>.intoto.jsonl`, the build attestations of `install.php`, the template and `SHA256SUMS`
 
-The release workflow also records a build attestation for `install.php`, the template and `SHA256SUMS`. GitHub Actions signs each attestation and ties the file to the commit and the workflow run that built it.
+GitHub Actions signs each attestation and ties the file to the commit and the workflow run that built it. Every file goes on the release before it's published, and GitHub then locks the files of the release.
 
 To verify the installer with the [GitHub CLI](https://cli.github.com), then run it:
 
@@ -188,7 +189,7 @@ The installer works on the directory in place:
 
   The README keeps a badge for each PHP version your selected majors support, so a Drupal 10-only extension has no PHP 8.5 badge.
 - It turns `README.dist.md` and `CONTRIBUTING.dist.md` into your `README.md` and `CONTRIBUTING.md`, and downloads a placeholder `logo.png` with your extension name on it.
-- It deletes Eddy's own files: `.eddy/`, `MIGRATION.md`, `SECURITY.md`, `LICENSE.txt`, `logo.svg`, the `.github/workflows/eddy-*.yml` workflows and the Claude Code skills that maintain Eddy. `scripts/eddy-tooling` stays, because it installs the commands that your project runs. Drupal.org adds `LICENSE.txt` to every release it packages and [asks projects not to commit one](https://www.drupal.org/node/1663716). GitHub reads a license only from a license file, so the README's license badge states GPL-2.0-or-later itself.
+- It deletes Eddy's own files: `.eddy/`, `MIGRATION.md`, `RELEASING.md`, `SECURITY.md`, `LICENSE.txt`, `logo.svg`, the `.github/workflows/eddy-*.yml` workflows and the Claude Code skills that maintain Eddy. `scripts/eddy-tooling` stays, because it installs the commands that your project runs. Drupal.org adds `LICENSE.txt` to every release it packages and [asks projects not to commit one](https://www.drupal.org/node/1663716). GitHub reads a license only from a license file, so the README's license badge states GPL-2.0-or-later itself.
 - It uncomments the `export-ignore` lines of `.gitattributes`, so the release archives that Drupal.org packages leave out the development files, such as `composer.dev.json`, `scripts` and `tests`.
 - It sets the branch filters of the workflows from the first of these that applies:
 
@@ -224,3 +225,5 @@ vendor/bin/eddy-provision     # Provision the Drupal website`}
 Confirm that the site works: `provision`, the last of these commands, prints the site URL and a one-time login link. The link logs you in as `admin`.
 
 Then work through the rest of the [overview](#overview): coding standards, tests, the GitHub repository, branch protection and deployment.
+
+{/* cspell:ignore intoto */}

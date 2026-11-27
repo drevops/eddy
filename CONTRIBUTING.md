@@ -8,6 +8,6 @@ Thank you for your interest in improving Eddy. To report a bug or suggest a chan
 - [Tooling releases](https://eddy.drevops.com/contributing/tooling-releases) - publishing and releasing the `drevops/eddy-tooling` package.
 - [Documentation](https://eddy.drevops.com/contributing/documentation) - working on the docs and publishing them.
 
-Their source lives in [`.eddy/docs/content/contributing/`](.eddy/docs/content/contributing), and [`.eddy/CLAUDE.md`](.eddy/CLAUDE.md) is the full maintenance reference.
+Their source lives in [`.eddy/docs/content/contributing/`](.eddy/docs/content/contributing), and [`.eddy/CLAUDE.md`](.eddy/CLAUDE.md) is the full maintenance reference. To cut a release, follow [`RELEASING.md`](RELEASING.md).
 
 `php install.php` replaces this file with the generated project's own `CONTRIBUTING.md`, which it renders from `CONTRIBUTING.dist.md`. Keep notes about the scaffold in the docs, and notes for generated projects in `CONTRIBUTING.dist.md`.

@@ -1,32 +1,27 @@
 name: Release Eddy installer
 
-# Attaches 'install.php', the template archive it downloads, 'SHA256SUMS' and
-# 'SHA256SUMS.asc' to a release, with a build attestation for every file but
-# the signature. eddy.drevops.com/install redirects to the 'install.php' of the
-# latest release.
+# Attaches 'install.php', the template archive it downloads, 'SHA256SUMS',
+# 'SHA256SUMS.asc' and the attestation bundle to the draft release of a pushed
+# version tag, publishes the release, then checks the published files.
+# eddy.drevops.com/install redirects to the 'install.php' of the latest release.
 #
-# A manual run attaches the files to an existing release again.
+# An immutable release takes no assets once published, so every asset goes on
+# the draft before the release is published.
 
 on:
-  release:
-    types:
-      - published
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Release version, which must be an existing tag.'
-        required: true
-        type: string
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+      - '[0-9]+.[0-9]+.[0-9]+-*'
 
-permissions:
-  contents: read
+permissions: {}
 
 concurrency:
-  group: eddy-release-installer-${{ github.event.release.tag_name || inputs.version }}
+  group: eddy-release-installer-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
-  eddy-release-installer:
+  eddy-release-installer-build:
     if: github.repository == 'drevops/eddy'
 
     runs-on: ubuntu-26.04
@@ -36,7 +31,7 @@ jobs:
     environment: release
 
     permissions:
-      contents: write # Upload the release assets.
+      contents: read # Read the tagged source.
       id-token: write # Sign the attestations.
       attestations: write # Record the attestations.
 
@@ -44,6 +39,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          # The tag check reads the history of the default branch.
           fetch-depth: 0
           persist-credentials: false
 
@@ -58,49 +54,36 @@ jobs:
         with:
           php-version: 8.3
 
-      # The version becomes part of asset names and URLs, so it is limited to
-      # the characters that a tag of this repository uses.
-      - name: Set release version
+      # The tag becomes part of asset names and URLs.
+      - name: Check release tag
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-          INPUTS_VERSION: ${{ inputs.version }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
-          version="${RELEASE_TAG:-${INPUTS_VERSION}}"
-          [[ "${version}" =~ ^[0-9A-Za-z._+-]+$ ]] || { echo "::error::Invalid release version '${version}'."; exit 1; }
-          git show-ref --verify --quiet "refs/tags/${version}" || { echo "::error::Version ${version} is not a tag of this repository."; exit 1; }
-          echo "RELEASE_VERSION=${version}" >> "$GITHUB_ENV"
-          echo "RELEASE_ARCHIVE=eddy-${version}.tar.gz" >> "$GITHUB_ENV"
-          echo "Release version: ${version}"
+          [[ "${GITHUB_REF_NAME}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || { echo "::error::Tag '${GITHUB_REF_NAME}' is not a version."; exit 1; }
+          git merge-base --is-ancestor "${GITHUB_SHA}" "origin/${DEFAULT_BRANCH}" || { echo "::error::Tag '${GITHUB_REF_NAME}' is not on '${DEFAULT_BRANCH}'."; exit 1; }
+          echo "RELEASE_VERSION=${GITHUB_REF_NAME}" >> "${GITHUB_ENV}"
+          echo "RELEASE_ARCHIVE=eddy-${GITHUB_REF_NAME}.tar.gz" >> "${GITHUB_ENV}"
 
-      # Installers already stamped with the checksum of a published archive
-      # keep working, because a later run reuses that archive.
-      - name: Publish template archive
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Build template archive
         run: |
           mkdir -p .release
-          if gh release download "${RELEASE_VERSION}" --pattern "${RELEASE_ARCHIVE}" --dir .release; then
-            echo "Reusing ${RELEASE_ARCHIVE} from release ${RELEASE_VERSION}."
-          else
-            git archive --format=tar.gz --prefix="eddy-${RELEASE_VERSION}/" --output=".release/${RELEASE_ARCHIVE}" "refs/tags/${RELEASE_VERSION}"
-            gh release upload "${RELEASE_VERSION}" ".release/${RELEASE_ARCHIVE}"
-          fi
+          git archive --format=tar.gz --prefix="eddy-${RELEASE_VERSION}/" --output=".release/${RELEASE_ARCHIVE}" "refs/tags/${RELEASE_VERSION}"
           sha256="$(sha256sum ".release/${RELEASE_ARCHIVE}" | cut -d ' ' -f 1)"
-          echo "RELEASE_ARCHIVE_SHA256=${sha256}" >> "$GITHUB_ENV"
+          echo "RELEASE_ARCHIVE_SHA256=${sha256}" >> "${GITHUB_ENV}"
           echo "Template archive: ${RELEASE_ARCHIVE} (${sha256})"
 
-      # Reads the installer from the tag, so a manual run on the default branch
-      # stamps the installer of the release it names.
       - name: Build installer
         run: |
-          git show "refs/tags/${RELEASE_VERSION}:install.php" > "${RUNNER_TEMP}/install.php"
           archive_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_VERSION}/${RELEASE_ARCHIVE}"
-          node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON .eddy/docs/scripts/stamp-installer.mjs "${RUNNER_TEMP}/install.php" .release/install.php "${RELEASE_VERSION}" "${archive_url}" "${RELEASE_ARCHIVE_SHA256}"
+          node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON .eddy/docs/scripts/stamp-installer.mjs install.php .release/install.php "${RELEASE_VERSION}" "${archive_url}" "${RELEASE_ARCHIVE_SHA256}"
           reported="$(php .release/install.php --version)"
           [ "${reported}" = "${RELEASE_VERSION}" ] || { echo "::error::The installer reports version '${reported}', not '${RELEASE_VERSION}'."; exit 1; }
+          grep -qxF "const TEMPLATE_ARCHIVE_URL = '${archive_url}';" .release/install.php || { echo "::error::The installer does not hold the archive URL ${archive_url}."; exit 1; }
+          grep -qxF "const TEMPLATE_ARCHIVE_SHA256 = '${RELEASE_ARCHIVE_SHA256}';" .release/install.php || { echo "::error::The installer does not hold the archive checksum ${RELEASE_ARCHIVE_SHA256}."; exit 1; }
 
-      # Runs the installer in an empty directory, as a user does, so it
-      # downloads the archive of its release and verifies its checksum.
+      # Runs the installer in an empty directory, as a user does. The draft's
+      # archive can't be downloaded yet, so the installer reads the local copy
+      # and verifies it against the stamped checksum.
       - name: Check installer
         env:
           INSTALL_NAME: Installer Check
@@ -116,7 +99,7 @@ jobs:
           mkdir installer-check
           cp .release/install.php installer-check/install.php
           cd installer-check
-          php install.php | tee ../installer-check.log
+          INSTALL_TEMPLATE_ARCHIVE="${GITHUB_WORKSPACE}/.release/${RELEASE_ARCHIVE}" INSTALL_TEMPLATE_ARCHIVE_SHA256="${RELEASE_ARCHIVE_SHA256}" php install.php | tee ../installer-check.log
           [ "${PIPESTATUS[0]}" -eq 0 ] || exit 1
           [ -f installer_check.info.yml ] || { echo '::error::The installer did not install the extension.'; exit 1; }
           if grep -q 'so the template is not verified' ../installer-check.log; then
@@ -132,7 +115,7 @@ jobs:
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
         run: |
-          [ -n "${GPG_PRIVATE_KEY}" ] || { echo "::error::The GPG_PRIVATE_KEY secret of the 'release' environment is not set."; exit 1; }
+          [ -n "${GPG_PRIVATE_KEY}" ] || { echo "::error::The GPG_PRIVATE_KEY secret of the 'release' environment is not set. RELEASING.md shows how to set it."; exit 1; }
           echo "${GPG_PRIVATE_KEY}" | gpg --batch --import
 
       # GPG_PASSPHRASE is needed only for a key that has a passphrase.
@@ -153,6 +136,7 @@ jobs:
         run: php .eddy/installer/verify-release.php .release
 
       - name: Attest release assets
+        id: attest
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: |
@@ -160,26 +144,192 @@ jobs:
             .release/${{ env.RELEASE_ARCHIVE }}
             .release/SHA256SUMS
 
-      - name: Upload release assets
+      # Scorecard reads provenance from release assets only.
+      - name: Add attestation bundle
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${RELEASE_VERSION}" .release/install.php .release/SHA256SUMS .release/SHA256SUMS.asc --clobber
+          BUNDLE_PATH: ${{ steps.attest.outputs.bundle-path }}
+        run: cp "${BUNDLE_PATH}" ".release/eddy-${RELEASE_VERSION}.intoto.jsonl"
 
-      - name: Verify uploaded assets
+      - name: Verify attestations
+        working-directory: .release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          mkdir -p .uploaded
-          gh release download "${RELEASE_VERSION}" --dir .uploaded --pattern install.php --pattern "${RELEASE_ARCHIVE}" --pattern SHA256SUMS --pattern SHA256SUMS.asc
-          php .eddy/installer/verify-release.php .uploaded
-          for file in install.php "${RELEASE_ARCHIVE}" SHA256SUMS; do
-            gh attestation verify ".uploaded/${file}" --repo "${GITHUB_REPOSITORY}"
+          for asset in install.php "${RELEASE_ARCHIVE}" SHA256SUMS; do
+            gh attestation verify "${asset}" --bundle "eddy-${RELEASE_VERSION}.intoto.jsonl" --repo "${GITHUB_REPOSITORY}"
           done
 
-      # Each URL must serve the uploaded installer byte for byte.
+      - name: Upload release assets as an artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: eddy-release-installer
+          path: .release
+          include-hidden-files: true
+          if-no-files-found: error
+
+  eddy-release-installer-publish:
+    needs: eddy-release-installer-build
+
+    runs-on: ubuntu-26.04
+
+    permissions:
+      contents: write # Attach the assets and publish the release.
+
+    # Release Drafter sets its draft's tag back to its own guess, so this job
+    # shares the 'draft-release-notes.yml' group. 'queue: max' keeps every
+    # waiting run, where the default queue cancels all but the newest.
+    concurrency:
+      group: release-drafter
+      cancel-in-progress: false
+      queue: max
+
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ github.ref_name }}
+
+    steps:
+      - name: Download release assets
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: eddy-release-installer
+          path: .release
+
+      - name: Verify release assets
+        working-directory: .release
+        run: |
+          sha256sum --check SHA256SUMS
+          for asset in install.php "eddy-${TAG}.tar.gz" SHA256SUMS; do
+            gh attestation verify "${asset}" --bundle "eddy-${TAG}.intoto.jsonl" --repo "${GH_REPO}"
+          done
+
+      - name: Publish the release
+        run: |
+          # Tags can move while the job waits in its queue or runs, and the
+          # assets must match the commit the tag points to.
+          check_tag() {
+            local tag_sha
+            tag_sha="$(gh api "repos/${GH_REPO}/commits/${TAG}" --jq .sha)"
+            if [ "${tag_sha}" != "${GITHUB_SHA}" ]; then
+              echo "::error::Tag '${TAG}' now points to ${tag_sha}, not to ${GITHUB_SHA}, which the assets were built from."
+              exit 1
+            fi
+          }
+
+          check_tag
+
+          # Prints 'draft', 'published' or 'none'.
+          release_state() {
+            local state
+            if ! state="$(gh release view "${TAG}" --json isDraft --jq 'if .isDraft then "draft" else "published" end' 2> "${RUNNER_TEMP}/release-view.log")"; then
+              if ! grep -q 'release not found' "${RUNNER_TEMP}/release-view.log"; then
+                cat "${RUNNER_TEMP}/release-view.log" >&2
+                echo "::error::Could not read release '${TAG}'." >&2
+                return 1
+              fi
+              state='none'
+            fi
+            echo "${state}"
+          }
+
+          state="$(release_state)"
+
+          # A published release comes from an earlier run of this job or from
+          # the Publish release button.
+          if [ "${state}" = 'published' ]; then
+            mkdir -p "${RUNNER_TEMP}/published"
+            if gh release download "${TAG}" --dir "${RUNNER_TEMP}/published" --pattern install.php 2>/dev/null && cmp -s "${RUNNER_TEMP}/published/install.php" .release/install.php; then
+              echo "Release '${TAG}' is already published with this installer."
+              exit 0
+            fi
+            echo "::error::Release '${TAG}' is published without this installer, and an immutable release takes no new assets. Release a new version with a tag push, as RELEASING.md describes."
+            exit 1
+          fi
+
+          # Release Drafter names its draft after the version it guesses, which
+          # can differ from the pushed tag. A draft whose tag exists already
+          # belongs to another release.
+          draft=''
+          if [ "${state}" = 'none' ]; then
+            for candidate in $(gh release list --json tagName,isDraft --jq '.[] | select(.isDraft) | .tagName'); do
+              if ! gh api "repos/${GH_REPO}/git/ref/tags/${candidate}" > /dev/null 2>&1; then
+                draft="${candidate}"
+                break
+              fi
+            done
+          fi
+
+          if [ -n "${draft}" ]; then
+            gh release edit "${draft}" --tag "${TAG}" --title "${TAG}"
+          elif [ "${state}" = 'none' ]; then
+            gh release create "${TAG}" --title "${TAG}" --generate-notes --draft --verify-tag
+          fi
+
+          prerelease='false'
+          if [[ "${TAG}" == *-* ]]; then
+            prerelease='true'
+          fi
+
+          # A release for an older version must not take "latest" from a newer one.
+          latest='false'
+          if [ "${prerelease}" = 'false' ]; then
+            if ! tags="$(gh release list --exclude-drafts --exclude-pre-releases --limit 1000 --json tagName --jq '.[].tagName')"; then
+              echo '::error::Could not list the published releases.'
+              exit 1
+            fi
+            # Older releases can carry a 'v' prefix, which sorts after digits,
+            # or a tag that isn't a version at all.
+            highest="$(printf '%s\n%s\n' "${tags}" "${TAG}" | sed 's/^v//' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)"
+            if [ "${highest}" = "${TAG}" ]; then
+              latest='true'
+            fi
+          fi
+
+          gh release upload "${TAG}" .release/* --clobber
+
+          notes="$(gh release view "${TAG}" --json body --jq .body)"
+          if [ -n "${draft}" ]; then
+            notes="${notes//...${draft}/...${TAG}}"
+          fi
+          printf '%s\n' "${notes}" > "${RUNNER_TEMP}/notes.md"
+
+          check_tag
+          gh release edit "${TAG}" --notes-file "${RUNNER_TEMP}/notes.md" --draft=false --prerelease="${prerelease}" --latest="${latest}" --verify-tag
+
+  eddy-release-installer-verify:
+    needs: eddy-release-installer-publish
+
+    runs-on: ubuntu-26.04
+
+    permissions:
+      contents: read # Read the published release and 'verify-release.php'.
+
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_VERSION: ${{ github.ref_name }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          php-version: 8.3
+
+      - name: Verify published assets
+        run: |
+          mkdir -p .published
+          gh release download "${RELEASE_VERSION}" --dir .published --pattern install.php --pattern "eddy-${RELEASE_VERSION}.tar.gz" --pattern SHA256SUMS --pattern SHA256SUMS.asc --pattern "eddy-${RELEASE_VERSION}.intoto.jsonl"
+          php .eddy/installer/verify-release.php .published
+          for asset in install.php "eddy-${RELEASE_VERSION}.tar.gz" SHA256SUMS; do
+            gh attestation verify ".published/${asset}" --bundle ".published/eddy-${RELEASE_VERSION}.intoto.jsonl" --repo "${GITHUB_REPOSITORY}"
+          done
+
+      # Each URL must serve the published installer byte for byte.
       - name: Verify latest installer
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           latest="$(gh release view --json tagName --jq .tagName)"
           if [ "${latest}" != "${RELEASE_VERSION}" ]; then
@@ -187,7 +337,32 @@ jobs:
             exit 0
           fi
           for url in "https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/install.php" https://eddy.drevops.com/install; do
-            curl -fsSL "${url}" -o latest-install.php
-            cmp latest-install.php .release/install.php || { echo "::error::${url} does not serve the uploaded installer."; exit 1; }
-            echo "${url} serves the uploaded installer."
+            curl -fsSL --retry 3 "${url}" -o latest-install.php
+            cmp latest-install.php .published/install.php || { echo "::error::${url} does not serve the published installer."; exit 1; }
+            echo "${url} serves the published installer."
           done
+
+      # Runs the published installer in an empty directory, as a user does, so
+      # it downloads the archive of its release and verifies its checksum.
+      - name: Check published installer
+        env:
+          INSTALL_NAME: Installer Check
+          INSTALL_MACHINE_NAME: installer_check
+          INSTALL_TYPE: module
+          INSTALL_DRUPAL_VERSION: '11'
+          INSTALL_COMMAND_WRAPPER: makefile
+          INSTALL_TOOLS: phpcs,phpunit
+          INSTALL_EXAMPLES: 'false'
+          INSTALL_REMOVE_SELF: 'true'
+          INSTALL_PROCEED: 'true'
+        run: |
+          mkdir installer-check
+          cp .published/install.php installer-check/install.php
+          cd installer-check
+          php install.php | tee ../installer-check.log
+          [ "${PIPESTATUS[0]}" -eq 0 ] || exit 1
+          [ -f installer_check.info.yml ] || { echo '::error::The published installer did not install the extension.'; exit 1; }
+          if grep -q 'so the template is not verified' ../installer-check.log; then
+            echo '::error::The published installer did not verify the template archive.'
+            exit 1
+          fi

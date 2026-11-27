@@ -1,17 +1,20 @@
-@@ -2,24 +2,11 @@
-     "extends": ["config:recommended"],
-     "automerge": true,
-     "rangeStrategy": "bump",
+@@ -5,38 +5,17 @@
+     "minimumReleaseAge": "7 days",
+     "minimumReleaseAgePackageManagerSync": true,
+     "internalChecksFilter": "strict",
 -    "lockFileMaintenance": {
--        "enabled": true
+-        "enabled": true,
+-        "automerge": false
 -    },
-     "dependencyDashboard": true,
+     "dependencyDashboard": {
+         "enabled": true
+     },
      "pinDigests": true,
      "branchPrefix": "deps/",
 -    "enabledManagers": ["github-actions", "npm"],
 +    "enabledManagers": ["github-actions"],
      "packageRules": [
--        {
+         {
 -            "matchDepNames": ["node", "yarn"],
 -            "matchManagers": ["npm"],
 -            "enabled": false
@@ -21,6 +24,17 @@
 -            "matchUpdateTypes": ["major"],
 -            "enabled": false
 -        },
-         {
+-        {
              "matchPackageNames": ["*"],
              "groupName": "all dependencies",
+             "groupSlug": "all"
+-        },
+-        {
+-            "matchManagers": ["npm"],
+-            "matchDepTypes": ["dependencies"],
+-            "groupName": "runtime dependencies",
+-            "groupSlug": "runtime",
+-            "automerge": false
+         }
+     ]
+ }

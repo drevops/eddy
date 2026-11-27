@@ -165,34 +165,15 @@ The `export-subst` line sits under "Remove the lines below in your project." in 
 
 `https://eddy.drevops.com/install` serves the `install.php` attached to the latest GitHub release. A Single Redirect rule named `Eddy installer` in the `drevops.com` Cloudflare zone sends it there with a 302, so the `eddy.drevops.com` CNAME to `drevops.github.io` is proxied. Pre-releases are never the latest release, so their installers stay at `releases/download/<version>/install.php`.
 
-`.github/workflows/eddy-release-installer.yml` runs when a release is published, in the `release` environment:
+A release starts from a pushed version tag on `main`, such as `5.2.1` or `5.3.0-rc.1`, with no `v`. Releases are immutable, so `.github/workflows/eddy-release-installer.yml` attaches every asset to Release Drafter's draft before it publishes the release, in 3 jobs:
 
-1. Builds `eddy-<version>.tar.gz` with `git archive` and uploads it, or reuses the archive the release already holds, so an installer stamped with its checksum keeps working.
-2. Reads `install.php` from the tag and stamps the version, the archive URL and its checksum through `.eddy/docs/scripts/stamp-installer.mjs`, which calls `stampInstaller()`. Then it checks `--version` and installs an extension with the stamped installer in an empty directory.
-3. Writes `SHA256SUMS` for `install.php` and the archive, and signs it as `SHA256SUMS.asc` with `GPG_PRIVATE_KEY`, and `GPG_PASSPHRASE` when the key has one. Both are secrets of the `release` environment.
-4. Checks the signature with `.eddy/installer/verify-release.php`, which accepts only a `VALIDSIG` from `SIGNING_KEY_FINGERPRINT` and then checks every file that `SHA256SUMS` lists.
-5. Attests `install.php`, the archive and `SHA256SUMS`, uploads the files with `--clobber` and verifies the uploaded copies.
-6. For the latest release, checks that `releases/latest/download/install.php` and `https://eddy.drevops.com/install` serve the uploaded installer.
+1. `eddy-release-installer-build` runs in the `release` environment with a read-only token. It builds `eddy-<version>.tar.gz` with `git archive` and stamps the version, the archive URL and its checksum into `install.php` through `.eddy/docs/scripts/stamp-installer.mjs`, which calls `stampInstaller()`. It installs an extension with the stamped installer from the local archive, signs `SHA256SUMS` with `GPG_PRIVATE_KEY`, checks the signature with `.eddy/installer/verify-release.php` and attests the files into `eddy-<version>.intoto.jsonl`.
+2. `eddy-release-installer-publish` holds the only write token and no secret. It moves the draft to the tag, uploads the 5 files and publishes the release.
+3. `eddy-release-installer-verify` reads the published release. It checks the signature and the attestations again, that `releases/latest/download/install.php` and `https://eddy.drevops.com/install` serve the published installer, and that the installer installs from the release.
 
-Run it from the **Actions** tab with a version to attach the installer to an existing release. The tag's `install.php` must hold the archive placeholders, which every release from `5.1.0` does.
+Release Drafter sets its draft's tag back to its own guess, so `draft-release-notes.yml` and the publish job share the `release-drafter` concurrency group with `queue: max`, and never run at once. [`RELEASING.md`](../RELEASING.md) is the maintainer guide to cutting a release, the signing key and the repository settings the flow relies on. `process_internal()` removes it from generated projects.
 
-`install-key.asc` in the repository root is the public half of the `Eddy Release Signing` key, fingerprint `7B8D 3C97 93E0 FF52 EAAB  FEC8 E532 2FD0 EC15 511E`. It expires on 2028-11-09. `process_internal()` removes it from generated projects. `VerifyReleaseTest` fails until the key, `SIGNING_KEY_FINGERPRINT` and the fingerprint on this page, in `README.md` and in `.eddy/docs/content/installation.mdx` agree.
-
-To extend the key before it expires, run `gpg --quick-set-expire <fingerprint> 2y`, then export the public half again. The fingerprint stays the same:
-
-```bash
-gpg --armor --output install-key.asc --export <fingerprint>
-```
-
-A new key needs a new `install-key.asc`, the new fingerprint in `verify-release.php`, on this page, in `README.md` and in `installation.mdx`, and a note in the release notes.
-
-To give the workflow the signing key, create the `release` environment, then store the private key and its passphrase there:
-
-```bash
-gh api -X PUT repos/drevops/eddy/environments/release
-gpg --armor --export-secret-keys <fingerprint> | gh secret set GPG_PRIVATE_KEY --env release --repo drevops/eddy
-gh secret set GPG_PASSPHRASE --env release --repo drevops/eddy
-```
+`install-key.asc` in the repository root is the public half of the `Eddy Release Signing` key, fingerprint `7B8D 3C97 93E0 FF52 EAAB  FEC8 E532 2FD0 EC15 511E`. It expires on 2028-11-09. `process_internal()` removes it from generated projects. `VerifyReleaseTest` fails until the key, `SIGNING_KEY_FINGERPRINT` and the fingerprint on this page, in `README.md`, `RELEASING.md` and `.eddy/docs/content/installation.mdx` agree. `RELEASING.md` shows how to store, extend and replace the key.
 
 ## Tooling constraint
 
@@ -379,7 +360,7 @@ GitHub has no API for the social preview, so upload the new PNG by hand in the r
 - `.eddy/docs/cspell.json` checks the pages in US English and skips fenced code and `CommandTabs` blocks. The root `.cspell.json` ignores `.eddy/docs/`, and `remove_cspell_eddy_paths()` drops every `.eddy/` ignore path from a generated project.
 - `DocumentationTest` checks the pages against the code: the tooling commands in `development/tooling.mdx`, the CI jobs in `continuous-integration/README.mdx` and `continuous-integration/branch-protection.mdx`, the ignore-failure toggles in `continuous-integration/configuration.mdx`, the variables the tooling reads in `development/environment-variables.mdx`, the update skill commands and the tooling PHP floor in `updating/upgrading-from-4x.mdx`, and the Drupal majors and PHP versions of the home page.
 - The `eddy-test-docs` job deploys every build to Netlify when the `NETLIFY_SITE_ID` and `NETLIFY_AUTH_TOKEN` secrets are set: a push to `main` updates the development site at https://drevops-eddy-docs.netlify.app, and a pull request gets a preview linked in a comment.
-- `eddy-release-docs.yml` publishes to GitHub Pages at https://eddy.drevops.com on a release tag, or on a manual run with an optional version, which must be an existing tag or the run fails before the build. Without one, the version is the tag of the run, or the `git describe` output of its branch. It passes `DOCS_URL` and `DOCS_BASE_URL` from the Pages settings, so a custom domain needs no code change, but the published site links to the old address until the workflow runs again. It also sets `RELEASE_VERSION`, which turns on Google Analytics, search engine indexing and the version in the footer, and leaves `/install` out of the build. The run fails when the build holds `/install`. The `github-pages` environment must allow the tag or branch that deploys.
+- `eddy-release-docs.yml` publishes to GitHub Pages at https://eddy.drevops.com on a version tag whose commit is on `main`, or on a manual run with an optional version, which must be an existing tag or the run fails before the build. Without one, the version is the tag of the run, or the `git describe` output of its branch. It passes `DOCS_URL` and `DOCS_BASE_URL` from the Pages settings, so a custom domain needs no code change, but the published site links to the old address until the workflow runs again. It also sets `RELEASE_VERSION`, which turns on Google Analytics, search engine indexing and the version in the footer, and leaves `/install` out of the build. The run fails when the build holds `/install`. The `github-pages` environment must allow the tag or branch that deploys.
 
 ## CI
 
@@ -387,9 +368,13 @@ GitHub has no API for the social preview, so upload the new PNG by hand in the r
 
 `.github/workflows/eddy-publish-tooling.yml` publishes `.eddy/tooling/` to the same-named branch of `drevops/eddy-tooling` on every push to `main` and to a branch whose name contains `eddy-tooling`.
 
-`.github/workflows/eddy-release-docs.yml` publishes the documentation site to GitHub Pages on a release tag or a manual run (see [Documentation site](#documentation-site)).
+`.github/workflows/eddy-release-docs.yml` publishes the documentation site to GitHub Pages on a version tag on `main` or a manual run (see [Documentation site](#documentation-site)).
 
-`.github/workflows/eddy-release-installer.yml` attaches the signed and attested installer to a published release (see [Installer releases](#installer-releases)).
+`.github/workflows/eddy-release-installer.yml` attaches the signed and attested installer to the draft release of a pushed version tag and publishes it (see [Installer releases](#installer-releases)).
+
+`.github/workflows/eddy-audit.yml` uploads OpenSSF Scorecard, CodeQL (`actions` and `javascript-typescript`) and Semgrep (`p/php` on `install.php` and `.eddy/installer`) results to code scanning. Scorecard runs on pushes to `main`, weekly and on branch protection changes, but not on pull requests, since most of its checks rate repository settings.
+
+The `eddy-*` workflows install npm packages with `npm ci --ignore-scripts`. `renovate.json` holds every new version back for 7 days, and never automerges npm `dependencies` or lock file maintenance, which moves them within their ranges. It ships to generated projects, so `RenovateConfigTest` pins that policy.
 
 `.github/workflows/deploy.yml` deploys `main` and release tags to [`drevops/eddy_destination`](https://github.com/drevops/eddy_destination) the way it deploys a generated project to Drupal.org. The `DEPLOY_BRANCH` repository variable sends `main` to `5.x` there, and the `DEPLOY_PROCEED` secret set to `1` lets the push through.
 

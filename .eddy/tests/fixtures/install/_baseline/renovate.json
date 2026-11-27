@@ -2,10 +2,16 @@
     "extends": ["config:recommended"],
     "automerge": true,
     "rangeStrategy": "bump",
+    "minimumReleaseAge": "7 days",
+    "minimumReleaseAgePackageManagerSync": true,
+    "internalChecksFilter": "strict",
     "lockFileMaintenance": {
+        "enabled": true,
+        "automerge": false
+    },
+    "dependencyDashboard": {
         "enabled": true
     },
-    "dependencyDashboard": true,
     "pinDigests": true,
     "branchPrefix": "deps/",
     "enabledManagers": ["github-actions", "npm"],
@@ -24,6 +30,13 @@
             "matchPackageNames": ["*"],
             "groupName": "all dependencies",
             "groupSlug": "all"
+        },
+        {
+            "matchManagers": ["npm"],
+            "matchDepTypes": ["dependencies"],
+            "groupName": "runtime dependencies",
+            "groupSlug": "runtime",
+            "automerge": false
         }
     ]
 }

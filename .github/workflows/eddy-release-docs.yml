@@ -1,8 +1,8 @@
 name: Release Eddy docs
 
-# Publishes '.eddy/docs' to GitHub Pages on a release tag, or on a manual run.
-# The site holds no installer: 'eddy-release-installer.yml' attaches it to the
-# release.
+# Publishes '.eddy/docs' to GitHub Pages on a version tag on 'main', or on a
+# manual run. The site holds no installer: 'eddy-release-installer.yml'
+# attaches it to the release.
 #
 # The site URL and base path come from the GitHub Pages settings at build
 # time, so a custom domain set there takes effect on the next run.
@@ -10,7 +10,8 @@ name: Release Eddy docs
 on:
   push:
     tags:
-      - '*'
+      - '[0-9]+.[0-9]+.[0-9]+'
+      - '[0-9]+.[0-9]+.[0-9]+-*'
   workflow_dispatch:
     inputs:
       version:
@@ -58,6 +59,15 @@ jobs:
         id: pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6
 
+      # The tag filter can't check the branch, and its '-*' takes any suffix.
+      - name: Check release tag
+        if: github.event_name == 'push'
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          [[ "${GITHUB_REF_NAME}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || { echo "::error::Tag '${GITHUB_REF_NAME}' is not a version."; exit 1; }
+          git merge-base --is-ancestor "${GITHUB_SHA}" "origin/${DEFAULT_BRANCH}" || { echo "::error::Tag '${GITHUB_REF_NAME}' is not on '${DEFAULT_BRANCH}'."; exit 1; }
+
       - name: Set release version
         env:
           INPUTS_VERSION: ${{ github.event.inputs.version }}
@@ -76,7 +86,7 @@ jobs:
           echo "Release version: ${version}"
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
         working-directory: .eddy/docs
 
       - name: Build documentation site

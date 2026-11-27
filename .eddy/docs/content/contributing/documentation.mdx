@@ -155,7 +155,7 @@ These builds show "development" as the version in the footer, and search engines
 
 `.github/workflows/eddy-release-docs.yml` publishes the docs to [eddy.drevops.com](https://eddy.drevops.com) on GitHub Pages, in these cases:
 
-- On every tag push, with the tag as the version. The workflow's tag filter, `*`, matches every tag without a `/`, so a pre-release tag such as `5.0.0-rc2` publishes too.
+- On a version tag push, with the tag as the version. A version tag is 3 numbers with an optional suffix, such as `5.2.1` or `5.3.0-rc.1`, and its commit must be on `main`. Any other tag fails the run before the build.
 - On a manual run of the `Release Eddy docs` workflow from **Actions**, with the version you type. The version must be an existing tag, such as `5.0.0`. Any other version fails the run before the build. Without a version, the workflow takes the tag you run it from, or the `git describe` output of the branch, such as `5.0.0-3-g1a2b3c4`.
 
 The workflow runs only in `drevops/eddy`, and a newer run cancels 1 that's still in progress. The repository's GitHub Pages source must be **GitHub Actions**. The `github-pages` environment must let the tag or the branch you run from deploy.
@@ -166,16 +166,6 @@ The workflow reads the site URL and base path from the GitHub Pages settings, so
 
 A development build, such as a local build, the development site or a preview, serves the root `install.php` at `/install`. `src/installer.js` writes the file after the build, with the `git describe` output of its commit in place of the version placeholder, so its installer installs that commit. A release build serves no installer, and the docs release workflow fails when the build holds `/install`. On `eddy.drevops.com`, a Cloudflare redirect rule sends `/install` to the `install.php` of the latest GitHub release.
 
-`.github/workflows/eddy-release-installer.yml` attaches that installer when you publish a release:
-
-1. It builds the template archive with `git archive` and uploads it to the release as `eddy-<version>.tar.gz`. GitHub builds its own archives on demand, with no promise that their bytes stay the same, so the release publishes an archive of its own. A rerun reuses the uploaded archive, so a published installer keeps matching it.
-2. It reads `install.php` from the tag and stamps it with the version and with the URL and SHA-256 checksum of the archive. `scripts/stamp-installer.mjs` stamps the file with `stampInstaller()` from `src/installer.js`.
-3. It checks that the installer reports the release version, then installs an extension with it in an empty directory. The check fails when the installer didn't verify the archive.
-4. It writes `SHA256SUMS` for the installer and the archive, and signs it as `SHA256SUMS.asc` with the `GPG_PRIVATE_KEY` secret of the `release` environment.
-5. It checks the signature against `install-key.asc` and its pinned fingerprint with `.eddy/installer/verify-release.php`.
-6. It attests the installer, the archive and `SHA256SUMS`, uploads them with the signature and verifies the uploaded copies.
-7. For the latest release, it checks that `releases/latest/download/install.php` and `https://eddy.drevops.com/install` serve the uploaded installer.
-
-To attach the installer to an existing release again, run the `Release Eddy installer` workflow from **Actions** with the version. The version must be a tag whose `install.php` holds the archive placeholders, as every release from `5.1.0` does.
+`.github/workflows/eddy-release-installer.yml` builds that installer when you push a version tag. It stamps `install.php` with the version and with the URL and SHA-256 checksum of the template archive, through `scripts/stamp-installer.mjs` and `stampInstaller()` from `src/installer.js`. Then it signs and attests the files, attaches them to the draft release and publishes the release. [`RELEASING.md`](https://github.com/drevops/eddy/blob/main/RELEASING.md) covers each step and how to release a version.
 
 {/* cspell:ignore fraunces figtree */}

@@ -1,0 +1,101 @@
+name: Audit Eddy
+
+# Uploads OpenSSF Scorecard, CodeQL and Semgrep results to code scanning, so
+# findings show under Security > Code scanning.
+
+on:
+  schedule:
+    - cron: '37 5 * * 1'
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+      - 'feature/**'
+  branch_protection_rule:
+
+permissions: {}
+
+jobs:
+  eddy-audit-scorecard:
+    # Most Scorecard checks rate repository settings and history, which a pull
+    # request does not change.
+    if: github.repository == 'drevops/eddy' && github.event_name != 'pull_request'
+
+    runs-on: ubuntu-26.04
+
+    permissions:
+      actions: read # Read the workflow runs for the CI checks.
+      contents: read # Read the repository.
+      id-token: write # Sign the results published to the Scorecard API.
+      security-events: write # Upload the results to code scanning.
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Audit security practices with OpenSSF Scorecard
+        uses: ossf/scorecard-action@23f22cd43608bae7a1f1fa2603d7314dee9538a5 # v2.6.0
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          # The archive omits 'export-ignore' paths.
+          file_mode: git
+          publish_results: true
+
+      - name: Upload the Scorecard results to code scanning
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          sarif_file: results.sarif
+          category: scorecard
+
+  eddy-audit-code:
+    if: github.event_name != 'branch_protection_rule'
+
+    runs-on: ubuntu-26.04
+
+    permissions:
+      actions: read # Read the workflow run for the code scanning upload.
+      contents: read # Read the repository.
+      security-events: write # Upload the results to code scanning.
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      # The JavaScript extractor skips dot-directories below its root, so the
+      # documentation site and the asset scripts under '.eddy' are listed as
+      # roots of their own.
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          languages: actions,javascript-typescript
+          build-mode: none
+          config: |
+            paths:
+              - .github
+              - .eddy/docs
+              - .eddy/assets
+              - js
+              - jest.config.js
+              - .stylelintrc.js
+
+      - name: Scan code for vulnerabilities with CodeQL
+        uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+
+      # CodeQL has no PHP analyzer.
+      - name: Scan the installer for vulnerabilities with Semgrep
+        run: |
+          docker run --rm -v "${GITHUB_WORKSPACE}:/src" --workdir /src semgrep/semgrep:1.185.0@sha256:67518c174185a2043fdbed16c70631b79209499b3671178e7194379b48295a0d \
+            semgrep scan --config p/php --metrics=off --sarif --output semgrep.sarif install.php .eddy/installer
+
+      - name: Upload the Semgrep results to code scanning
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
