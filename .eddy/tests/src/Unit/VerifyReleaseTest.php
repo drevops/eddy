@@ -73,20 +73,35 @@ final class VerifyReleaseTest extends UnitTestCase {
     yield 'a missing file' => [self::cw(fn(string $dir) => File::remove($dir . '/installer.txt')), 'test-key.asc', '{release}/installer.txt, listed in SHA256SUMS, does not exist.'];
   }
 
-  public function testVerifyReleaseFailsWithoutKey(): void {
-    $this->expectException(\RuntimeException::class);
-    $this->expectExceptionMessage(self::$tmp . '/missing.asc does not exist.');
+  #[DataProvider('dataProviderVerifyReleaseFailsToFetchKey')]
+  public function testVerifyReleaseFailsToFetchKey(bool $empty_file): void {
+    if ($empty_file) {
+      File::dump(self::$tmp . '/key.asc', '');
+    }
 
-    verify_release($this->release, self::$tmp . '/missing.asc', self::TEST_FINGERPRINT);
+    $this->expectException(\RuntimeException::class);
+    $this->expectExceptionMessage('Could not fetch the Eddy signing key ' . self::TEST_FINGERPRINT . ' from ' . self::$tmp . '/key.asc.');
+
+    verify_release($this->release, self::$tmp . '/key.asc', self::TEST_FINGERPRINT);
+  }
+
+  public static function dataProviderVerifyReleaseFailsToFetchKey(): \Iterator {
+    yield 'a missing key' => [FALSE];
+    yield 'an empty key' => [TRUE];
   }
 
   public function testVerifyReleaseFailsOnInvalidKey(): void {
     File::dump(self::$tmp . '/invalid.asc', "Not a key.\n");
 
     $this->expectException(\RuntimeException::class);
-    $this->expectExceptionMessage('gpg could not read the public key ' . self::$tmp . '/invalid.asc');
+    $this->expectExceptionMessage('gpg could not read the public key from ' . self::$tmp . '/invalid.asc');
 
-    verify_release($this->release, self::$tmp . '/invalid.asc', self::TEST_FINGERPRINT);
+    try {
+      verify_release($this->release, self::$tmp . '/invalid.asc', self::TEST_FINGERPRINT);
+    }
+    finally {
+      $this->assertSame([], glob($this->release . '/.verify-release-*') ?: [], 'The fetched key and the keyring are removed.');
+    }
   }
 
   #[DataProvider('dataProviderVerifyReleaseFailsWithoutDirectory')]
@@ -165,20 +180,8 @@ final class VerifyReleaseTest extends UnitTestCase {
     $this->assertSame('Error: Pass the directory that holds SHA256SUMS and SHA256SUMS.asc.' . "\n", $output);
   }
 
-  public function testPublishedKeyHasPinnedFingerprint(): void {
-    $this->assertSame(self::locationsRealpath(self::rootDir() . '/install-key.asc'), self::locationsRealpath(self::installerConstant('PUBLIC_KEY')));
-
-    // The MSYS gpg of Git for Windows converts the paths in its arguments but
-    // not in GNUPGHOME, so the home directory is given relative to the
-    // working directory.
-    chdir(self::$tmp);
-    self::envSet('GNUPGHOME', 'gnupg');
-
-    $output = [];
-    exec('gpg --batch --show-keys --with-colons ' . escapeshellarg(self::installerConstant('PUBLIC_KEY')) . ' 2>&1', $output, $exit_code);
-
-    $this->assertSame(0, $exit_code, implode("\n", $output));
-    $this->assertContains('fpr:::::::::' . self::installerConstant('SIGNING_KEY_FINGERPRINT') . ':', $output, 'install-key.asc holds the public key of the pinned fingerprint.');
+  public function testSigningKeyUrlNamesPinnedFingerprint(): void {
+    $this->assertSame('https://keys.openpgp.org/vks/v1/by-fingerprint/' . self::installerConstant('SIGNING_KEY_FINGERPRINT'), self::installerConstant('SIGNING_KEY_URL'));
   }
 
   public function testDocumentationShowsPinnedFingerprint(): void {
@@ -191,7 +194,9 @@ final class VerifyReleaseTest extends UnitTestCase {
     }
 
     // The key commands take the fingerprint without spaces.
-    $this->assertStringContainsString(self::installerConstant('SIGNING_KEY_FINGERPRINT'), File::read(self::rootDir() . '/RELEASING.md'), 'RELEASING.md runs the key commands on the fingerprint of the signing key.');
+    foreach (['README.md', 'RELEASING.md', '.eddy/docs/content/installation.mdx'] as $file) {
+      $this->assertStringContainsString(self::installerConstant('SIGNING_KEY_FINGERPRINT'), File::read(self::rootDir() . '/' . $file), sprintf('%s runs the key commands on the fingerprint of the signing key.', $file));
+    }
   }
 
   protected static function fixture(string $name): string {

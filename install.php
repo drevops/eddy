@@ -1357,7 +1357,6 @@ function process_internal(string $extension_name, string $extension_machine_name
   @unlink('MIGRATION.md');
   @unlink('RELEASING.md');
   @unlink('SECURITY.md');
-  @unlink('install-key.asc');
   @unlink('logo.svg');
   @unlink('.github/CODEOWNERS');
 
