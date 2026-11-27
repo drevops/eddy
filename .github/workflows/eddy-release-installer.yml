@@ -111,27 +111,55 @@ jobs:
         working-directory: .release
         run: sha256sum install.php "${RELEASE_ARCHIVE}" > SHA256SUMS
 
-      - name: Import GPG key
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-        run: |
-          [ -n "${GPG_PRIVATE_KEY}" ] || { echo "::error::The GPG_PRIVATE_KEY secret of the 'release' environment is not set. RELEASING.md shows how to set it."; exit 1; }
-          echo "${GPG_PRIVATE_KEY}" | gpg --batch --import
-
-      # GPG_PASSPHRASE is needed only for a key that has a passphrase.
+      # keys.openpgp.org publishes an address on a key only after its owner
+      # confirms it, so the email lookup returns the key the maintainer
+      # confirmed. GPG_PASSPHRASE is needed only for a key that has a
+      # passphrase.
       - name: Sign checksums
         working-directory: .release
         env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          RELEASE_GPG_KEY_EMAIL: ${{ secrets.RELEASE_GPG_KEY_EMAIL }}
         run: |
+          [ -n "${GPG_PRIVATE_KEY}" ] || { echo "::error::The GPG_PRIVATE_KEY secret of the 'release' environment is not set. RELEASING.md shows how to set it."; exit 1; }
+          [ -n "${RELEASE_GPG_KEY_EMAIL}" ] || { echo "::error::The RELEASE_GPG_KEY_EMAIL secret of the 'release' environment is not set. RELEASING.md shows how to set it."; exit 1; }
+
+          echo "${GPG_PRIVATE_KEY}" | gpg --batch --import
+
+          secret_keys="$(gpg --batch --with-colons --list-secret-keys)"
+          if [ "$(grep -c '^sec:' <<< "${secret_keys}")" != 1 ]; then
+            echo '::error::GPG_PRIVATE_KEY must hold exactly 1 key.'
+            exit 1
+          fi
+          fingerprint="$(awk -F: '$1 == "fpr" { print $10; exit }' <<< "${secret_keys}")"
+
+          email_path="$(jq -rn --arg email "${RELEASE_GPG_KEY_EMAIL}" '$email | @uri')"
+          if ! curl -fsS --retry 3 -o "${RUNNER_TEMP}/release-key.asc" "https://keys.openpgp.org/vks/v1/by-email/${email_path}"; then
+            echo "::error::keys.openpgp.org has no key confirmed for the RELEASE_GPG_KEY_EMAIL address. Upload signing key ${fingerprint} there and confirm the address, as RELEASING.md describes."
+            exit 1
+          fi
+
+          published_key="$(gpg --batch --with-colons --show-keys "${RUNNER_TEMP}/release-key.asc")"
+          if [ "$(awk -F: '$1 == "fpr" { print $10; exit }' <<< "${published_key}")" != "${fingerprint}" ]; then
+            echo "::error::The key confirmed for the RELEASE_GPG_KEY_EMAIL address on keys.openpgp.org is not signing key ${fingerprint}."
+            exit 1
+          fi
+
+          gpg --batch --yes --dearmor --output "${RUNNER_TEMP}/release-key.gpg" "${RUNNER_TEMP}/release-key.asc"
+
           if [ -n "${GPG_PASSPHRASE}" ]; then
             echo "${GPG_PASSPHRASE}" | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 --detach-sign --armor SHA256SUMS
           else
             gpg --batch --yes --detach-sign --armor SHA256SUMS
           fi
 
-      # The signature must come from the pinned fingerprint of the published
-      # key, not from any key that the keyring holds.
+          # 'gpgv' trusts only the keyserver copy, so a signature by any other
+          # key in the runner's keyring fails.
+          gpgv --keyring "${RUNNER_TEMP}/release-key.gpg" SHA256SUMS.asc SHA256SUMS
+
+      # The signature must also come from the fingerprint that verifiers pin,
+      # which 'verify-release.php' fetches from keys.openpgp.org.
       - name: Verify signature
         run: php .eddy/installer/verify-release.php .release
 
