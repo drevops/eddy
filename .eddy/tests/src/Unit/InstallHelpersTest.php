@@ -1266,7 +1266,8 @@ final class InstallHelpersTest extends UnitTestCase {
 
     $output = $this->capture(fn() => $this->assertSame(1, install_from_archive(self::$sut, self::$sut . '/installer.php', [])));
 
-    $this->assertStringContainsString('does not match its SHA-256 checksum', $output);
+    $message = sprintf('The template from %s does not match its SHA-256 checksum: expected %s, got %s.', $archive, str_repeat('a', 64), hash_file('sha256', $archive));
+    $this->assertStringContainsString(self::withoutLayout($message), self::withoutLayout($output));
     $this->assertStringContainsString('Failed.', $output);
     $this->assertSame(['.', '..', 'installer.php'], scandir(self::$sut));
   }
@@ -1300,6 +1301,24 @@ final class InstallHelpersTest extends UnitTestCase {
     }
 
     self::assertStringNotContainsString('No SHA-256 checksum is known for', $output);
+  }
+
+  /**
+   * Remove the layout from text that the installer output may wrap.
+   *
+   * The output wraps at the terminal width and breaks a path without spaces
+   * anywhere, so the wrap points move with the length of the temp directory.
+   *
+   * @param string $text
+   *   The text.
+   *
+   * @return string
+   *   The text without colors, whitespace and the '|' or '│' gutter.
+   */
+  protected static function withoutLayout(string $text): string {
+    $plain = (string) preg_replace('/\e\[[0-9;]*m/', '', $text);
+
+    return (string) preg_replace('/[\s|│]+/u', '', $plain);
   }
 
   /**
