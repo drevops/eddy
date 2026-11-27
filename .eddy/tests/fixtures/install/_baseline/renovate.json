@@ -6,7 +6,8 @@
     "minimumReleaseAgePackageManagerSync": true,
     "internalChecksFilter": "strict",
     "lockFileMaintenance": {
-        "enabled": true
+        "enabled": true,
+        "automerge": false
     },
     "dependencyDashboard": {
         "enabled": true
