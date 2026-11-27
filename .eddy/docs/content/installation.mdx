@@ -118,27 +118,27 @@ To verify the installer with GPG in place of step 2, run the following commands 
 
 ```bash
 BASE=https://github.com/drevops/eddy/releases/latest/download
+KEY=7B8D3C9793E0FF52EAABFEC8E5322FD0EC15511E
+
 curl -fsSLO $BASE/SHA256SUMS
 curl -fsSLO $BASE/SHA256SUMS.asc
-curl -fsSLO https://raw.githubusercontent.com/drevops/eddy/main/install-key.asc
 
-gpg --show-keys --with-fingerprint install-key.asc
-gpg --import install-key.asc
+gpg --keyserver hkps://keys.openpgp.org --recv-keys $KEY
 gpg --verify SHA256SUMS.asc SHA256SUMS
 sha256sum --ignore-missing -c SHA256SUMS    # macOS: shasum -a 256 --ignore-missing -c SHA256SUMS
 ```
 
-The signing key is `Eddy Release Signing`, published as [`install-key.asc`](https://github.com/drevops/eddy/blob/main/install-key.asc) in the repository root. Its fingerprint is:
+The signing key is `Eddy Release Signing`, published on [keys.openpgp.org](https://keys.openpgp.org/search?q=7B8D3C9793E0FF52EAABFEC8E5322FD0EC15511E). Its fingerprint is:
 
 ```text
 7B8D 3C97 93E0 FF52 EAAB  FEC8 E532 2FD0 EC15 511E
 ```
 
-Confirm that `gpg --show-keys` prints this fingerprint and that `gpg --verify` reports a good signature from the same key. A good signature from any other key in your keyring proves nothing about Eddy. The last command prints `install.php: OK`.
+Confirm that `gpg --verify` reports a good signature from the key with this fingerprint. A good signature from any other key in your keyring proves nothing about Eddy. `gpg` also warns that the key isn't certified with a trusted signature, which is normal for a newly imported key. The last command prints `install.php: OK`.
 
 `/install` serves the latest release, which is never a pre-release. To install or verify a pre-release or an earlier release, such as `5.1.0`, download its files from `https://github.com/drevops/eddy/releases/download/5.1.0/`, with its version in place of `5.1.0`.
 
-Both checks trust the `drevops/eddy` repository. Anyone who controls the repository or the maintainer's account can rebuild the attestation and replace the key. Record the fingerprint on your first download and compare it on every later one.
+The attestation check trusts the `drevops/eddy` repository, so anyone who controls the repository or the maintainer's account can rebuild the attestation. The GPG check fetches the key from keys.openpgp.org by its fingerprint, so a change to the repository can't replace the key. Record the fingerprint on your first download and compare it on every later one.
 
 `install.php` embeds the [Prompty](https://github.com/AlexSkrypnyk/prompty) prompt library as minified code that's too long to review in a diff. On every pull request, CI compares that code with the signed Prompty release that its `// @embed-start` marker names. The check fails when 1 byte differs.
 
@@ -226,4 +226,4 @@ Confirm that the site works: `provision`, the last of these commands, prints the
 
 Then work through the rest of the [overview](#overview): coding standards, tests, the GitHub repository, branch protection and deployment.
 
-{/* cspell:ignore intoto */}
+{/* cspell:ignore intoto openpgp */}

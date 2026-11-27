@@ -80,12 +80,12 @@ The command runs the installer of the latest Eddy release, which downloads that 
 
    ```bash
    BASE=https://github.com/drevops/eddy/releases/latest/download
+   KEY=7B8D3C9793E0FF52EAABFEC8E5322FD0EC15511E
+
    curl -fsSLO $BASE/SHA256SUMS
    curl -fsSLO $BASE/SHA256SUMS.asc
-   curl -fsSLO https://raw.githubusercontent.com/drevops/eddy/main/install-key.asc
 
-   gpg --show-keys --with-fingerprint install-key.asc
-   gpg --import install-key.asc
+   gpg --keyserver hkps://keys.openpgp.org --recv-keys $KEY
    gpg --verify SHA256SUMS.asc SHA256SUMS
    sha256sum --ignore-missing -c SHA256SUMS    # macOS: shasum -a 256 --ignore-missing -c SHA256SUMS
    ```
