@@ -216,10 +216,10 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
 
-      # The JUnit results hold the time of each test. The p0 coverage artifact
-      # above already includes them.
+      # The JUnit results hold the time of each test, so a failed job uploads
+      # them too.
       - name: Upload test results as an artifact
-        if: ${{ !cancelled() && matrix.group != 'p0' }}
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: ${{ github.job }}-test-results-${{ matrix.os }}-${{ matrix.group }}-${{ matrix.backend }}
