@@ -2025,7 +2025,9 @@ final class InstallHelpersTest extends UnitTestCase {
     $ignored = [];
 
     foreach (explode("\n", File::read(self::rootDir() . '/.gitattributes')) as $line) {
-      if (preg_match('/^(\S+)\s+export-ignore$/', $line, $matches) === 1) {
+      // A pattern without a leading '/' also matches nested paths of the same
+      // name, which 'scaffold_paths()' leaves in the template.
+      if (preg_match('#^/(\S+)\s+export-ignore$#', $line, $matches) === 1) {
         $ignored[] = $matches[1];
       }
     }
@@ -2034,7 +2036,7 @@ final class InstallHelpersTest extends UnitTestCase {
     sort($expected);
     sort($ignored);
 
-    $this->assertSame($expected, $ignored, 'The root .gitattributes marks every template-only path export-ignore, and nothing else, so a release archive holds only what a project keeps.');
+    $this->assertSame($expected, $ignored, 'The root .gitattributes marks every template-only path export-ignore, anchored at the root, and nothing else, so a release archive holds only what a project keeps.');
   }
 
   #[DataProvider('dataProviderIsGitignored')]
