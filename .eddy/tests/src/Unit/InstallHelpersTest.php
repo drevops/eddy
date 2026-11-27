@@ -72,6 +72,7 @@ use function remove_tools;
 use function remove_unused_cspell_words;
 use function replace_string_content;
 use function run_installer;
+use function scaffold_paths;
 use function set_composer_dev_eddy_value;
 use function set_workflow_branches;
 use function sort_drupal_majors;
@@ -2005,7 +2006,10 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'chromedriver directory' => ['.chromedriver', TRUE, FALSE];
     yield 'eddy directory' => ['.eddy', TRUE, FALSE];
     yield 'eddy directory below the root' => ['docs/.eddy', TRUE, TRUE];
-    yield 'file named like the eddy directory' => ['.eddy', FALSE, TRUE];
+    yield 'scaffold file' => ['MIGRATION.md', FALSE, FALSE];
+    yield 'scaffold file below the root' => ['docs/MIGRATION.md', FALSE, TRUE];
+    yield 'scaffold workflow' => ['.github/workflows/eddy-test.yml', FALSE, FALSE];
+    yield 'shipped workflow' => ['.github/workflows/test.yml', FALSE, TRUE];
     yield 'file named like an excluded directory' => ['docs/vendor', FALSE, TRUE];
     yield 'claude directory' => ['.claude', TRUE, TRUE];
     yield 'claude settings' => ['.claude/settings.json', FALSE, TRUE];
@@ -2015,6 +2019,22 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'git-ignored directory' => ['build', TRUE, FALSE];
     yield 'git-ignored file' => ['.env', FALSE, FALSE];
     yield 'name that is git-ignored only at the root' => ['docs/build', TRUE, TRUE];
+  }
+
+  public function testScaffoldPathsAreExportIgnored(): void {
+    $ignored = [];
+
+    foreach (explode("\n", File::read(self::rootDir() . '/.gitattributes')) as $line) {
+      if (preg_match('/^(\S+)\s+export-ignore$/', $line, $matches) === 1) {
+        $ignored[] = $matches[1];
+      }
+    }
+
+    $expected = scaffold_paths();
+    sort($expected);
+    sort($ignored);
+
+    $this->assertSame($expected, $ignored, 'The root .gitattributes marks every template-only path export-ignore, and nothing else, so a release archive holds only what a project keeps.');
   }
 
   #[DataProvider('dataProviderIsGitignored')]

@@ -133,6 +133,7 @@ final class InstallProcessTest extends UnitTestCase {
       'SECURITY.md',
       'logo.svg',
       '.github/CODEOWNERS',
+      '.github/workflows/eddy-test.yml',
       '.eddy',
     ];
 

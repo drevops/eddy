@@ -1324,9 +1324,6 @@ function process_internal(string $extension_name, string $extension_machine_name
   uncomment_line('.gitattributes', 'renovate.json');
   uncomment_line('.gitattributes', 'scripts');
   uncomment_line('.gitattributes', 'tests');
-  remove_string_content('# Remove the lines below in your project.');
-  remove_string_content('LICENSE.txt         export-ignore');
-  remove_string_content('install.php         export-subst');
 
   // Rename extension files.
   @rename('your_extension.info.yml', $extension_machine_name . '.info.yml');
@@ -1352,19 +1349,11 @@ function process_internal(string $extension_name, string $extension_machine_name
   @rename('js/your_extension.test.js', 'js/' . $extension_machine_name . '.test.js');
   @rename('your_extension.libraries.yml', $extension_machine_name . '.libraries.yml');
 
-  // Remove scaffold files.
-  @unlink('LICENSE.txt');
-  @unlink('MIGRATION.md');
-  @unlink('RELEASING.md');
-  @unlink('SECURITY.md');
-  @unlink('logo.svg');
-  @unlink('.github/CODEOWNERS');
-
-  foreach (glob('.github/workflows/eddy-*.yml') ?: [] as $file) {
-    @unlink($file);
+  foreach (scaffold_paths() as $pattern) {
+    foreach (glob($pattern) ?: [] as $path) {
+      is_dir($path) ? remove_dir($path) : @unlink($path);
+    }
   }
-
-  remove_dir('.eddy');
 
   remove_tokens_with_content('META');
   remove_special_comments();
@@ -3098,13 +3087,34 @@ function get_marker_files(): array {
 }
 
 /**
+ * List the paths that only the template has.
+ *
+ * No generated project keeps them. A path is relative to the project root and
+ * may hold a '*' wildcard.
+ *
+ * @return list<string>
+ *   The paths.
+ */
+function scaffold_paths(): array {
+  return [
+    '.eddy',
+    '.github/CODEOWNERS',
+    '.github/workflows/eddy-*.yml',
+    'LICENSE.txt',
+    'MIGRATION.md',
+    'RELEASING.md',
+    'SECURITY.md',
+    'logo.svg',
+  ];
+}
+
+/**
  * Check whether a project path belongs to the template.
  *
  * The '.git', '.idea', '.chromedriver', 'vendor' and 'node_modules'
- * directories do not, at any depth. Neither does the root '.eddy' directory,
- * which 'process_internal()' deletes, so no pass reads its files. Neither
- * does anything in '.claude' except 'settings.json', nor any path that the
- * '.gitignore' rules ignore.
+ * directories do not, at any depth. Neither does a path of
+ * 'scaffold_paths()', since no project keeps it, nor anything in '.claude'
+ * except 'settings.json', nor any path that the '.gitignore' rules ignore.
  *
  * @param string $path
  *   The path, relative to the project root and separated with '/'.
@@ -3121,8 +3131,10 @@ function is_template_path(string $path, bool $is_dir, array $rules): bool {
     return FALSE;
   }
 
-  if ($is_dir && $path === '.eddy') {
-    return FALSE;
+  foreach (scaffold_paths() as $pattern) {
+    if (preg_match('#^' . gitignore_glob_regex($pattern) . '$#', $path) === 1) {
+      return FALSE;
+    }
   }
 
   // A project keeps local settings and skills in '.claude' too.
