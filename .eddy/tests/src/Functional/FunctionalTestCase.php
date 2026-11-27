@@ -23,6 +23,15 @@ abstract class FunctionalTestCase extends UnitTestCase {
     // Functional tests run the tooling as it runs on the host.
     $this->mockHost();
 
+    $this->sutPrepare();
+
+    chdir(self::$sut);
+  }
+
+  /**
+   * Fill the SUT with a copy of the working tree.
+   */
+  protected function sutPrepare(): void {
     self::locationsCopy('../../', self::$sut, [], [
       '*.png',
       '.idea',
@@ -37,8 +46,6 @@ abstract class FunctionalTestCase extends UnitTestCase {
     // The exclusions match directories only, so git-ignored root files are
     // removed after the copy.
     File::remove([self::$sut . '/.env', self::$sut . '/composer.lock']);
-
-    chdir(self::$sut);
   }
 
   /**

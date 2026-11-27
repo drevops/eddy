@@ -70,7 +70,7 @@ Only `p0` collects coverage in CI. The other groups run the tooling and `install
 
 ## Regenerate the snapshot fixtures
 
-`InstallTest` runs `install.php` end to end and compares the result with the fixtures in `.eddy/tests/fixtures/install/`: a `_baseline` directory plus 1 directory per dataset. The fixtures are generated, so never edit them by hand. The `.ignorecontent` rule files are the 1 exception: you write those by hand.
+`InstallTest` runs `install.php` end to end and compares the result with the fixtures in `.eddy/tests/fixtures/install/`: a `_baseline` directory plus 1 directory per dataset. It installs from a `git archive` of the tracked files, the way a release does, so run `git add` on a new file before you run the test. The fixtures are generated, so never edit them by hand. The `.ignorecontent` rule files are the 1 exception: you write those by hand.
 
 Regenerate the fixtures after any change that affects the output of `install.php`. A change confined to `.eddy/tooling/` doesn't, because the tooling isn't part of a generated project.
 
