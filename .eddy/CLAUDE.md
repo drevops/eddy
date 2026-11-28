@@ -31,7 +31,7 @@ A block opens with a line holding `#;< TOKEN` and closes with a line holding `#;
 
 In a Makefile recipe the `@` stops `make` from echoing the line, and the shell then reads it as a comment.
 
-For each token it strips, `remove_tokens_with_content()` deletes every block of that token, markers included, from every text file in the project. It walks the whole tree apart from `.git`, `.idea`, `.chromedriver`, `vendor` and `node_modules`, the paths the root `.gitignore` ignores, everything in `.claude` except `settings.json`, and the root `install.php`, so a block works in any other file you put it in. The marker-line cleanup walks the same files, and the replacements walk them plus `install.php`. Once the pruning is done, `remove_special_comments()` deletes every remaining line that contains `#;`, which clears the markers of the blocks that stayed.
+For each token it strips, `remove_tokens_with_content()` deletes every block of that token, markers included, from every text file in the project. It walks the whole tree apart from `.git`, `.idea`, `.chromedriver`, `vendor` and `node_modules`, the template-only paths of `scaffold_paths()`, such as `.eddy`, the paths the root `.gitignore` ignores, everything in `.claude` except `settings.json`, and the root `install.php`, so a block works in any other file you put it in. Leaving `.eddy` out keeps each of the dozens of passes to the few dozen files a project keeps, rather than the hundreds of fixtures, docs and tests of the scaffold. The marker-line cleanup walks the same files, and the replacements walk them plus `install.php`. Once the pruning is done, `remove_special_comments()` deletes every remaining line that contains `#;`, which clears the markers of the blocks that stayed.
 
 Both marker passes leave `install.php` out, because its code spells out the marker syntax: deleting its `#;` lines would break the copy that stays when "Remove this script" is answered no. `get_marker_files()` holds that exclusion, and `TemplateMarkersTest` skips `install.php` for the same reason.
 
@@ -153,13 +153,23 @@ The value comes from the `TEMPLATE_VERSION` constant. `.gitattributes` marks `in
 
 `curl -fsSL https://eddy.drevops.com/install > install.php && php install.php` installs Eddy. On eddy.drevops.com, `/install` redirects to the `install.php` attached to the latest release (see [Installer releases](#installer-releases)), so a release build of the docs site holds no installer. Every other build, such as the Netlify development site, serves the root `install.php` at `/install`: `.eddy/docs/src/installer.js` writes the copy after the build and replaces the placeholder with the `git describe` output of the checkout.
 
-In a directory that holds nothing but itself and hidden entries such as `.git`, `install.php` downloads the template archive of its own version and extracts it in place. Then it runs the extracted `install.php` with its own terminal, environment and arguments, so the release's own installer rewrites the release's files. `INSTALL_TEMPLATE_ARCHIVE` replaces the archive, which `InstallTest` points at an archive of the SUT. In a directory that holds other files and no `your_extension.info.yml`, `install.php` stops with an error, because its prompts would find no template files to rewrite there.
+In a directory that holds nothing but itself and hidden entries such as `.git`, `install.php` downloads the template archive of its own version and extracts it in place. Then it runs the extracted `install.php` with its own terminal, environment and arguments, so the release's own installer rewrites the release's files. `INSTALL_TEMPLATE_ARCHIVE` replaces the archive, which `InstallTest` points at the template archive it builds with `git archive`. In a directory that holds other files and no `your_extension.info.yml`, `install.php` stops with an error, because its prompts would find no template files to rewrite there.
 
 The installer of a release downloads the `eddy-<version>.tar.gz` asset of the release and refuses it unless its SHA-256 checksum matches. `eddy-release-installer.yml` builds that asset with `git archive`, and `stampInstaller()` writes its URL and checksum into the `TEMPLATE_ARCHIVE_URL` and `TEMPLATE_ARCHIVE_SHA256` constants. An installer without them, such as the development site's, downloads the GitHub archive of its version, or of `main` when it has none, and warns that the template isn't verified. With `INSTALL_TEMPLATE_ARCHIVE`, `INSTALL_TEMPLATE_ARCHIVE_SHA256` sets the checksum, and the same warning shows without it.
 
 The minified Prompty in `install.php` comes from a Prompty release. Re-embed it with the `embed.php` and `Prompty.php` of that release, after verifying both as the Prompty README describes, and keep `--compact`, `--no-killswitch` and `--no-payload-file`: `php embed.php --compact --no-killswitch --no-payload-file --source Prompty.php install.php`. Without `--no-payload-file`, `embed.php` writes `Prompty.compact.payload` into the repository root. The `eddy-test-embed` job checks the embedded code against the release that the `@embed-start` marker names.
 
-The `export-subst` line sits under "Remove the lines below in your project." in `.gitattributes`, and `install.php` removes it from generated projects.
+The `export-subst` line sits in the `META` block at the end of `.gitattributes`, which `install.php` removes from generated projects.
+
+## Release archive
+
+`scaffold_paths()` in `install.php` lists the paths that only the template has, such as `.eddy`, the `eddy-*.yml` workflows and `RELEASING.md`. `process_internal()` deletes them from every project, and the walks of `get_files()` skip them.
+
+The `META` block of `.gitattributes` marks each of them `export-ignore`, so `git archive` leaves them out. That covers the `eddy-<version>.tar.gz` release asset, the GitHub archive of a tag or a commit and **Download ZIP**, so every download holds only the files a project keeps. A clone and a repository created with **Use this template** still hold the scaffold, which is why the walks skip it too.
+
+A new template-only path goes in both places: `InstallHelpersTest` fails until `scaffold_paths()` and the `export-ignore` lines of `.gitattributes` agree.
+
+`InstallTest::testTemplateArchive()` checks the archive itself: it holds `install.php` and exactly the tracked files that `.gitattributes` doesn't mark `export-ignore`. The snapshot datasets install from that archive, so a new file that ships in it and that `install.php` keeps shows up in every fixture diff until it's either marked `export-ignore` or recorded as part of a generated project.
 
 ## Installer releases
 
@@ -279,6 +289,8 @@ The tooling reads a file through `file_read()` or `file_read_or_fail()`, which c
 **HARD RULE - never edit fixtures directly.** Files under `.eddy/tests/fixtures/install/` are generated artifacts, apart from the `.ignorecontent` rule files, which are edited by hand and kept as they are when the fixtures are regenerated. They must always be regenerated with the `update-snapshots` Composer script - run from inside `.eddy/tests` (see below) - after any source change that affects `install.php` output. Hand-editing a fixture risks drift between what the generator would produce and what is checked in - subsequent regenerations would then overwrite the manual edit and the failure mode would only surface in CI.
 
 `InstallTest` runs `install.php` end-to-end and diffs the output against `fixtures/install/_baseline/` plus one fixture directory per dataset (`gha_makefile/`, `theme/`, etc. - see `InstallTest::dataProviderInstall()`).
+
+Each dataset installs from the template archive, which the first test of the class builds with `git archive` the way a release does, so the fixtures hold what a download installs. The archive holds the tracked files of the working tree, uncommitted changes included, through `git stash create`, so a new file reaches it once it's added with `git add`. The installer that runs is the working tree's `install.php`, copied over the archive's, so the run exercises the code being changed. The download tests install from the same archive.
 
 When source files change (workflows, `scripts/`, `composer.dev.json`, `install.php`, Claude settings, etc.), the fixtures fall out of date. Regenerate them. `.eddy/tooling/` is not part of a generated project, so a change confined to it needs no regeneration.
 

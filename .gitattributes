@@ -64,6 +64,15 @@
 # tests              export-ignore
 #;> DEV_PHPUNIT
 
-# Remove the lines below in your project.
-LICENSE.txt         export-ignore
-install.php         export-subst text eol=lf
+#;< META
+# Template-only paths, which install.php removes from every project.
+/.eddy                        export-ignore
+/.github/CODEOWNERS           export-ignore
+/.github/workflows/eddy-*.yml export-ignore
+/LICENSE.txt                  export-ignore
+/MIGRATION.md                 export-ignore
+/RELEASING.md                 export-ignore
+/SECURITY.md                  export-ignore
+/logo.svg                     export-ignore
+install.php                  export-subst text eol=lf
+#;> META

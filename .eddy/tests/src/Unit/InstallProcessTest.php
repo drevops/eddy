@@ -46,7 +46,11 @@ final class InstallProcessTest extends UnitTestCase {
       '.phpunit.cache',
       '.artifacts',
       'build',
+      '.eddy',
     ]);
+    // No step reads '.eddy', so 1 file stands in for its hundreds and the
+    // cases can still assert that the directory goes.
+    File::copy($project_root . '/.eddy/CLAUDE.md', self::$sut . '/.eddy/CLAUDE.md');
     chdir(self::$sut);
   }
 
@@ -129,6 +133,7 @@ final class InstallProcessTest extends UnitTestCase {
       'SECURITY.md',
       'logo.svg',
       '.github/CODEOWNERS',
+      '.github/workflows/eddy-test.yml',
       '.eddy',
     ];
 

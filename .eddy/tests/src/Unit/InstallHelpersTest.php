@@ -72,6 +72,7 @@ use function remove_tools;
 use function remove_unused_cspell_words;
 use function replace_string_content;
 use function run_installer;
+use function scaffold_paths;
 use function set_composer_dev_eddy_value;
 use function set_workflow_branches;
 use function sort_drupal_majors;
@@ -1266,7 +1267,8 @@ final class InstallHelpersTest extends UnitTestCase {
 
     $output = $this->capture(fn() => $this->assertSame(1, install_from_archive(self::$sut, self::$sut . '/installer.php', [])));
 
-    $this->assertStringContainsString('does not match its SHA-256 checksum', $output);
+    $message = sprintf('The template from %s does not match its SHA-256 checksum: expected %s, got %s.', $archive, str_repeat('a', 64), hash_file('sha256', $archive));
+    $this->assertStringContainsString(self::withoutLayout($message), self::withoutLayout($output));
     $this->assertStringContainsString('Failed.', $output);
     $this->assertSame(['.', '..', 'installer.php'], scandir(self::$sut));
   }
@@ -1300,6 +1302,24 @@ final class InstallHelpersTest extends UnitTestCase {
     }
 
     self::assertStringNotContainsString('No SHA-256 checksum is known for', $output);
+  }
+
+  /**
+   * Remove the layout from text that the installer output may wrap.
+   *
+   * The output wraps at the terminal width and breaks a path without spaces
+   * anywhere, so the wrap points move with the length of the temp directory.
+   *
+   * @param string $text
+   *   The text.
+   *
+   * @return string
+   *   The text without colors, whitespace and the '|' or '│' gutter.
+   */
+  protected static function withoutLayout(string $text): string {
+    $plain = (string) preg_replace('/\e\[[0-9;]*m/', '', $text);
+
+    return (string) preg_replace('/[\s|│]+/u', '', $plain);
   }
 
   /**
@@ -1891,6 +1911,15 @@ final class InstallHelpersTest extends UnitTestCase {
       ['src/file.php', 'src/Sub/deep.php'],
     ];
 
+    yield 'eddy directory excluded at the root only' => [
+      function (string $dir): void {
+        File::dump($dir . '/.eddy/CLAUDE.md', 'maintenance');
+        File::dump($dir . '/docs/.eddy/notes.md', 'notes');
+      },
+      ['docs/.eddy/notes.md'],
+      ['.eddy/CLAUDE.md'],
+    ];
+
     yield 'nested excluded directories' => [
       function (string $dir): void {
         File::dump($dir . '/tools/vendor/autoload.php', 'vendor');
@@ -1975,6 +2004,13 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'nested vendor directory' => ['.eddy/tests/vendor', TRUE, FALSE];
     yield 'node_modules directory' => ['node_modules', TRUE, FALSE];
     yield 'chromedriver directory' => ['.chromedriver', TRUE, FALSE];
+    yield 'eddy directory' => ['.eddy', TRUE, FALSE];
+    yield 'eddy directory below the root' => ['docs/.eddy', TRUE, TRUE];
+    yield 'file named like the eddy directory' => ['.eddy', FALSE, FALSE];
+    yield 'scaffold file' => ['MIGRATION.md', FALSE, FALSE];
+    yield 'scaffold file below the root' => ['docs/MIGRATION.md', FALSE, TRUE];
+    yield 'scaffold workflow' => ['.github/workflows/eddy-test.yml', FALSE, FALSE];
+    yield 'shipped workflow' => ['.github/workflows/test.yml', FALSE, TRUE];
     yield 'file named like an excluded directory' => ['docs/vendor', FALSE, TRUE];
     yield 'claude directory' => ['.claude', TRUE, TRUE];
     yield 'claude settings' => ['.claude/settings.json', FALSE, TRUE];
@@ -1984,6 +2020,24 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'git-ignored directory' => ['build', TRUE, FALSE];
     yield 'git-ignored file' => ['.env', FALSE, FALSE];
     yield 'name that is git-ignored only at the root' => ['docs/build', TRUE, TRUE];
+  }
+
+  public function testScaffoldPathsAreExportIgnored(): void {
+    $ignored = [];
+
+    foreach (explode("\n", File::read(self::rootDir() . '/.gitattributes')) as $line) {
+      // A pattern without a leading '/' also matches nested paths of the same
+      // name, which 'scaffold_paths()' leaves in the template.
+      if (preg_match('#^/(\S+)\s+export-ignore$#', $line, $matches) === 1) {
+        $ignored[] = $matches[1];
+      }
+    }
+
+    $expected = scaffold_paths();
+    sort($expected);
+    sort($ignored);
+
+    $this->assertSame($expected, $ignored, 'The root .gitattributes marks every template-only path export-ignore, anchored at the root, and nothing else, so a release archive holds only what a project keeps.');
   }
 
   #[DataProvider('dataProviderIsGitignored')]
