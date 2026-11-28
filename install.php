@@ -3090,7 +3090,8 @@ function get_marker_files(): array {
  * List the paths that only the template has.
  *
  * No generated project keeps them. A path is relative to the project root and
- * may hold a '*' wildcard.
+ * may hold a '*' wildcard. It matches a file or a directory of that name, as
+ * an 'export-ignore' pattern in '.gitattributes' does.
  *
  * @return list<string>
  *   The paths.

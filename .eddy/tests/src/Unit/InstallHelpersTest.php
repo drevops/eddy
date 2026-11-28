@@ -2006,6 +2006,7 @@ final class InstallHelpersTest extends UnitTestCase {
     yield 'chromedriver directory' => ['.chromedriver', TRUE, FALSE];
     yield 'eddy directory' => ['.eddy', TRUE, FALSE];
     yield 'eddy directory below the root' => ['docs/.eddy', TRUE, TRUE];
+    yield 'file named like the eddy directory' => ['.eddy', FALSE, FALSE];
     yield 'scaffold file' => ['MIGRATION.md', FALSE, FALSE];
     yield 'scaffold file below the root' => ['docs/MIGRATION.md', FALSE, TRUE];
     yield 'scaffold workflow' => ['.github/workflows/eddy-test.yml', FALSE, FALSE];
